@@ -3,7 +3,7 @@
 
 The game can be played in the browser here:
 
-https://gamejam-2023.github.io/unity-2/
+https://budgetgamedev.github.io/BROcoli/
 
 ![](./doc/qr-code.png)
 
