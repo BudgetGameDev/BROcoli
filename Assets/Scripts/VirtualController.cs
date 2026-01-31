@@ -32,6 +32,7 @@ public class VirtualController : MonoBehaviour
     [SerializeField] private RectTransform joystickBackground;
     [SerializeField] private RectTransform joystickHandle;
     [SerializeField] private Button actionButton;
+    [SerializeField] private Button pauseButton;
     [SerializeField] private Canvas canvas;
 
     [Header("Joystick Settings")]
@@ -48,10 +49,16 @@ public class VirtualController : MonoBehaviour
     [Header("Portrait Position (centered but 25% lower for ergonomics)")]
     [SerializeField] private Vector2 portraitJoystickAnchor = new Vector2(0.5f, 0.25f);
     [SerializeField] private Vector2 portraitButtonAnchor = new Vector2(0.85f, 0.25f);
+    [SerializeField] private Vector2 portraitPauseButtonAnchor = new Vector2(0.92f, 0.92f);
 
     [Header("Landscape Position (left side for thumb)")]
     [SerializeField] private Vector2 landscapeJoystickAnchor = new Vector2(0.15f, 0.3f);
     [SerializeField] private Vector2 landscapeButtonAnchor = new Vector2(0.85f, 0.3f);
+    [SerializeField] private Vector2 landscapePauseButtonAnchor = new Vector2(0.95f, 0.9f);
+
+    [Header("Pause Button Visual")]
+    [SerializeField] private Color pauseButtonColor = new Color(0.2f, 0.2f, 0.25f, 0.85f);
+    [SerializeField] private Color pauseIconColor = new Color(1f, 1f, 1f, 0.95f);
 
     private Vector2 joystickInput;
     private bool isDragging;
@@ -60,6 +67,9 @@ public class VirtualController : MonoBehaviour
     private float lastOrientationCheck;
     private static Texture2D cachedRingTexture;
     private static Texture2D cachedHandleTexture;
+    private static Texture2D cachedPauseButtonTexture;
+    private bool isMobileCached;
+    private bool isMobileCacheSet;
 
     public Vector2 JoystickInput => joystickInput;
     public static VirtualController Instance { get; private set; }
@@ -73,13 +83,17 @@ public class VirtualController : MonoBehaviour
         
         Debug.Log($"[VirtualController] Awake - Platform: {Application.platform}, DeviceType: {SystemInfo.deviceType}, isMobile: {isMobile}");
         
-        // On mobile platforms, always stay active (don't hide)
-        // On non-mobile, hide but don't deactivate here - let the scene/InputManager control visibility
+        // On non-mobile, hide the joystick controls but keep pause button
+        // On mobile, show everything
         if (!isMobile)
         {
-            Debug.Log("[VirtualController] Not mobile - will remain inactive unless activated by InputManager");
-            // Don't call SetActive(false) here - if we got here, something already activated us
-            // Just return early without setting up touch
+            Debug.Log("[VirtualController] Not mobile - hiding joystick controls, keeping pause button");
+            // Hide joystick and action button on desktop
+            if (joystickBackground != null)
+                joystickBackground.gameObject.SetActive(false);
+            if (actionButton != null)
+                actionButton.gameObject.SetActive(false);
+            // Pause button stays visible and managed by PauseMenu
             return;
         }
         
@@ -103,10 +117,32 @@ public class VirtualController : MonoBehaviour
         }
         #endif
         
+        // Show joystick on mobile
+        if (joystickBackground != null)
+            joystickBackground.gameObject.SetActive(true);
+        // Action button stays hidden for now (user requested)
+        if (actionButton != null)
+            actionButton.gameObject.SetActive(false);
+        // Pause button visible on mobile
+        if (pauseButton != null)
+            pauseButton.gameObject.SetActive(true);
+            
         Debug.Log("[VirtualController] Visible and ready for mobile");
     }
     
     private bool IsMobilePlatform()
+    {
+        // Return cached value if already determined
+        if (isMobileCacheSet)
+            return isMobileCached;
+            
+        bool result = CheckIsMobilePlatform();
+        isMobileCached = result;
+        isMobileCacheSet = true;
+        return result;
+    }
+    
+    private bool CheckIsMobilePlatform()
     {
         // For WebGL builds, use JavaScript-based detection (most reliable for Safari on iOS)
         #if UNITY_WEBGL && !UNITY_EDITOR
@@ -184,16 +220,22 @@ public class VirtualController : MonoBehaviour
         
         // In Unity Editor, check if we're simulating a mobile device
         #if UNITY_EDITOR
-        // Check if device simulator is active
+        // Check if device simulator is active - UnityEngine.Device namespace provides simulated values
         if (UnityEngine.Device.SystemInfo.deviceType == DeviceType.Handheld)
         {
-            Debug.Log("[VirtualController] Editor Device Simulator detected");
+            Debug.Log("[VirtualController] Editor Device Simulator detected (Handheld)");
             return true;
         }
         // Also enable if we detect touch capability in editor (Device Simulator)
-        if (Input.touchSupported)
+        if (UnityEngine.Device.SystemInfo.deviceType != DeviceType.Desktop)
         {
-            Debug.Log("[VirtualController] Touch supported in editor");
+            Debug.Log("[VirtualController] Editor Device Simulator detected (non-Desktop)");
+            return true;
+        }
+        // Check Application.isMobilePlatform through Device namespace
+        if (UnityEngine.Device.Application.isMobilePlatform)
+        {
+            Debug.Log("[VirtualController] Editor reports mobile platform via Device.Application");
             return true;
         }
         #endif
@@ -203,13 +245,24 @@ public class VirtualController : MonoBehaviour
 
     private void Start()
     {
-        SetupActionButton();
+        bool isMobile = IsMobilePlatform();
+        
+        // Always setup pause button (it handles its own visibility)
+        SetupPauseButton();
+        SetupPauseButtonVisual();
+        
         // Clear cached textures to ensure colors are current (important after code changes)
         cachedRingTexture = null;
         cachedHandleTexture = null;
-        SetupJoystickVisuals();
-        wasPortrait = Screen.height > Screen.width;
-        UpdateLayoutForOrientation();
+        cachedPauseButtonTexture = null;
+        
+        if (isMobile)
+        {
+            SetupActionButton();
+            SetupJoystickVisuals();
+            wasPortrait = Screen.height > Screen.width;
+            UpdateLayoutForOrientation();
+        }
     }
     
     private void SetupJoystickVisuals()
@@ -355,9 +408,146 @@ public class VirtualController : MonoBehaviour
         texture.Apply();
         return texture;
     }
+    
+    private void SetupPauseButton()
+    {
+        if (pauseButton != null)
+        {
+            // Find PauseMenu and connect to it
+            PauseMenu pauseMenu = FindAnyObjectByType<PauseMenu>();
+            if (pauseMenu != null)
+            {
+                pauseButton.onClick.RemoveAllListeners();
+                pauseButton.onClick.AddListener(() => pauseMenu.TogglePause());
+                Debug.Log("[VirtualController] Pause button connected to PauseMenu");
+            }
+            else
+            {
+                Debug.LogWarning("[VirtualController] PauseMenu not found - pause button won't work");
+            }
+        }
+    }
+    
+    private void SetupPauseButtonVisual()
+    {
+        if (pauseButton == null) return;
+        
+        Image buttonImage = pauseButton.GetComponent<Image>();
+        if (buttonImage != null)
+        {
+            if (cachedPauseButtonTexture == null)
+            {
+                cachedPauseButtonTexture = CreatePauseIconTexture(64, pauseButtonColor, pauseIconColor);
+            }
+            Sprite pauseSprite = Sprite.Create(cachedPauseButtonTexture, new Rect(0, 0, 64, 64), new Vector2(0.5f, 0.5f), 100f);
+            buttonImage.sprite = pauseSprite;
+            buttonImage.type = Image.Type.Simple;
+            buttonImage.color = Color.white;
+        }
+        
+        // Hide any text child (we use icon instead)
+        TMPro.TMP_Text textComponent = pauseButton.GetComponentInChildren<TMPro.TMP_Text>();
+        if (textComponent != null)
+        {
+            textComponent.gameObject.SetActive(false);
+        }
+        // Also check for legacy Text
+        Text legacyText = pauseButton.GetComponentInChildren<Text>();
+        if (legacyText != null)
+        {
+            legacyText.gameObject.SetActive(false);
+        }
+    }
+    
+    /// <summary>
+    /// Creates a circular pause button with pause icon (two vertical bars)
+    /// </summary>
+    private Texture2D CreatePauseIconTexture(int size, Color bgColor, Color iconColor)
+    {
+        Texture2D texture = new Texture2D(size, size, TextureFormat.RGBA32, false);
+        texture.filterMode = FilterMode.Bilinear;
+        
+        float center = size / 2f;
+        float radius = center - 2f;
+        
+        // Pause icon dimensions (two vertical bars)
+        float barWidth = size * 0.12f;
+        float barHeight = size * 0.4f;
+        float barSpacing = size * 0.12f; // Space between bars
+        float barLeft1 = center - barSpacing - barWidth;
+        float barRight1 = center - barSpacing;
+        float barLeft2 = center + barSpacing;
+        float barRight2 = center + barSpacing + barWidth;
+        float barTop = center + barHeight / 2f;
+        float barBottom = center - barHeight / 2f;
+        
+        Color[] pixels = new Color[size * size];
+        
+        for (int y = 0; y < size; y++)
+        {
+            for (int x = 0; x < size; x++)
+            {
+                float dx = x - center;
+                float dy = y - center;
+                float distance = Mathf.Sqrt(dx * dx + dy * dy);
+                
+                // Check if inside circle
+                if (distance > radius + 1f)
+                {
+                    pixels[y * size + x] = Color.clear;
+                }
+                else if (distance > radius - 1f)
+                {
+                    // Anti-aliased edge
+                    float alpha = Mathf.Clamp01(radius + 1f - distance);
+                    pixels[y * size + x] = new Color(bgColor.r, bgColor.g, bgColor.b, bgColor.a * alpha);
+                }
+                else
+                {
+                    // Inside circle - check if on pause icon bars
+                    bool onBar1 = x >= barLeft1 && x <= barRight1 && y >= barBottom && y <= barTop;
+                    bool onBar2 = x >= barLeft2 && x <= barRight2 && y >= barBottom && y <= barTop;
+                    
+                    if (onBar1 || onBar2)
+                    {
+                        // Add slight anti-aliasing at bar edges
+                        float edgeAA = 1f;
+                        if (onBar1)
+                        {
+                            float distToEdge = Mathf.Min(
+                                x - barLeft1, barRight1 - x,
+                                y - barBottom, barTop - y
+                            );
+                            edgeAA = Mathf.Clamp01(distToEdge);
+                        }
+                        else
+                        {
+                            float distToEdge = Mathf.Min(
+                                x - barLeft2, barRight2 - x,
+                                y - barBottom, barTop - y
+                            );
+                            edgeAA = Mathf.Clamp01(distToEdge);
+                        }
+                        pixels[y * size + x] = Color.Lerp(bgColor, iconColor, edgeAA);
+                    }
+                    else
+                    {
+                        pixels[y * size + x] = bgColor;
+                    }
+                }
+            }
+        }
+        
+        texture.SetPixels(pixels);
+        texture.Apply();
+        return texture;
+    }
 
     private void Update()
     {
+        // Only process joystick input on mobile
+        if (!IsMobilePlatform()) return;
+        
         // Check for orientation changes using screen dimensions (more reliable than Screen.orientation)
         // Only check every 0.1 seconds to avoid constant recalculations
         if (Time.unscaledTime - lastOrientationCheck > 0.1f)
@@ -497,6 +687,7 @@ public class VirtualController : MonoBehaviour
         
         Vector2 joystickAnchor = isPortrait ? portraitJoystickAnchor : landscapeJoystickAnchor;
         Vector2 buttonAnchor = isPortrait ? portraitButtonAnchor : landscapeButtonAnchor;
+        Vector2 pauseAnchor = isPortrait ? portraitPauseButtonAnchor : landscapePauseButtonAnchor;
 
         if (joystickBackground != null)
         {
@@ -515,6 +706,16 @@ public class VirtualController : MonoBehaviour
             buttonRect.anchoredPosition = Vector2.zero;
             // Force layout rebuild
             LayoutRebuilder.ForceRebuildLayoutImmediate(buttonRect);
+        }
+        
+        if (pauseButton != null)
+        {
+            RectTransform pauseRect = pauseButton.GetComponent<RectTransform>();
+            pauseRect.anchorMin = pauseAnchor;
+            pauseRect.anchorMax = pauseAnchor;
+            pauseRect.anchoredPosition = Vector2.zero;
+            // Force layout rebuild
+            LayoutRebuilder.ForceRebuildLayoutImmediate(pauseRect);
         }
         
         // Force canvas update

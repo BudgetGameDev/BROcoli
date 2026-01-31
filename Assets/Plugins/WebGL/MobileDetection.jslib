@@ -114,6 +114,85 @@ mergeInto(LibraryManager.library, {
     var buffer = _malloc(bufferSize);
     stringToUTF8(infoStr, buffer, bufferSize);
     return buffer;
+  },
+  
+  // ============ PWA Functions ============
+  
+  // Check if running as installed PWA (standalone mode)
+  IsPWAInstalled: function() {
+    var isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
+                       window.matchMedia('(display-mode: fullscreen)').matches ||
+                       window.navigator.standalone === true ||
+                       document.referrer.includes('android-app://');
+    
+    console.log('[PWA] IsPWAInstalled: ' + isStandalone);
+    return isStandalone ? 1 : 0;
+  },
+  
+  // Show the PWA install prompt/wizard
+  ShowPWAInstallPrompt: function() {
+    console.log('[PWA] ShowPWAInstallPrompt called from Unity');
+    if (window.PWAInstall) {
+      window.PWAInstall.show();
+    } else {
+      console.warn('[PWA] PWAInstall not available');
+    }
+  },
+  
+  // Request fullscreen mode
+  RequestFullscreen: function() {
+    console.log('[PWA] RequestFullscreen called from Unity');
+    var elem = document.documentElement;
+    if (elem.requestFullscreen) {
+      elem.requestFullscreen().catch(function(err) {
+        console.warn('[PWA] Fullscreen request failed:', err);
+      });
+    } else if (elem.webkitRequestFullscreen) {
+      elem.webkitRequestFullscreen();
+    } else if (elem.msRequestFullscreen) {
+      elem.msRequestFullscreen();
+    }
+  },
+  
+  // Exit fullscreen mode
+  ExitFullscreen: function() {
+    console.log('[PWA] ExitFullscreen called from Unity');
+    if (document.exitFullscreen) {
+      document.exitFullscreen();
+    } else if (document.webkitExitFullscreen) {
+      document.webkitExitFullscreen();
+    } else if (document.msExitFullscreen) {
+      document.msExitFullscreen();
+    }
+  },
+  
+  // Check if currently in fullscreen
+  IsFullscreen: function() {
+    var isFullscreen = document.fullscreenElement != null ||
+                       document.webkitFullscreenElement != null ||
+                       document.msFullscreenElement != null;
+    return isFullscreen ? 1 : 0;
+  },
+  
+  // Get PWA display mode
+  GetPWADisplayMode: function() {
+    var mode = 'browser';
+    if (window.matchMedia('(display-mode: fullscreen)').matches) {
+      mode = 'fullscreen';
+    } else if (window.matchMedia('(display-mode: standalone)').matches) {
+      mode = 'standalone';
+    } else if (window.matchMedia('(display-mode: minimal-ui)').matches) {
+      mode = 'minimal-ui';
+    } else if (window.navigator.standalone === true) {
+      mode = 'standalone-ios';
+    }
+    
+    console.log('[PWA] Display mode: ' + mode);
+    
+    var bufferSize = lengthBytesUTF8(mode) + 1;
+    var buffer = _malloc(bufferSize);
+    stringToUTF8(mode, buffer, bufferSize);
+    return buffer;
   }
   
 });

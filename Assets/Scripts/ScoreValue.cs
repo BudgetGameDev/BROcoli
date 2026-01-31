@@ -5,19 +5,24 @@ public class ScoreValue : MonoBehaviour
 {
     [SerializeField] TextMeshProUGUI scoreText;
     private GameStates gameStates;
-    // Update is called once per frame
 
     void Awake()
     {
         gameStates = FindFirstObjectByType<GameStates>();
+        
+        // Disable raycast target - this text doesn't need to receive clicks
+        // and prevents MissingReferenceException if destroyed
+        if (scoreText != null)
+        {
+            scoreText.raycastTarget = false;
+        }
     }
     
     void Update()
     {
-        if (scoreText?.text != null)
+        if (scoreText != null && gameStates != null)
         {
             scoreText.text = gameStates.score.ToString();
         }
     }
-
 }

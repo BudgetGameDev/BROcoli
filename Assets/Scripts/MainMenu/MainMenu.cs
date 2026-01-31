@@ -6,6 +6,44 @@ using UnityEngine.InputSystem;
 
 public class MainMenu : MonoBehaviour
 {
+    [Header("PWA Install Button (Optional)")]
+    [Tooltip("Assign a button to show/hide based on PWA install status")]
+    public GameObject installAppButton;
+    
+    void Start()
+    {
+        // Hide install button if already running as installed PWA
+        if (installAppButton != null)
+        {
+            bool showInstallButton = !PWAHelper.IsInstalledAsPWA;
+            installAppButton.SetActive(showInstallButton);
+            
+            if (PWAHelper.IsInstalledAsPWA)
+            {
+                Debug.Log("[MainMenu] Running as installed PWA - hiding install button");
+            }
+        }
+        
+        PWAHelper.LogStatus();
+    }
+    
+    /// <summary>
+    /// Shows the PWA install wizard. Hook this up to an "Install App" button.
+    /// </summary>
+    public void ShowInstallPrompt()
+    {
+        Debug.Log("[MainMenu] Install App button pressed");
+        PWAHelper.ShowInstallPrompt();
+    }
+    
+    /// <summary>
+    /// Toggles fullscreen mode. Useful for players who didn't install as PWA.
+    /// </summary>
+    public void ToggleFullscreen()
+    {
+        Debug.Log("[MainMenu] Fullscreen toggle pressed");
+        PWAHelper.ToggleFullscreen();
+    }
   
     public void playGame()
     {
