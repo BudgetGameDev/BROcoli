@@ -54,7 +54,7 @@ public class BoostHandler : MonoBehaviour
 
         Vector2 playerPos = _player.position;
 
-        int side = UnityEngine.Random.Range(0, 4);
+        int side = Random.Range(0, 4);
 
         return side switch
         {

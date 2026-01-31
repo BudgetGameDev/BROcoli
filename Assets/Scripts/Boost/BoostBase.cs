@@ -18,16 +18,21 @@ public abstract class BoostBase : MonoBehaviour
 
     private void OnTriggerEnter2D(Collider2D other)
     {
+        Debug.Log($"BoostBase OnTriggerEnter2D with {other.name}");
         if (other.CompareTag("Player") == false)
         {
             return;
         }
 
-        if (other.TryGetComponent(out PlayerStats stats) == false)
+        PlayerStats stats = other.GetComponentInChildren<PlayerStats>();
+
+        if (stats == null)
         {
+            Debug.Log("PlayerStats component not found on player!");
             return;
         }
 
+        Debug.Log($"Applying boost: {GetType().Name} with amount {Amount}");
         Apply(stats);
         Destroy(gameObject);
     }

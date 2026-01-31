@@ -7,6 +7,9 @@ TagManager:
   - clue_spawn_point
   - Enemy
   - Projectile
+  - Experience
+  - Health Bar
+  - Experience Bar
   layers:
   - Default
   - TransparentFX

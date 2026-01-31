@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-[RequireComponent(typeof(PlayerStats))]
 public class PlayerController : MonoBehaviour
 {
     [SerializeField] private GameObject _projectilePrefab;
@@ -54,8 +53,7 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private float enemyDetectionRadius = 12f;
     [SerializeField] private LayerMask enemyLayer;
 
-    [SerializeField] private GameObject _playerStatsObject;
-    private PlayerStats playerStats;
+    [SerializeField] private PlayerStats playerStats;
     private bool gameOver;
 
     public bool getGameOver() {
@@ -101,35 +99,6 @@ public class PlayerController : MonoBehaviour
         }
         
         RawInput = targetInput;
-    }
-
-    private void Awake()
-    {
-<<<<<<< HEAD
-        _health = Mathf.Min(_health + amount, _maxHealth);
-    }
-
-    public void AddDamage(int amount)
-    {
-        _damage += amount;
-
-        CheckIfGameIsOver();
-    }
-    
-    public bool TakeMeleeDamage(float damage)
-    {
-        if (Time.time < _nextAllowedDamage) return false;
-        
-        audio1.clip = pestAudio;
-        audio1.Play();
-        _health -= (int)damage;
-        _nextAllowedDamage = Time.time + _invulnerabilityDuration;
-        healthBar.updateHealthBar(_health, _maxHealth);
-        CheckIfGameIsOver();
-        return true;
-=======
-        playerStats = _playerStatsObject.GetComponent<PlayerStats>();
->>>>>>> 1a83212 (add boosts and playerstats)
     }
 
     // Start is called before the first frame update
