@@ -17,9 +17,9 @@ MonoBehaviour:
     weight: 1
     startAfterSeconds: 0
     endAfterSeconds: 30
-  - prefab: {fileID: 5305235475111336575, guid: a1b1ad73dad81da40bc8ee4f28847395, type: 3}
+  - prefab: {fileID: 5305235475111336575, guid: 252bf1c5216b7f44baed7f1758618826, type: 3}
     weight: 1
-    startAfterSeconds: 10
+    startAfterSeconds: 0
     endAfterSeconds: 30
   overrideSpawnerValues: 1
   baseSpawnInterval: 1
