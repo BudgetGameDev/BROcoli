@@ -113,6 +113,11 @@ public class PlayerController : MonoBehaviour
         CheckIfGameIsOver();
     }
 
+    public void AddAttackSpeed(float multiplier)
+    {
+        _attackSpeed *= multiplier;
+    }
+
     // Start is called before the first frame update
     void Start()
     {

@@ -1,15 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using UnityEngine;
+﻿using UnityEngine;
 
 public class BoostHandler : MonoBehaviour
 {
     [SerializeField] GameStates _gameState;
-    [SerializeField] private float _spawnRateInterval = 10f;
+    [SerializeField] private float _spawnRateInterval = 3f;
     [SerializeField] private Transform _player;
     [SerializeField] private GameObject[] _boosters;
-    [SerializeField] private float _spawnDistance = 10f;
+    [SerializeField] private float _spawnDistance = 2f;
     [SerializeField] private Camera _mainCamera;
 
     private float _nextSpawnTime = 0f;
@@ -43,6 +40,8 @@ public class BoostHandler : MonoBehaviour
 
         Vector2 spawnPos = GetOffscreenPosition();
         GameObject prefab = _boosters[UnityEngine.Random.Range(0, _boosters.Length)];
+
+        Debug.Log($"Spawning booster {prefab.name} at {spawnPos}");
 
         Instantiate(prefab, spawnPos, Quaternion.identity);
     }
