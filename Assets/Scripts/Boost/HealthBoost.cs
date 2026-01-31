@@ -5,10 +5,12 @@ using UnityEngine;
 
 public class HealthBoost : BoostBase
 {
+    public override float Amount => _healthAmount;
+
     [SerializeField] private int _healthAmount = 20;
 
-    public override void Apply(PlayerController player)
+    public override void Apply(PlayerStats stats)
     {
-        player.AddHealth(_healthAmount);
+        stats.ApplyBoost(this);
     }
 }

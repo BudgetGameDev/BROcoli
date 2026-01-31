@@ -15,7 +15,7 @@ GameObject:
   - component: {fileID: 8204872680391715397}
   m_Layer: 0
   m_Name: Exp_gain
-  m_TagString: Untagged
+  m_TagString: Experience
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0

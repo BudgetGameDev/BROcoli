@@ -3,7 +3,7 @@ using UnityEngine.SocialPlatforms.Impl;
 
 public abstract class EnemyBase : MonoBehaviour
 {
-    [SerializeField] HealthBar healthBar;
+    [SerializeField] Bar healthBar;
     [SerializeField] ExpGain expGainPrefab;
 
     public bool healthBarVisable = false;
@@ -44,16 +44,16 @@ public abstract class EnemyBase : MonoBehaviour
 
         if (alwaysShowHealthBar) return;
 
-        healthBar.updateHealthBar(Health, MaxHealth);
+        healthBar.UpdateBar(Health, MaxHealth);
         healthBarVisable = true;
         healthBarTimer = healthBarDisplayDuration;
-        healthBar.showHealthBar();
+        healthBar.ShowBar();
     }
 
     void Start()
     {
         GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
-        HealthBar _healthBar = FindFirstObjectByType<HealthBar>();
+        Bar _healthBar = FindFirstObjectByType<Bar>();
 
         if (playerObj != null)
             player = playerObj.transform;
@@ -63,16 +63,16 @@ public abstract class EnemyBase : MonoBehaviour
 
         if (healthBar != null)
         {
-            healthBar.updateHealthBar(Health, MaxHealth);
+            healthBar.UpdateBar(Health, MaxHealth);
             if (alwaysShowHealthBar)
             {
                 healthBarVisable = true;
-                healthBar.showHealthBar();
+                healthBar.ShowBar();
             }
             else
             {
                 healthBarVisable = false;
-                healthBar.hideHealthBar();
+                healthBar.HideBar();
             }
         }
     }
@@ -88,7 +88,7 @@ public abstract class EnemyBase : MonoBehaviour
             if (healthBarTimer <= 0f)
             {
                 healthBarVisable = false;
-                healthBar.hideHealthBar();
+                healthBar.HideBar();
             }
         }
     }
