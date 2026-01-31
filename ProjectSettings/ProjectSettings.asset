@@ -12,8 +12,8 @@ PlayerSettings:
   targetDevice: 2
   useOnDemandResources: 0
   accelerometerFrequency: 60
-  companyName: global-gamejam-2023-0
-  productName: global-gamejam-2023-0
+  companyName: BudgetGameDev
+  productName: BROcoli
   defaultCursor: {fileID: 0}
   cursorHotspot: {x: 0, y: 0}
   m_SplashScreenBackgroundColor: {r: 0.13725491, g: 0.12156863, b: 0.1254902, a: 1}
@@ -166,9 +166,9 @@ PlayerSettings:
   androidMaxAspectRatio: 2.1
   androidMinAspectRatio: 1
   applicationIdentifier:
-    Android: com.globalgamejam20230.globalgamejam20230
-    Standalone: com.global-gamejam-2023-0.global-gamejam-2023-0
-    iPhone: com.global-gamejam-2023-0.global-gamejam-2023-0
+    Android: com.BudgetGameDev.BROcoli
+    Standalone: com.BudgetGameDev.BROcoli
+    iPhone: com.BudgetGameDev.BROcoli
   buildNumber:
     Standalone: 0
     VisionOS: 0

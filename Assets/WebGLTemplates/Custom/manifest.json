@@ -1,6 +1,6 @@
 {
-  "name": "Game",
-  "short_name": "Game",
+  "name": "BROcoli",
+  "short_name": "BROcoli",
   "description": "An immersive WebGL game experience",
   "start_url": "./index.html",
   "display": "fullscreen",

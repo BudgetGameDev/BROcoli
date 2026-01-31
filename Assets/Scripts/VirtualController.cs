@@ -78,17 +78,37 @@ public class VirtualController : MonoBehaviour
     {
         Instance = this;
         
-        // Use RuntimePlatform for 100% reliable platform detection
-        bool isMobile = IsMobilePlatform();
+        // Check if user explicitly chose to show/hide virtual controller via main menu
+        // 0 = hide (Play button), 1 = show (Play on Mobile button), -1 = not set (use auto-detection)
+        int showControllerPref = PlayerPrefs.GetInt("ShowVirtualController", -1);
         
-        Debug.Log($"[VirtualController] Awake - Platform: {Application.platform}, DeviceType: {SystemInfo.deviceType}, isMobile: {isMobile}");
-        
-        // On non-mobile, hide the joystick controls but keep pause button
-        // On mobile, show everything
-        if (!isMobile)
+        bool showController;
+        if (showControllerPref == 0)
         {
-            Debug.Log("[VirtualController] Not mobile - hiding joystick controls, keeping pause button");
-            // Hide joystick and action button on desktop
+            // User pressed "Play" - hide virtual controller
+            showController = false;
+            Debug.Log("[VirtualController] User selected 'Play' - hiding virtual controller");
+        }
+        else if (showControllerPref == 1)
+        {
+            // User pressed "Play on Mobile" - show virtual controller
+            showController = true;
+            Debug.Log("[VirtualController] User selected 'Play on Mobile' - showing virtual controller");
+        }
+        else
+        {
+            // No preference set, use platform auto-detection
+            showController = IsMobilePlatform();
+            Debug.Log($"[VirtualController] No preference set, auto-detecting: {(showController ? "mobile" : "desktop")}");
+        }
+        
+        Debug.Log($"[VirtualController] Awake - Platform: {Application.platform}, DeviceType: {SystemInfo.deviceType}, showController: {showController}");
+        
+        // Hide or show based on user choice or platform detection
+        if (!showController)
+        {
+            Debug.Log("[VirtualController] Hiding joystick controls, keeping pause button");
+            // Hide joystick and action button
             if (joystickBackground != null)
                 joystickBackground.gameObject.SetActive(false);
             if (actionButton != null)
@@ -117,17 +137,17 @@ public class VirtualController : MonoBehaviour
         }
         #endif
         
-        // Show joystick on mobile
+        // Show joystick
         if (joystickBackground != null)
             joystickBackground.gameObject.SetActive(true);
         // Action button stays hidden for now (user requested)
         if (actionButton != null)
             actionButton.gameObject.SetActive(false);
-        // Pause button visible on mobile
+        // Pause button visible
         if (pauseButton != null)
             pauseButton.gameObject.SetActive(true);
             
-        Debug.Log("[VirtualController] Visible and ready for mobile");
+        Debug.Log("[VirtualController] Visible and ready");
     }
     
     private bool IsMobilePlatform()

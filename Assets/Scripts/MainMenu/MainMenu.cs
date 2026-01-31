@@ -47,10 +47,18 @@ public class MainMenu : MonoBehaviour
   
     public void playGame()
     {
-        Debug.Log("Play Game has been pressed");
-        //SceneManager.LoadScene(1);
+        Debug.Log("Play Game has been pressed - Virtual Controller HIDDEN");
+        PlayerPrefs.SetInt("ShowVirtualController", 0);
+        PlayerPrefs.Save();
         SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex + 1);
-        // SceneManager.LoadScene("Game");
+    }
+    
+    public void playGameMobile()
+    {
+        Debug.Log("Play Game (Mobile) has been pressed - Virtual Controller SHOWN");
+        PlayerPrefs.SetInt("ShowVirtualController", 1);
+        PlayerPrefs.Save();
+        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex + 1);
     }
 
     public void GoToSettingsMenu()
@@ -68,7 +76,7 @@ public class MainMenu : MonoBehaviour
     public void quitGame()
     {
         Debug.Log("Quit Game has been pressed");
-        Application.Quit();
+        PWAHelper.Quit();
     }
 
     public void Update() {

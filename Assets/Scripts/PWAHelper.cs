@@ -25,6 +25,9 @@ public static class PWAHelper
     
     [DllImport("__Internal")]
     private static extern string GetPWADisplayMode();
+    
+    [DllImport("__Internal")]
+    private static extern void QuitApplication();
 #endif
 
     /// <summary>
@@ -136,5 +139,26 @@ public static class PWAHelper
     public static void LogStatus()
     {
         Debug.Log($"[PWAHelper] Status - Installed: {IsInstalledAsPWA}, Fullscreen: {IsInFullscreen}, Mode: {DisplayMode}");
+    }
+    
+    /// <summary>
+    /// Quit/Close the application. Works on WebGL (browser/PWA), desktop, and mobile.
+    /// </summary>
+    public static void Quit()
+    {
+        Debug.Log("[PWAHelper] Quit requested");
+        
+#if UNITY_WEBGL && !UNITY_EDITOR
+        // For WebGL, use JavaScript to close the tab/PWA
+        QuitApplication();
+#else
+        // For standalone builds, use Application.Quit
+        Application.Quit();
+        
+        // In editor, stop play mode
+        #if UNITY_EDITOR
+        UnityEditor.EditorApplication.isPlaying = false;
+        #endif
+#endif
     }
 }

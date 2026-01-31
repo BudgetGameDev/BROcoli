@@ -193,6 +193,43 @@ mergeInto(LibraryManager.library, {
     var buffer = _malloc(bufferSize);
     stringToUTF8(mode, buffer, bufferSize);
     return buffer;
+  },
+  
+  // Quit/Close the application (works for PWA and browser)
+  QuitApplication: function() {
+    console.log('[PWA] QuitApplication called from Unity');
+    
+    // Check if running as installed PWA
+    var isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
+                       window.matchMedia('(display-mode: fullscreen)').matches ||
+                       window.navigator.standalone === true;
+    
+    // Try multiple methods to close
+    // Method 1: window.close() - works for PWAs and popups
+    try {
+      window.close();
+    } catch (e) {
+      console.log('[PWA] window.close() failed:', e);
+    }
+    
+    // Method 2: For iOS PWA, we need to navigate away as window.close() may not work
+    // Using a small delay to ensure the close attempt happened first
+    setTimeout(function() {
+      // If we're still here, the close didn't work
+      // On mobile PWAs, try navigating to about:blank or a close page
+      if (window.navigator.standalone === true) {
+        // iOS Safari standalone mode - navigate to blank
+        window.location.href = 'about:blank';
+      } else if (isStandalone) {
+        // Android PWA - try close again or navigate
+        window.open('', '_self');
+        window.close();
+      } else {
+        // Regular browser - show message since we can't close tabs we didn't open
+        // Navigate to blank page as fallback
+        window.location.href = 'about:blank';
+      }
+    }, 100);
   }
   
 });
