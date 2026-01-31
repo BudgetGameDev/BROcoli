@@ -6,8 +6,8 @@ public class AttackSpeedBoost : BoostBase
 
     [SerializeField] private float _attackSpeedMultiplier = 0.6f;
 
-    public override void Apply(PlayerController player)
+    public override void Apply(PlayerStats stats)
     {
-        player.AddAttackSpeed(_attackSpeedMultiplier);
+        stats.ApplyBoost(this);
     }
 }

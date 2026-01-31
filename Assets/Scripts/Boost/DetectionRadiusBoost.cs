@@ -6,8 +6,8 @@ public class DetectionRadiusBoost : BoostBase
 
     [SerializeField] private float _detectionRadius = 2f;
 
-    public override void Apply(PlayerController player)
+    public override void Apply(PlayerStats stats)
     {
-        player.AddAttackSpeed(_detectionRadius);
+        stats.ApplyBoost(this);
     }
 }

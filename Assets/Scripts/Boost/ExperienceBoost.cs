@@ -6,8 +6,8 @@ public class ExperienceBoost : BoostBase
 
     [SerializeField] private float _experience = 10f;
 
-    public override void Apply(PlayerController player)
+    public override void Apply(PlayerStats stats)
     {
-        player.AddAttackSpeed(_experience);
+        stats.ApplyBoost(this);
     }
 }

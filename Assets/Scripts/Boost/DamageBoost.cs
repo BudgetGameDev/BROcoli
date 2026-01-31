@@ -6,8 +6,8 @@ public class DamageBoost : BoostBase
 
     [SerializeField] private float _damage = 10f;
 
-    public override void Apply(PlayerController player)
+    public override void Apply(PlayerStats stats)
     {
-        player.AddAttackSpeed(_damage);
+        stats.ApplyBoost(this);
     }
 }

@@ -11,10 +11,10 @@ GameObject:
   - component: {fileID: 5578405749821461798}
   - component: {fileID: 6421616807745494299}
   - component: {fileID: 4322895420277670855}
-  - component: {fileID: 1023883858881934825}
+  - component: {fileID: 8541452214304037478}
   - component: {fileID: 2904784604095676032}
   m_Layer: 0
-  m_Name: AttackSpeedBoost
+  m_Name: BoostMovementSpeed
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -98,7 +98,7 @@ CircleCollider2D:
   m_CompositeOrder: 0
   m_Offset: {x: 0, y: 0}
   m_Radius: 0.5
---- !u!114 &1023883858881934825
+--- !u!114 &8541452214304037478
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -107,12 +107,12 @@ MonoBehaviour:
   m_GameObject: {fileID: 1283658744970203081}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 27c4c747c8513ff479a58aa4422b747d, type: 3}
+  m_Script: {fileID: 11500000, guid: e14c6ab897b6ef948a147003d4d25246, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::HealthBoost
+  m_EditorClassIdentifier: Assembly-CSharp::MovementSpeedBoost
   _body: {fileID: 6421616807745494299}
   _collider: {fileID: 4322895420277670855}
-  _healthAmount: 20
+  _movementSpeed: 2
 --- !u!212 &2904784604095676032
 SpriteRenderer:
   serializedVersion: 2
@@ -163,7 +163,7 @@ SpriteRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_Sprite: {fileID: 7482667652216324306, guid: abd943e7cb840ee498a488a30ffff759, type: 3}
-  m_Color: {r: 1, g: 0.30571645, b: 0, a: 1}
+  m_Color: {r: 0.30902803, g: 0, b: 0.745283, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0

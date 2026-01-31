@@ -6,8 +6,8 @@ public class MovementSpeedBoost : BoostBase
 
     [SerializeField] private float _movementSpeed = 2f;
 
-    public override void Apply(PlayerController player)
+    public override void Apply(PlayerStats stats)
     {
-        player.AddAttackSpeed(_movementSpeed);
+        stats.ApplyBoost(this);
     }
 }

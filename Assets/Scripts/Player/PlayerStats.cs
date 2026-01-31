@@ -1,20 +1,22 @@
-﻿using UnityEngine;
+﻿using System.Linq;
+using UnityEngine;
 
 public class PlayerStats : MonoBehaviour
 {
-    public bool IsAlive => _currentHealth > 0f;
+    public bool IsAlive => CurrentHealth > 0f;
 
-    public float _currentHealth { get; private set; } = 100f;
-    public float _maxHealth { get; private set; } = 100f;
-    public float _attackSpeed { get; private set; }  = 0.6f;
-    public float _damage { get; private set; }  = 10f;
-    public float _movementSpeed { get; private set; }  = 10f;
-    public float _experience { get; private set; }  = 0f;
-    public float _level { get; private set; }  = 1f;
-    public float _detectionRadius { get; private set; }  = 12f;
+    public float CurrentHealth { get; private set; } = 100f;
+    public float CurrentMaxHealth { get; private set; } = 100f;
+    public float CurrentAttackSpeed { get; private set; }  = 0.6f;
+    public float CurrentDamage { get; private set; }  = 10f;
+    public float CurrentMovementSpeed { get; private set; }  = 10f;
+    public float CurrentExperience { get; private set; }  = 0f;
+    public float CurrentMaxExperience { get; private set; } = 100f;
+    public float CurrentLevel { get; private set; }  = 1f;
+    public float CurrentDetectionRadius { get; private set; }  = 12f;
 
-    [SerializeField] private HealthBar _healthBar;
-    [SerializeField] private HealthBar _experienceBar;
+    [SerializeField] private Bar _healthBar;
+    [SerializeField] private Bar _experienceBar;
 
     public void ApplyBoost(BoostBase boost)
     {
@@ -44,41 +46,84 @@ public class PlayerStats : MonoBehaviour
         }
     }
 
+    public void ApplyDamage(float damage)
+    {
+        AddHealth(-damage);
+    }
+
+    public void ApplyExperience(float experience)
+    {
+        AddExperience(experience);
+    }
+
+    public void ResetStats()
+    {
+        CurrentHealth = 100f;
+        CurrentMaxHealth = 100f;
+        CurrentAttackSpeed = 0.6f;
+        CurrentDamage = 10f;
+        CurrentMovementSpeed = 10f;
+        CurrentExperience = 0f;
+        CurrentMaxExperience = 100f;
+        CurrentLevel = 1f;
+        CurrentDetectionRadius = 12f;
+        _healthBar.UpdateBar(CurrentHealth, CurrentMaxHealth);
+        _experienceBar.UpdateBar(CurrentExperience, CurrentMaxExperience);
+    }
+
+    private void Start()
+    {
+        ResetStats();
+    }
+
+    private void LevelUp()
+    {
+        CurrentLevel += 1f;
+
+        CurrentHealth += 20f;
+        CurrentMaxHealth += 20f;
+        CurrentAttackSpeed *= 0.9f;
+        CurrentDamage += 10f;
+        CurrentMovementSpeed += 10f;
+        CurrentExperience -= CurrentMaxExperience;
+        CurrentMaxExperience *= 1.2f;
+        CurrentLevel += 1f;
+        CurrentDetectionRadius += 2f;
+    }
+
     private void AddHealth(float amount)
     {
-        _currentHealth = Mathf.Min(_currentHealth + amount, _maxHealth);
-        _healthBar.updateHealthBar(_currentHealth, _maxHealth);
+        CurrentHealth = Mathf.Min(CurrentHealth + amount, CurrentMaxHealth);
+        _healthBar.UpdateBar(CurrentHealth, CurrentMaxHealth);
     }
 
     private void AddAttackSpeed(float amount)
     {
-        _attackSpeed *= amount;
+        CurrentAttackSpeed *= amount;
     }
 
     private void AddDamage(float amount)
     {
-        _damage += amount;
+        CurrentDamage += amount;
     }
 
     private void AddMovementSpeed(float amount)
     {
-        _movementSpeed += amount;
+        CurrentMovementSpeed += amount;
     }
 
     private void AddExperience(float amount) {
-        _experience += amount;
-        float experienceForNextLevel = _level * 100f;
-        if (_experience >= experienceForNextLevel) {
-            _level += 1f;
-            _experience -= experienceForNextLevel;
-            // Optionally increase max health or other stats on level up
+        CurrentExperience += amount;
+        if (CurrentExperience >= CurrentMaxExperience)
+        {
+            LevelUp();
         }
 
-        _experienceBar.updateHealthBar(_experience, experienceForNextLevel);
+        _experienceBar.UpdateBar(CurrentExperience, CurrentMaxExperience);
     }
 
     private void AddDetectionRadius(float amount)
     {
-        _detectionRadius += amount;
+        CurrentDetectionRadius += amount;
     }
 }
