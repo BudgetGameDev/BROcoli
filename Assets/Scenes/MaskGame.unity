@@ -439,7 +439,7 @@ MonoBehaviour:
   _movementSpeed: 10
   _detectionRadius: 12
   _attackSpeed: 5
-  _invulnerabilityDuration: 5
+  _invulnerabilityDuration: 0.5
   _projectilePrefab: {fileID: 1837598268356835202, guid: 97ef7898519700045a98d30c334b6c2f, type: 3}
   _animator: {fileID: 44608736}
   _audio1: {fileID: 1280303364}

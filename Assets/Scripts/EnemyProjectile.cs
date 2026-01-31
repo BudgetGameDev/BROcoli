@@ -29,6 +29,23 @@ public class EnemyProjectile : MonoBehaviour
 
     void OnTriggerEnter2D(Collider2D other)
     {
-       
+        // Check if hit player
+        if (other.CompareTag("Player"))
+        {
+            if (other.TryGetComponent(out PlayerController player))
+            {
+                player.AddDamage((int)damage);
+            }
+            
+            // Play enemy projectile hit sound
+            ProceduralEnemyProjectileHitAudio.PlayHit(transform.position, ProceduralEnemyProjectileHitAudio.EnemyHitSoundType.PlasmaImpact, 0.45f);
+            
+            Destroy(gameObject);
+        }
+        // Destroy on hitting walls/obstacles (but not other enemies)
+        else if (!other.CompareTag("Enemy") && !other.isTrigger)
+        {
+            Destroy(gameObject);
+        }
     }
 }

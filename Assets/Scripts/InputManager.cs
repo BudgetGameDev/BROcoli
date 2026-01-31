@@ -51,11 +51,13 @@ public class InputManager : Singleton<InputManager>
     }
 
     private void OnEnable() {
-        touchAction.Enable();
+        if (touchAction != null)
+            touchAction.Enable();
     }
 
     private void OnDisable() {
-        touchAction.Disable();
+        if (touchAction != null)
+            touchAction.Disable();
     }
 
     void Start()

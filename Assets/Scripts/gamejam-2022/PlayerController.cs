@@ -11,7 +11,7 @@ public class PlayerController : MonoBehaviour
     private float _nextAllowedAttack = 0.0f;
     private float _nextAllowedDamage = 0.0f;
     [SerializeField] private float _attackSpeed = 0.8f;
-    [SerializeField] private float _invulnerabilityDuration = 5.0f;
+    [SerializeField] private float _invulnerabilityDuration = 0.5f; // Time between enemy hits
     [SerializeField] private float _damage = 10.0f;
     [SerializeField] private float _health = 100;
     [SerializeField] private float _maxHealth = 100;
@@ -111,6 +111,19 @@ public class PlayerController : MonoBehaviour
         _damage += amount;
 
         CheckIfGameIsOver();
+    }
+    
+    public bool TakeMeleeDamage(float damage)
+    {
+        if (Time.time < _nextAllowedDamage) return false;
+        
+        audio1.clip = pestAudio;
+        audio1.Play();
+        _health -= (int)damage;
+        _nextAllowedDamage = Time.time + _invulnerabilityDuration;
+        healthBar.updateHealthBar(_health, _maxHealth);
+        CheckIfGameIsOver();
+        return true;
     }
 
     // Start is called before the first frame update
@@ -276,26 +289,22 @@ public class PlayerController : MonoBehaviour
 
     void OnTriggerEnter2D(Collider2D other) {
         Debug.Log("Collided with " + other.name);
-        if (other.CompareTag("Enemy") == true)
-        {
-            float otherDamage = other.GetComponent<EnemyBase>()?.Damage ?? 0f;
-            audio1.clip = pestAudio;
-            audio1.Play();
-            _health -= (int)otherDamage;
-            _nextAllowedDamage = Time.time + _invulnerabilityDuration;
-        }
-        if (other.CompareTag("Projectile") == true)
+        // Enemy melee damage is now handled by EnemyScript distance-based system
+        if (other.CompareTag("Projectile") == true && Time.time >= _nextAllowedDamage)
         {
             float otherDamage = other.GetComponent<EnemyProjectile>()?.damage ?? 0f;
             audio1.clip = collideAudio;
             audio1.Play();
             _health -= (int)otherDamage;
             _nextAllowedDamage = Time.time + _invulnerabilityDuration;
+            healthBar.updateHealthBar(_health, _maxHealth);
+            CheckIfGameIsOver();
         }
-
-        healthBar.updateHealthBar(_health, _maxHealth);
-
-        CheckIfGameIsOver();
+    }
+    
+    void OnTriggerStay2D(Collider2D other) {
+        // Enemy melee damage is now handled by EnemyScript distance-based system
+        // Only projectiles use trigger-based damage
     }
 
     private void CheckIfGameIsOver()

@@ -15,6 +15,8 @@ public abstract class EnemyBase : MonoBehaviour
     float healthBarTimer = 0f;
     float healthBarDisplayDuration = 2f;
     
+    private static bool isQuitting = false;
+    
     [Header("Enemy Stats")]
     public float Speed = 2f;
     public float Health = 50f;
@@ -22,6 +24,15 @@ public abstract class EnemyBase : MonoBehaviour
 
     [Header("Physics Tuning")]
     public float acceleration = 25f; // how quickly they reach max speed
+    
+    [Header("Separation")]
+    [SerializeField] protected float separationRadius = 2.5f;   // How close before pushing away
+    [SerializeField] protected float separationForce = 50f;     // Strength of push (higher for stronger effect)
+    [SerializeField] protected float playerSeparationRadius = 1.2f; // Minimum distance from player (smaller to allow attacks)
+    [SerializeField] protected float playerSeparationForce = 40f; // How hard to avoid player overlap (reduced for melee)
+
+    [Header("Walk Audio (Optional)")]
+    [SerializeField] protected ProceduralEnemyWalkAudio walkAudio;
 
     public Transform player;
 
@@ -34,6 +45,10 @@ public abstract class EnemyBase : MonoBehaviour
         gameStates = FindFirstObjectByType<GameStates>();
         rb = GetComponent<Rigidbody2D>();
         player = GameObject.FindGameObjectWithTag("Player")?.transform;
+        
+        // Try to get walk audio component if not assigned
+        if (walkAudio == null)
+            walkAudio = GetComponent<ProceduralEnemyWalkAudio>();
     }
 
     public void TakeDamage(float damage)
@@ -92,9 +107,18 @@ public abstract class EnemyBase : MonoBehaviour
             }
         }
     }
+    
+    protected virtual void FixedUpdate()
+    {
+        // Apply separation from other enemies and player in physics step
+        ApplySeparation();
+    }
 
     void OnDestroy()
     {
+        // Don't spawn objects if the application is quitting or scene is unloading
+        if (isQuitting) return;
+        
         Debug.Log("Destroyed enemy, adding score: " + ScoreValue);
 
         if (gameStates)
@@ -118,6 +142,64 @@ public abstract class EnemyBase : MonoBehaviour
                 int expAmount = ScoreValue; // Example: 1 exp per 10 max health
                 expGainComp.Init(expAmount);
             }
+        }
+    }
+    
+    void OnApplicationQuit()
+    {
+        isQuitting = true;
+    }
+    
+    /// <summary>
+    /// Apply separation forces to prevent enemies from overlapping each other and the player
+    /// </summary>
+    protected virtual void ApplySeparation()
+    {
+        if (rb == null) return;
+        
+        Vector2 separationVelocity = Vector2.zero;
+        Vector2 myPos = rb.position;
+        
+        // Separation from other enemies (strong - prevent stacking)
+        Collider2D[] nearbyEnemies = Physics2D.OverlapCircleAll(myPos, separationRadius, LayerMask.GetMask("Enemy"));
+        foreach (Collider2D col in nearbyEnemies)
+        {
+            if (col.gameObject == gameObject) continue;
+            
+            Rigidbody2D otherRb = col.attachedRigidbody;
+            if (otherRb == null) continue;
+            
+            Vector2 toMe = myPos - otherRb.position;
+            float dist = toMe.magnitude;
+            
+            if (dist > 0.001f && dist < separationRadius)
+            {
+                // Stronger push when closer (quadratic falloff for more pronounced effect)
+                float t = 1f - (dist / separationRadius);
+                float strength = t * t; // Quadratic for stronger close-range push
+                separationVelocity += toMe.normalized * strength * separationForce;
+            }
+        }
+        
+        // Gentle separation from player - just prevent complete overlap, allow melee attacks
+        if (player != null)
+        {
+            Vector2 toMe = myPos - (Vector2)player.position;
+            float dist = toMe.magnitude;
+            
+            // Only push if extremely close (inside player)
+            if (dist > 0.001f && dist < playerSeparationRadius)
+            {
+                float t = 1f - (dist / playerSeparationRadius);
+                float strength = t * t; // Quadratic - gentle push
+                separationVelocity += toMe.normalized * strength * playerSeparationForce;
+            }
+        }
+        
+        // Apply separation as velocity change
+        if (separationVelocity.sqrMagnitude > 0.01f)
+        {
+            rb.linearVelocity += separationVelocity * Time.fixedDeltaTime;
         }
     }
 }
