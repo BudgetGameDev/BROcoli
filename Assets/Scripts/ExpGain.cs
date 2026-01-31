@@ -6,7 +6,7 @@ public class ExpGain : MonoBehaviour
 {
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     public float lifeTime = 30f;
-    private int expAmountGain;
+    public int expAmountGain;
     private Rigidbody2D rb;
     private Collider2D col;
     private GameStates gameStates;

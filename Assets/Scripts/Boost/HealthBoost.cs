@@ -7,8 +7,8 @@ public class HealthBoost : BoostBase
 {
     [SerializeField] private int _healthAmount = 20;
 
-    public override void Apply(PlayerController player)
+    public override void Apply(PlayerStats stats)
     {
-        player.AddHealth(_healthAmount);
+        stats.ApplyBoost(this);
     }
 }

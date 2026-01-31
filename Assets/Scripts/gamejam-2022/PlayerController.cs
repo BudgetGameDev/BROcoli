@@ -4,17 +4,21 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
+[RequireComponent(typeof(PlayerStats))]
 public class PlayerController : MonoBehaviour
 {
-    [SerializeField] HealthBar healthBar;
     [SerializeField] private GameObject _projectilePrefab;
     private float _nextAllowedAttack = 0.0f;
     private float _nextAllowedDamage = 0.0f;
+<<<<<<< HEAD
     [SerializeField] private float _attackSpeed = 0.8f;
     [SerializeField] private float _invulnerabilityDuration = 0.5f; // Time between enemy hits
     [SerializeField] private float _damage = 10.0f;
     [SerializeField] private float _health = 100;
     [SerializeField] private float _maxHealth = 100;
+=======
+    [SerializeField] private float _invulnerabilityDuration = 5.0f;
+>>>>>>> 1a83212 (add boosts and playerstats)
 
     [SerializeField] private int walkSpeed = 100;
     private Rigidbody2D body;
@@ -49,11 +53,9 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private int speed = 10;
     [SerializeField] private float enemyDetectionRadius = 12f;
     [SerializeField] private LayerMask enemyLayer;
-    [SerializeField] private LineRenderer lineRenderer;
-    [SerializeField] private float cooldownSeconds = 5f;
 
-    private float nextAllowedTime;
-
+    [SerializeField] private GameObject _playerStatsObject;
+    private PlayerStats playerStats;
     private bool gameOver;
 
     public bool getGameOver() {
@@ -101,8 +103,9 @@ public class PlayerController : MonoBehaviour
         RawInput = targetInput;
     }
 
-    public void AddHealth(int amount)
+    private void Awake()
     {
+<<<<<<< HEAD
         _health = Mathf.Min(_health + amount, _maxHealth);
     }
 
@@ -124,6 +127,9 @@ public class PlayerController : MonoBehaviour
         healthBar.updateHealthBar(_health, _maxHealth);
         CheckIfGameIsOver();
         return true;
+=======
+        playerStats = _playerStatsObject.GetComponent<PlayerStats>();
+>>>>>>> 1a83212 (add boosts and playerstats)
     }
 
     // Start is called before the first frame update
@@ -131,7 +137,6 @@ public class PlayerController : MonoBehaviour
     {
         body = gameObject.GetComponent<Rigidbody2D>();
         gameOver = false;
-        healthBar.updateHealthBar(_health, _maxHealth);
         
         // Get original camera offset before moving anything
         Camera mainCam = Camera.main;
@@ -150,12 +155,6 @@ public class PlayerController : MonoBehaviour
         {
             mainCam.transform.position = spawnCenter + cameraOffset;
         }
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-
     }
 
     void FixedUpdate()
@@ -237,7 +236,7 @@ public class PlayerController : MonoBehaviour
 
         Debug.Log("Closest enemy found: " + closestEnemy.name);
 
-        _nextAllowedAttack = Time.time + _attackSpeed;
+        _nextAllowedAttack = Time.time + playerStats.CurrentAttackSpeed;
         FireAtEnemy(closestEnemy);
     }
 
@@ -278,7 +277,7 @@ public class PlayerController : MonoBehaviour
             Quaternion.identity
         );
 
-        proj.GetComponent<Projectile>().Init(direction, _damage);
+        proj.GetComponent<Projectile>().Init(direction, playerStats.CurrentDamage);
 
         // Play procedural gun sound
         if (gunAudio != null)
@@ -289,6 +288,7 @@ public class PlayerController : MonoBehaviour
 
     void OnTriggerEnter2D(Collider2D other) {
         Debug.Log("Collided with " + other.name);
+<<<<<<< HEAD
         // Enemy melee damage is now handled by EnemyScript distance-based system
         if (other.CompareTag("Projectile") == true && Time.time >= _nextAllowedDamage)
         {
@@ -305,11 +305,44 @@ public class PlayerController : MonoBehaviour
     void OnTriggerStay2D(Collider2D other) {
         // Enemy melee damage is now handled by EnemyScript distance-based system
         // Only projectiles use trigger-based damage
+=======
+
+        if (_nextAllowedDamage <= Time.time)
+        {
+            switch (other.tag)
+            {
+                case "Enemy":
+                    audio1.clip = pestAudio;
+                    audio1.Play();
+
+                    playerStats.ApplyDamage(other.GetComponent<EnemyBase>()?.Damage ?? 0f);
+
+                    _nextAllowedDamage = Time.time + _invulnerabilityDuration;
+                    break;
+                case "Projectile":
+                    audio1.clip = collideAudio;
+                    audio1.Play();
+
+                    playerStats.ApplyDamage(other.GetComponent<EnemyBase>()?.Damage ?? 0f);
+
+                    _nextAllowedDamage = Time.time + _invulnerabilityDuration;
+                    break;
+                case "Experience":
+                    audio1.clip = waterAudio;
+                    audio1.Play();
+
+                    playerStats.ApplyExperience(other.GetComponent<ExpGain>()?.expAmountGain ?? 0f);
+                    break;
+            }
+        }
+
+        CheckIfGameIsOver();
+>>>>>>> 1a83212 (add boosts and playerstats)
     }
 
     private void CheckIfGameIsOver()
     {
-        if (_health <= 0f)
+        if (playerStats.IsAlive == false)
         {
             Destroy(gameObject);
             setGameOver();
