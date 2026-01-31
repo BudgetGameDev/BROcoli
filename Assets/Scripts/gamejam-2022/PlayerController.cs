@@ -113,7 +113,18 @@ public class PlayerController : MonoBehaviour
         CheckIfGameIsOver();
     }
     
+    [Header("Knockback")]
+    [SerializeField] private float knockbackForce = 8f;
+    [SerializeField] private float knockbackDuration = 0.15f;
+    private float knockbackTimer = 0f;
+    private bool isKnockedBack = false;
+    
     public bool TakeMeleeDamage(float damage)
+    {
+        return TakeMeleeDamage(damage, Vector2.zero);
+    }
+    
+    public bool TakeMeleeDamage(float damage, Vector2 knockbackDirection)
     {
         if (Time.time < _nextAllowedDamage) return false;
         
@@ -122,8 +133,23 @@ public class PlayerController : MonoBehaviour
         _health -= (int)damage;
         _nextAllowedDamage = Time.time + _invulnerabilityDuration;
         healthBar.updateHealthBar(_health, _maxHealth);
+        
+        // Apply knockback
+        if (knockbackDirection != Vector2.zero && body != null)
+        {
+            ApplyKnockback(knockbackDirection.normalized);
+        }
+        
         CheckIfGameIsOver();
         return true;
+    }
+    
+    public void ApplyKnockback(Vector2 direction)
+    {
+        if (body == null) return;
+        isKnockedBack = true;
+        knockbackTimer = knockbackDuration;
+        body.linearVelocity = direction * knockbackForce;
     }
 
     // Start is called before the first frame update
@@ -162,6 +188,19 @@ public class PlayerController : MonoBehaviour
     {
         if (gameOver)
             return;
+        
+        // Handle knockback timer
+        if (isKnockedBack)
+        {
+            knockbackTimer -= Time.fixedDeltaTime;
+            if (knockbackTimer <= 0f)
+            {
+                isKnockedBack = false;
+            }
+            // During knockback, don't process normal movement - let physics handle it
+            HandleEnemyDetection();
+            return;
+        }
 
         HandleEnemyDetection();
 

@@ -51,11 +51,34 @@ public abstract class EnemyBase : MonoBehaviour
             walkAudio = GetComponent<ProceduralEnemyWalkAudio>();
     }
 
+    [Header("Knockback")]
+    [SerializeField] protected float enemyKnockbackForce = 5f;
+    [SerializeField] protected float enemyKnockbackDuration = 0.12f;
+    protected float knockbackTimer = 0f;
+    protected bool isKnockedBack = false;
+    
     public void TakeDamage(float damage)
+    {
+        TakeDamage(damage, Vector2.zero);
+    }
+    
+    public void TakeDamage(float damage, Vector2 knockbackDirection)
     {
         Health -= damage;
         if (Health <= 0f)
+        {
             Destroy(gameObject);
+            return;
+        }
+        
+        // Apply knockback
+        if (knockbackDirection != Vector2.zero && rb != null)
+        {
+            ApplyKnockback(knockbackDirection.normalized);
+        }
+        
+        // Flash effect on hit
+        StartCoroutine(HitFlash());
 
         if (alwaysShowHealthBar) return;
 
@@ -63,6 +86,26 @@ public abstract class EnemyBase : MonoBehaviour
         healthBarVisable = true;
         healthBarTimer = healthBarDisplayDuration;
         healthBar.showHealthBar();
+    }
+    
+    public void ApplyKnockback(Vector2 direction)
+    {
+        if (rb == null) return;
+        isKnockedBack = true;
+        knockbackTimer = enemyKnockbackDuration;
+        rb.linearVelocity = direction * enemyKnockbackForce;
+    }
+    
+    private System.Collections.IEnumerator HitFlash()
+    {
+        SpriteRenderer sr = GetComponentInChildren<SpriteRenderer>();
+        if (sr != null)
+        {
+            Color originalColor = sr.color;
+            sr.color = Color.white;
+            yield return new WaitForSeconds(0.05f);
+            sr.color = originalColor;
+        }
     }
 
     void Start()
@@ -95,6 +138,16 @@ public abstract class EnemyBase : MonoBehaviour
     public virtual void Update()
     {
         if (player == null) return;
+        
+        // Knockback timer
+        if (isKnockedBack)
+        {
+            knockbackTimer -= Time.deltaTime;
+            if (knockbackTimer <= 0f)
+            {
+                isKnockedBack = false;
+            }
+        }
 
         // Health bar timer logic
         if (healthBarVisable && !alwaysShowHealthBar && healthBar != null)

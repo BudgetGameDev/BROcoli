@@ -34,6 +34,14 @@ public class ShootingEnemyScript : EnemyBase
     void FixedUpdate()
     {
         if (player == null) return;
+        
+        // Don't move toward player during knockback
+        if (isKnockedBack)
+        {
+            // Still apply separation during knockback
+            base.FixedUpdate();
+            return;
+        }
 
         Vector2 toPlayer = (Vector2)player.position - rb.position;
         float dist = toPlayer.magnitude;
