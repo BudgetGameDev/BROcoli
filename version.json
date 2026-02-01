@@ -1,7 +1,7 @@
 {
-  "buildId": "build-1769951154-f38e8f6",
-  "buildTimestamp": "2026-02-01T13:05:54Z",
-  "buildNumber": 89,
-  "commitSha": "f38e8f67096ef380ba8176ab8f9f460b4c912997",
-  "description": "fix: #16, #15, #6, force mobile landscape, game over cta, auto pause when game loses focus"
+  "buildId": "build-1769951709-457851b",
+  "buildTimestamp": "2026-02-01T13:15:09Z",
+  "buildNumber": 90,
+  "commitSha": "457851b78382d6098aaef39f2991591729546453",
+  "description": "Merge branch 'main' of https://github.com/gamejam-2023/unity-2"
 }
