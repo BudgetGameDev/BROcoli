@@ -7,13 +7,18 @@ public class PlayerStats : MonoBehaviour
 
     public float CurrentHealth = 100f;
     public float CurrentMaxHealth = 100f;
-    public float CurrentAttackSpeed  = 0.6f;
+    public float CurrentAttackSpeed  = 0.75f;
     public float CurrentDamage  = 10f;
     public float CurrentMovementSpeed  = 10f;
     public float CurrentExperience  = 0f;
     public float CurrentMaxExperience = 100f;
     public float CurrentLevel  = 1f;
     public float CurrentDetectionRadius  = 12f;
+    
+    // Spray weapon stats
+    public float CurrentSprayRange = 1.8f;      // How far the spray reaches
+    public float CurrentSprayWidth = 60f;       // Cone angle in degrees
+    public float CurrentSprayDamageMultiplier = 1f;  // Multiplier for particle hit damage
 
     [SerializeField] private Bar _healthBar;
     [SerializeField] private Bar _experienceBar;
@@ -39,6 +44,12 @@ public class PlayerStats : MonoBehaviour
                 break;
             case DetectionRadiusBoost detectionRadiusBoost:
                 AddDetectionRadius(detectionRadiusBoost.Amount);
+                break;
+            case SprayRangeBoost sprayRangeBoost:
+                AddSprayRange(sprayRangeBoost.Amount);
+                break;
+            case SprayWidthBoost sprayWidthBoost:
+                AddSprayWidth(sprayWidthBoost.Amount);
                 break;
             default:
                 Debug.LogWarning("Unknown boost type applied.");
@@ -67,6 +78,9 @@ public class PlayerStats : MonoBehaviour
         CurrentMaxExperience = 100f;
         CurrentLevel = 1f;
         CurrentDetectionRadius = 12f;
+        CurrentSprayRange = 1.8f;
+        CurrentSprayWidth = 60f;
+        CurrentSprayDamageMultiplier = 1f;
 
         _healthBar.UpdateBar(CurrentHealth, CurrentMaxHealth);
         _experienceBar.UpdateBar(CurrentExperience, CurrentMaxExperience);
@@ -90,6 +104,9 @@ public class PlayerStats : MonoBehaviour
         CurrentMaxExperience *= 1.2f;
         CurrentLevel += 1f;
         CurrentDetectionRadius += 2f;
+        CurrentSprayRange += 0.15f;  // Spray gets slightly longer each level
+        CurrentSprayWidth += 3f;      // Spray gets slightly wider each level
+        CurrentSprayDamageMultiplier += 0.1f;  // More damage per particle hit
 
         _healthBar.UpdateBar(CurrentHealth, CurrentMaxHealth);
         _experienceBar.UpdateBar(CurrentExperience, CurrentMaxExperience);
@@ -131,5 +148,20 @@ public class PlayerStats : MonoBehaviour
     private void AddDetectionRadius(float amount)
     {
         CurrentDetectionRadius += amount;
+    }
+
+    public void AddSprayRange(float amount)
+    {
+        CurrentSprayRange += amount;
+    }
+
+    public void AddSprayWidth(float amount)
+    {
+        CurrentSprayWidth = Mathf.Clamp(CurrentSprayWidth + amount, 20f, 120f); // Limit between 20-120 degrees
+    }
+
+    public void AddSprayDamageMultiplier(float amount)
+    {
+        CurrentSprayDamageMultiplier += amount;
     }
 }

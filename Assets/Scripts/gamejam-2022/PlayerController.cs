@@ -6,7 +6,23 @@ using UnityEngine.SceneManagement;
 
 public class PlayerController : MonoBehaviour
 {
+    public enum WeaponType
+    {
+        Projectile,
+        SanitizerSpray
+    }
+
+    [Header("Weapon Selection")]
+    [SerializeField] private WeaponType currentWeapon = WeaponType.SanitizerSpray;
+    
+    [Header("Projectile Weapon (Legacy)")]
     [SerializeField] private GameObject _projectilePrefab;
+    [SerializeField] private ProceduralGunAudio gunAudio;
+    
+    [Header("Sanitizer Spray Weapon")]
+    [SerializeField] private SanitizerSpray sanitizerSpray;
+    [SerializeField] private float initialAttackDelay = 0.75f; // Delay before first attack after spawn
+    
     private float _nextAllowedAttack = 0.0f;
     private float _nextAllowedDamage = 0.0f;
 
@@ -41,7 +57,6 @@ public class PlayerController : MonoBehaviour
 
     [SerializeField] private BoxCollider2D playerCollider;
     [SerializeField] private ShuffleWalkVisual hopVisual;
-    [SerializeField] private ProceduralGunAudio gunAudio;
     [SerializeField] private int speed = 10;
     [SerializeField] private float enemyDetectionRadius = 12f;
     [SerializeField] private LayerMask enemyLayer;
@@ -165,6 +180,9 @@ public class PlayerController : MonoBehaviour
             Debug.LogWarning("PlayerController: enemyLayer is not set! Player won't be able to detect enemies.");
         }
         
+        // Set initial attack delay so player doesn't immediately fire on spawn
+        _nextAllowedAttack = Time.time + initialAttackDelay;
+        
         // Auto-find PlayerStats if not assigned
         if (playerStats == null)
         {
@@ -287,9 +305,16 @@ public class PlayerController : MonoBehaviour
             return;
         }
 
+        // For spray weapon, use spray range for detection; for projectile, use full detection radius
+        float detectionRange = enemyDetectionRadius;
+        if (currentWeapon == WeaponType.SanitizerSpray && sanitizerSpray != null)
+        {
+            detectionRange = sanitizerSpray.SprayRange;
+        }
+
         Collider2D[] hits = Physics2D.OverlapCircleAll(
             body.position,
-            enemyDetectionRadius,
+            detectionRange,
             enemyLayer
         );
 
@@ -298,25 +323,45 @@ public class PlayerController : MonoBehaviour
             return;
         }
 
-        // Find the closest enemy
+        // Find the closest enemy, prioritizing actual enemies over projectiles
         Transform closestEnemy = null;
-        float closestSqrDistance = float.MaxValue;
+        Transform closestProjectile = null;
+        float closestEnemySqrDistance = float.MaxValue;
+        float closestProjectileSqrDistance = float.MaxValue;
         Vector2 playerPos = body.position;
 
         foreach (Collider2D hit in hits)
         {
             if (hit == null) continue;
             float sqrDist = ((Vector2)hit.transform.position - playerPos).sqrMagnitude;
-            if (sqrDist < closestSqrDistance)
+            
+            // Check if this is an actual enemy (has EnemyBase) or just a projectile
+            EnemyBase enemyComponent = hit.GetComponent<EnemyBase>();
+            if (enemyComponent != null)
             {
-                closestSqrDistance = sqrDist;
-                closestEnemy = hit.transform;
+                // This is a real enemy - prioritize it
+                if (sqrDist < closestEnemySqrDistance)
+                {
+                    closestEnemySqrDistance = sqrDist;
+                    closestEnemy = hit.transform;
+                }
+            }
+            else
+            {
+                // This might be a projectile or other enemy-tagged object
+                if (sqrDist < closestProjectileSqrDistance)
+                {
+                    closestProjectileSqrDistance = sqrDist;
+                    closestProjectile = hit.transform;
+                }
             }
         }
 
-        if (closestEnemy == null)
+        // Prefer real enemies, fall back to projectiles if no enemies found
+        Transform targetToAttack = closestEnemy != null ? closestEnemy : closestProjectile;
+        
+        if (targetToAttack == null)
         {
-            Debug.Log("No valid enemy found in range");
             return;
         }
 
@@ -326,19 +371,48 @@ public class PlayerController : MonoBehaviour
             return;
         }
 
-        Debug.Log("Closest enemy found: " + closestEnemy.name);
-
         _nextAllowedAttack = Time.time + playerStats.CurrentAttackSpeed;
-        FireAtEnemy(closestEnemy);
+        AttackEnemy(targetToAttack);
     }
 
+    [Header("Projectile Spawn Settings")]
     [SerializeField] private float projectileSpawnForwardOffset = 0.4f; // Forward offset from body
     [SerializeField] private float projectileSpawnSideOffset = 0.25f; // Side offset from body
     [SerializeField] private float projectileVisualHeight = -0.5f; // Z offset for visual "height" (negative = in front)
 
-    private void FireAtEnemy(Transform enemy)
+    private void AttackEnemy(Transform enemy)
     {
-        Debug.Log("Firing at enemy!");
+        switch (currentWeapon)
+        {
+            case WeaponType.SanitizerSpray:
+                FireSprayAtEnemy(enemy);
+                break;
+            case WeaponType.Projectile:
+            default:
+                FireProjectileAtEnemy(enemy);
+                break;
+        }
+    }
+
+    private void FireSprayAtEnemy(Transform enemy)
+    {
+        Collider2D col = enemy.GetComponent<Collider2D>();
+        if (col == null) return;
+
+        Vector2 targetPoint = col.bounds.center;
+        Vector2 playerPos = (Vector2)transform.position;
+        Vector2 direction = (targetPoint - playerPos).normalized;
+
+        // Fire spray burst toward enemy
+        if (sanitizerSpray != null)
+        {
+            sanitizerSpray.FireSprayBurst(direction);
+        }
+    }
+
+    private void FireProjectileAtEnemy(Transform enemy)
+    {
+        Debug.Log("Firing projectile at enemy!");
 
         Collider2D col = enemy.GetComponent<Collider2D>();
         if (col == null)

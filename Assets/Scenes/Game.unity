@@ -605,7 +605,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d11d7b3eeb2f06d4eb6d93cd49a5f847, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  currentWeapon: 1
   _projectilePrefab: {fileID: 1837598268356835202, guid: 97ef7898519700045a98d30c334b6c2f, type: 3}
+  gunAudio: {fileID: 44608745}
+  sanitizerSpray: {fileID: 777000003}
   _invulnerabilityDuration: 5
   walkSpeed: 200
   animator: {fileID: 44608736}
@@ -626,7 +629,6 @@ MonoBehaviour:
   inputSmoothSpeed: 15
   playerCollider: {fileID: 44608733}
   hopVisual: {fileID: 1482300611}
-  gunAudio: {fileID: 44608745}
   speed: 4
   enemyDetectionRadius: 12
   enemyLayer:
@@ -715,6 +717,7 @@ Transform:
   - {fileID: 1037325169}
   - {fileID: 862497756}
   - {fileID: 6666660001}
+  - {fileID: 777000002}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &44608743
@@ -6761,6 +6764,190 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &777000001
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 777000002}
+  - component: {fileID: 777000003}
+  - component: {fileID: 777000004}
+  - component: {fileID: 777000005}
+  m_Layer: 0
+  m_Name: SanitizerSpray
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &777000002
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 777000001}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 44608742}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &777000003
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 777000001}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4841b56b0fa7a5d47930bec5ce8e862b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  baseSprayRange: 1.8
+  baseSprayAngle: 60
+  baseDamagePerParticle: 0.5
+  damageTickRate: 0.1
+  burstDuration: 0.3
+  burstCooldown: 0.1
+  sprayParticles: {fileID: 0}
+  sprayAudio: {fileID: 777000004}
+  handTransform: {fileID: 0}
+  handSprite: {fileID: 0}
+  sprayCanSprite: {fileID: 0}
+  handOffset: 0.6
+  visualZOffset: -0.5
+  isometricYOffset: 0.3
+  cameraAngle: 60
+  sprayColor: {r: 0.7, g: 0.9, b: 1, a: 0.6}
+  flipHandWithDirection: 1
+  handRotationSpeed: 720
+  aimDelayBeforeSpray: 0.08
+  showHandAlways: 1
+  particleSpeedMultiplier: 2.5
+  particleLifetimeBase: 0.5
+  emissionRate: 45
+--- !u!114 &777000004
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 777000001}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 979f2adbf62b2464cad70db488480353, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  volume: 0.18
+  sprayDuration: 0.4
+  randomization: 0.05
+  hissFrequency: 6000
+  pressureIntensity: 0.8
+  airiness: 0.6
+--- !u!82 &777000005
+AudioSource:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 777000001}
+  m_Enabled: 1
+  serializedVersion: 4
+  OutputAudioMixerGroup: {fileID: 0}
+  m_audioClip: {fileID: 0}
+  m_Resource: {fileID: 0}
+  m_PlayOnAwake: 0
+  m_Volume: 1
+  m_Pitch: 1
+  Loop: 0
+  Mute: 0
+  Spatialize: 0
+  SpatializePostEffects: 0
+  Priority: 128
+  DopplerLevel: 1
+  MinDistance: 1
+  MaxDistance: 500
+  Pan2D: 0
+  rolloffMode: 0
+  BypassEffects: 0
+  BypassListenerEffects: 0
+  BypassReverbZones: 0
+  rolloffCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    - serializedVersion: 3
+      time: 1
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  panLevelCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  spreadCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  reverbZoneMixCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

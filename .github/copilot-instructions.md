@@ -128,3 +128,84 @@ After implementing UI or visual changes, **verify by running in Unity Editor and
 - **New features**: Build + run + screenshot + manual testing
 
 Prefer using Unity Test Framework (`com.unity.test-framework`) for automated scene/integration tests when possible.
+
+## Agent Workflow (CRITICAL)
+
+**Always use a manager/worker subagent pattern for all tasks:**
+
+1. **Top-level Manager Agent** - Remains long-running and orchestrates the overall workflow:
+   - Receives the user request and breaks it down into discrete tasks
+   - Maintains context and tracks progress across subtasks
+   - Delegates work to task worker subagents
+   - Synthesizes results and handles cross-task dependencies
+   - Reports final status to user
+
+2. **Task Worker Subagents** - Spin off for each discrete unit of work:
+   - Receive specific, scoped tasks from the manager
+   - Execute the task independently (e.g., implement feature, fix bug, write test)
+   - Return results/status to the manager agent
+   - Terminate upon task completion
+
+**Workflow Pattern:**
+```
+User Request
+    ↓
+[Manager Agent] ← persists throughout session
+    ├── [Subagent: Task 1] → completes → returns result
+    ├── [Subagent: Task 2] → completes → returns result
+    └── [Subagent: Task 3] → completes → returns result
+    ↓
+Manager synthesizes results → User Response
+```
+
+**Guidelines:**
+- Manager should never directly implement features; always delegate to subagents
+- Each subagent should have a clear, single responsibility
+- Subagents can be spun up in parallel for independent tasks
+- Manager handles error recovery and re-delegation if a subagent fails
+- Use subagents even for "simple" tasks to maintain consistency
+
+## Direct Scene Editing (CRITICAL)
+
+**The agent MUST directly edit Unity scene files - never ask the human to make scene changes manually.**
+
+Unity scene files (`.unity`) are YAML-based text files that can be edited directly:
+- `Assets/Scenes/Game.unity` - Main gameplay scene
+- `Assets/Scenes/MainMenuScene.unity` - Title/menu scene
+- `Assets/Scenes/EndGame.unity` - Game over scene
+
+**What the agent should do:**
+- Add/remove/modify GameObjects by editing the `.unity` file directly
+- Adjust component properties (transforms, references, settings)
+- Add new UI elements, sprites, or prefab instances
+- Wire up component references and event handlers
+- Modify RectTransform anchors, positions, and sizes
+
+**What the agent should NOT do:**
+- ❌ "Please open Unity and add a Button to the Canvas"
+- ❌ "You'll need to manually drag the prefab into the scene"
+- ❌ "Go to the Inspector and change the value to X"
+
+**Instead, the agent should:**
+- ✅ Edit the `.unity` file to add the Button GameObject with all required components
+- ✅ Add the prefab reference directly in the scene YAML
+- ✅ Modify the serialized property value in the scene file
+
+**Scene file structure basics:**
+```yaml
+--- !u!1 &123456789          # GameObject (ClassID 1)
+GameObject:
+  m_Name: MyObject
+  m_Component:
+  - component: {fileID: 987654321}  # Reference to component
+
+--- !u!224 &987654321        # RectTransform (ClassID 224)
+RectTransform:
+  m_AnchoredPosition: {x: 0, y: 0}
+```
+
+**Tips for scene editing:**
+- Use existing GameObjects as templates for new ones
+- Generate unique `fileID` values (use large random numbers)
+- Maintain proper component references between GameObjects
+- Verify changes compile with `dotnet build .\unity-2.slnx`
