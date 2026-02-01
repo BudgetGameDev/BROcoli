@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>PWA Icon Generator</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; background: #1a1a2e; color: white; }
+    button { padding: 10px 20px; margin: 10px; cursor: pointer; }
+    canvas { display: block; margin: 10px 0; }
+    .icon-preview { display: inline-block; margin: 10px; text-align: center; }
+  </style>
+</head>
+<body>
+  <h1>PWA Icon Generator</h1>
+  <p>Click the button below to generate and download all required PWA icons.</p>
+  <p>After downloading, place them in your WebGLTemplates/Custom/icons/ folder.</p>
+  
+  <button onclick="generateAllIcons()">Generate & Download All Icons</button>
+  
+  <div id="previews"></div>
+
+  <script>
+    const sizes = [72, 96, 128, 144, 152, 192, 384, 512];
+    
+    function drawIcon(canvas, size) {
+      const ctx = canvas.getContext('2d');
+      canvas.width = size;
+      canvas.height = size;
+      
+      // Background gradient
+      const bgGradient = ctx.createLinearGradient(0, 0, size, size);
+      bgGradient.addColorStop(0, '#1a1a2e');
+      bgGradient.addColorStop(1, '#16213e');
+      
+      // Draw rounded rectangle background
+      const radius = size * 0.15;
+      ctx.beginPath();
+      ctx.moveTo(radius, 0);
+      ctx.lineTo(size - radius, 0);
+      ctx.quadraticCurveTo(size, 0, size, radius);
+      ctx.lineTo(size, size - radius);
+      ctx.quadraticCurveTo(size, size, size - radius, size);
+      ctx.lineTo(radius, size);
+      ctx.quadraticCurveTo(0, size, 0, size - radius);
+      ctx.lineTo(0, radius);
+      ctx.quadraticCurveTo(0, 0, radius, 0);
+      ctx.closePath();
+      ctx.fillStyle = bgGradient;
+      ctx.fill();
+      
+      // Accent gradient for play button
+      const accentGradient = ctx.createLinearGradient(0, 0, size, size);
+      accentGradient.addColorStop(0, '#4facfe');
+      accentGradient.addColorStop(1, '#00f2fe');
+      
+      // Draw play button circle
+      const centerX = size / 2;
+      const centerY = size * 0.45;
+      const circleRadius = size * 0.2;
+      
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, circleRadius, 0, Math.PI * 2);
+      ctx.fillStyle = accentGradient;
+      ctx.globalAlpha = 0.9;
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      
+      // Draw play triangle
+      const triSize = circleRadius * 0.6;
+      ctx.beginPath();
+      ctx.moveTo(centerX - triSize * 0.4, centerY - triSize * 0.6);
+      ctx.lineTo(centerX - triSize * 0.4, centerY + triSize * 0.6);
+      ctx.lineTo(centerX + triSize * 0.6, centerY);
+      ctx.closePath();
+      ctx.fillStyle = '#1a1a2e';
+      ctx.fill();
+      
+      // Draw bottom bars (like a loading indicator)
+      const barY = size * 0.72;
+      const barHeight = size * 0.04;
+      const barRadius = barHeight / 2;
+      
+      // Main bar
+      ctx.globalAlpha = 0.6;
+      ctx.fillStyle = accentGradient;
+      ctx.beginPath();
+      ctx.roundRect(size * 0.3, barY, size * 0.4, barHeight, barRadius);
+      ctx.fill();
+      
+      // Secondary bar
+      ctx.globalAlpha = 0.4;
+      ctx.beginPath();
+      ctx.roundRect(size * 0.36, barY + barHeight * 1.8, size * 0.28, barHeight * 0.75, barRadius * 0.75);
+      ctx.fill();
+      
+      ctx.globalAlpha = 1;
+    }
+    
+    function generateAllIcons() {
+      const previewsDiv = document.getElementById('previews');
+      previewsDiv.innerHTML = '';
+      
+      sizes.forEach(size => {
+        const canvas = document.createElement('canvas');
+        drawIcon(canvas, size);
+        
+        // Create preview
+        const preview = document.createElement('div');
+        preview.className = 'icon-preview';
+        preview.innerHTML = `<p>${size}x${size}</p>`;
+        preview.appendChild(canvas);
+        previewsDiv.appendChild(preview);
+        
+        // Download
+        const link = document.createElement('a');
+        link.download = `icon-${size}x${size}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+      });
+    }
+  </script>
+</body>
+</html>
