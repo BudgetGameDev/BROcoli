@@ -36,7 +36,8 @@ public class Projectile : MonoBehaviour
 
         if (other.TryGetComponent(out EnemyBase enemy))
         {
-            enemy.TakeDamage(_damage);
+            // Pass knockback direction (same as projectile direction)
+            enemy.TakeDamage(_damage, direction);
             
             // Play hit sound
             ProceduralProjectileHitAudio.PlayHit(transform.position, ProceduralProjectileHitAudio.HitSoundType.Energy, 0.5f);

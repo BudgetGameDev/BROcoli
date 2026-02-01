@@ -165,6 +165,19 @@ public class PlayerController : MonoBehaviour
     {
         if (gameOver)
             return;
+        
+        // Handle knockback timer
+        if (isKnockedBack)
+        {
+            knockbackTimer -= Time.fixedDeltaTime;
+            if (knockbackTimer <= 0f)
+            {
+                isKnockedBack = false;
+            }
+            // During knockback, don't process normal movement - let physics handle it
+            HandleEnemyDetection();
+            return;
+        }
 
         HandleEnemyDetection();
 

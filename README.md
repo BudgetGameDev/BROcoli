@@ -1,4 +1,6 @@
 # BROcoli
+You are a brocoli with a coronamask, try your best not to get infected.
+
 <!-- ![](./doc/cover-0.png) -->
 
 The game can be played in the browser here:
@@ -6,11 +8,6 @@ The game can be played in the browser here:
 https://budgetgamedev.github.io/BROcoli/
 
 ![](./doc/qr-code.png)
-
-<br>
-
-## Story
-You are a brocoli with a coronamask, try your best not to get infected.
 
 <br>
 
@@ -24,3 +21,8 @@ You are a brocoli with a coronamask, try your best not to get infected.
 ## Images
 <!-- ![](./doc/gamejam-image-0.png) -->
 <!-- ![](./doc/gamejam-image-1.png) -->
+
+## License
+Elastic License 2.0 (see [LICENSE](./LICENSE))
+
+By contributing, you agree to our [Contributor License Agreement](./CLA.md).
