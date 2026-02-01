@@ -2,9 +2,9 @@ name: GameCI
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "release" ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ "main", "release" ]
 
   workflow_dispatch:
 
@@ -86,3 +86,7 @@ jobs:
         with:
           branch: gh-pages
           folder: build/WebGL
+          # main branch deploys to /main subpath, release branch deploys to root
+          target-folder: ${{ github.ref_name == 'main' && 'main' || '' }}
+          clean-exclude: |
+            main/**
