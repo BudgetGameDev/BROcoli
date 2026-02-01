@@ -5,15 +5,15 @@ public class PlayerStats : MonoBehaviour
 {
     public bool IsAlive => CurrentHealth > 0f;
 
-    public float CurrentHealth { get; private set; } = 100f;
-    public float CurrentMaxHealth { get; private set; } = 100f;
-    public float CurrentAttackSpeed { get; private set; }  = 0.6f;
-    public float CurrentDamage { get; private set; }  = 10f;
-    public float CurrentMovementSpeed { get; private set; }  = 10f;
-    public float CurrentExperience { get; private set; }  = 0f;
-    public float CurrentMaxExperience { get; private set; } = 100f;
-    public float CurrentLevel { get; private set; }  = 1f;
-    public float CurrentDetectionRadius { get; private set; }  = 12f;
+    public float CurrentHealth = 100f;
+    public float CurrentMaxHealth = 100f;
+    public float CurrentAttackSpeed  = 0.6f;
+    public float CurrentDamage  = 10f;
+    public float CurrentMovementSpeed  = 10f;
+    public float CurrentExperience  = 0f;
+    public float CurrentMaxExperience = 100f;
+    public float CurrentLevel  = 1f;
+    public float CurrentDetectionRadius  = 12f;
 
     [SerializeField] private Bar _healthBar;
     [SerializeField] private Bar _experienceBar;

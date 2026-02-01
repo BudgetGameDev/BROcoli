@@ -32,10 +32,9 @@ public class EnemyProjectile : MonoBehaviour
         // Check if hit player
         if (other.CompareTag("Player"))
         {
-            if (other.TryGetComponent(out PlayerController player))
-            {
-                player.AddDamage((int)damage);
-            }
+            PlayerStats stats = other.GetComponentInChildren<PlayerStats>();
+
+            stats.ApplyDamage(damage);
             
             // Play enemy projectile hit sound
             ProceduralEnemyProjectileHitAudio.PlayHit(transform.position, ProceduralEnemyProjectileHitAudio.EnemyHitSoundType.PlasmaImpact, 0.45f);

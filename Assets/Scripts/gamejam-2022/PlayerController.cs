@@ -9,15 +9,8 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private GameObject _projectilePrefab;
     private float _nextAllowedAttack = 0.0f;
     private float _nextAllowedDamage = 0.0f;
-<<<<<<< HEAD
-    [SerializeField] private float _attackSpeed = 0.8f;
-    [SerializeField] private float _invulnerabilityDuration = 0.5f; // Time between enemy hits
-    [SerializeField] private float _damage = 10.0f;
-    [SerializeField] private float _health = 100;
-    [SerializeField] private float _maxHealth = 100;
-=======
+
     [SerializeField] private float _invulnerabilityDuration = 5.0f;
->>>>>>> 1a83212 (add boosts and playerstats)
 
     [SerializeField] private int walkSpeed = 100;
     private Rigidbody2D body;
@@ -99,6 +92,48 @@ public class PlayerController : MonoBehaviour
         }
         
         RawInput = targetInput;
+    }
+
+    [Header("Knockback")]
+    [SerializeField] private float knockbackForce = 8f;
+    [SerializeField] private float knockbackDuration = 0.15f;
+    private float knockbackTimer = 0f;
+    private bool isKnockedBack = false;
+
+    public bool TakeMeleeDamage(float damage)
+    {
+        return TakeMeleeDamage(damage, Vector2.zero);
+    }
+
+    public bool TakeMeleeDamage(float damage, Vector2 knockbackDirection)
+    {
+        if (Time.time < _nextAllowedDamage)
+        {
+            return false;
+        }
+
+        audio1.clip = pestAudio;
+        audio1.Play();
+        _nextAllowedDamage = Time.time + _invulnerabilityDuration;
+
+        playerStats.ApplyDamage(damage);
+
+        // Apply knockback
+        if (knockbackDirection != Vector2.zero && body != null)
+        {
+            ApplyKnockback(knockbackDirection.normalized);
+        }
+
+        CheckIfGameIsOver();
+        return true;
+    }
+
+    public void ApplyKnockback(Vector2 direction)
+    {
+        if (body == null) return;
+        isKnockedBack = true;
+        knockbackTimer = knockbackDuration;
+        body.linearVelocity = direction * knockbackForce;
     }
 
     // Start is called before the first frame update
@@ -257,25 +292,6 @@ public class PlayerController : MonoBehaviour
 
     void OnTriggerEnter2D(Collider2D other) {
         Debug.Log("Collided with " + other.name);
-<<<<<<< HEAD
-        // Enemy melee damage is now handled by EnemyScript distance-based system
-        if (other.CompareTag("Projectile") == true && Time.time >= _nextAllowedDamage)
-        {
-            float otherDamage = other.GetComponent<EnemyProjectile>()?.damage ?? 0f;
-            audio1.clip = collideAudio;
-            audio1.Play();
-            _health -= (int)otherDamage;
-            _nextAllowedDamage = Time.time + _invulnerabilityDuration;
-            healthBar.updateHealthBar(_health, _maxHealth);
-            CheckIfGameIsOver();
-        }
-    }
-    
-    void OnTriggerStay2D(Collider2D other) {
-        // Enemy melee damage is now handled by EnemyScript distance-based system
-        // Only projectiles use trigger-based damage
-=======
-
         if (_nextAllowedDamage <= Time.time)
         {
             switch (other.tag)
@@ -306,7 +322,6 @@ public class PlayerController : MonoBehaviour
         }
 
         CheckIfGameIsOver();
->>>>>>> 1a83212 (add boosts and playerstats)
     }
 
     private void CheckIfGameIsOver()

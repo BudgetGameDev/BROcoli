@@ -1,11 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using UnityEngine;
+﻿using UnityEngine;
 
 public class HealthBoost : BoostBase
 {
-    [SerializeField] private int _healthAmount = 20;
+    public override float Amount => _healthAmount;
+
+    [SerializeField] private float _healthAmount = 20f;
 
     public override void Apply(PlayerStats stats)
     {

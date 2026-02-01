@@ -1,15 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using UnityEngine;
+﻿using UnityEngine;
 
 public class BoostHandler : MonoBehaviour
 {
     [SerializeField] GameStates _gameState;
-    [SerializeField] private float _spawnRateInterval = 10f;
+    [SerializeField] private float _spawnRateInterval = 3f;
     [SerializeField] private Transform _player;
     [SerializeField] private GameObject[] _boosters;
-    [SerializeField] private float _spawnDistance = 10f;
+    [SerializeField] private float _spawnDistance = 2f;
     [SerializeField] private Camera _mainCamera;
 
     private float _nextSpawnTime = 0f;
@@ -21,12 +18,6 @@ public class BoostHandler : MonoBehaviour
 
     private void Update()
     {
-        //  TODO: Check if game is over
-        //if (_gameState)
-        //{
-
-        //}
-
         if (Time.time >= _nextSpawnTime)
         {
             SpawnBooster();
@@ -42,7 +33,7 @@ public class BoostHandler : MonoBehaviour
         }
 
         Vector2 spawnPos = GetOffscreenPosition();
-        GameObject prefab = _boosters[UnityEngine.Random.Range(0, _boosters.Length)];
+        GameObject prefab = _boosters[Random.Range(0, _boosters.Length)];
 
         Instantiate(prefab, spawnPos, Quaternion.identity);
     }
@@ -61,12 +52,12 @@ public class BoostHandler : MonoBehaviour
             // left
             0 => new Vector2(
                 playerPos.x - camWidth - _spawnDistance,
-                playerPos.y + UnityEngine.Random.Range(-camHeight, camHeight)
+                playerPos.y + Random.Range(-camHeight, camHeight)
             ),
             // right
             1 => new Vector2(
                 playerPos.x + camWidth + _spawnDistance,
-                playerPos.y + UnityEngine.Random.Range(-camHeight, camHeight)
+                playerPos.y + Random.Range(-camHeight, camHeight)
             ),
             // top
             2 => new Vector2(
