@@ -5,7 +5,7 @@ public class WaveGenerator : MonoBehaviour
 {
     private static WaitForSeconds _waitForSeconds1 = new(1f);
 
-    [SerializeField] private float preWaveCountdownSeconds = 3f;
+    [SerializeField] private float preWaveCountdownSeconds = 5f;
     [SerializeField] private EnemySpawner enemySpawnerPrefab;
     [SerializeField] private Transform spawnerParent;
     [SerializeField] private Transform player;

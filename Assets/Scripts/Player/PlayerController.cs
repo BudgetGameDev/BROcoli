@@ -8,9 +8,6 @@ public class PlayerController : MonoBehaviour
 {
     [SerializeField] private GameObject _projectilePrefab;
     private float _nextAllowedAttack = 0.0f;
-    private float _nextAllowedDamage = 0.0f;
-
-    [SerializeField] private float _invulnerabilityDuration = 5.0f;
 
     [SerializeField] private int walkSpeed = 100;
     private Rigidbody2D body;
@@ -116,17 +113,11 @@ public class PlayerController : MonoBehaviour
 
     public bool TakeMeleeDamage(float damage, Vector2 knockbackDirection)
     {
-        if (Time.time < _nextAllowedDamage)
-        {
-            return false;
-        }
-
         if (audio1 != null)
         {
             audio1.clip = pestAudio;
             audio1.Play();
         }
-        _nextAllowedDamage = Time.time + _invulnerabilityDuration;
 
         if (playerStats != null)
         {
@@ -393,42 +384,35 @@ public class PlayerController : MonoBehaviour
 
     void OnTriggerEnter2D(Collider2D other) {
         Debug.Log("Collided with " + other.name);
-        if (_nextAllowedDamage <= Time.time)
+        switch (other.tag)
         {
-            switch (other.tag)
-            {
-                case "Enemy":
-                    if (audio1 != null)
-                    {
-                        audio1.clip = pestAudio;
-                        audio1.Play();
-                    }
+            case "Enemy":
+                if (audio1 != null)
+                {
+                    audio1.clip = pestAudio;
+                    audio1.Play();
+                }
 
-                    playerStats?.ApplyDamage(other.GetComponent<EnemyBase>()?.Damage ?? 0f);
+                playerStats?.ApplyDamage(other.GetComponent<EnemyBase>()?.Damage ?? 0f);
+                break;
+            case "Projectile":
+                if (audio1 != null)
+                {
+                    audio1.clip = collideAudio;
+                    audio1.Play();
+                }
 
-                    _nextAllowedDamage = Time.time + _invulnerabilityDuration;
-                    break;
-                case "Projectile":
-                    if (audio1 != null)
-                    {
-                        audio1.clip = collideAudio;
-                        audio1.Play();
-                    }
+                playerStats?.ApplyDamage(other.GetComponent<EnemyBase>()?.Damage ?? 0f);
+                break;
+            case "Experience":
+                if (audio1 != null)
+                {
+                    audio1.clip = waterAudio;
+                    audio1.Play();
+                }
 
-                    playerStats?.ApplyDamage(other.GetComponent<EnemyBase>()?.Damage ?? 0f);
-
-                    _nextAllowedDamage = Time.time + _invulnerabilityDuration;
-                    break;
-                case "Experience":
-                    if (audio1 != null)
-                    {
-                        audio1.clip = waterAudio;
-                        audio1.Play();
-                    }
-
-                    playerStats?.ApplyExperience(other.GetComponent<ExpGain>()?.expAmountGain ?? 0f);
-                    break;
-            }
+                playerStats?.ApplyExperience(other.GetComponent<ExpGain>()?.expAmountGain ?? 0f);
+                break;
         }
 
         CheckIfGameIsOver();

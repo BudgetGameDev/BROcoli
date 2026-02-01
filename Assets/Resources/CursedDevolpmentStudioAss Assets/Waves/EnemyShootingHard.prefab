@@ -187,9 +187,15 @@ MonoBehaviour:
   Health: 40
   MaxHealth: 40
   acceleration: 25
+  separationRadius: 2.5
+  separationForce: 50
+  playerSeparationRadius: 1.2
+  playerSeparationForce: 40
   walkAudio: {fileID: 0}
   player: {fileID: 0}
-  rb: {fileID: 0}
+  rb: {fileID: 2177051095443035704}
+  enemyKnockbackForce: 5
+  enemyKnockbackDuration: 0.12
   stopDistance: 6
   fireRate: 4
   projectileDamage: 10

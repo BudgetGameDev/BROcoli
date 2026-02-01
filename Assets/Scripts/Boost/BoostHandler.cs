@@ -8,6 +8,7 @@ public class BoostHandler : MonoBehaviour
     [SerializeField] private GameObject[] _boosters;
     [SerializeField] private float _spawnDistance = 2f;
     [SerializeField] private Camera _mainCamera;
+    [SerializeField] private Transform _spawnerParent;
 
     private float _nextSpawnTime = 0f;
 
@@ -35,7 +36,12 @@ public class BoostHandler : MonoBehaviour
         Vector2 spawnPos = GetOffscreenPosition();
         GameObject prefab = _boosters[Random.Range(0, _boosters.Length)];
 
-        Instantiate(prefab, spawnPos, Quaternion.identity);
+        Instantiate(
+            prefab, 
+            spawnPos, 
+            Quaternion.identity, 
+            _spawnerParent != null ? _spawnerParent : transform
+        );
     }
 
     private Vector2 GetOffscreenPosition()

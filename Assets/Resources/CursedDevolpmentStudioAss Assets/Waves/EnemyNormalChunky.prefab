@@ -412,9 +412,23 @@ MonoBehaviour:
   Health: 600
   MaxHealth: 600
   acceleration: 25
+  separationRadius: 2.5
+  separationForce: 50
+  playerSeparationRadius: 1.2
+  playerSeparationForce: 40
   walkAudio: {fileID: 0}
   player: {fileID: 0}
-  rb: {fileID: 0}
+  rb: {fileID: 1958570327876636667}
+  enemyKnockbackForce: 5
+  enemyKnockbackDuration: 0.12
+  meleeRange: 0.9
+  meleeAttackCooldown: 0.5
+  attackWindupDuration: 0.15
+  attackStrikeDuration: 0.1
+  attackRecoverDuration: 0.2
+  attackLungeDistance: 0.4
+  attackScaleBoost: 1.3
+  attackFlashColor: {r: 1, g: 0, b: 0, a: 1}
   meleeAudio: {fileID: -4100401763414931332}
 --- !u!58 &924213931371731252
 CircleCollider2D:
