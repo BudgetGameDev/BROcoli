@@ -1,7 +1,7 @@
 # BROcoli
 You are a brocoli with a coronamask, try your best not to get infected.
 
-<!-- ![](./doc/cover-0.png) -->
+![](./doc/promo-image-0.png)
 
 The game can be played in the browser here:
 
