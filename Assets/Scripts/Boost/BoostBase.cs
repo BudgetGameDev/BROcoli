@@ -10,6 +10,8 @@ public abstract class BoostBase : MonoBehaviour
     [SerializeField] private Rigidbody2D _body;
     [SerializeField] private Collider2D _collider;
     [SerializeField] private float _lifetime = 30f;
+    [SerializeField] private AudioSource _audioSource;
+    [SerializeField] private AudioClip _audioClip;
 
     public abstract void Apply(PlayerStats stats);
 
@@ -35,6 +37,10 @@ public abstract class BoostBase : MonoBehaviour
         }
 
         Debug.Log($"Applying boost: {GetType().Name} with amount {Amount}");
+
+        _audioSource.clip = _audioClip;
+        _audioSource.Play();
+
         Apply(stats);
         Destroy(gameObject);
     }
