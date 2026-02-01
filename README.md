@@ -22,6 +22,9 @@ https://budgetgamedev.github.io/BROcoli/
 <!-- ![](./doc/gamejam-image-0.png) -->
 <!-- ![](./doc/gamejam-image-1.png) -->
 
+## Disclaimer
+This project is built partially using generative ai, with human in the loop, software engineering best practices and reviews by professional human software engineers.
+
 ## License
 Elastic License 2.0 (see [LICENSE](./LICENSE))
 
