@@ -148,46 +148,6 @@
         transition: width 0.3s ease;
       }
       
-      /* Rotate device indicator - subtle corner hint */
-      #rotate-indicator {
-        display: none;
-        position: fixed;
-        bottom: 20px;
-        right: 20px;
-        background: rgba(0, 0, 0, 0.7);
-        color: white;
-        padding: 10px 15px;
-        border-radius: 8px;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        font-size: 12px;
-        z-index: 999;
-        animation: fadeInOut 3s ease-in-out;
-        pointer-events: none;
-      }
-      
-      #rotate-indicator .rotate-icon {
-        display: inline-block;
-        margin-right: 6px;
-        animation: rotateHint 1.5s ease-in-out infinite;
-      }
-      
-      @keyframes fadeInOut {
-        0%, 100% { opacity: 0; }
-        20%, 80% { opacity: 1; }
-      }
-      
-      @keyframes rotateHint {
-        0%, 100% { transform: rotate(0deg); }
-        50% { transform: rotate(90deg); }
-      }
-      
-      /* Only show rotate indicator on mobile in portrait */
-      @media screen and (max-width: 900px) and (orientation: portrait) {
-        #rotate-indicator {
-          display: block;
-        }
-      }
-      
       /* ==================== Game UI Overlay ==================== */
       #game-ui-overlay {
         display: none;
@@ -352,11 +312,6 @@
       </div>
     </div>
     
-    <!-- Subtle rotate indicator for portrait mode -->
-    <div id="rotate-indicator">
-      <span class="rotate-icon">📱</span> Rotate for best experience
-    </div>
-    
     <canvas id="unity-canvas" style="width: 100%; height: 100%; position: fixed; top: 0; left: 0; background: #000000;"></canvas>
     
     <!-- Game UI Overlay (controlled by Unity via JS bridge) -->
@@ -423,7 +378,6 @@
       var canvas = document.querySelector("#unity-canvas");
       var loadingScreen = document.getElementById('loading-screen');
       var progressBar = document.getElementById('loading-progress-bar');
-      var rotateIndicator = document.getElementById('rotate-indicator');
       var gameUIOverlay = document.getElementById('game-ui-overlay');
       
       // ==================== Game UI Bridge ====================
@@ -509,17 +463,6 @@
         return window.innerHeight > window.innerWidth;
       }
       
-      // Function to show/hide rotate indicator
-      function updateRotateIndicator() {
-        if (isMobile && isPortrait() && rotateIndicator) {
-          rotateIndicator.style.display = 'block';
-          // Auto-hide after animation
-          setTimeout(function() {
-            if (rotateIndicator) rotateIndicator.style.display = 'none';
-          }, 3000);
-        }
-      }
-      
       // Function to update canvas resolution to match window size
       function updateCanvasSize() {
         var dpr = window.devicePixelRatio || 1;
@@ -553,9 +496,6 @@
         canvas.style.left = '0';
         
         console.log('[WebGL] Canvas updated - CSS: ' + width + 'x' + height + ', Buffer: ' + canvas.width + 'x' + canvas.height + ', DPR: ' + dpr + ', Portrait: ' + isPortrait());
-        
-        // Update rotate indicator
-        updateRotateIndicator();
       }
       
       // Full-screen canvas setup
@@ -714,7 +654,7 @@
           streamingAssetsUrl: "StreamingAssets",
           companyName: "BudgetGameDev",
           productName: "BROcoli",
-          productVersion: "0.0.117",
+          productVersion: "0.0.118",
           matchWebGLToCanvasSize: true, // Enable dynamic resolution to match canvas size
           devicePixelRatio: window.devicePixelRatio || 1, // Use device pixel ratio for sharp rendering
           // Progress callback
