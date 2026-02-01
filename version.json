@@ -1,7 +1,7 @@
 {
-  "buildId": "build-1769955171-0d9a3b2",
-  "buildTimestamp": "2026-02-01T14:12:51Z",
-  "buildNumber": 95,
-  "commitSha": "0d9a3b2e337c344afbde80889e8e83d25e993bea",
-  "description": "Merge branch 'main' of https://github.com/gamejam-2023/unity-2"
+  "buildId": "build-1769959735-9030efb",
+  "buildTimestamp": "2026-02-01T15:28:55Z",
+  "buildNumber": 96,
+  "commitSha": "9030efb55abec932b46c2c68f7b7c718f55d6399",
+  "description": "docs: add a github copilot instructions file"
 }
