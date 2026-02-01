@@ -9,13 +9,11 @@ public class ExpGain : MonoBehaviour
     public int expAmountGain;
     private Rigidbody2D rb;
     private Collider2D col;
-    private GameStates gameStates;
     
     void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
         col = GetComponent<Collider2D>();
-        gameStates = FindFirstObjectByType<GameStates>();
         rb.gravityScale = 0f;
         rb.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
 
@@ -32,7 +30,6 @@ public class ExpGain : MonoBehaviour
     {
         if (other.CompareTag("Player"))
         {
-            gameStates.exp += expAmountGain;
             Destroy(gameObject);
         }
     }
