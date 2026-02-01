@@ -64,6 +64,15 @@ public class PlayerController : MonoBehaviour
 
         if (gameOverAudio != null) gameOverAudio.Play();
 
+        // Save the final score for the EndGame screen CTA system
+        var gameStates = FindAnyObjectByType<GameStates>();
+        if (gameStates != null)
+        {
+            PlayerPrefs.SetInt("LastScore", gameStates.score);
+            PlayerPrefs.Save();
+            Debug.Log($"Saved final score: {gameStates.score}");
+        }
+
         SceneManager.LoadScene("EndGame");
         // SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex - 1);
     }
