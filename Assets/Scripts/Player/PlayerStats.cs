@@ -67,8 +67,8 @@ public class PlayerStats : MonoBehaviour
         CurrentMaxExperience = 100f;
         CurrentLevel = 1f;
         CurrentDetectionRadius = 12f;
-        _healthBar.UpdateBar(CurrentHealth, CurrentMaxHealth);
-        _experienceBar.UpdateBar(CurrentExperience, CurrentMaxExperience);
+        _healthBar?.UpdateBar(CurrentHealth, CurrentMaxHealth);
+        _experienceBar?.UpdateBar(CurrentExperience, CurrentMaxExperience);
     }
 
     private void Start()
@@ -94,7 +94,7 @@ public class PlayerStats : MonoBehaviour
     private void AddHealth(float amount)
     {
         CurrentHealth = Mathf.Min(CurrentHealth + amount, CurrentMaxHealth);
-        _healthBar.UpdateBar(CurrentHealth, CurrentMaxHealth);
+        _healthBar?.UpdateBar(CurrentHealth, CurrentMaxHealth);
     }
 
     private void AddAttackSpeed(float amount)
@@ -119,7 +119,7 @@ public class PlayerStats : MonoBehaviour
             LevelUp();
         }
 
-        _experienceBar.UpdateBar(CurrentExperience, CurrentMaxExperience);
+        _experienceBar?.UpdateBar(CurrentExperience, CurrentMaxExperience);
     }
 
     private void AddDetectionRadius(float amount)

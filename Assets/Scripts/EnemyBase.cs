@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.SocialPlatforms.Impl;
 
 public abstract class EnemyBase : MonoBehaviour
@@ -171,6 +172,7 @@ public abstract class EnemyBase : MonoBehaviour
     {
         // Don't spawn objects if the application is quitting or scene is unloading
         if (isQuitting) return;
+        if (!gameObject.scene.isLoaded) return;
         
         Debug.Log("Destroyed enemy, adding score: " + ScoreValue);
 

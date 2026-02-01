@@ -57,12 +57,12 @@ public class PlayerController : MonoBehaviour
         Debug.Log("Game over");
         gameOver = true;
 
-        ambientAudio0.volume = 0f;
-        ambientAudio1.volume = 0f;
-        windAudio.volume = 0f;
-        lavaAudio.volume = 0f;
+        if (ambientAudio0 != null) ambientAudio0.volume = 0f;
+        if (ambientAudio1 != null) ambientAudio1.volume = 0f;
+        if (windAudio != null) windAudio.volume = 0f;
+        if (lavaAudio != null) lavaAudio.volume = 0f;
 
-        gameOverAudio.Play();
+        if (gameOverAudio != null) gameOverAudio.Play();
 
         SceneManager.LoadScene("EndGame");
         // SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex - 1);
@@ -112,11 +112,17 @@ public class PlayerController : MonoBehaviour
             return false;
         }
 
-        audio1.clip = pestAudio;
-        audio1.Play();
+        if (audio1 != null)
+        {
+            audio1.clip = pestAudio;
+            audio1.Play();
+        }
         _nextAllowedDamage = Time.time + _invulnerabilityDuration;
 
-        playerStats.ApplyDamage(damage);
+        if (playerStats != null)
+        {
+            playerStats.ApplyDamage(damage);
+        }
 
         // Apply knockback
         if (knockbackDirection != Vector2.zero && body != null)
@@ -140,6 +146,39 @@ public class PlayerController : MonoBehaviour
     void Start()
     {
         body = gameObject.GetComponent<Rigidbody2D>();
+        if (body == null)
+        {
+            Debug.LogError("PlayerController: No Rigidbody2D found on player!");
+        }
+        
+        if (enemyLayer == 0)
+        {
+            Debug.LogWarning("PlayerController: enemyLayer is not set! Player won't be able to detect enemies.");
+        }
+        
+        // Auto-find PlayerStats if not assigned
+        if (playerStats == null)
+        {
+            playerStats = GetComponent<PlayerStats>();
+            if (playerStats == null)
+            {
+                playerStats = GetComponentInChildren<PlayerStats>();
+            }
+            if (playerStats == null)
+            {
+                playerStats = FindFirstObjectByType<PlayerStats>();
+            }
+            if (playerStats == null)
+            {
+                Debug.LogWarning("PlayerController: playerStats could not be found!");
+            }
+        }
+        
+        if (_projectilePrefab == null)
+        {
+            Debug.LogWarning("PlayerController: _projectilePrefab is not assigned!");
+        }
+        
         gameOver = false;
         
         // Get original camera offset before moving anything
@@ -205,22 +244,36 @@ public class PlayerController : MonoBehaviour
         }
 
         Vector2 delta = moveDir * speed * Time.fixedDeltaTime;
-        Vector2 targetPos = body.position + delta;
-
-        body.MovePosition(targetPos);
+        
+        if (body != null)
+        {
+            Vector2 targetPos = body.position + delta;
+            body.MovePosition(targetPos);
+        }
 
         // Update animator with actual movement
-        animator.SetFloat("Horizontal", moveDir.x);
-        animator.SetFloat("Vertical", moveDir.y);
-        animator.SetFloat("Speed", moveDir.sqrMagnitude);
+        if (animator != null)
+        {
+            animator.SetFloat("Horizontal", moveDir.x);
+            animator.SetFloat("Vertical", moveDir.y);
+            animator.SetFloat("Speed", moveDir.sqrMagnitude);
+        }
 
-        lavaAudio.volume = Mathf.Abs(body.position.y) / 100f;
+        if (lavaAudio != null && body != null)
+        {
+            lavaAudio.volume = Mathf.Abs(body.position.y) / 100f;
+        }
     }
 
     private void HandleEnemyDetection()
     {
         // Cooldown before checking for a new enemy
         if (Time.time < _nextAllowedAttack)
+        {
+            return;
+        }
+
+        if (body == null)
         {
             return;
         }
@@ -243,12 +296,25 @@ public class PlayerController : MonoBehaviour
 
         foreach (Collider2D hit in hits)
         {
+            if (hit == null) continue;
             float sqrDist = ((Vector2)hit.transform.position - playerPos).sqrMagnitude;
             if (sqrDist < closestSqrDistance)
             {
                 closestSqrDistance = sqrDist;
                 closestEnemy = hit.transform;
             }
+        }
+
+        if (closestEnemy == null)
+        {
+            Debug.Log("No valid enemy found in range");
+            return;
+        }
+
+        if (playerStats == null)
+        {
+            Debug.LogWarning("PlayerStats is null - cannot attack!");
+            return;
         }
 
         Debug.Log("Closest enemy found: " + closestEnemy.name);
@@ -288,13 +354,26 @@ public class PlayerController : MonoBehaviour
         // Use Z position for visual "height" - this doesn't affect 2D collision
         Vector3 spawnPos = new Vector3(spawnPos2D.x, spawnPos2D.y, projectileVisualHeight);
 
+        if (_projectilePrefab == null)
+        {
+            Debug.LogWarning("Projectile prefab not assigned!");
+            return;
+        }
+
         GameObject proj = Instantiate(
             _projectilePrefab,
             spawnPos,
             Quaternion.identity
         );
 
-        proj.GetComponent<Projectile>().Init(direction, playerStats.CurrentDamage);
+        if (proj != null)
+        {
+            Projectile projectile = proj.GetComponent<Projectile>();
+            if (projectile != null && playerStats != null)
+            {
+                projectile.Init(direction, playerStats.CurrentDamage);
+            }
+        }
 
         // Play procedural gun sound
         if (gunAudio != null)
@@ -310,26 +389,35 @@ public class PlayerController : MonoBehaviour
             switch (other.tag)
             {
                 case "Enemy":
-                    audio1.clip = pestAudio;
-                    audio1.Play();
+                    if (audio1 != null)
+                    {
+                        audio1.clip = pestAudio;
+                        audio1.Play();
+                    }
 
-                    playerStats.ApplyDamage(other.GetComponent<EnemyBase>()?.Damage ?? 0f);
+                    playerStats?.ApplyDamage(other.GetComponent<EnemyBase>()?.Damage ?? 0f);
 
                     _nextAllowedDamage = Time.time + _invulnerabilityDuration;
                     break;
                 case "Projectile":
-                    audio1.clip = collideAudio;
-                    audio1.Play();
+                    if (audio1 != null)
+                    {
+                        audio1.clip = collideAudio;
+                        audio1.Play();
+                    }
 
-                    playerStats.ApplyDamage(other.GetComponent<EnemyBase>()?.Damage ?? 0f);
+                    playerStats?.ApplyDamage(other.GetComponent<EnemyBase>()?.Damage ?? 0f);
 
                     _nextAllowedDamage = Time.time + _invulnerabilityDuration;
                     break;
                 case "Experience":
-                    audio1.clip = waterAudio;
-                    audio1.Play();
+                    if (audio1 != null)
+                    {
+                        audio1.clip = waterAudio;
+                        audio1.Play();
+                    }
 
-                    playerStats.ApplyExperience(other.GetComponent<ExpGain>()?.expAmountGain ?? 0f);
+                    playerStats?.ApplyExperience(other.GetComponent<ExpGain>()?.expAmountGain ?? 0f);
                     break;
             }
         }
@@ -339,6 +427,11 @@ public class PlayerController : MonoBehaviour
 
     private void CheckIfGameIsOver()
     {
+        if (playerStats == null)
+        {
+            return;
+        }
+        
         if (playerStats.IsAlive == false)
         {
             Destroy(gameObject);

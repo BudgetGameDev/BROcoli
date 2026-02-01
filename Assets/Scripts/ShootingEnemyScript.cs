@@ -77,6 +77,8 @@ public class ShootingEnemyScript : EnemyBase
 
     public override void Update()
     {
+        if (player == null) return;
+        
         // Shooting logic (only shoot when within stop distance)
         float distToPlayer = Vector2.Distance(transform.position, player.position);
         if (distToPlayer <= stopDistance)
@@ -89,6 +91,7 @@ public class ShootingEnemyScript : EnemyBase
     void TryShoot()
     {
         if (projectilePrefab == null) return;
+        if (player == null) return;
         if (fireRate <= 0f) return;
         if (Time.time < nextShootTime) return;
         nextShootTime = Time.time + (1f / fireRate);
