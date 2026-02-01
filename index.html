@@ -55,16 +55,24 @@
         user-select: none;
         /* Ensure touch events work properly */
         touch-action: none;
+        /* Ensure it fills completely */
+        object-fit: cover;
       }
       
       /* iOS Safari fullscreen fix */
       @supports (-webkit-touch-callout: none) {
-        body {
+        html, body {
           /* Use viewport units that account for iOS Safari's dynamic toolbar */
+          height: 100%;
+          min-height: 100vh;
           min-height: -webkit-fill-available;
+          min-height: 100dvh;
         }
         #unity-canvas {
-          height: -webkit-fill-available;
+          height: 100%;
+          min-height: 100vh;
+          min-height: -webkit-fill-available;
+          min-height: 100dvh;
         }
       }
       
@@ -139,6 +147,199 @@
         border-radius: 2px;
         transition: width 0.3s ease;
       }
+      
+      /* Rotate device indicator - subtle corner hint */
+      #rotate-indicator {
+        display: none;
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background: rgba(0, 0, 0, 0.7);
+        color: white;
+        padding: 10px 15px;
+        border-radius: 8px;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        font-size: 12px;
+        z-index: 999;
+        animation: fadeInOut 3s ease-in-out;
+        pointer-events: none;
+      }
+      
+      #rotate-indicator .rotate-icon {
+        display: inline-block;
+        margin-right: 6px;
+        animation: rotateHint 1.5s ease-in-out infinite;
+      }
+      
+      @keyframes fadeInOut {
+        0%, 100% { opacity: 0; }
+        20%, 80% { opacity: 1; }
+      }
+      
+      @keyframes rotateHint {
+        0%, 100% { transform: rotate(0deg); }
+        50% { transform: rotate(90deg); }
+      }
+      
+      /* Only show rotate indicator on mobile in portrait */
+      @media screen and (max-width: 900px) and (orientation: portrait) {
+        #rotate-indicator {
+          display: block;
+        }
+      }
+      
+      /* ==================== Game UI Overlay ==================== */
+      #game-ui-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 100;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+      }
+      
+      #game-ui-overlay.visible {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
+        padding-top: 8%;
+      }
+      
+      #game-ui-overlay * {
+        pointer-events: auto;
+      }
+      
+      /* CTA Container */
+      .cta-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+      }
+      
+      .cta-header {
+        color: rgba(255, 255, 255, 0.7);
+        font-size: 14px;
+        font-style: italic;
+        margin-bottom: 4px;
+      }
+      
+      /* GitHub Star Button - matching GitHub's exact style */
+      .github-star-btn {
+        display: inline-flex;
+        align-items: center;
+        background: transparent;
+        border: 1px solid rgba(240, 246, 252, 0.1);
+        border-radius: 6px;
+        overflow: hidden;
+        font-family: inherit;
+        cursor: pointer;
+      }
+      
+      .github-star-btn .btn-content {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 12px;
+        background: #21262d;
+        color: #c9d1d9;
+        font-size: 14px;
+        font-weight: 500;
+        border: none;
+        border-right: 1px solid rgba(240, 246, 252, 0.1);
+        transition: background-color 0.1s ease;
+        text-decoration: none;
+      }
+      
+      .github-star-btn .btn-content:hover {
+        background: #30363d;
+      }
+      
+      .github-star-btn .btn-content:active {
+        background: #282e33;
+      }
+      
+      .github-star-btn .btn-content svg {
+        fill: #8b949e;
+        width: 16px;
+        height: 16px;
+        flex-shrink: 0;
+      }
+      
+      .github-star-btn .star-count {
+        display: inline-flex;
+        align-items: center;
+        padding: 5px 12px;
+        background: #21262d;
+        color: #c9d1d9;
+        font-size: 14px;
+        font-weight: 600;
+        transition: background-color 0.1s ease;
+        text-decoration: none;
+      }
+      
+      .github-star-btn .star-count:hover {
+        background: #30363d;
+        color: #58a6ff;
+      }
+      
+      /* Score display */
+      .score-display {
+        color: white;
+        font-size: 32px;
+        font-weight: 600;
+        margin-bottom: 8px;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+      }
+      
+      /* Steam button (hidden by default, for future use) */
+      .steam-wishlist-btn {
+        display: none;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 16px;
+        background: linear-gradient(to right, #1b2838, #2a475e);
+        color: #66c0f4;
+        font-size: 14px;
+        font-weight: 500;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        text-decoration: none;
+      }
+      
+      .steam-wishlist-btn:hover {
+        background: linear-gradient(to right, #2a475e, #3d6a8a);
+        color: #ffffff;
+      }
+      
+      .steam-wishlist-btn.visible {
+        display: inline-flex;
+      }
+      
+      /* Responsive adjustments */
+      @media screen and (max-width: 600px) {
+        .cta-header {
+          font-size: 12px;
+        }
+        .github-star-btn .btn-content,
+        .github-star-btn .star-count {
+          padding: 4px 10px;
+          font-size: 13px;
+        }
+        .github-star-btn .btn-content svg {
+          width: 14px;
+          height: 14px;
+        }
+        .score-display {
+          font-size: 24px;
+        }
+      }
     </style>
   </head>
   <body style="text-align: center; padding: 0; border: 0; margin: 0; background-color: #000000;">
@@ -151,7 +352,31 @@
       </div>
     </div>
     
+    <!-- Subtle rotate indicator for portrait mode -->
+    <div id="rotate-indicator">
+      <span class="rotate-icon">📱</span> Rotate for best experience
+    </div>
+    
     <canvas id="unity-canvas" style="width: 100%; height: 100%; position: fixed; top: 0; left: 0; background: #000000;"></canvas>
+    
+    <!-- Game UI Overlay (controlled by Unity via JS bridge) -->
+    <div id="game-ui-overlay">
+      <div class="cta-container">
+        <div class="github-star-btn">
+          <a href="https://github.com/BudgetGameDev/BROcoli" target="_blank" rel="noopener" class="btn-content">
+            <svg aria-hidden="true" height="16" viewBox="0 0 16 16" version="1.1" width="16">
+              <path d="M8 .25a.75.75 0 0 1 .673.418l1.882 3.815 4.21.612a.75.75 0 0 1 .416 1.279l-3.046 2.97.719 4.192a.751.751 0 0 1-1.088.791L8 12.347l-3.766 1.98a.75.75 0 0 1-1.088-.79l.72-4.194L.818 6.374a.75.75 0 0 1 .416-1.28l4.21-.611L7.327.668A.75.75 0 0 1 8 .25Z"></path>
+            </svg>
+            Star
+          </a>
+          <a href="https://github.com/BudgetGameDev/BROcoli/stargazers" target="_blank" rel="noopener" class="star-count" id="github-star-count">--</a>
+        </div>
+        <!-- Steam wishlist button (hidden for now) -->
+        <a href="#" class="steam-wishlist-btn" id="steam-wishlist-btn">
+          Wishlist on Steam
+        </a>
+      </div>
+    </div>
     
     <!-- PWA Install Wizard Script -->
     <script src="pwa-install.js"></script>
@@ -170,6 +395,20 @@
       
       console.log('[WebGL] Platform detection - iOS: ' + isiOS + ', MacTouch: ' + isMacWithTouch + ', Safari: ' + isSafari + ', Mobile: ' + isMobile + ', Standalone: ' + isStandalone);
       
+      // Try to lock screen orientation to landscape (works on Android, PWAs)
+      function tryLockLandscape() {
+        if (screen.orientation && screen.orientation.lock) {
+          screen.orientation.lock('landscape').then(function() {
+            console.log('[WebGL] Screen orientation locked to landscape');
+          }).catch(function(err) {
+            console.log('[WebGL] Could not lock orientation:', err.message);
+          });
+        }
+      }
+      
+      // Attempt orientation lock
+      tryLockLandscape();
+      
       // Setup viewport meta tag for proper mobile rendering
       var meta = document.createElement('meta');
       meta.name = 'viewport';
@@ -184,6 +423,102 @@
       var canvas = document.querySelector("#unity-canvas");
       var loadingScreen = document.getElementById('loading-screen');
       var progressBar = document.getElementById('loading-progress-bar');
+      var rotateIndicator = document.getElementById('rotate-indicator');
+      var gameUIOverlay = document.getElementById('game-ui-overlay');
+      
+      // ==================== Game UI Bridge ====================
+      // This allows Unity to control HTML UI elements
+      window.GameUI = {
+        // Cache the star count to avoid multiple API calls
+        _starCountFetched: false,
+        _starCount: null,
+        
+        // Fetch GitHub star count
+        fetchStarCount: function() {
+          if (this._starCountFetched) return;
+          this._starCountFetched = true;
+          
+          fetch('https://api.github.com/repos/BudgetGameDev/BROcoli')
+            .then(function(response) { return response.json(); })
+            .then(function(data) {
+              if (data && typeof data.stargazers_count === 'number') {
+                window.GameUI._starCount = data.stargazers_count;
+                var countEl = document.getElementById('github-star-count');
+                if (countEl) {
+                  countEl.textContent = data.stargazers_count;
+                }
+                console.log('[GameUI] GitHub stars:', data.stargazers_count);
+              }
+            })
+            .catch(function(err) {
+              console.warn('[GameUI] Could not fetch star count:', err);
+            });
+        },
+        
+        // Show the EndGame CTA overlay
+        showEndGameCTA: function(score, minScore) {
+          console.log('[GameUI] showEndGameCTA called with score:', score, 'minScore:', minScore);
+          minScore = minScore || 0;
+          
+          // Check minimum score threshold
+          if (score < minScore) {
+            console.log('[GameUI] Score ' + score + ' below minimum ' + minScore + ', not showing CTA');
+            return;
+          }
+          
+          // Fetch star count if not already done
+          this.fetchStarCount();
+          
+          // Show the overlay
+          if (gameUIOverlay) {
+            gameUIOverlay.classList.add('visible');
+            console.log('[GameUI] Showing EndGame CTA - overlay element found and visible class added');
+          } else {
+            console.error('[GameUI] ERROR: gameUIOverlay element not found!');
+          }
+        },
+        
+        // Hide the EndGame CTA overlay
+        hideEndGameCTA: function() {
+          if (gameUIOverlay) {
+            gameUIOverlay.classList.remove('visible');
+            console.log('[GameUI] Hiding EndGame CTA');
+          }
+        },
+        
+        // Show/hide Steam wishlist button (for future use)
+        showSteamButton: function(show) {
+          var btn = document.getElementById('steam-wishlist-btn');
+          if (btn) {
+            if (show) {
+              btn.classList.add('visible');
+            } else {
+              btn.classList.remove('visible');
+            }
+          }
+        }
+      };
+      
+      // Pre-fetch star count early so it's ready when needed
+      setTimeout(function() {
+        window.GameUI.fetchStarCount();
+      }, 3000); // Wait 3 seconds after page load
+      
+      // Function to check if we're in portrait mode
+      function isPortrait() {
+        return window.innerHeight > window.innerWidth;
+      }
+      
+      // Function to show/hide rotate indicator
+      function updateRotateIndicator() {
+        if (isMobile && isPortrait() && rotateIndicator) {
+          rotateIndicator.style.display = 'block';
+          // Auto-hide after animation
+          setTimeout(function() {
+            if (rotateIndicator) rotateIndicator.style.display = 'none';
+          }, 3000);
+        }
+      }
       
       // Function to update canvas resolution to match window size
       function updateCanvasSize() {
@@ -200,15 +535,27 @@
           }
         }
         
-        // Set the canvas drawing buffer size (actual resolution Unity renders at)
-        canvas.width = width * dpr;
-        canvas.height = height * dpr;
+        // For iOS Safari, use document dimensions as fallback
+        if (isiOSDevice && !isStandalone) {
+          width = Math.max(width, document.documentElement.clientWidth);
+          height = Math.max(height, document.documentElement.clientHeight);
+        }
         
-        // Set CSS size to fill screen
+        // Set the canvas drawing buffer size (actual resolution Unity renders at)
+        canvas.width = Math.floor(width * dpr);
+        canvas.height = Math.floor(height * dpr);
+        
+        // Set CSS size to fill screen completely
         canvas.style.width = width + 'px';
         canvas.style.height = height + 'px';
+        canvas.style.position = 'fixed';
+        canvas.style.top = '0';
+        canvas.style.left = '0';
         
-        console.log('[WebGL] Canvas updated - CSS: ' + width + 'x' + height + ', Buffer: ' + canvas.width + 'x' + canvas.height + ', DPR: ' + dpr);
+        console.log('[WebGL] Canvas updated - CSS: ' + width + 'x' + height + ', Buffer: ' + canvas.width + 'x' + canvas.height + ', DPR: ' + dpr + ', Portrait: ' + isPortrait());
+        
+        // Update rotate indicator
+        updateRotateIndicator();
       }
       
       // Full-screen canvas setup
@@ -260,11 +607,6 @@
         document.body.style.position = 'fixed';
         document.body.style.width = '100%';
         document.body.style.height = '100%';
-        
-        // Handle iOS Safari orientation changes (needs delay to let iOS settle)
-        window.addEventListener('orientationchange', function() {
-          setTimeout(updateCanvasSize, 100);
-        });
       }
       
       // Try to auto-enter fullscreen on user interaction (for non-PWA mobile)
@@ -277,9 +619,14 @@
           
           var elem = document.documentElement;
           if (elem.requestFullscreen) {
-            elem.requestFullscreen().catch(function() {});
+            elem.requestFullscreen().then(function() {
+              // Try to lock orientation after entering fullscreen
+              tryLockLandscape();
+            }).catch(function() {});
           } else if (elem.webkitRequestFullscreen) {
             elem.webkitRequestFullscreen();
+            // Try to lock orientation after entering fullscreen
+            setTimeout(tryLockLandscape, 100);
           }
         }
         
@@ -289,6 +636,23 @@
           setTimeout(tryFullscreen, 100);
         }, { once: true });
       }
+      
+      // Handle orientation change events
+      if (screen.orientation) {
+        screen.orientation.addEventListener('change', function() {
+          console.log('[WebGL] Orientation changed to:', screen.orientation.type);
+          setTimeout(updateCanvasSize, 100);
+        });
+      }
+      
+      // Also listen for window orientation change (iOS)
+      window.addEventListener('orientationchange', function() {
+        console.log('[WebGL] Window orientation changed');
+        // iOS needs multiple delayed updates to settle
+        setTimeout(updateCanvasSize, 100);
+        setTimeout(updateCanvasSize, 300);
+        setTimeout(updateCanvasSize, 500);
+      });
 
       // Register Service Worker for PWA
       if ('serviceWorker' in navigator) {
@@ -350,7 +714,7 @@
           streamingAssetsUrl: "StreamingAssets",
           companyName: "BudgetGameDev",
           productName: "BROcoli",
-          productVersion: "0.0.114",
+          productVersion: "0.0.115",
           matchWebGLToCanvasSize: true, // Enable dynamic resolution to match canvas size
           devicePixelRatio: window.devicePixelRatio || 1, // Use device pixel ratio for sharp rendering
           // Progress callback
