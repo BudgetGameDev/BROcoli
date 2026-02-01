@@ -1,7 +1,7 @@
 {
-  "buildId": "build-1769943127-7978bc0",
-  "buildTimestamp": "2026-02-01T10:52:07Z",
-  "buildNumber": 87,
-  "commitSha": "7978bc09253606253877fb01d142816d7b992115",
-  "description": "fix: update pwa cache busting"
+  "buildId": "build-1769944976-58b0cf0",
+  "buildTimestamp": "2026-02-01T11:22:56Z",
+  "buildNumber": 88,
+  "commitSha": "58b0cf0afcf4fbbe538708516ad244a1e596fa19",
+  "description": "Merge branch 'main' of https://github.com/gamejam-2023/unity-2"
 }
