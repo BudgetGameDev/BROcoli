@@ -165,6 +165,28 @@ Manager synthesizes results → User Response
 - Manager handles error recovery and re-delegation if a subagent fails
 - Use subagents even for "simple" tasks to maintain consistency
 
+**Manager TODO Tracking (CRITICAL):**
+The manager agent MUST maintain and update a TODO list throughout the session to track progress:
+
+```
+## Current TODO
+- [ ] Task 1: Description (status: pending/in-progress/blocked)
+- [x] Task 2: Description (status: completed)
+- [ ] Task 3: Description (status: pending)
+
+## Completed
+- [x] Task 2: Brief result summary
+```
+
+- Update the TODO list after each subagent completes or fails
+- Include task status: pending, in-progress, completed, blocked, failed
+- Note dependencies between tasks
+- Summarize results from completed tasks
+- This helps maintain context across long sessions and prevents losing track of work
+
+**Code File Size Limit:**
+All changed `.cs` files MUST be maximum 300 lines of code. If a file exceeds 300 LOC, refactor it into smaller files (each max 300 LOC).
+
 ## Direct Scene Editing (CRITICAL)
 
 **The agent MUST directly edit Unity scene files - never ask the human to make scene changes manually.**

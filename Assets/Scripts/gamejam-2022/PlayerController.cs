@@ -323,42 +323,54 @@ public class PlayerController : MonoBehaviour
             return;
         }
 
-        // Find the closest enemy, prioritizing actual enemies over projectiles
-        Transform closestEnemy = null;
-        Transform closestProjectile = null;
-        float closestEnemySqrDistance = float.MaxValue;
-        float closestProjectileSqrDistance = float.MaxValue;
         Vector2 playerPos = body.position;
-
-        foreach (Collider2D hit in hits)
+        Transform targetToAttack = null;
+        
+        // Use smart targeting for spray weapon, simple closest for projectile
+        if (currentWeapon == WeaponType.SanitizerSpray && sanitizerSpray != null)
         {
-            if (hit == null) continue;
-            float sqrDist = ((Vector2)hit.transform.position - playerPos).sqrMagnitude;
-            
-            // Check if this is an actual enemy (has EnemyBase) or just a projectile
-            EnemyBase enemyComponent = hit.GetComponent<EnemyBase>();
-            if (enemyComponent != null)
-            {
-                // This is a real enemy - prioritize it
-                if (sqrDist < closestEnemySqrDistance)
-                {
-                    closestEnemySqrDistance = sqrDist;
-                    closestEnemy = hit.transform;
-                }
-            }
-            else
-            {
-                // This might be a projectile or other enemy-tagged object
-                if (sqrDist < closestProjectileSqrDistance)
-                {
-                    closestProjectileSqrDistance = sqrDist;
-                    closestProjectile = hit.transform;
-                }
-            }
+            // Smart targeting: find direction that hits most enemies
+            targetToAttack = FindBestSprayTarget(hits, playerPos, detectionRange);
         }
+        
+        // Fallback to closest enemy targeting (for projectile weapon or if smart targeting fails)
+        if (targetToAttack == null)
+        {
+            Transform closestEnemy = null;
+            Transform closestProjectile = null;
+            float closestEnemySqrDistance = float.MaxValue;
+            float closestProjectileSqrDistance = float.MaxValue;
 
-        // Prefer real enemies, fall back to projectiles if no enemies found
-        Transform targetToAttack = closestEnemy != null ? closestEnemy : closestProjectile;
+            foreach (Collider2D hit in hits)
+            {
+                if (hit == null) continue;
+                float sqrDist = ((Vector2)hit.transform.position - playerPos).sqrMagnitude;
+                
+                // Check if this is an actual enemy (has EnemyBase) or just a projectile
+                EnemyBase enemyComponent = hit.GetComponent<EnemyBase>();
+                if (enemyComponent != null)
+                {
+                    // This is a real enemy - prioritize it
+                    if (sqrDist < closestEnemySqrDistance)
+                    {
+                        closestEnemySqrDistance = sqrDist;
+                        closestEnemy = hit.transform;
+                    }
+                }
+                else
+                {
+                    // This might be a projectile or other enemy-tagged object
+                    if (sqrDist < closestProjectileSqrDistance)
+                    {
+                        closestProjectileSqrDistance = sqrDist;
+                        closestProjectile = hit.transform;
+                    }
+                }
+            }
+
+            // Prefer real enemies, fall back to projectiles if no enemies found
+            targetToAttack = closestEnemy != null ? closestEnemy : closestProjectile;
+        }
         
         if (targetToAttack == null)
         {
@@ -408,6 +420,90 @@ public class PlayerController : MonoBehaviour
         {
             sanitizerSpray.FireSprayBurst(direction);
         }
+    }
+
+    /// <summary>
+    /// Find the best target for spray weapon by evaluating which direction would hit the most enemies
+    /// </summary>
+    private Transform FindBestSprayTarget(Collider2D[] hits, Vector2 playerPos, float sprayRange)
+    {
+        if (hits == null || hits.Length == 0) return null;
+        
+        // Get spray cone angle from the spray weapon
+        float sprayAngle = 60f; // Default cone angle
+        if (sanitizerSpray != null)
+        {
+            sprayAngle = sanitizerSpray.SprayWidth;
+        }
+        float halfAngle = sprayAngle * 0.5f;
+        
+        Transform bestTarget = null;
+        float bestScore = float.MinValue;
+        
+        // Collect all valid enemies
+        List<(Transform transform, EnemyBase enemy, Vector2 position, float distance)> enemies = 
+            new List<(Transform, EnemyBase, Vector2, float)>();
+        
+        foreach (Collider2D hit in hits)
+        {
+            if (hit == null) continue;
+            EnemyBase enemyComponent = hit.GetComponent<EnemyBase>();
+            if (enemyComponent == null) continue;
+            
+            Vector2 enemyPos = (Vector2)hit.transform.position;
+            float distance = Vector2.Distance(playerPos, enemyPos);
+            
+            if (distance <= sprayRange)
+            {
+                enemies.Add((hit.transform, enemyComponent, enemyPos, distance));
+            }
+        }
+        
+        if (enemies.Count == 0) return null;
+        if (enemies.Count == 1) return enemies[0].transform;
+        
+        // Evaluate each enemy as a potential primary target
+        foreach (var primaryTarget in enemies)
+        {
+            Vector2 aimDirection = (primaryTarget.position - playerPos).normalized;
+            
+            // Count how many enemies are within the spray cone if we aim at this target
+            int enemiesInCone = 0;
+            float totalDamageValue = 0f;
+            
+            foreach (var otherEnemy in enemies)
+            {
+                Vector2 toOther = (otherEnemy.position - playerPos).normalized;
+                float angleToOther = Vector2.Angle(aimDirection, toOther);
+                
+                if (angleToOther <= halfAngle && otherEnemy.distance <= sprayRange)
+                {
+                    enemiesInCone++;
+                    
+                    // Prioritize low-health enemies (easier to kill)
+                    // and enemies that are closer (more damage from spray)
+                    float healthRatio = 1f; // Default if we can't get health
+                    // Add damage value - closer enemies get hit harder
+                    float distanceMultiplier = 1f - (otherEnemy.distance / sprayRange) * 0.5f;
+                    totalDamageValue += distanceMultiplier;
+                }
+            }
+            
+            // Calculate score:
+            // - More enemies in cone = much better (x3 weight)
+            // - Closer primary target = better (proximity bonus)
+            // - Higher total damage value = better
+            float proximityBonus = 1f - (primaryTarget.distance / sprayRange);
+            float score = (enemiesInCone * 3f) + proximityBonus + totalDamageValue;
+            
+            if (score > bestScore)
+            {
+                bestScore = score;
+                bestTarget = primaryTarget.transform;
+            }
+        }
+        
+        return bestTarget;
     }
 
     private void FireProjectileAtEnemy(Transform enemy)

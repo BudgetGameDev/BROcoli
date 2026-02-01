@@ -6807,32 +6807,14 @@ MonoBehaviour:
   m_GameObject: {fileID: 777000001}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4841b56b0fa7a5d47930bec5ce8e862b, type: 3}
+  m_Script: {fileID: 11500000, guid: f6789012345678901234567abcdef123, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  baseSprayRange: 1.8
-  baseSprayAngle: 60
-  baseDamagePerParticle: 0.5
-  damageTickRate: 0.1
-  burstDuration: 0.3
-  burstCooldown: 0.1
   sprayParticles: {fileID: 0}
   sprayAudio: {fileID: 777000004}
   handTransform: {fileID: 0}
   handSprite: {fileID: 0}
   sprayCanSprite: {fileID: 0}
-  handOffset: 0.6
-  visualZOffset: -0.5
-  isometricYOffset: 0.3
-  cameraAngle: 60
-  sprayColor: {r: 0.7, g: 0.9, b: 1, a: 0.6}
-  flipHandWithDirection: 1
-  handRotationSpeed: 720
-  aimDelayBeforeSpray: 0.08
-  showHandAlways: 1
-  particleSpeedMultiplier: 2.5
-  particleLifetimeBase: 0.5
-  emissionRate: 45
 --- !u!114 &777000004
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -6842,7 +6824,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 777000001}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 979f2adbf62b2464cad70db488480353, type: 3}
+  m_Script: {fileID: 11500000, guid: 78901234567890123456789abcdef124, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   volume: 0.18

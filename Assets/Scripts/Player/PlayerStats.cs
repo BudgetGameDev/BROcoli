@@ -16,7 +16,7 @@ public class PlayerStats : MonoBehaviour
     public float CurrentDetectionRadius  = 12f;
     
     // Spray weapon stats
-    public float CurrentSprayRange = 1.8f;      // How far the spray reaches
+    public float CurrentSprayRange = 8.0f;      // How far the spray reaches
     public float CurrentSprayWidth = 60f;       // Cone angle in degrees
     public float CurrentSprayDamageMultiplier = 1f;  // Multiplier for particle hit damage
 
@@ -78,7 +78,7 @@ public class PlayerStats : MonoBehaviour
         CurrentMaxExperience = 100f;
         CurrentLevel = 1f;
         CurrentDetectionRadius = 12f;
-        CurrentSprayRange = 1.8f;
+        CurrentSprayRange = 8.0f;
         CurrentSprayWidth = 60f;
         CurrentSprayDamageMultiplier = 1f;
 
