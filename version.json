@@ -1,7 +1,7 @@
 {
-  "buildId": "build-1769952425-ffd093a",
-  "buildTimestamp": "2026-02-01T13:27:05Z",
-  "buildNumber": 91,
-  "commitSha": "ffd093aabe3028ca6213d5a43c2c864921d5bdbd",
-  "description": "fix: remove the small rotate hint in the bottom right"
+  "buildId": "build-1769953540-9030efb",
+  "buildTimestamp": "2026-02-01T13:45:40Z",
+  "buildNumber": 92,
+  "commitSha": "9030efb55abec932b46c2c68f7b7c718f55d6399",
+  "description": "docs: add a github copilot instructions file"
 }
