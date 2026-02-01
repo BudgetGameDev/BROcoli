@@ -24,3 +24,8 @@ You are a brocoli with a coronamask, try your best not to get infected.
 ## Images
 <!-- ![](./doc/gamejam-image-0.png) -->
 <!-- ![](./doc/gamejam-image-1.png) -->
+
+## License
+Elastic License 2.0 (see [LICENCE](./LICENCE))
+
+By contributing, you agree to our [Contributor License Agreement](./CLA.md).
