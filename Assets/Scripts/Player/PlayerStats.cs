@@ -5,9 +5,9 @@ public class PlayerStats : MonoBehaviour
 {
     public bool IsAlive => CurrentHealth > 0f;
 
-    public float CurrentHealth = 100f;
-    public float CurrentMaxHealth = 100f;
-    public float CurrentAttackSpeed  = 0.75f;
+    public float CurrentHealth = 200f;
+    public float CurrentMaxHealth = 200f;
+    public float CurrentAttackSpeed  = 0.6f;
     public float CurrentDamage  = 10f;
     public float CurrentMovementSpeed  = 10f;
     public float CurrentExperience  = 0f;
