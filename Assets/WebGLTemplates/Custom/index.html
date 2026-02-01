@@ -29,6 +29,9 @@
     <!-- PWA Install Wizard Styles -->
     <link rel="stylesheet" href="pwa-install.css">
     
+    <!-- Version Check Script (must load early) -->
+    <script src="version-check.js"></script>
+    
     <style>
       /* Full-screen dark background to fill areas outside 16:9 aspect ratio */
       html, body {
@@ -300,51 +303,77 @@
         });
       }
 
-      createUnityInstance(document.querySelector("#unity-canvas"), {
-        dataUrl: "Build/{{{ DATA_FILENAME }}}",
-        frameworkUrl: "Build/{{{ FRAMEWORK_FILENAME }}}",
+      // Function to start the Unity game
+      function startUnityGame() {
+        console.log('[WebGL] Starting Unity game...');
+        
+        createUnityInstance(document.querySelector("#unity-canvas"), {
+          dataUrl: "Build/{{{ DATA_FILENAME }}}",
+          frameworkUrl: "Build/{{{ FRAMEWORK_FILENAME }}}",
 #if USE_WASM
-        codeUrl: "Build/{{{ CODE_FILENAME }}}",
+          codeUrl: "Build/{{{ CODE_FILENAME }}}",
 #endif
 #if MEMORY_FILENAME
-        memoryUrl: "Build/{{{ MEMORY_FILENAME }}}",
+          memoryUrl: "Build/{{{ MEMORY_FILENAME }}}",
 #endif
 #if SYMBOLS_FILENAME
-        symbolsUrl: "Build/{{{ SYMBOLS_FILENAME }}}",
+          symbolsUrl: "Build/{{{ SYMBOLS_FILENAME }}}",
 #endif
-        streamingAssetsUrl: "StreamingAssets",
-        companyName: {{{ JSON.stringify(COMPANY_NAME) }}},
-        productName: {{{ JSON.stringify(PRODUCT_NAME) }}},
-        productVersion: {{{ JSON.stringify(PRODUCT_VERSION) }}},
-        matchWebGLToCanvasSize: true, // Enable dynamic resolution to match canvas size
-        devicePixelRatio: window.devicePixelRatio || 1, // Use device pixel ratio for sharp rendering
-        // Progress callback
-        onProgress: function(progress) {
-          if (progressBar) {
-            progressBar.style.width = (progress * 100) + '%';
+          streamingAssetsUrl: "StreamingAssets",
+          companyName: {{{ JSON.stringify(COMPANY_NAME) }}},
+          productName: {{{ JSON.stringify(PRODUCT_NAME) }}},
+          productVersion: {{{ JSON.stringify(PRODUCT_VERSION) }}},
+          matchWebGLToCanvasSize: true, // Enable dynamic resolution to match canvas size
+          devicePixelRatio: window.devicePixelRatio || 1, // Use device pixel ratio for sharp rendering
+          // Progress callback
+          onProgress: function(progress) {
+            if (progressBar) {
+              progressBar.style.width = (progress * 100) + '%';
+            }
           }
-        }
-      }).then(function(unityInstance) {
-        console.log('[WebGL] Unity instance created successfully');
-        // Store reference for potential future use
-        window.unityInstance = unityInstance;
-        
-        // Hide loading screen
-        if (loadingScreen) {
-          loadingScreen.classList.add('hidden');
-          setTimeout(function() {
-            loadingScreen.style.display = 'none';
-          }, 500);
-        }
-        
-        // Update canvas size again after Unity loads to ensure correct resolution
-        updateCanvasSize();
-      }).catch(function(error) {
-        console.error('[WebGL] Unity instance creation failed:', error);
-        if (loadingScreen) {
-          loadingScreen.innerHTML = '<div style="color: #ff6b6b; font-family: sans-serif; text-align: center; padding: 20px;"><h2>Failed to load game</h2><p>' + error.message + '</p><button onclick="location.reload()" style="padding: 10px 20px; margin-top: 10px; cursor: pointer;">Retry</button></div>';
-        }
-      });
+        }).then(function(unityInstance) {
+          console.log('[WebGL] Unity instance created successfully');
+          // Store reference for potential future use
+          window.unityInstance = unityInstance;
+          
+          // Hide loading screen
+          if (loadingScreen) {
+            loadingScreen.classList.add('hidden');
+            setTimeout(function() {
+              loadingScreen.style.display = 'none';
+            }, 500);
+          }
+          
+          // Update canvas size again after Unity loads to ensure correct resolution
+          updateCanvasSize();
+        }).catch(function(error) {
+          console.error('[WebGL] Unity instance creation failed:', error);
+          if (loadingScreen) {
+            loadingScreen.innerHTML = '<div style="color: #ff6b6b; font-family: sans-serif; text-align: center; padding: 20px;"><h2>Failed to load game</h2><p>' + error.message + '</p><button onclick="location.reload()" style="padding: 10px 20px; margin-top: 10px; cursor: pointer;">Retry</button></div>';
+          }
+        });
+      }
+      
+      // Check for updates before starting the game
+      // This runs only at page load and will reload the page if an update is found
+      if (window.VersionChecker) {
+        window.VersionChecker.checkForUpdates()
+          .then(function(result) {
+            console.log('[WebGL] Version check complete:', result);
+            // If we get here, either no update was needed or we're offline
+            // Start the game
+            startUnityGame();
+          })
+          .catch(function(error) {
+            console.warn('[WebGL] Version check failed:', error);
+            // Start the game anyway if version check fails
+            startUnityGame();
+          });
+      } else {
+        // Version checker not available, start game directly
+        console.warn('[WebGL] VersionChecker not loaded, starting game directly');
+        startUnityGame();
+      }
     </script>
   </body>
 </html>

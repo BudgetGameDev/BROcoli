@@ -209,3 +209,91 @@ mergeInto(LibraryManager.library, {
 | Edge (Desktop) | ✅ Native | ✅ |
 | Firefox (Desktop) | ❌ | ❌ |
 | Safari (macOS) | ❌ | ❌ |
+## Automatic Update System
+
+This PWA includes an automatic version checking system that ensures users always get the latest version of your game, even on devices like iOS where clearing the PWA cache is difficult.
+
+### How It Works
+
+1. **On page load**, before the Unity game starts, the system fetches `version.json` from your remote server (GitHub Pages)
+2. **Compares** the remote version with the locally cached version
+3. **If different**, it clears all caches, unregisters the service worker, and reloads the page
+4. **If same**, it proceeds to load the game normally
+
+### Files Involved
+
+```
+WebGLTemplates/Custom/
+├── version.json        # Contains build ID, timestamp, and number
+├── version-check.js    # Client-side version checking logic
+├── update-version.js   # Node.js script to update version.json
+└── sw.js              # Service worker (updated to never cache version files)
+```
+
+### Updating Your Build
+
+**Before each deploy**, run the version updater to generate a new build ID:
+
+```bash
+# From the WebGLTemplates/Custom folder (or your build output folder)
+node update-version.js "Description of this release"
+```
+
+This updates `version.json` with:
+- A new unique `buildId` (timestamp + random string)
+- Incremented `buildNumber`
+- Current `buildTimestamp`
+- Your description
+
+### Manual Update (Alternative)
+
+You can also manually edit `version.json`:
+
+```json
+{
+  "buildId": "v1.2.3-hotfix",
+  "buildTimestamp": "2026-02-01T12:00:00Z",
+  "buildNumber": 42,
+  "description": "Fixed critical bug"
+}
+```
+
+The `buildId` is the primary comparison - if it changes, users will get the update.
+
+### Configuration
+
+In `version-check.js`, you can modify the config:
+
+```javascript
+const CONFIG = {
+  // Remote URL to check for version (GitHub Pages)
+  remoteVersionUrl: 'https://budgetgamedev.github.io/BROcoli/version.json',
+  // Local storage key for cached version
+  localVersionKey: 'brocoli_cached_version',
+  // Timeout for version check (ms)
+  checkTimeout: 5000,
+  // Enable debug logging
+  debug: true
+};
+```
+
+### Force Update from Console
+
+Users can force an update by opening browser console and running:
+
+```javascript
+VersionChecker.forceUpdate();
+```
+
+### Deployment Workflow
+
+1. **Build** your Unity WebGL project
+2. **Run** `node update-version.js "Your release notes"`
+3. **Commit** and push to the `gh-pages` branch
+4. Users will automatically get the new version on next page load
+
+### Offline Behavior
+
+- If the device is offline, the version check fails gracefully
+- The game loads from cache as normal
+- Update check happens again when connectivity is restored
