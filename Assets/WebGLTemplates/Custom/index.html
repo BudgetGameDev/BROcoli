@@ -296,10 +296,46 @@
           navigator.serviceWorker.register('sw.js')
             .then(function(registration) {
               console.log('[PWA] ServiceWorker registered:', registration.scope);
+              
+              // Check for updates immediately
+              registration.update();
+              
+              // Listen for new service worker installing
+              registration.addEventListener('updatefound', function() {
+                console.log('[PWA] New service worker found, installing...');
+                var newWorker = registration.installing;
+                newWorker.addEventListener('statechange', function() {
+                  if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                    console.log('[PWA] New service worker installed, will activate on next load');
+                  }
+                });
+              });
             })
             .catch(function(error) {
               console.warn('[PWA] ServiceWorker registration failed:', error);
             });
+        });
+        
+        // Listen for messages from service worker (e.g., new version available)
+        navigator.serviceWorker.addEventListener('message', function(event) {
+          console.log('[PWA] Message from SW:', event.data);
+          if (event.data && event.data.type === 'NEW_VERSION_AVAILABLE') {
+            console.log('[PWA] New version detected by SW, reloading...');
+            // Show brief message then reload
+            var loadingText = document.querySelector('.loading-text');
+            if (loadingText) {
+              loadingText.textContent = 'New version found! Updating...';
+            }
+            setTimeout(function() {
+              window.location.reload(true);
+            }, 500);
+          }
+        });
+        
+        // When SW takes control, reload to ensure fresh content
+        navigator.serviceWorker.addEventListener('controllerchange', function() {
+          console.log('[PWA] Service worker controller changed, reloading for fresh content...');
+          window.location.reload(true);
         });
       }
 

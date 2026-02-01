@@ -59,6 +59,27 @@ jobs:
           name: build-WebGL
           path: build
 
+      - name: Generate version.json
+        run: |
+          BUILD_ID="build-$(date +%s)-$(echo $GITHUB_SHA | cut -c1-7)"
+          BUILD_TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          BUILD_NUMBER=$GITHUB_RUN_NUMBER
+          COMMIT_SHA=$GITHUB_SHA
+          COMMIT_MSG=$(git log -1 --pretty=%B | head -n 1)
+          
+          cat > build/WebGL/version.json << EOF
+          {
+            "buildId": "$BUILD_ID",
+            "buildTimestamp": "$BUILD_TIMESTAMP",
+            "buildNumber": $BUILD_NUMBER,
+            "commitSha": "$COMMIT_SHA",
+            "description": "$COMMIT_MSG"
+          }
+          EOF
+          
+          echo "Generated version.json:"
+          cat build/WebGL/version.json
+
       - name: Deploy
         # uses: JamesIves/github-pages-deploy-action@v4.4.1
         uses: JamesIves/github-pages-deploy-action@4.1.4
