@@ -1,9 +1,17 @@
 // Service Worker for PWA functionality
-const CACHE_NAME = 'unity-game-cache-v1';
+// IMPORTANT: Update CACHE_VERSION when you want to force a cache refresh
+const CACHE_VERSION = 'v1';
+const CACHE_NAME = `unity-game-cache-${CACHE_VERSION}`;
 const OFFLINE_URL = 'offline.html';
 
 // Get the base path dynamically (works with GitHub Pages subdirectories)
 const BASE_PATH = self.registration.scope;
+
+// Files to NEVER cache (always fetch fresh) - version checking files
+const NO_CACHE_FILES = [
+  'version.json',
+  'version-check.js'
+];
 
 // Files to cache immediately on install (relative to scope)
 const PRECACHE_ASSETS = [
@@ -14,9 +22,14 @@ const PRECACHE_ASSETS = [
   './icons/icon-512x512.png'
 ];
 
+// Check if a URL should never be cached
+function shouldNeverCache(url) {
+  return NO_CACHE_FILES.some(file => url.pathname.endsWith(file));
+}
+
 // Install event - cache essential files
 self.addEventListener('install', (event) => {
-  console.log('[ServiceWorker] Installing...');
+  console.log('[ServiceWorker] Installing version:', CACHE_VERSION);
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {
@@ -66,7 +79,28 @@ self.addEventListener('fetch', (event) => {
     return;
   }
   
-  // For Unity build files, use cache-first strategy (they're versioned)
+  // NEVER cache version files - always fetch fresh
+  if (shouldNeverCache(url)) {
+    console.log('[ServiceWorker] Bypassing cache for:', url.pathname);
+    event.respondWith(
+      fetch(event.request, { 
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache'
+        }
+      }).catch(() => {
+        // If network fails, we have no fallback for version files
+        return new Response(JSON.stringify({ error: 'offline' }), {
+          status: 503,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      })
+    );
+    return;
+  }
+  
+  // For Unity build files, use cache-first strategy (they're versioned by build ID now)
   if (url.pathname.includes('/Build/')) {
     event.respondWith(
       caches.match(event.request)
@@ -114,6 +148,41 @@ self.addEventListener('fetch', (event) => {
 // Handle messages from the main thread
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
+    console.log('[ServiceWorker] Received SKIP_WAITING message');
     self.skipWaiting();
+  }
+  
+  // Handle force cache clear request
+  if (event.data && event.data.type === 'CLEAR_ALL_CACHES') {
+    console.log('[ServiceWorker] Received CLEAR_ALL_CACHES message');
+    event.waitUntil(
+      caches.keys().then((cacheNames) => {
+        return Promise.all(
+          cacheNames.map((cacheName) => {
+            console.log('[ServiceWorker] Deleting cache:', cacheName);
+            return caches.delete(cacheName);
+          })
+        );
+      }).then(() => {
+        console.log('[ServiceWorker] All caches cleared via message');
+        // Notify the client that caches are cleared
+        if (event.source) {
+          event.source.postMessage({ type: 'CACHES_CLEARED' });
+        }
+      })
+    );
+  }
+  
+  // Handle cache status request
+  if (event.data && event.data.type === 'GET_CACHE_STATUS') {
+    caches.keys().then((cacheNames) => {
+      if (event.source) {
+        event.source.postMessage({ 
+          type: 'CACHE_STATUS', 
+          caches: cacheNames,
+          currentCache: CACHE_NAME
+        });
+      }
+    });
   }
 });
