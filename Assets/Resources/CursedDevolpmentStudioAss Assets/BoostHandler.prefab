@@ -1,0 +1,58 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &6068586648554264095
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 8312518151214773856}
+  - component: {fileID: 7161779798118437653}
+  m_Layer: 0
+  m_Name: BoostHandler
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &8312518151214773856
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6068586648554264095}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 486.72495, y: 322.78677, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &7161779798118437653
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6068586648554264095}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b524d95a1e608d5438db479f3435947c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BoostHandler
+  _gameState: {fileID: 0}
+  _spawnRateInterval: 3
+  _player: {fileID: 0}
+  _boosters:
+  - {fileID: 1283658744970203081, guid: 138cb509d2059094faa87b92534898e0, type: 3}
+  - {fileID: 1283658744970203081, guid: 8e820eeb6f66e7643911c8069600ce91, type: 3}
+  - {fileID: 1283658744970203081, guid: a905f40b48af40c46a5d70b46b113fad, type: 3}
+  - {fileID: 1283658744970203081, guid: b3d40673f6f4f18478706ad043b2795a, type: 3}
+  - {fileID: 1283658744970203081, guid: 3b9f7e55ee7e7e14ca32974c01350381, type: 3}
+  - {fileID: 1283658744970203081, guid: 2defd2a9c2dcad64c9b9d5941c22aa78, type: 3}
+  _spawnDistance: 2
+  _mainCamera: {fileID: 0}
