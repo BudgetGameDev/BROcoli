@@ -492,8 +492,8 @@ CircleCollider2D:
   m_UsedByEffector: 0
   m_CompositeOperation: 0
   m_CompositeOrder: 0
-  m_Offset: {x: 0, y: -1.15}
-  m_Radius: 1.18
+  m_Offset: {x: 0, y: 0}
+  m_Radius: 0.55
 --- !u!50 &1958570327876636667
 Rigidbody2D:
   serializedVersion: 5
@@ -542,7 +542,7 @@ AudioSource:
   SpatializePostEffects: 0
   Priority: 128
   DopplerLevel: 1
-  MinDistance: 1
+  MinDistance: 0.5550813
   MaxDistance: 500
   Pan2D: 0
   rolloffMode: 0

@@ -9,15 +9,15 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: bdf81ca532e62d945ab9c52115e0d75f, type: 3}
+  m_Script: {fileID: 11500000, guid: 98d8dbdc14c76494596c5bac7b686d71, type: 3}
   m_Name: Wave_11
   m_EditorClassIdentifier: Assembly-CSharp::WaveConfig
   enemyPrefabs:
   - {fileID: 1960914997709195999, guid: 7d7b1e7e23b0d4347894ac19d9748aa7, type: 3}
   - {fileID: 1960914997709195999, guid: 49e4656b6cd06104da96ae9b7fe204f9, type: 3}
-  - {fileID: 5305235475111336575, guid: b6640fcd792bb974aa2e1c588519d176, type: 3}
-  - {fileID: 5305235475111336575, guid: c6691ebacff5f024092234867a189248, type: 3}
-  - {fileID: 5305235475111336575, guid: 3d636f13ae2db234c88e50595c2253fa, type: 3}
+  - {fileID: 1960914997709195999, guid: 49e4656b6cd06104da96ae9b7fe204f9, type: 3}
+  - {fileID: 1960914997709195999, guid: 7d7b1e7e23b0d4347894ac19d9748aa7, type: 3}
+  - {fileID: 5305235475111336575, guid: 252bf1c5216b7f44baed7f1758618826, type: 3}
   - {fileID: 5305235475111336575, guid: 9b0c301c54db8f04d88977f76556ea67, type: 3}
   enemyCount: 60
   spawnInterval: 0.5
