@@ -6,7 +6,23 @@ using UnityEngine.SceneManagement;
 
 public class PlayerController : MonoBehaviour
 {
+    public enum WeaponType
+    {
+        Projectile,
+        SanitizerSpray
+    }
+
+    [Header("Weapon Selection")]
+    [SerializeField] private WeaponType currentWeapon = WeaponType.SanitizerSpray;
+    
+    [Header("Projectile Weapon (Legacy)")]
     [SerializeField] private GameObject _projectilePrefab;
+    [SerializeField] private ProceduralGunAudio gunAudio;
+    
+    [Header("Sanitizer Spray Weapon")]
+    [SerializeField] private SanitizerSpray sanitizerSpray;
+    [SerializeField] private float initialAttackDelay = 0.75f; // Delay before first attack after spawn
+    
     private float _nextAllowedAttack = 0.0f;
     private float _nextAllowedDamage = 0.0f;
 
@@ -41,7 +57,6 @@ public class PlayerController : MonoBehaviour
 
     [SerializeField] private BoxCollider2D playerCollider;
     [SerializeField] private ShuffleWalkVisual hopVisual;
-    [SerializeField] private ProceduralGunAudio gunAudio;
     [SerializeField] private int speed = 10;
     [SerializeField] private float enemyDetectionRadius = 12f;
     [SerializeField] private LayerMask enemyLayer;
@@ -165,6 +180,9 @@ public class PlayerController : MonoBehaviour
             Debug.LogWarning("PlayerController: enemyLayer is not set! Player won't be able to detect enemies.");
         }
         
+        // Set initial attack delay so player doesn't immediately fire on spawn
+        _nextAllowedAttack = Time.time + initialAttackDelay;
+        
         // Auto-find PlayerStats if not assigned
         if (playerStats == null)
         {
@@ -287,9 +305,16 @@ public class PlayerController : MonoBehaviour
             return;
         }
 
+        // For spray weapon, use spray range for detection; for projectile, use full detection radius
+        float detectionRange = enemyDetectionRadius;
+        if (currentWeapon == WeaponType.SanitizerSpray && sanitizerSpray != null)
+        {
+            detectionRange = sanitizerSpray.SprayRange;
+        }
+
         Collider2D[] hits = Physics2D.OverlapCircleAll(
             body.position,
-            enemyDetectionRadius,
+            detectionRange,
             enemyLayer
         );
 
@@ -298,25 +323,57 @@ public class PlayerController : MonoBehaviour
             return;
         }
 
-        // Find the closest enemy
-        Transform closestEnemy = null;
-        float closestSqrDistance = float.MaxValue;
         Vector2 playerPos = body.position;
-
-        foreach (Collider2D hit in hits)
+        Transform targetToAttack = null;
+        
+        // Use smart targeting for spray weapon, simple closest for projectile
+        if (currentWeapon == WeaponType.SanitizerSpray && sanitizerSpray != null)
         {
-            if (hit == null) continue;
-            float sqrDist = ((Vector2)hit.transform.position - playerPos).sqrMagnitude;
-            if (sqrDist < closestSqrDistance)
-            {
-                closestSqrDistance = sqrDist;
-                closestEnemy = hit.transform;
-            }
+            // Smart targeting: find direction that hits most enemies
+            targetToAttack = FindBestSprayTarget(hits, playerPos, detectionRange);
         }
-
-        if (closestEnemy == null)
+        
+        // Fallback to closest enemy targeting (for projectile weapon or if smart targeting fails)
+        if (targetToAttack == null)
         {
-            Debug.Log("No valid enemy found in range");
+            Transform closestEnemy = null;
+            Transform closestProjectile = null;
+            float closestEnemySqrDistance = float.MaxValue;
+            float closestProjectileSqrDistance = float.MaxValue;
+
+            foreach (Collider2D hit in hits)
+            {
+                if (hit == null) continue;
+                float sqrDist = ((Vector2)hit.transform.position - playerPos).sqrMagnitude;
+                
+                // Check if this is an actual enemy (has EnemyBase) or just a projectile
+                EnemyBase enemyComponent = hit.GetComponent<EnemyBase>();
+                if (enemyComponent != null)
+                {
+                    // This is a real enemy - prioritize it
+                    if (sqrDist < closestEnemySqrDistance)
+                    {
+                        closestEnemySqrDistance = sqrDist;
+                        closestEnemy = hit.transform;
+                    }
+                }
+                else
+                {
+                    // This might be a projectile or other enemy-tagged object
+                    if (sqrDist < closestProjectileSqrDistance)
+                    {
+                        closestProjectileSqrDistance = sqrDist;
+                        closestProjectile = hit.transform;
+                    }
+                }
+            }
+
+            // Prefer real enemies, fall back to projectiles if no enemies found
+            targetToAttack = closestEnemy != null ? closestEnemy : closestProjectile;
+        }
+        
+        if (targetToAttack == null)
+        {
             return;
         }
 
@@ -326,19 +383,132 @@ public class PlayerController : MonoBehaviour
             return;
         }
 
-        Debug.Log("Closest enemy found: " + closestEnemy.name);
-
         _nextAllowedAttack = Time.time + playerStats.CurrentAttackSpeed;
-        FireAtEnemy(closestEnemy);
+        AttackEnemy(targetToAttack);
     }
 
+    [Header("Projectile Spawn Settings")]
     [SerializeField] private float projectileSpawnForwardOffset = 0.4f; // Forward offset from body
     [SerializeField] private float projectileSpawnSideOffset = 0.25f; // Side offset from body
     [SerializeField] private float projectileVisualHeight = -0.5f; // Z offset for visual "height" (negative = in front)
 
-    private void FireAtEnemy(Transform enemy)
+    private void AttackEnemy(Transform enemy)
     {
-        Debug.Log("Firing at enemy!");
+        switch (currentWeapon)
+        {
+            case WeaponType.SanitizerSpray:
+                FireSprayAtEnemy(enemy);
+                break;
+            case WeaponType.Projectile:
+            default:
+                FireProjectileAtEnemy(enemy);
+                break;
+        }
+    }
+
+    private void FireSprayAtEnemy(Transform enemy)
+    {
+        Collider2D col = enemy.GetComponent<Collider2D>();
+        if (col == null) return;
+
+        Vector2 targetPoint = col.bounds.center;
+        Vector2 playerPos = (Vector2)transform.position;
+        Vector2 direction = (targetPoint - playerPos).normalized;
+
+        // Fire spray burst toward enemy
+        if (sanitizerSpray != null)
+        {
+            sanitizerSpray.FireSprayBurst(direction);
+        }
+    }
+
+    /// <summary>
+    /// Find the best target for spray weapon by evaluating which direction would hit the most enemies
+    /// </summary>
+    private Transform FindBestSprayTarget(Collider2D[] hits, Vector2 playerPos, float sprayRange)
+    {
+        if (hits == null || hits.Length == 0) return null;
+        
+        // Get spray cone angle from the spray weapon
+        float sprayAngle = 60f; // Default cone angle
+        if (sanitizerSpray != null)
+        {
+            sprayAngle = sanitizerSpray.SprayWidth;
+        }
+        float halfAngle = sprayAngle * 0.5f;
+        
+        Transform bestTarget = null;
+        float bestScore = float.MinValue;
+        
+        // Collect all valid enemies
+        List<(Transform transform, EnemyBase enemy, Vector2 position, float distance)> enemies = 
+            new List<(Transform, EnemyBase, Vector2, float)>();
+        
+        foreach (Collider2D hit in hits)
+        {
+            if (hit == null) continue;
+            EnemyBase enemyComponent = hit.GetComponent<EnemyBase>();
+            if (enemyComponent == null) continue;
+            
+            Vector2 enemyPos = (Vector2)hit.transform.position;
+            float distance = Vector2.Distance(playerPos, enemyPos);
+            
+            if (distance <= sprayRange)
+            {
+                enemies.Add((hit.transform, enemyComponent, enemyPos, distance));
+            }
+        }
+        
+        if (enemies.Count == 0) return null;
+        if (enemies.Count == 1) return enemies[0].transform;
+        
+        // Evaluate each enemy as a potential primary target
+        foreach (var primaryTarget in enemies)
+        {
+            Vector2 aimDirection = (primaryTarget.position - playerPos).normalized;
+            
+            // Count how many enemies are within the spray cone if we aim at this target
+            int enemiesInCone = 0;
+            float totalDamageValue = 0f;
+            
+            foreach (var otherEnemy in enemies)
+            {
+                Vector2 toOther = (otherEnemy.position - playerPos).normalized;
+                float angleToOther = Vector2.Angle(aimDirection, toOther);
+                
+                if (angleToOther <= halfAngle && otherEnemy.distance <= sprayRange)
+                {
+                    enemiesInCone++;
+                    
+                    // Prioritize low-health enemies (easier to kill)
+                    // and enemies that are closer (more damage from spray)
+                    float healthRatio = 1f; // Default if we can't get health
+                    // Add damage value - closer enemies get hit harder
+                    float distanceMultiplier = 1f - (otherEnemy.distance / sprayRange) * 0.5f;
+                    totalDamageValue += distanceMultiplier;
+                }
+            }
+            
+            // Calculate score:
+            // - More enemies in cone = much better (x3 weight)
+            // - Closer primary target = better (proximity bonus)
+            // - Higher total damage value = better
+            float proximityBonus = 1f - (primaryTarget.distance / sprayRange);
+            float score = (enemiesInCone * 3f) + proximityBonus + totalDamageValue;
+            
+            if (score > bestScore)
+            {
+                bestScore = score;
+                bestTarget = primaryTarget.transform;
+            }
+        }
+        
+        return bestTarget;
+    }
+
+    private void FireProjectileAtEnemy(Transform enemy)
+    {
+        Debug.Log("Firing projectile at enemy!");
 
         Collider2D col = enemy.GetComponent<Collider2D>();
         if (col == null)

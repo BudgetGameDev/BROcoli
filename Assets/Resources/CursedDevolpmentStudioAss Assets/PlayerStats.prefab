@@ -53,5 +53,8 @@ MonoBehaviour:
   CurrentMaxExperience: 100
   CurrentLevel: 1
   CurrentDetectionRadius: 12
+  CurrentSprayRange: 8.0
+  CurrentSprayWidth: 60
+  CurrentSprayDamageMultiplier: 1
   _healthBar: {fileID: 0}
   _experienceBar: {fileID: 0}
