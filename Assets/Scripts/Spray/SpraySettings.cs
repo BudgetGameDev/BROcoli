@@ -7,10 +7,11 @@ using UnityEngine;
 public static class SpraySettings
 {
     // ==================== Base Stats ====================
-    public const float BaseSprayRange = 8.0f;
-    public const float BaseSprayAngle = 60f;           // Cone angle in degrees
-    public const float BaseDamagePerParticle = 0.5f;
-    public const float DamageTickRate = 0.1f;          // How often damage is calculated
+    public const float BaseSprayRange = 4.7f;          // Balanced range (+25% from 3.75)
+    public const float BaseSprayAngle = 28f;           // Wider cone angle (+25%)
+    public const float SpreadDelayPercent = 0.33f;     // Start spreading after 33% of lifetime
+    public const float BaseDamagePerParticle = 0.8f;   // Higher damage to compensate for fewer particles
+    public const float DamageTickRate = 0.016f;        // Every frame (~60fps) for responsive hit registration
 
     // ==================== Burst Settings ====================
     public const float BurstDuration = 0.4f;           // How long each spray burst lasts
@@ -31,12 +32,12 @@ public static class SpraySettings
 
     // ==================== Particle Settings ====================
     public const float ParticleSpeedMultiplier = 2.5f;
-    public const float ParticleLifetimeBase = 0.8f;
-    public const int EmissionRate = 60;
+    public const float ParticleLifetimeBase = 0.5f;    // Shorter lifetime for fizzle effect
+    public const int EmissionRate = 25;                // Fewer particles
     public const float NozzleOffset = 0.7f;
-    public const int MaxParticles = 400;
-    public const float ParticleMinSize = 0.3f;
-    public const float ParticleMaxSize = 0.6f;
+    public const int MaxParticles = 150;              // Reduced max particles
+    public const float ParticleMinSize = 0.02f;        // Thin stripes
+    public const float ParticleMaxSize = 0.06f;        // Thin stripes
 
     // ==================== Particle Shape ====================
     public const float ParticleShapeRadius = 0.08f;
@@ -73,5 +74,13 @@ public static class SpraySettings
 
     // ==================== Detection ====================
     public const int HitBufferSize = 20;
-    public const float AngleToleranceForFiring = 15f;  // Degrees
+    public const float AngleToleranceForFiring = 5f;   // Degrees - tighter tolerance for accurate aiming
+    public const float MaxAimTime = 0.5f;              // Fire anyway after this long (reduced for responsiveness)
+    public const float MinTargetDistance = 0.5f;       // Don't spray at targets closer than this
+
+    // ==================== Dynamic Prediction ====================
+    public const float CloseRangeThreshold = 2.0f;     // Distance below which prediction is disabled, aim dead center
+    public const float PredictionReferenceSpeed = 4f;  // Enemy speed that gets full base prediction time
+    public const float BasePredictionTime = 0.15f;     // Prediction time at reference speed
+    public const float MaxPredictionTime = 0.25f;      // Cap on lead time for very fast enemies
 }

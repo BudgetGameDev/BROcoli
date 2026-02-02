@@ -64,7 +64,11 @@ public class SprayDamageHandler
     /// <summary>
     /// Process damage - queue with delay based on particle travel time.
     /// </summary>
-    public void ProcessDamage(Vector2 sprayDirection, float currentRange, float currentWidth)
+    /// <param name="sprayDirection">Direction the spray is aimed</param>
+    /// <param name="currentRange">Current spray range</param>
+    /// <param name="currentWidth">Current spray cone width in degrees</param>
+    /// <param name="nozzleOrigin">Origin point for damage cone (nozzle position)</param>
+    public void ProcessDamage(Vector2 sprayDirection, float currentRange, float currentWidth, Vector2 nozzleOrigin)
     {
         // Always process pending damages first
         ProcessPendingDamages();
@@ -72,16 +76,14 @@ public class SprayDamageHandler
         if (Time.time < nextDamageTick) return;
         nextDamageTick = Time.time + SpraySettings.DamageTickRate;
         
-        // Detect enemies in cone
-        DetectEnemiesInCone(sprayDirection, currentRange, currentWidth);
+        // Detect enemies in cone from nozzle origin
+        DetectEnemiesInCone(sprayDirection, currentRange, currentWidth, nozzleOrigin);
         
         // Queue damage with travel time delay
         float damageMultiplier = playerStats != null ? playerStats.CurrentSprayDamageMultiplier : 1f;
         float baseDamage = playerStats != null 
             ? playerStats.CurrentDamage * 0.35f 
             : SpraySettings.BaseDamagePerParticle * 3f;
-        
-        Vector2 playerPos = playerTransform != null ? (Vector2)playerTransform.position : Vector2.zero;
         
         foreach (var kvp in particleHitCounts)
         {
@@ -90,19 +92,11 @@ public class SprayDamageHandler
             
             if (enemy != null && hitCount > 0)
             {
-                // Calculate travel time based on distance
-                float distance = Vector2.Distance(playerPos, enemy.transform.position);
-                float travelTime = distance / particleSpeed;
-                
                 float damage = baseDamage * hitCount * damageMultiplier;
                 
-                pendingDamages.Add(new PendingDamage
-                {
-                    enemy = enemy,
-                    damage = damage,
-                    knockbackDir = sprayDirection,
-                    applyTime = Time.time + travelTime
-                });
+                // Apply damage immediately for responsive hit registration
+                // (travel time delay removed - visual particles are cosmetic)
+                enemy.TakeDamage(damage, sprayDirection);
             }
         }
         
@@ -126,14 +120,20 @@ public class SprayDamageHandler
     }
 
     /// <summary>
-    /// Detect enemies in spray cone and register hits (backup for particle collision)
+    /// Detect enemies in spray cone and calculate damage based on particle density.
+    /// Damage = baseDamage × distanceFalloff × angleFalloff
+    /// - Distance: closer = more particles hit (particles fizzle over lifetime)
+    /// - Angle: center = denser spray (cone spreads at edges)
     /// </summary>
-    private void DetectEnemiesInCone(Vector2 sprayDirection, float currentRange, float currentWidth)
+    /// <param name="nozzleOrigin">Origin point for damage cone (where spray emits from)</param>
+    private void DetectEnemiesInCone(Vector2 sprayDirection, float currentRange, float currentWidth, Vector2 nozzleOrigin)
     {
-        Vector2 origin = playerTransform != null 
-            ? (Vector2)playerTransform.position 
-            : Vector2.zero;
+        // Use nozzle as the origin point (where spray actually comes from)
+        Vector2 origin = nozzleOrigin;
         
+        float halfAngle = currentWidth * 0.5f;
+        
+        // Detection still uses a circle around nozzle for initial broad-phase
         int hitCount = Physics2D.OverlapCircleNonAlloc(origin, currentRange, hitBuffer);
         
         for (int i = 0; i < hitCount; i++)
@@ -141,30 +141,48 @@ public class SprayDamageHandler
             Collider2D hit = hitBuffer[i];
             if (hit == null || !hit.CompareTag("Enemy")) continue;
             
-            // Check if enemy is within cone angle
-            Vector2 toEnemy = ((Vector2)hit.transform.position - origin).normalized;
+            EnemyBase enemy = hit.GetComponent<EnemyBase>();
+            if (enemy == null) continue;
+            
+            // Use predicted position for fast-moving enemies
+            Vector2 enemyPos = (Vector2)hit.bounds.center;
+            if (enemy.rb != null && enemy.rb.linearVelocity.sqrMagnitude > 0.1f)
+            {
+                float dist = Vector2.Distance(origin, enemyPos);
+                float travelTime = dist / particleSpeed;
+                enemyPos += enemy.rb.linearVelocity * travelTime;
+            }
+            
+            Vector2 toEnemy = (enemyPos - origin);
+            float distance = toEnemy.magnitude;
+            if (distance < 0.01f || distance > currentRange) continue;
+            
+            toEnemy /= distance; // normalize
             float angleToEnemy = Vector2.Angle(sprayDirection, toEnemy);
             
-            if (angleToEnemy <= currentWidth * 0.5f)
+            if (angleToEnemy <= halfAngle)
             {
-                EnemyBase enemy = hit.GetComponent<EnemyBase>();
-                if (enemy != null)
+                // Physics-based damage: particles fizzle over distance, spread over angle
+                float distanceRatio = distance / currentRange;
+                float distanceFalloff = 1f - Mathf.Pow(distanceRatio, 0.7f);
+                
+                float angleRatio = angleToEnemy / halfAngle;
+                float angleFalloff = 1f - Mathf.Pow(angleRatio, 0.5f);
+                
+                float particleDensity = distanceFalloff * angleFalloff;
+                int simulatedHits = Mathf.Max(1, Mathf.RoundToInt(5f * particleDensity));
+                
+                for (int j = 0; j < simulatedHits; j++)
                 {
-                    // Register multiple hits based on how centered they are in the cone
-                    float centeredness = 1f - (angleToEnemy / (currentWidth * 0.5f));
-                    int simulatedHits = Mathf.Max(1, Mathf.RoundToInt(3 * centeredness));
-                    
-                    for (int j = 0; j < simulatedHits; j++)
-                    {
-                        RegisterParticleHit(enemy);
-                    }
+                    RegisterParticleHit(enemy);
                 }
             }
         }
     }
 
     /// <summary>
-    /// Process particle trigger events and register hits
+    /// Process particle trigger events, register hits, and kill particles on impact.
+    /// Particles stop when they hit enemies (no piercing).
     /// </summary>
     /// <param name="sprayParticles">The particle system to check</param>
     public void ProcessParticleTrigger(ParticleSystem sprayParticles)
@@ -174,6 +192,8 @@ public class SprayDamageHandler
         // Get particles that entered triggers
         List<ParticleSystem.Particle> enter = new List<ParticleSystem.Particle>();
         int numEnter = sprayParticles.GetTriggerParticles(ParticleSystemTriggerEventType.Enter, enter);
+        
+        bool anyKilled = false;
         
         for (int i = 0; i < numEnter; i++)
         {
@@ -187,8 +207,20 @@ public class SprayDamageHandler
                 if (enemy != null)
                 {
                     RegisterParticleHit(enemy);
+                    
+                    // Kill particle on impact - no piercing through enemies
+                    var particle = enter[i];
+                    particle.remainingLifetime = 0f;
+                    enter[i] = particle;
+                    anyKilled = true;
                 }
             }
+        }
+        
+        // Write back modified particles
+        if (anyKilled)
+        {
+            sprayParticles.SetTriggerParticles(ParticleSystemTriggerEventType.Enter, enter);
         }
     }
 

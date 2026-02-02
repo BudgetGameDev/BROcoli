@@ -32,7 +32,7 @@ public abstract class EnemyBase : MonoBehaviour
     [Header("Separation")]
     [SerializeField] protected float separationRadius = 2.5f;   // How close before pushing away
     [SerializeField] protected float separationForce = 50f;     // Strength of push (higher for stronger effect)
-    [SerializeField] protected float playerSeparationRadius = 1.2f; // Minimum distance from player (smaller to allow attacks)
+    [SerializeField] protected float playerSeparationRadius = 0.4f; // Minimum distance from player (reduced for close melee)
     [SerializeField] protected float playerSeparationForce = 40f; // How hard to avoid player overlap (reduced for melee)
 
     [Header("Walk Audio (Optional)")]

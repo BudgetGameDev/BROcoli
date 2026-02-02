@@ -1,28 +1,118 @@
-﻿using System.Linq;
 using UnityEngine;
 
+/// <summary>
+/// Player stats management with fully programmatic initialization.
+/// All fields are private and discovered/set at runtime - no serialized scene references.
+/// </summary>
 public class PlayerStats : MonoBehaviour
 {
-    public bool IsAlive => CurrentHealth > 0f;
+    // Default stat values (matching original scene values)
+    private const float DefaultHealth = 100f;
+    private const float DefaultMaxHealth = 100f;
+    private const float DefaultAttackSpeed = 0.6f;
+    private const float DefaultDamage = 10f;
+    private const float DefaultMovementSpeed = 4f;  // Original scene value was 4, not 10
+    private const float DefaultMaxExperience = 100f;
+    private const float DefaultDetectionRadius = 12f;
 
-    public float CurrentHealth = 200f;
-    public float CurrentMaxHealth = 200f;
-    public float CurrentAttackSpeed  = 0.6f;
-    public float CurrentDamage  = 10f;
-    public float CurrentMovementSpeed  = 10f;
-    public float CurrentExperience  = 0f;
-    public float CurrentMaxExperience = 100f;
-    public float CurrentLevel  = 1f;
-    public float CurrentDetectionRadius  = 12f;
-    
-    // Spray weapon stats
-    public float CurrentSprayRange = 8.0f;      // How far the spray reaches
-    public float CurrentSprayWidth = 60f;       // Cone angle in degrees
-    public float CurrentSprayDamageMultiplier = 1f;  // Multiplier for particle hit damage
+    // Current stat values - private backing fields
+    private float _currentHealth;
+    private float _currentMaxHealth;
+    private float _currentAttackSpeed;
+    private float _currentDamage;
+    private float _currentMovementSpeed;
+    private float _currentExperience;
+    private float _currentMaxExperience;
+    private float _currentLevel;
+    private float _currentDetectionRadius;
+    private float _currentSprayRange;
+    private float _currentSprayWidth;
+    private float _currentSprayDamageMultiplier;
 
-    [SerializeField] private Bar _healthBar;
-    [SerializeField] private Bar _experienceBar;
+    // UI references - discovered dynamically
+    private Bar _healthBar;
+    private Bar _experienceBar;
 
+    // Public read-only properties
+    public bool IsAlive => _currentHealth > 0f;
+    public float CurrentHealth => _currentHealth;
+    public float CurrentMaxHealth => _currentMaxHealth;
+    public float CurrentAttackSpeed => _currentAttackSpeed;
+    public float CurrentDamage => _currentDamage;
+    public float CurrentMovementSpeed => _currentMovementSpeed;
+    public float CurrentExperience => _currentExperience;
+    public float CurrentMaxExperience => _currentMaxExperience;
+    public float CurrentLevel => _currentLevel;
+    public float CurrentDetectionRadius => _currentDetectionRadius;
+    public float CurrentSprayRange => _currentSprayRange;
+    public float CurrentSprayWidth => _currentSprayWidth;
+    public float CurrentSprayDamageMultiplier => _currentSprayDamageMultiplier;
+
+    private void Awake()
+    {
+        DiscoverUIComponents();
+    }
+
+    private void Start()
+    {
+        ResetStats();
+    }
+
+    /// <summary>
+    /// Discover UI Bar components by GameObject name.
+    /// </summary>
+    private void DiscoverUIComponents()
+    {
+        // Find bars by name in scene
+        var allBars = FindObjectsByType<Bar>(FindObjectsSortMode.None);
+        
+        foreach (var bar in allBars)
+        {
+            if (bar.gameObject.name == "HealthBar")
+            {
+                _healthBar = bar;
+            }
+            else if (bar.gameObject.name == "ExperienceBar")
+            {
+                _experienceBar = bar;
+            }
+        }
+
+        if (_healthBar == null)
+        {
+            Debug.LogWarning("PlayerStats: Could not find HealthBar in scene");
+        }
+        if (_experienceBar == null)
+        {
+            Debug.LogWarning("PlayerStats: Could not find ExperienceBar in scene");
+        }
+    }
+
+    /// <summary>
+    /// Reset all stats to default values.
+    /// </summary>
+    public void ResetStats()
+    {
+        _currentHealth = DefaultHealth;
+        _currentMaxHealth = DefaultMaxHealth;
+        _currentAttackSpeed = DefaultAttackSpeed;
+        _currentDamage = DefaultDamage;
+        _currentMovementSpeed = DefaultMovementSpeed;
+        _currentExperience = 0f;
+        _currentMaxExperience = DefaultMaxExperience;
+        _currentLevel = 1f;
+        _currentDetectionRadius = DefaultDetectionRadius;
+        _currentSprayRange = SpraySettings.BaseSprayRange;
+        _currentSprayWidth = SpraySettings.BaseSprayAngle;
+        _currentSprayDamageMultiplier = 1f;
+
+        _healthBar?.UpdateBar(_currentHealth, _currentMaxHealth);
+        _experienceBar?.UpdateBar(_currentExperience, _currentMaxExperience);
+    }
+
+    /// <summary>
+    /// Apply a boost to player stats.
+    /// </summary>
     public void ApplyBoost(BoostBase boost)
     {
         switch (boost)
@@ -57,111 +147,93 @@ public class PlayerStats : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Apply damage to the player.
+    /// </summary>
     public void ApplyDamage(float damage)
     {
         AddHealth(-damage);
     }
 
+    /// <summary>
+    /// Add experience points.
+    /// </summary>
     public void ApplyExperience(float experience)
     {
         AddExperience(experience);
     }
 
-    public void ResetStats()
-    {
-        CurrentHealth = 100f;
-        CurrentMaxHealth = 100f;
-        CurrentAttackSpeed = 0.6f;
-        CurrentDamage = 10f;
-        CurrentMovementSpeed = 10f;
-        CurrentExperience = 0f;
-        CurrentMaxExperience = 100f;
-        CurrentLevel = 1f;
-        CurrentDetectionRadius = 12f;
-        CurrentSprayRange = 8.0f;
-        CurrentSprayWidth = 60f;
-        CurrentSprayDamageMultiplier = 1f;
-
-        _healthBar.UpdateBar(CurrentHealth, CurrentMaxHealth);
-        _experienceBar.UpdateBar(CurrentExperience, CurrentMaxExperience);
-    }
-
-    private void Start()
-    {
-        ResetStats();
-    }
-
     private void LevelUp()
     {
-        CurrentLevel += 1f;
+        _currentLevel += 1f;
 
-        CurrentHealth += 20f;
-        CurrentMaxHealth += 20f;
-        CurrentAttackSpeed *= 0.9f;
-        CurrentDamage += 10f;
-        CurrentMovementSpeed += 10f;
-        CurrentExperience -= CurrentMaxExperience;
-        CurrentMaxExperience *= 1.2f;
-        CurrentLevel += 1f;
-        CurrentDetectionRadius += 2f;
-        CurrentSprayRange += 0.15f;  // Spray gets slightly longer each level
-        CurrentSprayWidth += 3f;      // Spray gets slightly wider each level
-        CurrentSprayDamageMultiplier += 0.1f;  // More damage per particle hit
+        _currentHealth += 20f;
+        _currentMaxHealth += 20f;
+        _currentAttackSpeed *= 0.9f;
+        _currentDamage += 10f;
+        _currentMovementSpeed += 0.25f;  // Small speed boost per level
+        _currentExperience -= _currentMaxExperience;
+        _currentMaxExperience *= 1.2f;
+        _currentDetectionRadius += 2f;
+        _currentSprayRange += 0.15f;
+        _currentSprayWidth += 3f;
+        _currentSprayDamageMultiplier += 0.1f;
 
-        _healthBar.UpdateBar(CurrentHealth, CurrentMaxHealth);
-        _experienceBar.UpdateBar(CurrentExperience, CurrentMaxExperience);
+        _healthBar?.UpdateBar(_currentHealth, _currentMaxHealth);
+        _experienceBar?.UpdateBar(_currentExperience, _currentMaxExperience);
     }
 
     private void AddHealth(float amount)
     {
-        CurrentHealth = Mathf.Min(CurrentHealth + amount, CurrentMaxHealth);
-        _healthBar?.UpdateBar(CurrentHealth, CurrentMaxHealth);
+        _currentHealth = Mathf.Min(_currentHealth + amount, _currentMaxHealth);
+        _healthBar?.UpdateBar(_currentHealth, _currentMaxHealth);
     }
 
     private void AddAttackSpeed(float amount)
     {
-        CurrentAttackSpeed *= amount;
+        _currentAttackSpeed *= amount;
     }
 
     private void AddDamage(float amount)
     {
-        CurrentDamage += amount;
+        _currentDamage += amount;
     }
 
     private void AddMovementSpeed(float amount)
     {
-        CurrentMovementSpeed += amount;
+        _currentMovementSpeed += amount;
     }
 
-    private void AddExperience(float amount) {
-        CurrentExperience += amount;
-        if (CurrentExperience >= CurrentMaxExperience)
+    private void AddExperience(float amount)
+    {
+        _currentExperience += amount;
+        if (_currentExperience >= _currentMaxExperience)
         {
             LevelUp();
         }
         else
         {
-            _experienceBar.UpdateBar(CurrentExperience, CurrentMaxExperience);
+            _experienceBar?.UpdateBar(_currentExperience, _currentMaxExperience);
         }
     }
 
     private void AddDetectionRadius(float amount)
     {
-        CurrentDetectionRadius += amount;
+        _currentDetectionRadius += amount;
     }
 
     public void AddSprayRange(float amount)
     {
-        CurrentSprayRange += amount;
+        _currentSprayRange += amount;
     }
 
     public void AddSprayWidth(float amount)
     {
-        CurrentSprayWidth = Mathf.Clamp(CurrentSprayWidth + amount, 20f, 120f); // Limit between 20-120 degrees
+        _currentSprayWidth = Mathf.Clamp(_currentSprayWidth + amount, 5f, 60f);
     }
 
     public void AddSprayDamageMultiplier(float amount)
     {
-        CurrentSprayDamageMultiplier += amount;
+        _currentSprayDamageMultiplier += amount;
     }
 }

@@ -4,7 +4,7 @@ public class GameStates : MonoBehaviour
 {
     public int score = 0;
     public float gameTime = 0f;
-    public bool IsGameOver => player.gameOver;
+    public bool IsGameOver => player != null && player.getGameOver();
 
     [SerializeField] private PlayerController player;
 

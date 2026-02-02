@@ -35,6 +35,10 @@ public class ShuffleWalkVisual : MonoBehaviour
     private const float BhopTwistMax = 5f;  // Reduced - subtle rotation only
     
     private const float DeadZone = 0.05f;
+    
+    // Stumble system - slows player after being hit
+    private const float StumbleSpeedMultiplier = 0.5f;  // 50% speed when stumbling
+    private float stumblePenalty = 0f;  // 0 = no stumble, 1 = full stumble
 
     Vector3 startLocalPos;
     Vector3 startScale;
@@ -43,6 +47,7 @@ public class ShuffleWalkVisual : MonoBehaviour
     public HopState State { get; private set; } = HopState.Idle;
     
     float stateTimer;
+    
     float displayHeight;
     float displaySS;
     Vector3 displayScale;
@@ -191,11 +196,15 @@ public class ShuffleWalkVisual : MonoBehaviour
                     committedDirection = Vector2.Lerp(committedDirection, input.normalized, 8f * dt);
                 }
                 
-                // Movement during airborne - carry momentum
-                targetMovement = committedDirection * currentPower * launchInputMagnitude;
+                // Movement during airborne - carry momentum (reduced if stumbling)
+                float stumbleMultiplier = Mathf.Lerp(1f, StumbleSpeedMultiplier, stumblePenalty);
+                targetMovement = committedDirection * currentPower * launchInputMagnitude * stumbleMultiplier;
                 
                 if (jumpT >= 1f)
                 {
+                    // Landing clears stumble - player has recovered
+                    stumblePenalty = 0f;
+                    
                     // Determine landing quality for next bounce
                     landingQuality = Random.Range(0.5f, 1f);
                     currentBounceTime = Mathf.Lerp(0.1f, 0.05f, landingQuality);
@@ -230,8 +239,9 @@ public class ShuffleWalkVisual : MonoBehaviour
                 float leanBackAmount = Mathf.Lerp(0.3f, 0.1f, landingQuality);
                 leanMultiplier = -leanBackAmount * bounceDown;
                 
-                // CARRY MOMENTUM during bhop bounce
-                targetMovement = committedDirection * currentPower * launchInputMagnitude;
+                // CARRY MOMENTUM during bhop bounce (reduced if stumbling)
+                float bhopStumbleMultiplier = Mathf.Lerp(1f, StumbleSpeedMultiplier, stumblePenalty);
+                targetMovement = committedDirection * currentPower * launchInputMagnitude * bhopStumbleMultiplier;
                 
                 // Build up power while bhopping if holding direction
                 if (wantsToMove)
@@ -361,6 +371,7 @@ public class ShuffleWalkVisual : MonoBehaviour
                     releasedDuringCharge = false;
                 }
                 break;
+                
         }
 
         // Movement output - NO smoothing for tight physics sync
@@ -384,6 +395,16 @@ public class ShuffleWalkVisual : MonoBehaviour
         transform.localScale = displayScale;
     }
     
+    /// <summary>
+    /// Apply stumble penalty after being hit. Reduces speed until next landing.
+    /// </summary>
+    /// <param name="intensity">Hit intensity from 0 (light) to 1 (heavy).</param>
+    public void ApplyStumble(float intensity)
+    {
+        // Add to stumble, capped at 1
+        stumblePenalty = Mathf.Clamp01(stumblePenalty + intensity * 0.7f);
+    }
+    
     void LaunchJump()
     {
         State = HopState.Airborne;
@@ -399,4 +420,5 @@ public class ShuffleWalkVisual : MonoBehaviour
         currentJumpTime = Mathf.Lerp(JumpTime * 0.6f, JumpTime, launchInputMagnitude); // Shorter hops when input is low
         bhopTwistTarget = Random.Range(-BhopTwistMax, BhopTwistMax);
     }
+    
 }

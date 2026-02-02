@@ -3,8 +3,6 @@ name: GameCI
 on:
   push:
     branches: [ "main", "release" ]
-  pull_request:
-    branches: [ "main", "release" ]
 
   workflow_dispatch:
 
@@ -86,7 +84,11 @@ jobs:
         with:
           branch: gh-pages
           folder: build/WebGL
-          # main branch deploys to /main subpath, release branch deploys to root
-          target-folder: ${{ github.ref_name == 'main' && 'main' || '' }}
+          # main branch deploys to /_branch_main subpath, release branch deploys to root
+          target-folder: ${{ github.ref_name == 'main' && '_branch_main' || '' }}
+          # Only clean the specific target folder, never touch other paths
+          clean: true
           clean-exclude: |
-            main/**
+            _branch_main/**
+            .nojekyll
+            CNAME

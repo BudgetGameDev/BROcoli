@@ -5,18 +5,19 @@ using UnityEngine;
 public class EnemyScript : EnemyBase
 {
     [Header("Melee Attack")]
-    [SerializeField] private float meleeRange = 0.9f;        // Distance to player to trigger attack
-    [SerializeField] private float meleeAttackCooldown = 0.5f; // Time between attacks
+    [SerializeField] private float meleeRange = 0.25f;       // Distance to trigger attack (very close range)
+    [SerializeField] private float meleeAttackCooldown = 0.6f; // Time between attacks
     private float nextMeleeAttackTime = 0f;
     
     [Header("Attack Animation")]
     [SerializeField] private float attackWindupDuration = 0.15f;  // Time to pull back before striking
     [SerializeField] private float attackStrikeDuration = 0.1f;   // Time for the lunge forward
     [SerializeField] private float attackRecoverDuration = 0.2f;  // Time to return to normal
-    [SerializeField] private float attackLungeDistance = 0.4f;    // How far to lunge toward player
+    [SerializeField] private float attackLungeDistance = 0.2f;    // How far to lunge toward player (reduced)
     [SerializeField] private float attackScaleBoost = 1.3f;       // Scale up during attack
     [SerializeField] private Color attackFlashColor = Color.red;  // Color flash on attack
     private bool isAttacking = false;
+    private bool hasDamagedThisAttack = false; // Prevents double-damage per attack
     private float attackTimer = 0f;
     private int attackPhase = 0; // 0=idle, 1=windup, 2=strike, 3=recover
     private Vector3 attackStartPos;
@@ -85,18 +86,8 @@ public class EnemyScript : EnemyBase
     {
         base.Update();
         
-        // Update attack animation
+        // Update attack animation only - attacks start via trigger collision
         UpdateAttackAnimation();
-        
-        // Distance-based melee attack (only start if not already attacking)
-        if (player != null && !isAttacking)
-        {
-            float distToPlayer = Vector2.Distance(transform.position, player.position);
-            if (distToPlayer <= meleeRange && Time.time >= nextMeleeAttackTime)
-            {
-                StartAttackAnimation();
-            }
-        }
     }
     
     private void StartAttackAnimation()
@@ -104,6 +95,7 @@ public class EnemyScript : EnemyBase
         if (player == null) return;
         
         isAttacking = true;
+        hasDamagedThisAttack = false; // Reset damage flag for new attack
         attackPhase = 1; // Start with windup
         attackTimer = 0f;
         attackStartPos = visualTransform.localPosition;
@@ -127,8 +119,7 @@ public class EnemyScript : EnemyBase
                 {
                     attackPhase = 2;
                     attackTimer = 0f;
-                    // Deal damage at the start of strike phase
-                    PerformMeleeAttack();
+                    // Damage is dealt during strike phase at 60% when lunge visually connects
                 }
                 else
                 {
@@ -146,8 +137,16 @@ public class EnemyScript : EnemyBase
                 }
                 break;
                 
-            case 2: // Strike - lunge forward
+            case 2: // Strike - lunge forward, damage at midpoint
                 float strikeT = attackTimer / attackStrikeDuration;
+                
+                // Deal damage at 60% through strike when visual lunge connects
+                if (strikeT >= 0.6f && !hasDamagedThisAttack)
+                {
+                    hasDamagedThisAttack = true;
+                    PerformMeleeAttack();
+                }
+                
                 if (strikeT >= 1f)
                 {
                     attackPhase = 3;

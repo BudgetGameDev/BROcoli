@@ -1,8 +1,10 @@
 using UnityEngine;
 
 /// <summary>
-/// Handles hand and spray can visual creation, positioning, and animation.
-/// Manages smooth rotation towards spray direction and isometric view adjustments.
+/// THE SINGLE SOURCE OF TRUTH FOR SPRAY DIRECTION.
+/// 
+/// Hand tracks target, animates toward it, CurrentDirection is where we spray.
+/// No separate "target direction" vs "animated direction" - just ONE direction.
 /// </summary>
 public class SprayHandVisuals
 {
@@ -10,12 +12,16 @@ public class SprayHandVisuals
     private SpriteRenderer handSprite;
     private SpriteRenderer sprayCanSprite;
     private Transform sprayTransform;
+    private Transform playerTransform;
+    
+    // Target tracking
+    private Transform targetTransform;
+    private Vector2? predictedTargetPosition = null;
+    private float maxRange = 3f;
     
     // Animation state
     private float currentHandAngle = 0f;
     private float targetHandAngle = 0f;
-    private Vector2 targetDirection = Vector2.right;
-    private bool isAiming = false;
 
     public Transform HandTransform => handTransform;
     public SpriteRenderer HandSprite => handSprite;
@@ -24,11 +30,9 @@ public class SprayHandVisuals
     public SprayHandVisuals(Transform parent)
     {
         sprayTransform = parent;
+        playerTransform = parent.parent;
     }
 
-    /// <summary>
-    /// Set existing hand references (assigned via inspector)
-    /// </summary>
     public void SetReferences(Transform hand, SpriteRenderer handSpr, SpriteRenderer canSpr)
     {
         handTransform = hand;
@@ -36,12 +40,8 @@ public class SprayHandVisuals
         sprayCanSprite = canSpr;
     }
 
-    /// <summary>
-    /// Create hand visuals programmatically
-    /// </summary>
     public void CreateHandVisuals()
     {
-        // Create hand container
         GameObject handObj = new GameObject("SprayHand");
         handObj.transform.SetParent(sprayTransform);
         handObj.transform.localPosition = new Vector3(SpraySettings.HandOffset, 0, 0);
@@ -55,12 +55,11 @@ public class SprayHandVisuals
 
     private void CreateHandSprite()
     {
-        GameObject handSpriteObj = new GameObject("HandSprite");
-        handSpriteObj.transform.SetParent(handTransform);
-        handSpriteObj.transform.localPosition = SpraySettings.HandSpriteLocalPos;
-        handSpriteObj.transform.localScale = SpraySettings.HandSpriteScale;
-        
-        handSprite = handSpriteObj.AddComponent<SpriteRenderer>();
+        GameObject obj = new GameObject("HandSprite");
+        obj.transform.SetParent(handTransform);
+        obj.transform.localPosition = SpraySettings.HandSpriteLocalPos;
+        obj.transform.localScale = SpraySettings.HandSpriteScale;
+        handSprite = obj.AddComponent<SpriteRenderer>();
         handSprite.sprite = CreateSimpleSprite();
         handSprite.color = SpraySettings.SkinToneColor;
         handSprite.sortingOrder = SpraySettings.HandSpriteSortingOrder;
@@ -68,12 +67,11 @@ public class SprayHandVisuals
 
     private void CreateSprayCanSprite()
     {
-        GameObject canSpriteObj = new GameObject("SprayCanSprite");
-        canSpriteObj.transform.SetParent(handTransform);
-        canSpriteObj.transform.localPosition = SpraySettings.SprayCanLocalPos;
-        canSpriteObj.transform.localScale = SpraySettings.SprayCanScale;
-        
-        sprayCanSprite = canSpriteObj.AddComponent<SpriteRenderer>();
+        GameObject obj = new GameObject("SprayCanSprite");
+        obj.transform.SetParent(handTransform);
+        obj.transform.localPosition = SpraySettings.SprayCanLocalPos;
+        obj.transform.localScale = SpraySettings.SprayCanScale;
+        sprayCanSprite = obj.AddComponent<SpriteRenderer>();
         sprayCanSprite.sprite = CreateSimpleSprite();
         sprayCanSprite.color = SpraySettings.SprayCanColor;
         sprayCanSprite.sortingOrder = SpraySettings.SprayCanSortingOrder;
@@ -81,15 +79,14 @@ public class SprayHandVisuals
 
     private void CreateNozzleSprite()
     {
-        GameObject nozzleObj = new GameObject("Nozzle");
-        nozzleObj.transform.SetParent(handTransform);
-        nozzleObj.transform.localPosition = SpraySettings.NozzleLocalPos;
-        nozzleObj.transform.localScale = SpraySettings.NozzleScale;
-        
-        SpriteRenderer nozzleSprite = nozzleObj.AddComponent<SpriteRenderer>();
-        nozzleSprite.sprite = CreateSimpleSprite();
-        nozzleSprite.color = SpraySettings.NozzleColor;
-        nozzleSprite.sortingOrder = SpraySettings.NozzleSortingOrder;
+        GameObject obj = new GameObject("Nozzle");
+        obj.transform.SetParent(handTransform);
+        obj.transform.localPosition = SpraySettings.NozzleLocalPos;
+        obj.transform.localScale = SpraySettings.NozzleScale;
+        var sr = obj.AddComponent<SpriteRenderer>();
+        sr.sprite = CreateSimpleSprite();
+        sr.color = SpraySettings.NozzleColor;
+        sr.sortingOrder = SpraySettings.NozzleSortingOrder;
     }
 
     private Sprite CreateSimpleSprite()
@@ -100,173 +97,107 @@ public class SprayHandVisuals
         tex.SetPixels(pixels);
         tex.Apply();
         tex.filterMode = FilterMode.Point;
-        
         return Sprite.Create(tex, new Rect(0, 0, 4, 4), new Vector2(0.5f, 0.5f), 4f);
     }
 
+    // ==================== TARGET TRACKING ====================
+
+    public void SetTarget(Transform target) { targetTransform = target; predictedTargetPosition = null; }
+    public void SetTarget(Transform target, Vector2 predictedPos) { targetTransform = target; predictedTargetPosition = predictedPos; }
+    public void ClearTarget() { targetTransform = null; predictedTargetPosition = null; }
+    public void SetRange(float range) { maxRange = range; }
+
     /// <summary>
-    /// Set the target direction for aiming animation
+    /// Get the center position of the current target (from collider bounds or transform)
     /// </summary>
-    public void SetTargetDirection(Vector2 direction)
+    private Vector2 GetTargetCenter()
     {
-        targetDirection = direction;
-        targetHandAngle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
-        isAiming = true;
+        if (targetTransform == null) return Vector2.zero;
+        Collider2D col = targetTransform.GetComponent<Collider2D>();
+        return (col != null && col.enabled) ? (Vector2)col.bounds.center : (Vector2)targetTransform.position;
+    }
+    
+    public bool HasTarget => targetTransform != null && targetTransform.gameObject.activeInHierarchy;
+    
+    public bool IsTargetInRange
+    {
+        get
+        {
+            if (targetTransform == null || playerTransform == null) return false;
+            // Measure distance from player center (consistent with aim calculation)
+            Vector2 playerPos = (Vector2)playerTransform.position;
+            float dist = Vector2.Distance(playerPos, GetTargetCenter());
+            return dist <= maxRange && dist >= SpraySettings.MinTargetDistance;
+        }
     }
 
-    /// <summary>
-    /// Get current hand angle
-    /// </summary>
-    public float CurrentAngle => currentHandAngle;
+    // ==================== DIRECTION (THE ONLY DIRECTION) ====================
 
     /// <summary>
-    /// Get target hand angle
-    /// </summary>
-    public float TargetAngle => targetHandAngle;
-
-    /// <summary>
-    /// Get the current aim direction based on the hand's actual rotation (not the target)
+    /// THE spray direction. Where hand points RIGHT NOW. Particles and damage use THIS.
     /// </summary>
     public Vector2 CurrentDirection => new Vector2(
         Mathf.Cos(currentHandAngle * Mathf.Deg2Rad),
         Mathf.Sin(currentHandAngle * Mathf.Deg2Rad)
     );
 
-    /// <summary>
-    /// Get the world position of the nozzle (where particles should emit from)
-    /// </summary>
-    public Vector3 GetNozzleWorldPosition()
-    {
-        if (handTransform == null || sprayTransform == null)
-            return sprayTransform != null ? sprayTransform.position : Vector3.zero;
-        
-        // The nozzle is at HandOffset along the direction the hand is pointing
-        // Plus the NozzleLocalPos offset within the hand
-        Vector2 dir = CurrentDirection;
-        Vector3 playerPos = sprayTransform.parent != null ? sprayTransform.parent.position : sprayTransform.position;
-        
-        // Calculate nozzle position: player position + hand offset in aim direction + nozzle tip offset
-        float totalOffset = SpraySettings.HandOffset + SpraySettings.NozzleLocalPos.x;
-        return new Vector3(
-            playerPos.x + dir.x * totalOffset,
-            playerPos.y + dir.y * totalOffset,
-            playerPos.z + SpraySettings.VisualZOffset
-        );
-    }
-
-    /// <summary>
-    /// Check if hand has reached target angle (within tolerance)
-    /// </summary>
-    public bool IsNearTarget => Mathf.Abs(Mathf.DeltaAngle(currentHandAngle, targetHandAngle)) 
+    public bool IsAimedAtTarget => Mathf.Abs(Mathf.DeltaAngle(currentHandAngle, targetHandAngle)) 
         < SpraySettings.AngleToleranceForFiring;
 
-    /// <summary>
-    /// Animate the hand rotation towards target direction
-    /// </summary>
-    /// <param name="aimDirection">Direction to aim towards</param>
-    public void AnimateRotation(Vector2 aimDirection)
+    public Vector3 GetNozzleWorldPosition()
     {
-        targetHandAngle = Mathf.Atan2(aimDirection.y, aimDirection.x) * Mathf.Rad2Deg;
-        
-        float angleDiff = Mathf.DeltaAngle(currentHandAngle, targetHandAngle);
-        float maxRotation = SpraySettings.HandRotationSpeed * Time.deltaTime;
-        
-        if (Mathf.Abs(angleDiff) <= maxRotation)
+        Vector3 playerPos = playerTransform != null ? playerTransform.position : sprayTransform.position;
+        Vector2 dir = CurrentDirection;
+        float offset = SpraySettings.HandOffset + SpraySettings.NozzleLocalPos.x;
+        return new Vector3(playerPos.x + dir.x * offset, playerPos.y + dir.y * offset, playerPos.z + SpraySettings.VisualZOffset);
+    }
+
+    // ==================== UPDATE (CALL EVERY FRAME) ====================
+
+    public void Update()
+    {
+        // Always track target (no freezing)
+        if (targetTransform != null && playerTransform != null && targetTransform.gameObject.activeInHierarchy)
         {
-            currentHandAngle = targetHandAngle;
+            // Get target center (use predicted position if available)
+            Vector2 targetPos = predictedTargetPosition ?? GetTargetCenter();
+            
+            // Calculate aim direction from PLAYER CENTER to target
+            // This is geometrically correct: since nozzle is offset ALONG the aim ray,
+            // aiming from player center ensures the spray ray passes through the target
+            Vector2 playerPos = (Vector2)playerTransform.position;
+            Vector2 toTarget = targetPos - playerPos;
+            
+            if (toTarget.magnitude > 0.1f)
+                targetHandAngle = Mathf.Atan2(toTarget.y, toTarget.x) * Mathf.Rad2Deg;
         }
-        else
-        {
-            currentHandAngle += Mathf.Sign(angleDiff) * maxRotation;
-        }
+
+        // Animate toward target
+        float diff = Mathf.DeltaAngle(currentHandAngle, targetHandAngle);
+        float maxRot = SpraySettings.HandRotationSpeed * Time.deltaTime;
+        currentHandAngle += Mathf.Abs(diff) <= maxRot ? diff : Mathf.Sign(diff) * maxRot;
         
-        // Normalize angle
         if (currentHandAngle > 180f) currentHandAngle -= 360f;
         if (currentHandAngle < -180f) currentHandAngle += 360f;
         
-        // Apply rotation and position to spray transform
-        ApplyTransform(aimDirection);
+        ApplyTransform();
     }
 
-    /// <summary>
-    /// Apply rotation and position offsets for isometric view
-    /// </summary>
-    private void ApplyTransform(Vector2 aimDirection)
+    private void ApplyTransform()
     {
         sprayTransform.localRotation = Quaternion.Euler(0, 0, currentHandAngle);
+        sprayTransform.localPosition = new Vector3(0, 0, SpraySettings.VisualZOffset);
         
-        // Calculate position offsets for isometric camera visibility
-        float yOffset = 0f;
-        float zOffset = SpraySettings.VisualZOffset;
-        
-        if (aimDirection.y > 0.3f)
-        {
-            float upwardAmount = Mathf.InverseLerp(0.3f, 1f, aimDirection.y);
-            yOffset = SpraySettings.IsometricYOffset * upwardAmount;
-            zOffset = SpraySettings.VisualZOffset - (0.3f * upwardAmount);
-        }
-        
-        sprayTransform.localPosition = new Vector3(0, yOffset, zOffset);
-        
-        UpdateHandFlip(aimDirection);
+        bool left = CurrentDirection.x < -0.1f;
+        if (handSprite != null) handSprite.flipY = left;
+        if (sprayCanSprite != null) sprayCanSprite.flipY = left;
     }
 
-    /// <summary>
-    /// Update sprite direction and position based on spray direction.
-    /// IMPORTANT: This also updates currentHandAngle so CurrentDirection stays in sync.
-    /// </summary>
-    public void UpdateDirection(Vector2 sprayDirection)
-    {
-        float angle = Mathf.Atan2(sprayDirection.y, sprayDirection.x) * Mathf.Rad2Deg;
-        
-        // CRITICAL: Sync currentHandAngle so CurrentDirection and GetNozzleWorldPosition work correctly
-        currentHandAngle = angle;
-        targetHandAngle = angle;
-        
-        sprayTransform.localRotation = Quaternion.Euler(0, 0, angle);
-        
-        // Calculate position offsets
-        float yOffset = 0f;
-        float zOffset = SpraySettings.VisualZOffset;
-        
-        if (sprayDirection.y > 0.3f)
-        {
-            float upwardAmount = Mathf.InverseLerp(0.3f, 1f, sprayDirection.y);
-            yOffset = SpraySettings.IsometricYOffset * upwardAmount;
-            zOffset = SpraySettings.VisualZOffset - (0.3f * upwardAmount);
-        }
-        
-        sprayTransform.localPosition = new Vector3(0, yOffset, zOffset);
-        
-        if (handTransform != null)
-        {
-            handTransform.localPosition = new Vector3(SpraySettings.HandOffset, 0, 0);
-        }
-        
-        UpdateHandFlip(sprayDirection);
-    }
-
-    private void UpdateHandFlip(Vector2 direction)
-    {
-        if (!SpraySettings.FlipHandWithDirection) return;
-        
-        bool pointingLeft = direction.x < -0.1f;
-        
-        if (handSprite != null) handSprite.flipY = pointingLeft;
-        if (sprayCanSprite != null) sprayCanSprite.flipY = pointingLeft;
-    }
-
-    /// <summary>
-    /// Set hand visibility
-    /// </summary>
     public void SetVisible(bool visible)
     {
         if (handSprite != null) handSprite.enabled = visible;
         if (sprayCanSprite != null) sprayCanSprite.enabled = visible;
     }
 
-    /// <summary>
-    /// Check if hand references exist
-    /// </summary>
     public bool HasHand => handTransform != null;
 }
