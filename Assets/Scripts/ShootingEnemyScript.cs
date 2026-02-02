@@ -6,7 +6,7 @@ public class ShootingEnemyScript : EnemyBase
 {
     [Header("Shooting")]
     public float stopDistance = 6f;          // stop moving when within this distance from player
-    public float fireRate = 1.0f;            // shots per second (1 = one shot per second)
+    public float fireRate = 0.125f;          // shots per second (0.125 = one shot per 8 seconds)
     public float projectileDamage = 10f;
     public GameObject projectilePrefab;
     public Transform shootPoint;             // optional: where bullets spawn (defaults to this transform)

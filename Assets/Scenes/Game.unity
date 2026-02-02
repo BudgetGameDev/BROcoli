@@ -1779,6 +1779,7 @@ GameObject:
   m_Component:
   - component: {fileID: 711560545}
   - component: {fileID: 711560544}
+  - component: {fileID: 711560546}
   m_Layer: 0
   m_Name: Mock-up dirt bg
   m_TagString: Untagged
@@ -1786,6 +1787,19 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
+--- !u!114 &711560546
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 711560543}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1a8b5c7d9e0f2a3b4c5d6e7f8a9b0c1d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _target: {fileID: 0}
 --- !u!212 &711560544
 SpriteRenderer:
   serializedVersion: 2

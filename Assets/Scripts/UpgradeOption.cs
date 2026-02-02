@@ -56,11 +56,12 @@ public class UpgradeOption
     {
         var option = new UpgradeOption();
         
-        // Weighted rarity roll - higher levels have better chances
+        // Weighted rarity roll - higher levels have slightly better chances
+        // Epic/Legendary are now much rarer
         float roll = Random.value;
-        float legendaryChance = Mathf.Min(0.02f + playerLevel * 0.005f, 0.10f);
-        float epicChance = Mathf.Min(0.05f + playerLevel * 0.01f, 0.15f);
-        float rareChance = Mathf.Min(0.15f + playerLevel * 0.015f, 0.25f);
+        float legendaryChance = Mathf.Min(0.005f + playerLevel * 0.001f, 0.025f);  // Max 2.5%
+        float epicChance = Mathf.Min(0.01f + playerLevel * 0.002f, 0.04f);          // Max 4%
+        float rareChance = Mathf.Min(0.08f + playerLevel * 0.008f, 0.18f);          // Max 18%
         float uncommonChance = 0.35f;
 
         if (roll < legendaryChance)

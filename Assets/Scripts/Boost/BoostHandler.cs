@@ -1,15 +1,29 @@
 ﻿using UnityEngine;
 
+/// <summary>
+/// Provides powerup/boost prefabs for enemy drop system.
+/// Timer-based spawning is disabled - powerups now drop from enemies (max 1 per wave).
+/// Assign powerupPrefabs in WaveGenerator instead for the new drop system.
+/// </summary>
 public class BoostHandler : MonoBehaviour
 {
     [SerializeField] GameStates _gameState;
-    [SerializeField] private float _spawnRateInterval = 90f;  // Very rare - about 1 per wave max
     [SerializeField] private Transform _player;
     [SerializeField] private GameObject[] _boosters;
     [SerializeField] private float _spawnDistance = 2f;
     [SerializeField] private Camera _mainCamera;
     [SerializeField] private Transform _spawnerParent;
 
+    /// <summary>
+    /// Get the array of boost prefabs for use by other systems (e.g., enemy drops)
+    /// </summary>
+    public GameObject[] BoostPrefabs => _boosters;
+
+    // Timer-based spawning disabled - powerups now drop from enemies via EnemySpawner
+    // To re-enable, uncomment the Update method below
+
+    /*
+    [SerializeField] private float _spawnRateInterval = 90f;
     private float _nextSpawnTime = 0f;
 
     private void Awake()
@@ -25,20 +39,19 @@ public class BoostHandler : MonoBehaviour
             _nextSpawnTime = Time.time + _spawnRateInterval;
         }
     }
+    */
 
-    private void SpawnBooster()
+    /// <summary>
+    /// Spawn a random booster at a specific position (for external use)
+    /// </summary>
+    public void SpawnBoosterAt(Vector2 position)
     {
-        if (_boosters.Length == 0)
-        {
-            return;
-        }
+        if (_boosters.Length == 0) return;
 
-        Vector2 spawnPos = GetOffscreenPosition();
         GameObject prefab = _boosters[Random.Range(0, _boosters.Length)];
-
         Instantiate(
             prefab, 
-            spawnPos, 
+            position, 
             Quaternion.identity, 
             _spawnerParent != null ? _spawnerParent : transform
         );

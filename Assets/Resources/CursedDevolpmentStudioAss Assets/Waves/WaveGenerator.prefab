@@ -65,3 +65,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 1845212447e998947b8392bd2b512bcb, type: 2}
   - {fileID: 11400000, guid: c9d42a40271b3e542ac22019a8bb03fb, type: 2}
   - {fileID: 11400000, guid: 70ada1f877d8ee84c91465b55c14502b, type: 2}
+  powerupPrefabs:
+  - {fileID: 1283658744970203081, guid: 3b9f7e55ee7e7e14ca32974c01350381, type: 3}
+  - {fileID: 1283658744970203081, guid: 2defd2a9c2dcad64c9b9d5941c22aa78, type: 3}
+  - {fileID: 1283658744970203081, guid: b3d40673f6f4f18478706ad043b2795a, type: 3}

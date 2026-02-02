@@ -22,7 +22,7 @@ public class ProceduralEnemyGunAudio : MonoBehaviour
 
     [Header("Volume")]
     [Range(0f, 1f)]
-    [SerializeField] private float volume = 0.4f;
+    [SerializeField] private float volume = 0.0675f;
 
     [Header("Variation")]
     [Range(0f, 0.25f)]
@@ -283,29 +283,29 @@ public class ProceduralEnemyGunAudio : MonoBehaviour
                 break;
                 
             case EnemyGunSoundType.Sneeze:
-                // Sneeze sound - sharp inhale then explosive exhale with nasal quality
-                p.duration = 0.45f;
-                p.roomSize = 0.15f;
-                p.transientFreq1 = 1800f;    // High nasal frequency
-                p.transientFreq2 = 2800f;    // "CHOO" consonant
-                p.transientDecay = 4f;       // Fast attack
-                p.transientAmount = 0.6f;    // Strong transient
-                p.subFreq = 120f;            // Chest resonance
-                p.subAmount = 0.4f;
-                p.midFreq = 450f;            // Nasal cavity resonance
-                p.midAmount = 0.7f;
-                p.bodyDecay = 3f;            // Quick decay
-                p.modFreq = 25f;             // Vocal flutter
-                p.modDepth = 0.5f;
-                p.resonanceFreq = 650f;      // Nasal formant
-                p.resonanceQ = 5f;
-                p.resonanceAmount = 0.6f;
-                p.noiseColor = 0.4f;         // Breathy noise
-                p.noiseCutoff = 4000f;       // High freq breath/spray
-                p.noiseAmount = 0.7f;        // Lots of breath noise
-                p.noiseDecay = 3f;           // Fast noise decay
-                p.distortion = 0.15f;
-                p.pitchBend = -0.4f;         // Pitch drops as sneeze releases
+                // Soft muffled cough/spit - subtle and non-intrusive
+                p.duration = 0.18f;          // Short, quick sound
+                p.roomSize = 0.05f;          // Minimal reverb
+                p.transientFreq1 = 400f;     // Low soft thump
+                p.transientFreq2 = 800f;     // Muffled pop
+                p.transientDecay = 12f;      // Very fast decay
+                p.transientAmount = 0.2f;    // Subtle transient
+                p.subFreq = 80f;             // Soft bass
+                p.subAmount = 0.15f;         // Minimal sub
+                p.midFreq = 250f;            // Muffled mid
+                p.midAmount = 0.25f;         // Low mid presence
+                p.bodyDecay = 10f;           // Quick fade
+                p.modFreq = 8f;              // Gentle wobble
+                p.modDepth = 0.15f;          // Subtle modulation
+                p.resonanceFreq = 350f;      // Low resonance
+                p.resonanceQ = 2f;           // Soft Q
+                p.resonanceAmount = 0.2f;    // Minimal resonance
+                p.noiseColor = 0.7f;         // Darker noise (pink/brown)
+                p.noiseCutoff = 1200f;       // Low-passed breath
+                p.noiseAmount = 0.25f;       // Subtle breath
+                p.noiseDecay = 8f;           // Fast noise decay
+                p.distortion = 0.05f;        // Almost no distortion
+                p.pitchBend = -0.1f;         // Slight pitch drop
                 p.hasChorus = false;
                 p.hasGlitch = false;
                 break;

@@ -197,7 +197,7 @@ MonoBehaviour:
   enemyKnockbackForce: 5
   enemyKnockbackDuration: 0.12
   stopDistance: 6
-  fireRate: 4
+  fireRate: 0.5
   projectileDamage: 10
   projectilePrefab: {fileID: 1000000000000000000, guid: a1b2c3d4e5f6789012345678abcd1234, type: 3}
   shootPoint: {fileID: 6769356106294995044}
@@ -315,7 +315,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ProceduralEnemyGunAudio
   soundType: 5
-  volume: 0.25
+  volume: 0.06
   randomization: 0.15
 --- !u!114 &1122334455667788908
 MonoBehaviour:

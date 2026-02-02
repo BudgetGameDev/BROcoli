@@ -11,9 +11,14 @@ public class WaveGenerator : MonoBehaviour
     [SerializeField] private Transform player;
     [SerializeField] private GameStates gameStates;
     [SerializeField] private WaveConfig[] waves;
+    
+    [Header("Powerup Drops")]
+    [SerializeField] private GameObject[] powerupPrefabs;
 
     private EnemySpawner spawner;
     private int currentWave = 1;
+
+    public int CurrentWaveNumber => currentWave;
 
     private void Start()
     {
@@ -22,6 +27,12 @@ public class WaveGenerator : MonoBehaviour
             spawnerParent != null ? spawnerParent : transform
         );
         spawner.player = player;
+        
+        // Pass powerup prefabs to spawner for enemy drop system
+        if (powerupPrefabs != null && powerupPrefabs.Length > 0)
+        {
+            spawner.SetPowerupPrefabs(powerupPrefabs);
+        }
 
         StartCoroutine(WaveLoop());
     }
