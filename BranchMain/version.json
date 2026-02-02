@@ -1,7 +1,7 @@
 {
-  "buildId": "build-1770040115-f1d29f0",
-  "buildTimestamp": "2026-02-02T13:48:35Z",
-  "buildNumber": 124,
-  "commitSha": "f1d29f08980c99f460548769cde4a3aae2d0ff37",
-  "description": "fix: build problems and implement a clean build and also build check for when it is bugging out, and also instructions for copliot agent"
+  "buildId": "build-1770041915-f8bfc68",
+  "buildTimestamp": "2026-02-02T14:18:35Z",
+  "buildNumber": 125,
+  "commitSha": "f8bfc682afd70954afc7820e3afd030fdf941775",
+  "description": "fix: buggy meta ids"
 }
