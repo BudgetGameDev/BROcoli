@@ -392,20 +392,30 @@
           if (this._starCountFetched) return;
           this._starCountFetched = true;
           
+          var countEl = document.getElementById('github-star-count');
+          
           fetch('https://api.github.com/repos/BudgetGameDev/BROcoli')
-            .then(function(response) { return response.json(); })
+            .then(function(response) { 
+              if (!response.ok) throw new Error('API request failed');
+              return response.json(); 
+            })
             .then(function(data) {
               if (data && typeof data.stargazers_count === 'number') {
                 window.GameUI._starCount = data.stargazers_count;
-                var countEl = document.getElementById('github-star-count');
                 if (countEl) {
                   countEl.textContent = data.stargazers_count;
                 }
                 console.log('[GameUI] GitHub stars:', data.stargazers_count);
+              } else {
+                throw new Error('Invalid response data');
               }
             })
             .catch(function(err) {
               console.warn('[GameUI] Could not fetch star count:', err);
+              // Show 0 on error instead of leaving --
+              if (countEl && countEl.textContent === '--') {
+                countEl.textContent = '0';
+              }
             });
         },
         

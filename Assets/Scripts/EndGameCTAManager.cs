@@ -1,5 +1,7 @@
 using System.Runtime.InteropServices;
+using System.Collections;
 using UnityEngine;
+using UnityEngine.Networking;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using TMPro;
@@ -18,6 +20,12 @@ public class EndGameCTAManager : MonoBehaviour
     private int minScoreToShowCTA = 0; // Score threshold to show CTA
     
     private const string GITHUB_REPO_URL = "https://github.com/BudgetGameDev/BROcoli";
+    private const string GITHUB_API_URL = "https://api.github.com/repos/BudgetGameDev/BROcoli";
+    
+    // Cached star count
+    private static int? cachedStarCount = null;
+    private static bool isFetchingStars = false;
+    private TextMeshProUGUI starCountTextRef;
 
 #if UNITY_WEBGL && !UNITY_EDITOR
     // JavaScript bridge functions - these call into the HTML/JS layer
@@ -255,13 +263,78 @@ public class EndGameCTAManager : MonoBehaviour
         countTextRect.offsetMax = Vector2.zero;
         
         TextMeshProUGUI countText = countTextObj.AddComponent<TextMeshProUGUI>();
-        countText.text = "0";
+        countText.text = cachedStarCount.HasValue ? cachedStarCount.Value.ToString() : "--";
         countText.fontSize = 18;
         countText.fontStyle = FontStyles.Bold;
         countText.alignment = TextAlignmentOptions.Center;
         countText.color = textColor;
         
+        // Store reference for updating after fetch
+        starCountTextRef = countText;
+        
+        // Fetch star count if not cached
+        if (!cachedStarCount.HasValue && !isFetchingStars)
+        {
+            StartCoroutine(FetchGitHubStarCount());
+        }
+        
         Debug.Log("[EndGameCTA] Editor fallback UI created");
+    }
+    
+    IEnumerator FetchGitHubStarCount()
+    {
+        isFetchingStars = true;
+        Debug.Log("[EndGameCTA] Fetching GitHub star count...");
+        
+        using (UnityWebRequest request = UnityWebRequest.Get(GITHUB_API_URL))
+        {
+            // GitHub API requires a User-Agent header
+            request.SetRequestHeader("User-Agent", "Unity-BROcoli-Game");
+            request.timeout = 10;
+            
+            yield return request.SendWebRequest();
+            
+            if (request.result == UnityWebRequest.Result.Success)
+            {
+                try
+                {
+                    // Parse JSON response to get stargazers_count
+                    string json = request.downloadHandler.text;
+                    // Simple parsing - look for "stargazers_count":NUMBER
+                    int startIndex = json.IndexOf("\"stargazers_count\":");
+                    if (startIndex >= 0)
+                    {
+                        startIndex += "\"stargazers_count\":".Length;
+                        int endIndex = json.IndexOfAny(new char[] { ',', '}' }, startIndex);
+                        if (endIndex > startIndex)
+                        {
+                            string countStr = json.Substring(startIndex, endIndex - startIndex).Trim();
+                            if (int.TryParse(countStr, out int starCount))
+                            {
+                                cachedStarCount = starCount;
+                                Debug.Log($"[EndGameCTA] GitHub stars: {starCount}");
+                                
+                                // Update the text if it still exists
+                                if (starCountTextRef != null)
+                                {
+                                    starCountTextRef.text = starCount.ToString();
+                                }
+                            }
+                        }
+                    }
+                }
+                catch (System.Exception e)
+                {
+                    Debug.LogWarning($"[EndGameCTA] Failed to parse GitHub API response: {e.Message}");
+                }
+            }
+            else
+            {
+                Debug.LogWarning($"[EndGameCTA] Failed to fetch GitHub stars: {request.error}");
+            }
+        }
+        
+        isFetchingStars = false;
     }
 
     void OnGitHubClicked()
