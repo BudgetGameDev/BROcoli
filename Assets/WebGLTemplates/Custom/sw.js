@@ -37,7 +37,6 @@ const VERSION_CHECK_URL = BUILD_INFO.versionUrl;
 // Files that should NEVER be cached - always fetch fresh from network
 const NEVER_CACHE_FILES = [
   'version.json',
-  'version-check.js',
   'sw.js'            // Service worker should never be cached by itself
 ];
 
@@ -47,10 +46,12 @@ const NETWORK_FIRST_FILES = [
   'manifest.json'
 ];
 
-// Files to precache on install (includes both manifests for coverage)
+// Files to precache on install (critical for offline PWA)
 const PRECACHE_ASSETS = [
+  './index.html',
   './manifest.json',
   './manifest-staging.json',
+  './version-check.js',
   './icons/icon-192x192.png',
   './icons/icon-512x512.png'
 ];

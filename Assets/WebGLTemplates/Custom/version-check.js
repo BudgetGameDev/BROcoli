@@ -4,12 +4,30 @@
  * This module checks for new versions of the game before loading.
  * It compares a local cached version ID with the remote version on GitHub Pages,
  * and forces a cache refresh if they don't match.
+ * 
+ * CRITICAL: This module is designed to NEVER block game loading.
+ * All errors are caught and logged - the game will always attempt to start.
  */
 
 const VersionChecker = (function() {
+  'use strict';
+  
+  // Safe wrapper for any async operation - never throws
+  function safeAsync(fn) {
+    return async function(...args) {
+      try {
+        return await fn.apply(this, args);
+      } catch (err) {
+        console.warn('[VersionCheck] Safe async caught error:', err);
+        return null;
+      }
+    };
+  }
+  
   // Detect if we're on the staging build (BranchMain) or release build (root)
   function detectBuildPath() {
-    const path = window.location.pathname;
+    try {
+      const path = window.location.pathname;
     // Check if we're on the staging build path
     if (path.includes('/BranchMain/') || path.includes('/BranchMain')) {
       return {
@@ -26,6 +44,15 @@ const VersionChecker = (function() {
       versionUrl: 'https://budgetgamedev.github.io/BROcoli/version.json',
       cachePrefix: 'release'
     };
+    } catch (err) {
+      console.warn('[VersionCheck] detectBuildPath error:', err);
+      return {
+        isStaging: false,
+        basePath: '/BROcoli/',
+        versionUrl: 'https://budgetgamedev.github.io/BROcoli/version.json',
+        cachePrefix: 'release'
+      };
+    }
   }
   
   const BUILD_INFO = detectBuildPath();
@@ -135,51 +162,66 @@ const VersionChecker = (function() {
 
   /**
    * Clears all service worker caches
+   * Always returns gracefully - never throws
    */
   async function clearAllCaches() {
     log('Clearing all caches...');
     
     try {
+      if (typeof caches === 'undefined') {
+        log('Cache API not available');
+        return false;
+      }
       const cacheNames = await caches.keys();
       log('Found caches:', cacheNames);
       
       await Promise.all(
         cacheNames.map(name => {
-          log('Deleting cache:', name);
-          return caches.delete(name);
+          try {
+            log('Deleting cache:', name);
+            return caches.delete(name);
+          } catch (e) {
+            warn('Failed to delete cache:', name, e);
+            return Promise.resolve();
+          }
         })
       );
       
       log('All caches cleared');
       return true;
     } catch (err) {
-      error('Failed to clear caches:', err);
+      warn('Failed to clear caches (non-blocking):', err);
       return false;
     }
   }
 
   /**
    * Unregisters and re-registers the service worker
+   * Always returns gracefully - never throws
    */
   async function refreshServiceWorker() {
-    if (!('serviceWorker' in navigator)) {
-      return false;
-    }
-    
-    log('Refreshing service worker...');
-    
     try {
+      if (!('serviceWorker' in navigator)) {
+        return false;
+      }
+      
+      log('Refreshing service worker...');
+      
       const registrations = await navigator.serviceWorker.getRegistrations();
       
       for (const registration of registrations) {
-        log('Unregistering service worker:', registration.scope);
-        await registration.unregister();
+        try {
+          log('Unregistering service worker:', registration.scope);
+          await registration.unregister();
+        } catch (e) {
+          warn('Failed to unregister SW (non-blocking):', e);
+        }
       }
       
       log('All service workers unregistered');
       return true;
     } catch (err) {
-      error('Failed to refresh service worker:', err);
+      warn('Failed to refresh service worker (non-blocking):', err);
       return false;
     }
   }
@@ -339,21 +381,28 @@ const VersionChecker = (function() {
 
   /**
    * Force clear cache and reload (can be called manually)
+   * Always attempts reload even if clearing fails
    */
   async function forceUpdate() {
-    log('Forcing update...');
-    updateLoadingMessage('Forcing update...');
+    try {
+      log('Forcing update...');
+      updateLoadingMessage('Forcing update...');
+      
+      // Clear local version to force re-download
+      try {
+        localStorage.removeItem(CONFIG.localVersionKey);
+      } catch (e) { /* ignore */ }
+      
+      // Clear all caches (non-blocking)
+      await clearAllCaches();
+      
+      // Refresh service worker (non-blocking)
+      await refreshServiceWorker();
+    } catch (err) {
+      warn('forceUpdate had errors (proceeding with reload):', err);
+    }
     
-    // Clear local version to force re-download
-    localStorage.removeItem(CONFIG.localVersionKey);
-    
-    // Clear all caches
-    await clearAllCaches();
-    
-    // Refresh service worker
-    await refreshServiceWorker();
-    
-    // Hard reload
+    // Always reload regardless of errors
     window.location.reload(true);
   }
 
@@ -367,5 +416,16 @@ const VersionChecker = (function() {
   };
 })();
 
-// Make it available globally
-window.VersionChecker = VersionChecker;
+// Make it available globally with a fallback that never blocks game loading
+try {
+  window.VersionChecker = VersionChecker;
+} catch (e) {
+  console.warn('[VersionCheck] Failed to initialize, creating no-op fallback');
+  window.VersionChecker = {
+    checkForUpdates: function() { return Promise.resolve({ updated: false, reason: 'init-failed' }); },
+    forceUpdate: function() { window.location.reload(true); },
+    getLocalVersion: function() { return null; },
+    clearAllCaches: function() { return Promise.resolve(false); },
+    CONFIG: {}
+  };
+}
