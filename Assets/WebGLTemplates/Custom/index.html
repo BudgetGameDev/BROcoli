@@ -348,27 +348,8 @@
                          window.matchMedia('(display-mode: fullscreen)').matches ||
                          window.navigator.standalone === true;
       
-      // iOS Safari workarounds - silent audio context keeps Safari from aggressive throttling
+      // Audio context reference for Unity's audio (not running background oscillator)
       var audioKeepAlive = null;
-      function startAudioKeepAlive() {
-        if (audioKeepAlive) return;
-        try {
-          var AudioContext = window.AudioContext || window.webkitAudioContext;
-          if (!AudioContext) return;
-          audioKeepAlive = new AudioContext();
-          var oscillator = audioKeepAlive.createOscillator();
-          var gain = audioKeepAlive.createGain();
-          gain.gain.value = 0;
-          oscillator.connect(gain);
-          gain.connect(audioKeepAlive.destination);
-          oscillator.start();
-          document.addEventListener('visibilitychange', function() {
-            if (!document.hidden && audioKeepAlive && audioKeepAlive.state === 'suspended') {
-              audioKeepAlive.resume();
-            }
-          });
-        } catch (e) {}
-      }
       
       // Patch canvas.getContext for high-performance GPU before Unity loads
       (function() {
@@ -386,30 +367,7 @@
         };
       })();
       
-      // ProMotion (120Hz) display support for iPhone 16 Pro
-      // Safari throttles to 60fps by default - this hints we want high refresh
-      var targetFrameRate = 120;
-      var lastFrameTime = 0;
-      var frameTimeAccumulator = 0;
-      var frameCount = 0;
-      function measureFrameRate(timestamp) {
-        if (lastFrameTime > 0) {
-          var delta = timestamp - lastFrameTime;
-          frameTimeAccumulator += delta;
-          frameCount++;
-          if (frameCount >= 60) {
-            // Update running average
-            window.__avgFrameTime = frameTimeAccumulator / frameCount;
-            frameTimeAccumulator = 0;
-            frameCount = 0;
-          }
-        }
-        lastFrameTime = timestamp;
-        requestAnimationFrame(measureFrameRate);
-      }
-      if (isiOSDevice) {
-        requestAnimationFrame(measureFrameRate);
-      }
+      // ProMotion frame monitoring removed - was consuming background CPU
       
       // Screen wake lock
       var wakeLock = null;
@@ -448,14 +406,7 @@
         };
       }
       
-      // Keep-alive interval - prevents Safari from marking tab as "idle"
-      var keepAliveInterval = null;
-      function startKeepAlive() {
-        if (keepAliveInterval) return;
-        keepAliveInterval = setInterval(function() {
-          window.__keepAlive = Date.now();
-        }, 100);
-      }
+      // Keep-alive removed - was consuming background CPU
       
       // Device motion permission - iOS Safari throttles less when it detects device is being held
       function requestDeviceMotion() {
@@ -501,15 +452,6 @@
       function setupTouchHints() {
         document.body.style.webkitTapHighlightColor = 'transparent';
         document.body.style.touchAction = 'manipulation';
-        // Pre-emptive touch listener keeps event system active
-        var touchStartTime = 0;
-        document.addEventListener('touchstart', function() {
-          touchStartTime = performance.now();
-        }, { passive: true });
-        document.addEventListener('touchend', function() {
-          // Touch response timing helps Safari understand app is interactive
-          window.__lastTouchResponse = performance.now() - touchStartTime;
-        }, { passive: true });
       }
       
       // requestIdleCallback fallback for Safari (still not supported in 2026)
@@ -550,8 +492,6 @@
       // Start iOS optimizations
       if (isiOSDevice) {
         warmupGPU();
-        startAudioKeepAlive();
-        startKeepAlive();
         requestWakeLock();
         setupContextLossHandling();
         checkBatteryStatus();
@@ -559,6 +499,10 @@
         // Request device motion on first touch (requires user gesture)
         document.addEventListener('touchstart', function() {
           requestDeviceMotion();
+          // Resume audio context if needed (one-time on first touch)
+          if (audioKeepAlive && audioKeepAlive.state === 'suspended') {
+            audioKeepAlive.resume();
+          }
         }, { once: true });
       }
       
