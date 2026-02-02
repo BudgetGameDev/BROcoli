@@ -1,7 +1,7 @@
 {
-  "buildId": "build-1770037166-fa88f46",
-  "buildTimestamp": "2026-02-02T12:59:26Z",
-  "buildNumber": 122,
-  "commitSha": "fa88f46d98d1bc5784fc1bc82b410147e204925c",
-  "description": "fix: ios safari webgl build lowest quality"
+  "buildId": "build-1770038391-396cdf6",
+  "buildTimestamp": "2026-02-02T13:19:51Z",
+  "buildNumber": 123,
+  "commitSha": "396cdf669d061e289f682fd43ff6c52b4a75c9c2",
+  "description": "fix: pwa offline mode"
 }
