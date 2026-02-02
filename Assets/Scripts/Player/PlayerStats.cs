@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections.Generic;
 
 /// <summary>
 /// Player stats management with fully programmatic initialization.
@@ -56,19 +57,34 @@ public class PlayerStats : MonoBehaviour
     
     // Health regen timer
     private float _regenTimer;
+    
+    // Temporary boost tracking
+    private struct ActiveBoost
+    {
+        public TemporaryBoostType type;
+        public float amount;
+        public float remainingTime;
+    }
+    private List<ActiveBoost> _activeBoosts = new List<ActiveBoost>();
+    
+    // Temporary boost bonuses (added on top of base stats)
+    private float _tempMovementSpeedBonus;
+    private float _tempDamageBonus;
+    private float _tempAttackSpeedMultiplier;
+    private float _tempHealthRegenBonus;
 
 // UI references - discovered dynamically
     private Bar _healthBar;
     private Bar _experienceBar;
     private LevelUpScreen _levelUpScreen;
 
-    // Public read-only properties
+    // Public read-only properties (include temporary bonuses)
     public bool IsAlive => _currentHealth > 0f;
     public float CurrentHealth => _currentHealth;
     public float CurrentMaxHealth => _currentMaxHealth;
-    public float CurrentAttackSpeed => _currentAttackSpeed;
-    public float CurrentDamage => _currentDamage;
-    public float CurrentMovementSpeed => _currentMovementSpeed;
+    public float CurrentAttackSpeed => _currentAttackSpeed * (1f - _tempAttackSpeedMultiplier); // Lower = faster
+    public float CurrentDamage => _currentDamage + _tempDamageBonus;
+    public float CurrentMovementSpeed => _currentMovementSpeed + _tempMovementSpeedBonus;
     public float CurrentExperience => _currentExperience;
     public float CurrentMaxExperience => _currentMaxExperience;
     public float CurrentLevel => _currentLevel;
@@ -97,17 +113,135 @@ public class PlayerStats : MonoBehaviour
     
     private void Update()
     {
-        // Health regeneration
-        if (_currentHealthRegen > 0f && _currentHealth < _currentMaxHealth && _currentHealth > 0f)
+        // Health regeneration (base + temporary bonus)
+        float totalRegen = _currentHealthRegen + _tempHealthRegenBonus;
+        if (totalRegen > 0f && _currentHealth < _currentMaxHealth && _currentHealth > 0f)
         {
             _regenTimer += Time.deltaTime;
             if (_regenTimer >= 1f)
             {
                 _regenTimer -= 1f;
-                float healAmount = _currentHealthRegen;
+                float healAmount = totalRegen;
                 _currentHealth = Mathf.Min(_currentHealth + healAmount, _currentMaxHealth);
                 _healthBar?.UpdateBar(_currentHealth, _currentMaxHealth);
             }
+        }
+        
+        // Update temporary boosts
+        UpdateTemporaryBoosts();
+    }
+    
+    /// <summary>
+    /// Update and expire temporary boosts
+    /// </summary>
+    private void UpdateTemporaryBoosts()
+    {
+        if (_activeBoosts.Count == 0) return;
+        
+        bool needsRecalculate = false;
+        
+        for (int i = _activeBoosts.Count - 1; i >= 0; i--)
+        {
+            var boost = _activeBoosts[i];
+            boost.remainingTime -= Time.deltaTime;
+            
+            if (boost.remainingTime <= 0f)
+            {
+                _activeBoosts.RemoveAt(i);
+                needsRecalculate = true;
+                Debug.Log($"Temporary boost expired: {boost.type}");
+            }
+            else
+            {
+                _activeBoosts[i] = boost;
+            }
+        }
+        
+        if (needsRecalculate)
+        {
+            RecalculateTemporaryBonuses();
+        }
+    }
+    
+    /// <summary>
+    /// Recalculate all temporary bonuses from active boosts
+    /// </summary>
+    private void RecalculateTemporaryBonuses()
+    {
+        _tempMovementSpeedBonus = 0f;
+        _tempDamageBonus = 0f;
+        _tempAttackSpeedMultiplier = 0f;
+        _tempHealthRegenBonus = 0f;
+        
+        foreach (var boost in _activeBoosts)
+        {
+            switch (boost.type)
+            {
+                case TemporaryBoostType.MovementSpeed:
+                    _tempMovementSpeedBonus += boost.amount;
+                    break;
+                case TemporaryBoostType.Damage:
+                    _tempDamageBonus += boost.amount;
+                    break;
+                case TemporaryBoostType.AttackSpeed:
+                    _tempAttackSpeedMultiplier += boost.amount;
+                    break;
+                case TemporaryBoostType.HealthRegen:
+                    _tempHealthRegenBonus += boost.amount;
+                    break;
+            }
+        }
+    }
+    
+    /// <summary>
+    /// Apply a temporary boost that expires after duration seconds
+    /// </summary>
+    public void ApplyTemporaryBoost(TemporaryBoostType type, float amount, float duration)
+    {
+        // Add the boost
+        _activeBoosts.Add(new ActiveBoost
+        {
+            type = type,
+            amount = amount,
+            remainingTime = duration
+        });
+        
+        // Immediately recalculate bonuses
+        RecalculateTemporaryBonuses();
+        
+        Debug.Log($"Applied temporary boost: {type} +{amount} for {duration}s");
+    }
+    
+    /// <summary>
+    /// Check if player has an active boost of the given type
+    /// </summary>
+    public bool HasActiveBoost(TemporaryBoostType type)
+    {
+        foreach (var boost in _activeBoosts)
+        {
+            if (boost.type == type) return true;
+        }
+        return false;
+    }
+    
+    /// <summary>
+    /// True if player currently has magnet effect active
+    /// </summary>
+    public bool HasMagnetActive => HasActiveBoost(TemporaryBoostType.Magnet);
+    
+    /// <summary>
+    /// Get the magnet radius (amount stored in boost)
+    /// </summary>
+    public float MagnetRadius
+    {
+        get
+        {
+            foreach (var boost in _activeBoosts)
+            {
+                if (boost.type == TemporaryBoostType.Magnet)
+                    return boost.amount;
+            }
+            return 0f;
         }
     }
 
@@ -167,6 +301,13 @@ public class PlayerStats : MonoBehaviour
         _currentHealthRegen = DefaultHealthRegen;
         _currentLifeSteal = DefaultLifeSteal;
         _regenTimer = 0f;
+        
+        // Clear temporary boosts
+        _activeBoosts.Clear();
+        _tempMovementSpeedBonus = 0f;
+        _tempDamageBonus = 0f;
+        _tempAttackSpeedMultiplier = 0f;
+        _tempHealthRegenBonus = 0f;
 
         _healthBar?.UpdateBar(_currentHealth, _currentMaxHealth);
         _experienceBar?.UpdateBar(_currentExperience, _currentMaxExperience);

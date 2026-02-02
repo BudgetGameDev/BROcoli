@@ -3,23 +3,31 @@ using UnityEngine;
 public class ShuffleWalkVisual : MonoBehaviour
 {
     public PlayerController controller;
+    
+    // Reference to player stats for speed-based animation scaling
+    private PlayerStats _playerStats;
+    private const float BaseMovementSpeed = 4f;  // Default speed - animation tuned for this
 
-    // Timing
+    // Timing (base values - scaled by speed)
     private const float MaxChargeTime = 0.125f;
     private const float MinChargeTime = 0.03f;  // Minimum 30ms charge - no canceling
-    private const float JumpTime = 0.5f;
+    private const float BaseJumpTime = 0.5f;    // Base jump time - scales with speed
     private const float BhopGroundTime = 0.06f;
     private const float StoppingTime = 0.35f;
     
-    // Heights - reduced for lower jumps
-    private const float MinJumpHeight = 0.1f;
-    private const float MaxJumpHeight = 0.45f;
+    // Heights - scaled by speed for bigger hops at higher speeds
+    private const float BaseMinJumpHeight = 0.1f;
+    private const float BaseMaxJumpHeight = 0.45f;
     private const float MinChargeDip = 0.03f;
     private const float MaxChargeDip = 0.15f;
     
     // Power (0-1 multiplier on movement)
     private const float MinJumpPower = 0.3f;
     private const float MaxJumpPower = 1f;
+    
+    // Speed scaling limits
+    private const float MinSpeedMultiplier = 0.7f;   // Floor for slow speeds
+    private const float MaxSpeedMultiplier = 1.6f;   // Cap for fast speeds
     
     // Squash/stretch
     private const float ChargeSquash = 0.3f;
@@ -92,6 +100,60 @@ public class ShuffleWalkVisual : MonoBehaviour
         startLocalPos = transform.localPosition;
         startScale = transform.localScale;
         displayScale = startScale;
+        
+        // Discover PlayerStats
+        if (controller != null)
+        {
+            _playerStats = controller.GetComponent<PlayerStats>();
+        }
+    }
+    
+    /// <summary>
+    /// Calculate speed multiplier for animation scaling.
+    /// Higher speed = taller jumps, faster timing.
+    /// </summary>
+    private float GetSpeedMultiplier()
+    {
+        if (_playerStats == null)
+        {
+            // Try to discover if we don't have it
+            if (controller != null)
+                _playerStats = controller.GetComponent<PlayerStats>();
+            if (_playerStats == null)
+                return 1f;
+        }
+        
+        float currentSpeed = _playerStats.CurrentMovementSpeed;
+        float ratio = currentSpeed / BaseMovementSpeed;
+        return Mathf.Clamp(ratio, MinSpeedMultiplier, MaxSpeedMultiplier);
+    }
+    
+    /// <summary>
+    /// Get current jump time scaled by speed - faster movement = faster hops.
+    /// </summary>
+    private float GetScaledJumpTime()
+    {
+        float speedMult = GetSpeedMultiplier();
+        // Faster speed = shorter jump time (inverse relationship)
+        return BaseJumpTime / speedMult;
+    }
+    
+    /// <summary>
+    /// Get current min jump height scaled by speed - faster = higher hops.
+    /// </summary>
+    private float GetScaledMinJumpHeight()
+    {
+        float speedMult = GetSpeedMultiplier();
+        return BaseMinJumpHeight * speedMult;
+    }
+    
+    /// <summary>
+    /// Get current max jump height scaled by speed - faster = higher hops.
+    /// </summary>
+    private float GetScaledMaxJumpHeight()
+    {
+        float speedMult = GetSpeedMultiplier();
+        return BaseMaxJumpHeight * speedMult;
     }
 
     void Update()
@@ -255,10 +317,15 @@ public class ShuffleWalkVisual : MonoBehaviour
                     if (wantsToMove)
                     {
                         // Chain into next jump - use built up power
+                        // Get speed-scaled animation parameters for bhop chain
+                        float minHeight = GetScaledMinJumpHeight();
+                        float maxHeight = GetScaledMaxJumpHeight();
+                        float baseJumpTime = GetScaledJumpTime();
+                        
                         launchInputMagnitude = Mathf.Max(launchInputMagnitude, 0.8f); // Keep momentum high
-                        currentJumpHeight = Mathf.Lerp(MinJumpHeight, MaxJumpHeight, currentPower);
+                        currentJumpHeight = Mathf.Lerp(minHeight, maxHeight, currentPower);
                         currentJumpHeight *= landingQuality * Random.Range(0.9f, 1.1f);
-                        currentJumpTime = JumpTime * Mathf.Lerp(0.8f, 1.1f, landingQuality);
+                        currentJumpTime = baseJumpTime * Mathf.Lerp(0.8f, 1.1f, landingQuality);
                         bhopTwistTarget = Random.Range(-BhopTwistMax, BhopTwistMax);
                         
                         State = HopState.Airborne;
@@ -413,11 +480,16 @@ public class ShuffleWalkVisual : MonoBehaviour
         // Lock input magnitude at launch - no changes during flight
         launchInputMagnitude = Mathf.Max(inputMagnitude, 0.5f);  // Minimum 50% power on tap
         
+        // Get speed-scaled animation parameters
+        float minHeight = GetScaledMinJumpHeight();
+        float maxHeight = GetScaledMaxJumpHeight();
+        float baseJumpTime = GetScaledJumpTime();
+        
         // Scale jump height and power by input magnitude (how far stick is pushed)
         float scaledPower = currentPower * launchInputMagnitude;
-        currentJumpHeight = Mathf.Lerp(MinJumpHeight, MaxJumpHeight, (scaledPower - MinJumpPower) / (MaxJumpPower - MinJumpPower));
+        currentJumpHeight = Mathf.Lerp(minHeight, maxHeight, (scaledPower - MinJumpPower) / (MaxJumpPower - MinJumpPower));
         currentJumpHeight *= launchInputMagnitude; // Further scale height
-        currentJumpTime = Mathf.Lerp(JumpTime * 0.6f, JumpTime, launchInputMagnitude); // Shorter hops when input is low
+        currentJumpTime = Mathf.Lerp(baseJumpTime * 0.6f, baseJumpTime, launchInputMagnitude); // Shorter hops when input is low
         bhopTwistTarget = Random.Range(-BhopTwistMax, BhopTwistMax);
     }
     

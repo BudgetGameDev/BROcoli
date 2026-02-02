@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
+using UnityEngine.InputSystem;
 using System.Runtime.InteropServices;
 using TMPro;
 
@@ -25,6 +26,14 @@ public class PauseMenu : MonoBehaviour
     private EventSystem eventSystem;
     private Canvas mainCanvas;
     private PlayerStats playerStats;
+    
+    // Controller navigation
+    private Button[] menuButtons;
+    private int selectedButtonIndex = 0;
+    private float lastNavTime = 0f;
+    private const float NavRepeatDelay = 0.25f;
+    private Outline[] buttonOutlines;
+    private Vector3[] originalScales;
 
 #if UNITY_WEBGL && !UNITY_EDITOR
     [DllImport("__Internal")]
@@ -226,6 +235,180 @@ public class PauseMenu : MonoBehaviour
         {
             TogglePause();
         }
+        
+        // Gamepad Start/Menu button to toggle pause
+        if (Gamepad.current != null && Gamepad.current.startButton.wasPressedThisFrame)
+        {
+            TogglePause();
+        }
+        
+        // Handle controller navigation when paused
+        if (isPaused)
+        {
+            HandleControllerNavigation();
+            UpdateSelectionVisuals();
+        }
+    }
+    
+    private void HandleControllerNavigation()
+    {
+        if (menuButtons == null || menuButtons.Length == 0) return;
+        
+        // Rate limit
+        if (Time.unscaledTime - lastNavTime < NavRepeatDelay) return;
+        
+        float vertical = 0f;
+        
+        // Keyboard
+        if (Input.GetKey(KeyCode.UpArrow) || Input.GetKey(KeyCode.W)) vertical = 1f;
+        else if (Input.GetKey(KeyCode.DownArrow) || Input.GetKey(KeyCode.S)) vertical = -1f;
+        
+        // Gamepad
+        if (Gamepad.current != null)
+        {
+            Vector2 dpad = Gamepad.current.dpad.ReadValue();
+            Vector2 stick = Gamepad.current.leftStick.ReadValue();
+            
+            if (Mathf.Abs(dpad.y) > 0.5f) vertical = Mathf.Sign(dpad.y);
+            else if (Mathf.Abs(stick.y) > 0.5f) vertical = Mathf.Sign(stick.y);
+        }
+        
+        // Navigate (up = previous, down = next)
+        if (Mathf.Abs(vertical) > 0.1f)
+        {
+            lastNavTime = Time.unscaledTime;
+            int direction = vertical > 0 ? -1 : 1;  // Up goes to previous (lower index)
+            int newIndex = Mathf.Clamp(selectedButtonIndex + direction, 0, menuButtons.Length - 1);
+            if (newIndex != selectedButtonIndex)
+            {
+                SelectMenuButton(newIndex);
+            }
+        }
+        
+        // Submit with Enter/Space/Gamepad A
+        bool submit = Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.Space);
+        if (Gamepad.current != null && Gamepad.current.buttonSouth.wasPressedThisFrame)
+        {
+            submit = true;
+        }
+        
+        if (submit && selectedButtonIndex >= 0 && selectedButtonIndex < menuButtons.Length)
+        {
+            Button btn = menuButtons[selectedButtonIndex];
+            if (btn != null && btn.interactable)
+            {
+                btn.onClick.Invoke();
+            }
+        }
+        
+        // B button to resume (back)
+        if (Gamepad.current != null && Gamepad.current.buttonEast.wasPressedThisFrame)
+        {
+            Resume();
+        }
+    }
+    
+    private void SelectMenuButton(int index)
+    {
+        if (menuButtons == null || index < 0 || index >= menuButtons.Length) return;
+        
+        // Play hover sound if index changed
+        if (index != selectedButtonIndex)
+        {
+            ProceduralUIAudio.PlayHover();
+        }
+        
+        selectedButtonIndex = index;
+        
+        if (EventSystem.current != null && menuButtons[index] != null)
+        {
+            EventSystem.current.SetSelectedGameObject(menuButtons[index].gameObject);
+        }
+    }
+    
+    private void UpdateSelectionVisuals()
+    {
+        if (menuButtons == null || buttonOutlines == null) return;
+        
+        for (int i = 0; i < menuButtons.Length; i++)
+        {
+            if (menuButtons[i] == null) continue;
+            
+            bool isSelected = (i == selectedButtonIndex);
+            
+            // Update outline
+            if (buttonOutlines != null && i < buttonOutlines.Length && buttonOutlines[i] != null)
+            {
+                buttonOutlines[i].enabled = isSelected;
+            }
+            
+            // Animate scale
+            if (originalScales != null && i < originalScales.Length)
+            {
+                RectTransform rt = menuButtons[i].GetComponent<RectTransform>();
+                if (rt != null)
+                {
+                    float targetScale = isSelected ? 1.1f : 1f;
+                    Vector3 target = originalScales[i] * targetScale;
+                    rt.localScale = Vector3.Lerp(rt.localScale, target, Time.unscaledDeltaTime * 12f);
+                }
+            }
+        }
+    }
+    
+    private void SetupMenuNavigation()
+    {
+        if (pauseMenuUI == null) return;
+        
+        // Get all buttons in pause menu
+        Button[] allButtons = pauseMenuUI.GetComponentsInChildren<Button>(true);
+        var buttonList = new System.Collections.Generic.List<Button>();
+        
+        foreach (var btn in allButtons)
+        {
+            if (btn != null && btn.interactable)
+            {
+                buttonList.Add(btn);
+            }
+        }
+        
+        menuButtons = buttonList.ToArray();
+        buttonOutlines = new Outline[menuButtons.Length];
+        originalScales = new Vector3[menuButtons.Length];
+        
+        for (int i = 0; i < menuButtons.Length; i++)
+        {
+            if (menuButtons[i] == null) continue;
+            
+            RectTransform rt = menuButtons[i].GetComponent<RectTransform>();
+            if (rt != null)
+            {
+                originalScales[i] = rt.localScale;
+            }
+            
+            // Add outline
+            Outline outline = menuButtons[i].GetComponent<Outline>();
+            if (outline == null)
+            {
+                outline = menuButtons[i].gameObject.AddComponent<Outline>();
+            }
+            outline.effectColor = new Color(1f, 0.9f, 0.2f, 1f);
+            outline.effectDistance = new Vector2(6f, 6f);
+            outline.enabled = false;
+            buttonOutlines[i] = outline;
+            
+            // Setup hover
+            int index = i;
+            EventTrigger trigger = menuButtons[i].GetComponent<EventTrigger>();
+            if (trigger == null)
+            {
+                trigger = menuButtons[i].gameObject.AddComponent<EventTrigger>();
+            }
+            
+            var enterEntry = new EventTrigger.Entry { eventID = EventTriggerType.PointerEnter };
+            enterEntry.callback.AddListener((data) => SelectMenuButton(index));
+            trigger.triggers.Add(enterEntry);
+        }
     }
 
     public void TogglePause()
@@ -255,6 +438,11 @@ public class PauseMenu : MonoBehaviour
         
         // Show menu
         pauseMenuUI.SetActive(true);
+        
+        // Setup controller navigation
+        SetupMenuNavigation();
+        selectedButtonIndex = 0;
+        SelectMenuButton(0);
         
         // Update stats display
         UpdateStatsDisplay();
@@ -302,6 +490,8 @@ public class PauseMenu : MonoBehaviour
             Debug.LogError("[PauseMenu] pauseMenuUI is null!");
             return;
         }
+        
+        ProceduralUIAudio.PlaySelect();
         
         // Hide menu
         pauseMenuUI.SetActive(false);

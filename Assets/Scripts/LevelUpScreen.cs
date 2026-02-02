@@ -2,10 +2,12 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using UnityEngine.EventSystems;
+using UnityEngine.InputSystem;
 
 /// <summary>
 /// Displays a level up screen with 3 upgrade choices.
 /// Works with mouse, controller, and touch input.
+/// Features prominent visual selection feedback.
 /// </summary>
 public class LevelUpScreen : MonoBehaviour
 {
@@ -19,6 +21,13 @@ public class LevelUpScreen : MonoBehaviour
     [SerializeField] private TextMeshProUGUI[] choiceNameTexts = new TextMeshProUGUI[3];
     [SerializeField] private TextMeshProUGUI[] choiceDescTexts = new TextMeshProUGUI[3];
     [SerializeField] private Image[] choiceBackgrounds = new Image[3];
+    
+    [Header("Selection Visuals")]
+    [SerializeField] private Color selectedBorderColor = new Color(1f, 0.9f, 0.2f, 1f);
+    [SerializeField] private float selectedBorderWidth = 8f;
+    [SerializeField] private float selectedScale = 1.1f;
+    [SerializeField] private float normalScale = 1f;
+    [SerializeField] private float scaleAnimSpeed = 15f;
 
     [Header("Audio")]
     [SerializeField] private ProceduralLevelUpAudio levelUpAudio;
@@ -27,6 +36,12 @@ public class LevelUpScreen : MonoBehaviour
     private UpgradeOption[] currentOptions = new UpgradeOption[3];
     private PlayerStats playerStats;
     private int selectedIndex = 0;
+    private float lastNavTime = 0f;
+    private const float NavRepeatDelay = 0.2f;
+    
+    // Visual components
+    private Outline[] buttonOutlines = new Outline[3];
+    private Vector3[] originalScales = new Vector3[3];
 
     void Awake()
     {
@@ -48,6 +63,53 @@ public class LevelUpScreen : MonoBehaviour
     void Start()
     {
         SetupButtons();
+        SetupSelectionVisuals();
+    }
+    
+    private void SetupSelectionVisuals()
+    {
+        for (int i = 0; i < choiceButtons.Length; i++)
+        {
+            if (choiceButtons[i] == null) continue;
+            
+            RectTransform rt = choiceButtons[i].GetComponent<RectTransform>();
+            if (rt != null)
+            {
+                originalScales[i] = rt.localScale;
+            }
+            
+            // Add outline for selection border
+            Outline outline = choiceButtons[i].GetComponent<Outline>();
+            if (outline == null)
+            {
+                outline = choiceButtons[i].gameObject.AddComponent<Outline>();
+            }
+            outline.effectColor = selectedBorderColor;
+            outline.effectDistance = new Vector2(selectedBorderWidth, selectedBorderWidth);
+            outline.enabled = false;
+            buttonOutlines[i] = outline;
+            
+            // Setup hover events
+            int index = i;
+            EventTrigger trigger = choiceButtons[i].GetComponent<EventTrigger>();
+            if (trigger == null)
+            {
+                trigger = choiceButtons[i].gameObject.AddComponent<EventTrigger>();
+            }
+            
+            // Clear existing triggers
+            trigger.triggers.Clear();
+            
+            // Pointer enter
+            var enterEntry = new EventTrigger.Entry { eventID = EventTriggerType.PointerEnter };
+            enterEntry.callback.AddListener((data) => SetSelectedIndex(index));
+            trigger.triggers.Add(enterEntry);
+            
+            // Pointer click (for touch)
+            var clickEntry = new EventTrigger.Entry { eventID = EventTriggerType.PointerClick };
+            clickEntry.callback.AddListener((data) => SelectUpgrade(index));
+            trigger.triggers.Add(clickEntry);
+        }
     }
 
     private void SetupButtons()
@@ -169,6 +231,8 @@ public class LevelUpScreen : MonoBehaviour
         if (currentOptions[index] == null) return;
         if (playerStats == null) return;
 
+        // Use hyped sound for level-up stat selection!
+        ProceduralUIAudio.PlayLevelUpSelect();
         currentOptions[index].ApplyTo(playerStats);
         Hide();
     }
@@ -191,7 +255,10 @@ public class LevelUpScreen : MonoBehaviour
     {
         if (!isShowing) return;
 
-        // Keyboard/controller navigation
+        // Handle gamepad/keyboard navigation
+        HandleControllerNavigation();
+        
+        // Keyboard number shortcuts
         if (Input.GetKeyDown(KeyCode.Alpha1) || Input.GetKeyDown(KeyCode.Keypad1))
         {
             SelectUpgrade(0);
@@ -204,29 +271,102 @@ public class LevelUpScreen : MonoBehaviour
         {
             SelectUpgrade(2);
         }
-
-        // Arrow key / D-pad navigation
-        if (Input.GetKeyDown(KeyCode.LeftArrow) || Input.GetKeyDown(KeyCode.A))
+        
+        // Update selection visuals
+        UpdateSelectionVisuals();
+    }
+    
+    private void HandleControllerNavigation()
+    {
+        // Rate limit navigation
+        if (Time.unscaledTime - lastNavTime < NavRepeatDelay) return;
+        
+        float horizontal = 0f;
+        
+        // Keyboard arrows
+        if (Input.GetKey(KeyCode.LeftArrow) || Input.GetKey(KeyCode.A)) horizontal = -1f;
+        else if (Input.GetKey(KeyCode.RightArrow) || Input.GetKey(KeyCode.D)) horizontal = 1f;
+        
+        // Gamepad
+        if (Gamepad.current != null)
         {
-            NavigateSelection(-1);
+            Vector2 dpad = Gamepad.current.dpad.ReadValue();
+            Vector2 stick = Gamepad.current.leftStick.ReadValue();
+            
+            if (Mathf.Abs(dpad.x) > 0.5f) horizontal = Mathf.Sign(dpad.x);
+            else if (Mathf.Abs(stick.x) > 0.5f) horizontal = Mathf.Sign(stick.x);
         }
-        else if (Input.GetKeyDown(KeyCode.RightArrow) || Input.GetKeyDown(KeyCode.D))
+        
+        // Navigate
+        if (Mathf.Abs(horizontal) > 0.1f)
         {
-            NavigateSelection(1);
+            lastNavTime = Time.unscaledTime;
+            int newIndex = selectedIndex + (int)Mathf.Sign(horizontal);
+            newIndex = Mathf.Clamp(newIndex, 0, 2);
+            SetSelectedIndex(newIndex);
         }
-        else if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.Space))
+        
+        // Submit with Enter/Space/Gamepad A
+        bool submit = Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.Space);
+        if (Gamepad.current != null && Gamepad.current.buttonSouth.wasPressedThisFrame)
+        {
+            submit = true;
+        }
+        
+        if (submit)
         {
             SelectUpgrade(selectedIndex);
+        }
+    }
+    
+    private void SetSelectedIndex(int index)
+    {
+        if (index < 0 || index > 2) return;
+        
+        // Play hover sound if index changed
+        if (index != selectedIndex)
+        {
+            ProceduralUIAudio.PlayHover();
+        }
+        
+        selectedIndex = index;
+        
+        // Update EventSystem selection
+        if (choiceButtons[selectedIndex] != null && EventSystem.current != null)
+        {
+            EventSystem.current.SetSelectedGameObject(choiceButtons[selectedIndex].gameObject);
+        }
+    }
+    
+    private void UpdateSelectionVisuals()
+    {
+        for (int i = 0; i < choiceButtons.Length; i++)
+        {
+            if (choiceButtons[i] == null) continue;
+            
+            bool isSelected = (i == selectedIndex);
+            
+            // Update outline
+            if (buttonOutlines[i] != null)
+            {
+                buttonOutlines[i].enabled = isSelected;
+            }
+            
+            // Animate scale
+            RectTransform rt = choiceButtons[i].GetComponent<RectTransform>();
+            if (rt != null && i < originalScales.Length)
+            {
+                float targetScale = isSelected ? selectedScale : normalScale;
+                Vector3 target = originalScales[i] * targetScale;
+                rt.localScale = Vector3.Lerp(rt.localScale, target, Time.unscaledDeltaTime * scaleAnimSpeed);
+            }
         }
     }
 
     private void NavigateSelection(int direction)
     {
         selectedIndex = Mathf.Clamp(selectedIndex + direction, 0, 2);
-        if (choiceButtons[selectedIndex] != null)
-        {
-            EventSystem.current?.SetSelectedGameObject(choiceButtons[selectedIndex].gameObject);
-        }
+        SetSelectedIndex(selectedIndex);
     }
 
     private void EnsureEventSystemActive()

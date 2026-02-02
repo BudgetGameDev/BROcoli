@@ -15,7 +15,8 @@ public class ProceduralBoostAudio : MonoBehaviour
         Experience,     // Bright ascending sparkle
         DetectionRadius,// Radar ping/sonar
         SprayRange,     // Extending reach sound
-        SprayWidth      // Spreading expansion sound
+        SprayWidth,     // Spreading expansion sound
+        Magnet          // Magnetic pull whoosh
     }
 
     [Header("Volume")]
@@ -82,6 +83,8 @@ public class ProceduralBoostAudio : MonoBehaviour
                 return GenerateSprayRangeSound();
             case BoostSoundType.SprayWidth:
                 return GenerateSprayWidthSound();
+            case BoostSoundType.Magnet:
+                return GenerateMagnetSound();
             default:
                 return GenerateHealthSound();
         }
@@ -605,6 +608,53 @@ public class ProceduralBoostAudio : MonoBehaviour
         System.Array.Copy(audioBuffer, clipData, numSamples);
         clip.SetData(clipData, 0);
         return clip;
+    }
+    
+    /// <summary>
+    /// Magnet boost - Magnetic pull whoosh with swirling resonance.
+    /// Evokes attraction and gathering.
+    /// </summary>
+    private static AudioClip GenerateMagnetSound()
+    {
+        float duration = 0.45f;
+        int numSamples = Mathf.CeilToInt(duration * sampleRate);
+        
+        for (int i = 0; i < numSamples; i++)
+        {
+            float t = (float)i / sampleRate;
+            float norm = t / duration;
+            
+            // Swirling magnetic pull effect - frequency rises then falls
+            float freqCurve = Mathf.Sin(norm * Mathf.PI);  // Peaks at middle
+            float baseFreq = Mathf.Lerp(150f, 400f, freqCurve);
+            float phase = t * baseFreq * Mathf.PI * 2f;
+            
+            // Magnetic hum with modulation
+            float hum = Mathf.Sin(phase);
+            float modulation = 1f + 0.3f * Mathf.Sin(t * 25f * Mathf.PI * 2f);
+            hum *= modulation;
+            
+            // Swirling overtones
+            float swirl1 = Mathf.Sin(phase * 1.5f + t * 8f) * 0.3f;
+            float swirl2 = Mathf.Sin(phase * 2.01f - t * 12f) * 0.2f;
+            
+            // Whoosh component - filtered noise
+            float noise = Mathf.PerlinNoise(t * 50f, 0f) * 2f - 1f;
+            noise *= freqCurve * 0.4f;
+            
+            // Envelope - quick attack, sustain, smooth decay
+            float envelope;
+            if (norm < 0.1f)
+                envelope = norm / 0.1f;
+            else if (norm < 0.7f)
+                envelope = 1f;
+            else
+                envelope = (1f - norm) / 0.3f;
+            
+            audioBuffer[i] = (hum * 0.5f + swirl1 + swirl2 + noise) * envelope;
+        }
+        
+        return FinalizeClip("MagnetBoost", numSamples, duration);
     }
 
     #endregion
