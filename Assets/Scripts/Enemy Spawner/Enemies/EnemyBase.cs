@@ -132,6 +132,23 @@ public abstract class EnemyBase : MonoBehaviour
         
         // Register with spatial hash for efficient neighbor queries
         EnemySpatialHash.Instance?.Register(this);
+        
+        // Add proximity lighting for dynamic brightness based on player distance
+        EnsureProximityLighting();
+    }
+    
+    /// <summary>
+    /// Ensures enemy has proximity lighting component for spotlight effect
+    /// </summary>
+    private void EnsureProximityLighting()
+    {
+        var proximityLighting = GetComponent<EnemyProximityLighting>();
+        if (proximityLighting == null)
+        {
+            proximityLighting = gameObject.AddComponent<EnemyProximityLighting>();
+        }
+        // Refresh in case sprite color changed (e.g., elite enemies)
+        proximityLighting.RefreshOriginalColor();
     }
     
     protected virtual void OnDisable()

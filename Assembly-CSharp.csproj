@@ -76,6 +76,7 @@
     <Compile Include="Assets\Scripts\gamejam-2022\CountDownTimer.cs" />
     <Compile Include="Assets\Scripts\Spray\SanitizerSpray.cs" />
     <Compile Include="Assets\Scripts\gamejam-2022\ClueDialog.cs" />
+    <Compile Include="Assets\Scripts\EnemyProximityLighting.cs" />
     <Compile Include="Assets\Scripts\Pooling\ObjectPool.cs" />
     <Compile Include="Assets\Scripts\StreamlineDLSSPlugin.cs" />
     <Compile Include="Assets\Scripts\UI\VictoryScreen.cs" />
@@ -170,6 +171,7 @@
     <Compile Include="Assets\Scripts\GraphicRegistryCleaner.cs" />
     <Compile Include="Assets\Scripts\ProceduralEnemyMeleeAudio.cs" />
     <Compile Include="Assets\Scripts\Enemy Spawner\Waves\WaveConfig.cs" />
+    <Compile Include="Assets\Scripts\PlayerSpotlight2D.cs" />
     <Compile Include="Assets\Scripts\gamejam-2022\Clue.cs" />
     <Compile Include="Assets\Scripts\gamejam-2022\PlayerMovement.cs" />
     <Compile Include="Assets\Scripts\ShuffleWalkVisual.cs" />
