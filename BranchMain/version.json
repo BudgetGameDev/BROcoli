@@ -1,7 +1,7 @@
 {
-  "buildId": "build-1770029817-2ee04b0",
-  "buildTimestamp": "2026-02-02T10:56:57Z",
-  "buildNumber": 119,
-  "commitSha": "2ee04b07ca311c5455396207a30c98e7b6752d13",
+  "buildId": "build-1770031372-1d2bd4d",
+  "buildTimestamp": "2026-02-02T11:22:52Z",
+  "buildNumber": 120,
+  "commitSha": "1d2bd4dbf223b306ee38355602864cd068cebb01",
   "description": "fix: ios safari performance optimizations"
 }
