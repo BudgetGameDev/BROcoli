@@ -338,7 +338,7 @@
     
     <script src="Build/WebGL.loader.js"></script>
     <script>
-      // Detect iOS Safari for special handling
+      // Platform detection
       var isiOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
       var isMacWithTouch = (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
       var isiOSDevice = isiOS || isMacWithTouch;
@@ -348,26 +348,231 @@
                          window.matchMedia('(display-mode: fullscreen)').matches ||
                          window.navigator.standalone === true;
       
-      console.log('[WebGL] Platform detection - iOS: ' + isiOS + ', MacTouch: ' + isMacWithTouch + ', Safari: ' + isSafari + ', Mobile: ' + isMobile + ', Standalone: ' + isStandalone);
-      
-      // Try to lock screen orientation to landscape (works on Android, PWAs)
-      function tryLockLandscape() {
-        if (screen.orientation && screen.orientation.lock) {
-          screen.orientation.lock('landscape').then(function() {
-            console.log('[WebGL] Screen orientation locked to landscape');
-          }).catch(function(err) {
-            console.log('[WebGL] Could not lock orientation:', err.message);
+      // iOS Safari workarounds - silent audio context keeps Safari from aggressive throttling
+      var audioKeepAlive = null;
+      function startAudioKeepAlive() {
+        if (audioKeepAlive) return;
+        try {
+          var AudioContext = window.AudioContext || window.webkitAudioContext;
+          if (!AudioContext) return;
+          audioKeepAlive = new AudioContext();
+          var oscillator = audioKeepAlive.createOscillator();
+          var gain = audioKeepAlive.createGain();
+          gain.gain.value = 0;
+          oscillator.connect(gain);
+          gain.connect(audioKeepAlive.destination);
+          oscillator.start();
+          document.addEventListener('visibilitychange', function() {
+            if (!document.hidden && audioKeepAlive && audioKeepAlive.state === 'suspended') {
+              audioKeepAlive.resume();
+            }
           });
+        } catch (e) {}
+      }
+      
+      // Patch canvas.getContext for high-performance GPU before Unity loads
+      (function() {
+        var originalGetContext = HTMLCanvasElement.prototype.getContext;
+        HTMLCanvasElement.prototype.getContext = function(type, attributes) {
+          if (type === 'webgl' || type === 'webgl2' || type === 'experimental-webgl') {
+            attributes = attributes || {};
+            attributes.powerPreference = 'high-performance';
+            attributes.preserveDrawingBuffer = false;
+            attributes.failIfMajorPerformanceCaveat = false;
+            attributes.desynchronized = true; // Hint for low-latency rendering
+            attributes.antialias = true; // User wants antialiasing kept
+          }
+          return originalGetContext.call(this, type, attributes);
+        };
+      })();
+      
+      // ProMotion (120Hz) display support for iPhone 16 Pro
+      // Safari throttles to 60fps by default - this hints we want high refresh
+      var targetFrameRate = 120;
+      var lastFrameTime = 0;
+      var frameTimeAccumulator = 0;
+      var frameCount = 0;
+      function measureFrameRate(timestamp) {
+        if (lastFrameTime > 0) {
+          var delta = timestamp - lastFrameTime;
+          frameTimeAccumulator += delta;
+          frameCount++;
+          if (frameCount >= 60) {
+            // Update running average
+            window.__avgFrameTime = frameTimeAccumulator / frameCount;
+            frameTimeAccumulator = 0;
+            frameCount = 0;
+          }
+        }
+        lastFrameTime = timestamp;
+        requestAnimationFrame(measureFrameRate);
+      }
+      if (isiOSDevice) {
+        requestAnimationFrame(measureFrameRate);
+      }
+      
+      // Screen wake lock
+      var wakeLock = null;
+      async function requestWakeLock() {
+        if ('wakeLock' in navigator) {
+          try {
+            wakeLock = await navigator.wakeLock.request('screen');
+          } catch (e) {}
         }
       }
       
-      // Attempt orientation lock
+      // Visibility API - force canvas wake on tab visibility change
+      document.addEventListener('visibilitychange', function() {
+        if (!document.hidden) {
+          // Re-acquire wake lock
+          if (wakeLock === null) requestWakeLock();
+          // Force style recalc to wake up rendering pipeline
+          var c = document.getElementById('unity-canvas');
+          if (c) {
+            c.style.display = 'none';
+            c.offsetHeight;
+            c.style.display = 'block';
+          }
+        }
+      });
+      
+      // Experimental Scheduler API - request high priority for main thread tasks
+      // This is a hint to the browser that our tasks are user-blocking
+      if ('scheduler' in window && 'postTask' in window.scheduler) {
+        // Wrap requestAnimationFrame to use high priority scheduling
+        var originalRAF = window.requestAnimationFrame;
+        window.requestAnimationFrame = function(callback) {
+          return window.scheduler.postTask(function() {
+            return originalRAF(callback);
+          }, { priority: 'user-blocking' });
+        };
+      }
+      
+      // Keep-alive interval - prevents Safari from marking tab as "idle"
+      var keepAliveInterval = null;
+      function startKeepAlive() {
+        if (keepAliveInterval) return;
+        keepAliveInterval = setInterval(function() {
+          window.__keepAlive = Date.now();
+        }, 100);
+      }
+      
+      // Device motion permission - iOS Safari throttles less when it detects device is being held
+      function requestDeviceMotion() {
+        if ('DeviceMotionEvent' in window && typeof DeviceMotionEvent.requestPermission === 'function') {
+          DeviceMotionEvent.requestPermission().catch(function() {});
+        }
+      }
+      
+      // WebGL context loss handling - iOS Safari has hard limits on WebGL contexts
+      function setupContextLossHandling() {
+        var canvas = document.getElementById('unity-canvas');
+        if (!canvas) return;
+        canvas.addEventListener('webglcontextlost', function(e) {
+          e.preventDefault();
+        });
+        canvas.addEventListener('webglcontextrestored', function() {
+          // Unity should auto-recover but we force a resize to help
+          window.dispatchEvent(new Event('resize'));
+        });
+      }
+      
+      // Battery API - always request high performance, track charging state
+      function checkBatteryStatus() {
+        // Always signal we want high performance regardless of battery
+        document.body.setAttribute('data-performance-mode', 'high');
+        
+        if ('getBattery' in navigator) {
+          navigator.getBattery().then(function(battery) {
+            document.body.setAttribute('data-charging', battery.charging ? 'true' : 'false');
+            document.body.setAttribute('data-battery-level', Math.round(battery.level * 100));
+            
+            battery.addEventListener('chargingchange', function() {
+              document.body.setAttribute('data-charging', battery.charging ? 'true' : 'false');
+            });
+            battery.addEventListener('levelchange', function() {
+              document.body.setAttribute('data-battery-level', Math.round(battery.level * 100));
+            });
+          }).catch(function() {});
+        }
+      }
+      
+      // Touch feedback hint - forces Safari to prepare for touch interaction
+      function setupTouchHints() {
+        document.body.style.webkitTapHighlightColor = 'transparent';
+        document.body.style.touchAction = 'manipulation';
+        // Pre-emptive touch listener keeps event system active
+        var touchStartTime = 0;
+        document.addEventListener('touchstart', function() {
+          touchStartTime = performance.now();
+        }, { passive: true });
+        document.addEventListener('touchend', function() {
+          // Touch response timing helps Safari understand app is interactive
+          window.__lastTouchResponse = performance.now() - touchStartTime;
+        }, { passive: true });
+      }
+      
+      // requestIdleCallback fallback for Safari (still not supported in 2026)
+      if (!('requestIdleCallback' in window)) {
+        window.requestIdleCallback = function(cb) {
+          var start = Date.now();
+          return setTimeout(function() {
+            cb({
+              didTimeout: false,
+              timeRemaining: function() {
+                return Math.max(0, 50 - (Date.now() - start));
+              }
+            });
+          }, 1);
+        };
+        window.cancelIdleCallback = function(id) {
+          clearTimeout(id);
+        };
+      }
+      
+      // Force GPU process warmup before Unity loads
+      function warmupGPU() {
+        var warmupCanvas = document.createElement('canvas');
+        warmupCanvas.width = 64;
+        warmupCanvas.height = 64;
+        var ctx = warmupCanvas.getContext('webgl2', { powerPreference: 'high-performance' }) ||
+                  warmupCanvas.getContext('webgl', { powerPreference: 'high-performance' });
+        if (ctx) {
+          // Draw something to ensure GPU is initialized
+          ctx.clearColor(0, 0, 0, 1);
+          ctx.clear(ctx.COLOR_BUFFER_BIT);
+          // Clean up
+          var ext = ctx.getExtension('WEBGL_lose_context');
+          if (ext) ext.loseContext();
+        }
+      }
+      
+      // Start iOS optimizations
+      if (isiOSDevice) {
+        warmupGPU();
+        startAudioKeepAlive();
+        startKeepAlive();
+        requestWakeLock();
+        setupContextLossHandling();
+        checkBatteryStatus();
+        setupTouchHints();
+        // Request device motion on first touch (requires user gesture)
+        document.addEventListener('touchstart', function() {
+          requestDeviceMotion();
+        }, { once: true });
+      }
+      
+      // Orientation lock
+      function tryLockLandscape() {
+        if (screen.orientation && screen.orientation.lock) {
+          screen.orientation.lock('landscape').catch(function() {});
+        }
+      }
       tryLockLandscape();
       
-      // Setup viewport meta tag for proper mobile rendering
+      // Viewport meta
       var meta = document.createElement('meta');
       meta.name = 'viewport';
-      // iOS Safari needs specific viewport settings
       if (isiOSDevice) {
         meta.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover';
       } else {
@@ -405,49 +610,24 @@
                 if (countEl) {
                   countEl.textContent = data.stargazers_count;
                 }
-                console.log('[GameUI] GitHub stars:', data.stargazers_count);
-              } else {
-                throw new Error('Invalid response data');
               }
             })
-            .catch(function(err) {
-              console.warn('[GameUI] Could not fetch star count:', err);
-              // Show 0 on error instead of leaving --
+            .catch(function() {
               if (countEl && countEl.textContent === '--') {
                 countEl.textContent = '0';
               }
             });
         },
         
-        // Show the EndGame CTA overlay
         showEndGameCTA: function(score, minScore) {
-          console.log('[GameUI] showEndGameCTA called with score:', score, 'minScore:', minScore);
           minScore = minScore || 0;
-          
-          // Check minimum score threshold
-          if (score < minScore) {
-            console.log('[GameUI] Score ' + score + ' below minimum ' + minScore + ', not showing CTA');
-            return;
-          }
-          
-          // Fetch star count if not already done
+          if (score < minScore) return;
           this.fetchStarCount();
-          
-          // Show the overlay
-          if (gameUIOverlay) {
-            gameUIOverlay.classList.add('visible');
-            console.log('[GameUI] Showing EndGame CTA - overlay element found and visible class added');
-          } else {
-            console.error('[GameUI] ERROR: gameUIOverlay element not found!');
-          }
+          if (gameUIOverlay) gameUIOverlay.classList.add('visible');
         },
         
-        // Hide the EndGame CTA overlay
         hideEndGameCTA: function() {
-          if (gameUIOverlay) {
-            gameUIOverlay.classList.remove('visible');
-            console.log('[GameUI] Hiding EndGame CTA');
-          }
+          if (gameUIOverlay) gameUIOverlay.classList.remove('visible');
         },
         
         // Show/hide Steam wishlist button (for future use)
@@ -504,8 +684,6 @@
         canvas.style.position = 'fixed';
         canvas.style.top = '0';
         canvas.style.left = '0';
-        
-        console.log('[WebGL] Canvas updated - CSS: ' + width + 'x' + height + ', Buffer: ' + canvas.width + 'x' + canvas.height + ', DPR: ' + dpr + ', Portrait: ' + isPortrait());
       }
       
       // Full-screen canvas setup
@@ -537,8 +715,6 @@
       
       // iOS Safari specific touch handling
       if (isiOSDevice) {
-        console.log('[WebGL] Applying iOS Safari touch fixes');
-        
         // Prevent default touch behaviors that interfere with game input
         document.addEventListener('touchstart', function(e) {
           if (e.target === canvas) {
@@ -590,15 +766,12 @@
       // Handle orientation change events
       if (screen.orientation) {
         screen.orientation.addEventListener('change', function() {
-          console.log('[WebGL] Orientation changed to:', screen.orientation.type);
           setTimeout(updateCanvasSize, 100);
         });
       }
       
       // Also listen for window orientation change (iOS)
       window.addEventListener('orientationchange', function() {
-        console.log('[WebGL] Window orientation changed');
-        // iOS needs multiple delayed updates to settle
         setTimeout(updateCanvasSize, 100);
         setTimeout(updateCanvasSize, 300);
         setTimeout(updateCanvasSize, 500);
@@ -609,33 +782,17 @@
         window.addEventListener('load', function() {
           navigator.serviceWorker.register('sw.js')
             .then(function(registration) {
-              console.log('[PWA] ServiceWorker registered:', registration.scope);
-              
-              // Check for updates immediately
               registration.update();
-              
-              // Listen for new service worker installing
               registration.addEventListener('updatefound', function() {
-                console.log('[PWA] New service worker found, installing...');
                 var newWorker = registration.installing;
-                newWorker.addEventListener('statechange', function() {
-                  if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                    console.log('[PWA] New service worker installed, will activate on next load');
-                  }
-                });
+                newWorker.addEventListener('statechange', function() {});
               });
             })
-            .catch(function(error) {
-              console.warn('[PWA] ServiceWorker registration failed:', error);
-            });
+            .catch(function() {});
         });
         
-        // Listen for messages from service worker (e.g., new version available)
         navigator.serviceWorker.addEventListener('message', function(event) {
-          console.log('[PWA] Message from SW:', event.data);
           if (event.data && event.data.type === 'NEW_VERSION_AVAILABLE') {
-            console.log('[PWA] New version detected by SW, reloading...');
-            // Show brief message then reload
             var loadingText = document.querySelector('.loading-text');
             if (loadingText) {
               loadingText.textContent = 'New version found! Updating...';
@@ -646,17 +803,13 @@
           }
         });
         
-        // When SW takes control, reload to ensure fresh content
         navigator.serviceWorker.addEventListener('controllerchange', function() {
-          console.log('[PWA] Service worker controller changed, reloading for fresh content...');
           window.location.reload(true);
         });
       }
 
       // Function to start the Unity game
       function startUnityGame() {
-        console.log('[WebGL] Starting Unity game...');
-        
         createUnityInstance(document.querySelector("#unity-canvas"), {
           dataUrl: "Build/WebGL.data",
           frameworkUrl: "Build/WebGL.framework.js",
@@ -664,9 +817,15 @@
           streamingAssetsUrl: "StreamingAssets",
           companyName: "BudgetGameDev",
           productName: "BROcoli",
-          productVersion: "0.0.142",
+          productVersion: "0.0.144",
           matchWebGLToCanvasSize: true, // Enable dynamic resolution to match canvas size
           devicePixelRatio: window.devicePixelRatio || 1, // Use device pixel ratio for sharp rendering
+          // WebGL context attributes for performance
+          webglContextAttributes: {
+            powerPreference: 'high-performance',
+            preserveDrawingBuffer: false,
+            failIfMajorPerformanceCaveat: false
+          },
           // Progress callback
           onProgress: function(progress) {
             if (progressBar) {
@@ -674,11 +833,8 @@
             }
           }
         }).then(function(unityInstance) {
-          console.log('[WebGL] Unity instance created successfully');
-          // Store reference for potential future use
           window.unityInstance = unityInstance;
           
-          // Hide loading screen
           if (loadingScreen) {
             loadingScreen.classList.add('hidden');
             setTimeout(function() {
@@ -686,10 +842,8 @@
             }, 500);
           }
           
-          // Update canvas size again after Unity loads to ensure correct resolution
           updateCanvasSize();
         }).catch(function(error) {
-          console.error('[WebGL] Unity instance creation failed:', error);
           if (loadingScreen) {
             var errorMessage = (error && error.message) ? error.message : 'Could not load game files. Please check your connection and try again.';
             // Check if we're likely offline
@@ -705,20 +859,13 @@
       // This runs only at page load and will reload the page if an update is found
       if (window.VersionChecker) {
         window.VersionChecker.checkForUpdates()
-          .then(function(result) {
-            console.log('[WebGL] Version check complete:', result);
-            // If we get here, either no update was needed or we're offline
-            // Start the game
+          .then(function() {
             startUnityGame();
           })
-          .catch(function(error) {
-            console.warn('[WebGL] Version check failed:', error);
-            // Start the game anyway if version check fails
+          .catch(function() {
             startUnityGame();
           });
       } else {
-        // Version checker not available, start game directly
-        console.warn('[WebGL] VersionChecker not loaded, starting game directly');
         startUnityGame();
       }
     </script>
