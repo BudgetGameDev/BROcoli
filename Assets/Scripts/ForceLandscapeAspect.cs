@@ -27,6 +27,10 @@ public static class ForceLandscapeAspect
     private static bool _isFocusLost = false;
     private static float _savedTimeScale = 1f;
     private static GameObject _rotateOverlay;
+    
+    // Debounce timer to prevent rapid state changes (especially on iOS Safari offline)
+    private static float _lastOrientationChangeTime = -999f;
+    private const float ORIENTATION_CHANGE_DEBOUNCE = 0.5f; // Minimum seconds between state changes
 
 #if UNITY_WEBGL && !UNITY_EDITOR
     [DllImport("__Internal")]
@@ -81,16 +85,26 @@ public static class ForceLandscapeAspect
 
         float screenAspect = (float)Screen.width / Screen.height;
         bool wasPortrait = _isPortrait;
-        _isPortrait = screenAspect < 1f; // Portrait if height > width
+        bool nowPortrait = screenAspect < 1f; // Portrait if height > width
         
-        // Handle portrait/landscape transitions
-        if (_isPortrait && !wasPortrait)
+        // Handle portrait/landscape transitions with debouncing
+        // This prevents rapid state changes on iOS Safari offline where viewport may jitter
+        float timeSinceLastChange = Time.realtimeSinceStartup - _lastOrientationChangeTime;
+        bool canChangeState = timeSinceLastChange >= ORIENTATION_CHANGE_DEBOUNCE;
+        
+        if (nowPortrait != wasPortrait && canChangeState)
         {
-            OnEnteredPortrait();
-        }
-        else if (!_isPortrait && wasPortrait)
-        {
-            OnEnteredLandscape();
+            _isPortrait = nowPortrait;
+            _lastOrientationChangeTime = Time.realtimeSinceStartup;
+            
+            if (_isPortrait)
+            {
+                OnEnteredPortrait();
+            }
+            else
+            {
+                OnEnteredLandscape();
+            }
         }
         
         Rect targetRect = CalculateViewportRect(screenAspect);
@@ -381,11 +395,24 @@ public static class ForceLandscapeAspect
         return new Rect(0f, 0f, 1f, 1f);
     }
 
+    // Rate limiting for screen change checks
+    private static float _lastScreenChangeCheck = 0f;
+    private const float SCREEN_CHANGE_CHECK_INTERVAL = 0.1f; // Max 10 checks per second
+    
     /// <summary>
-    /// Checks if screen size changed and updates cameras if needed
+    /// Checks if screen size changed and updates cameras if needed.
+    /// Rate-limited to prevent excessive updates on iOS Safari offline where viewport may jitter.
     /// </summary>
     public static void CheckForScreenChange()
     {
+        // Rate limit screen change checks to prevent overwhelming the system
+        float currentTime = Time.realtimeSinceStartup;
+        if (currentTime - _lastScreenChangeCheck < SCREEN_CHANGE_CHECK_INTERVAL)
+        {
+            return;
+        }
+        _lastScreenChangeCheck = currentTime;
+        
         if (Screen.width != _lastScreenWidth || Screen.height != _lastScreenHeight)
         {
             UpdateAllCameras();
@@ -478,39 +505,54 @@ public static class ForceLandscapeAspect
     }
     
     /// <summary>
-    /// Simple animator for the rotate icon
+    /// Simple animator for the rotate icon.
+    /// Designed to be resilient to enable/disable cycles that can happen on iOS Safari offline.
     /// </summary>
     private class RotateAnimator : MonoBehaviour
     {
-        private float _angle = 0f;
-        private float _targetAngle = -90f;
-        private float _animSpeed = 2f;
-        private float _pauseTimer = 0f;
+        // Static state survives enable/disable cycles
+        private static float _persistedAngle = 0f;
+        private static float _persistedTargetAngle = -90f;
+        private static float _persistedPauseTimer = 0f;
+        private static bool _hasInitialized = false;
+        
+        private const float ANIM_SPEED = 2f;
+        
+        void OnEnable()
+        {
+            // Restore persisted state (survives rapid enable/disable)
+            if (_hasInitialized)
+            {
+                transform.localRotation = Quaternion.Euler(0, 0, _persistedAngle);
+            }
+        }
         
         void Update()
         {
+            _hasInitialized = true;
+            
             // Use unscaled time since game is paused
-            if (_pauseTimer > 0f)
+            if (_persistedPauseTimer > 0f)
             {
-                _pauseTimer -= Time.unscaledDeltaTime;
+                _persistedPauseTimer -= Time.unscaledDeltaTime;
                 return;
             }
             
-            _angle = Mathf.MoveTowards(_angle, _targetAngle, Time.unscaledDeltaTime * 90f * _animSpeed);
-            transform.localRotation = Quaternion.Euler(0, 0, _angle);
+            _persistedAngle = Mathf.MoveTowards(_persistedAngle, _persistedTargetAngle, Time.unscaledDeltaTime * 90f * ANIM_SPEED);
+            transform.localRotation = Quaternion.Euler(0, 0, _persistedAngle);
             
-            if (Mathf.Approximately(_angle, _targetAngle))
+            if (Mathf.Approximately(_persistedAngle, _persistedTargetAngle))
             {
                 // Swap between portrait (0) and landscape (-90)
-                if (_targetAngle == -90f)
+                if (_persistedTargetAngle == -90f)
                 {
-                    _pauseTimer = 1f;
-                    _targetAngle = 0f;
+                    _persistedPauseTimer = 1f;
+                    _persistedTargetAngle = 0f;
                 }
                 else
                 {
-                    _pauseTimer = 0.5f;
-                    _targetAngle = -90f;
+                    _persistedPauseTimer = 0.5f;
+                    _persistedTargetAngle = -90f;
                 }
             }
         }
