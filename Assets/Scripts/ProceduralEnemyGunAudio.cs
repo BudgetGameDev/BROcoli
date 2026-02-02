@@ -13,7 +13,8 @@ public class ProceduralEnemyGunAudio : MonoBehaviour
         VoidCannon,         // Deep, resonant, ominous
         SwarmShot,          // Buzzing, insectoid
         CorruptedBlaster,   // Distorted, glitchy
-        AcidLauncher        // Hissing, corrosive
+        AcidLauncher,       // Hissing, corrosive
+        Sneeze              // Corona sneeze attack
     }
 
     [Header("Sound Type")]
@@ -21,7 +22,7 @@ public class ProceduralEnemyGunAudio : MonoBehaviour
 
     [Header("Volume")]
     [Range(0f, 1f)]
-    [SerializeField] private float volume = 0.8f;
+    [SerializeField] private float volume = 0.4f;
 
     [Header("Variation")]
     [Range(0f, 0.25f)]
@@ -280,6 +281,34 @@ public class ProceduralEnemyGunAudio : MonoBehaviour
                 p.hasChorus = true;
                 p.hasGlitch = false;
                 break;
+                
+            case EnemyGunSoundType.Sneeze:
+                // Sneeze sound - sharp inhale then explosive exhale with nasal quality
+                p.duration = 0.45f;
+                p.roomSize = 0.15f;
+                p.transientFreq1 = 1800f;    // High nasal frequency
+                p.transientFreq2 = 2800f;    // "CHOO" consonant
+                p.transientDecay = 4f;       // Fast attack
+                p.transientAmount = 0.6f;    // Strong transient
+                p.subFreq = 120f;            // Chest resonance
+                p.subAmount = 0.4f;
+                p.midFreq = 450f;            // Nasal cavity resonance
+                p.midAmount = 0.7f;
+                p.bodyDecay = 3f;            // Quick decay
+                p.modFreq = 25f;             // Vocal flutter
+                p.modDepth = 0.5f;
+                p.resonanceFreq = 650f;      // Nasal formant
+                p.resonanceQ = 5f;
+                p.resonanceAmount = 0.6f;
+                p.noiseColor = 0.4f;         // Breathy noise
+                p.noiseCutoff = 4000f;       // High freq breath/spray
+                p.noiseAmount = 0.7f;        // Lots of breath noise
+                p.noiseDecay = 3f;           // Fast noise decay
+                p.distortion = 0.15f;
+                p.pitchBend = -0.4f;         // Pitch drops as sneeze releases
+                p.hasChorus = false;
+                p.hasGlitch = false;
+                break;
         }
 
         return p;
@@ -312,6 +341,26 @@ public class ProceduralEnemyGunAudio : MonoBehaviour
         if (distAtten < 0.01f) return;
         
         currentPreset = GetPreset(soundType);
+        AudioClip clip = GenerateGunClip();
+        audioSource.PlayOneShot(clip, volume * volumeMultiplier * distAtten);
+    }
+    
+    public void PlayGunSound(EnemyGunSoundType overrideSoundType)
+    {
+        float distAtten = GetDistanceAttenuation();
+        if (distAtten < 0.01f) return;
+        
+        currentPreset = GetPreset(overrideSoundType);
+        AudioClip clip = GenerateGunClip();
+        audioSource.PlayOneShot(clip, volume * distAtten);
+    }
+    
+    public void PlayGunSound(EnemyGunSoundType overrideSoundType, float volumeMultiplier)
+    {
+        float distAtten = GetDistanceAttenuation();
+        if (distAtten < 0.01f) return;
+        
+        currentPreset = GetPreset(overrideSoundType);
         AudioClip clip = GenerateGunClip();
         audioSource.PlayOneShot(clip, volume * volumeMultiplier * distAtten);
     }
@@ -463,14 +512,14 @@ public class ProceduralEnemyGunAudio : MonoBehaviour
             audioBuffer[idx] *= fade;
         }
 
-        // Normalize
+        // Normalize with headroom to prevent clipping
         float maxAmp = 0f;
         for (int i = 0; i < totalSamples; i++)
             maxAmp = Mathf.Max(maxAmp, Mathf.Abs(audioBuffer[i]));
 
         if (maxAmp > 0.01f)
         {
-            float normalize = 0.88f / maxAmp;
+            float normalize = 0.7f / maxAmp;  // Leave more headroom
             for (int i = 0; i < totalSamples; i++)
                 audioBuffer[i] *= normalize;
         }

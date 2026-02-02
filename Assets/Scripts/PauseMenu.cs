@@ -3,6 +3,7 @@ using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
 using System.Runtime.InteropServices;
+using TMPro;
 
 /// <summary>
 /// Handles pause menu functionality.
@@ -16,10 +17,14 @@ public class PauseMenu : MonoBehaviour
     public Button resumeButton;
     public Button mainMenuButton;
     
+    [Header("Stats Display")]
+    public TextMeshProUGUI statsText;
+    
     private bool isPaused = false;
     private bool isMobilePlatform = false;
     private EventSystem eventSystem;
     private Canvas mainCanvas;
+    private PlayerStats playerStats;
 
 #if UNITY_WEBGL && !UNITY_EDITOR
     [DllImport("__Internal")]
@@ -53,6 +58,9 @@ public class PauseMenu : MonoBehaviour
         
         // Cache the main canvas
         mainCanvas = FindAnyObjectByType<Canvas>();
+        
+        // Find player stats
+        playerStats = FindAnyObjectByType<PlayerStats>();
         
         // Detect mobile
 #if UNITY_WEBGL && !UNITY_EDITOR
@@ -248,6 +256,9 @@ public class PauseMenu : MonoBehaviour
         // Show menu
         pauseMenuUI.SetActive(true);
         
+        // Update stats display
+        UpdateStatsDisplay();
+        
         // Pause button visibility is managed by VirtualController
         
         // Pause game
@@ -316,6 +327,82 @@ public class PauseMenu : MonoBehaviour
     }
 
     public bool IsPaused() => isPaused;
+    
+    /// <summary>
+    /// Updates the stats display text with current player stats.
+    /// Colors: White = base, Green = positive, Red = negative
+    /// </summary>
+    private void UpdateStatsDisplay()
+    {
+        if (statsText == null)
+        {
+            // Try to find it by name
+            if (pauseMenuUI != null)
+            {
+                var texts = pauseMenuUI.GetComponentsInChildren<TextMeshProUGUI>(true);
+                foreach (var t in texts)
+                {
+                    if (t.gameObject.name.ToLower().Contains("stats"))
+                    {
+                        statsText = t;
+                        break;
+                    }
+                }
+            }
+        }
+        
+        if (statsText == null || playerStats == null)
+        {
+            if (playerStats == null)
+                playerStats = FindAnyObjectByType<PlayerStats>();
+            if (statsText == null || playerStats == null)
+                return;
+        }
+        
+        // Base values for comparison
+        float baseMaxHealth = 100f, baseDamage = 10f, baseSpeed = 4f;
+        float baseAttackSpeed = 0.6f, baseDetection = 12f;
+        float baseCritChance = 5f, baseCritDamage = 150f;
+        float baseDodge = 0f, baseArmor = 0f, baseRegen = 0f, baseLifeSteal = 0f;
+        
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine("<size=28><b>STATS</b></size>");
+        sb.AppendLine();
+        
+        sb.AppendLine(FormatStat("Level", playerStats.CurrentLevel, 1f, true));
+        sb.AppendLine(FormatStat("HP", playerStats.CurrentHealth, baseMaxHealth, true, $"/{playerStats.CurrentMaxHealth:F0}"));
+        sb.AppendLine(FormatStat("Max HP", playerStats.CurrentMaxHealth, baseMaxHealth));
+        sb.AppendLine(FormatStat("Damage", playerStats.CurrentDamage, baseDamage));
+        sb.AppendLine(FormatStat("Speed", playerStats.CurrentMovementSpeed, baseSpeed));
+        sb.AppendLine(FormatStat("Atk Spd", playerStats.CurrentAttackSpeed, baseAttackSpeed, false, "", true));
+        sb.AppendLine(FormatStat("Detect", playerStats.CurrentDetectionRadius, baseDetection));
+        sb.AppendLine();
+        sb.AppendLine(FormatStat("Crit %", playerStats.CurrentCritChance, baseCritChance, false, "%"));
+        sb.AppendLine(FormatStat("Crit DMG", playerStats.CurrentCritDamage * 100f, baseCritDamage, false, "%"));
+        sb.AppendLine(FormatStat("Dodge", playerStats.CurrentDodgeChance, baseDodge, false, "%"));
+        sb.AppendLine(FormatStat("Armor", playerStats.CurrentArmor, baseArmor));
+        sb.AppendLine(FormatStat("Regen", playerStats.CurrentHealthRegen, baseRegen, false, "/s"));
+        sb.AppendLine(FormatStat("Lifesteal", playerStats.CurrentLifeSteal, baseLifeSteal, false, "%"));
+        
+        statsText.text = sb.ToString();
+    }
+    
+    private string FormatStat(string name, float value, float baseValue, bool noColor = false, string suffix = "", bool lowerIsBetter = false)
+    {
+        string valueStr = value.ToString("F1") + suffix;
+        
+        if (noColor)
+            return $"{name}: <color=white>{valueStr}</color>";
+        
+        float diff = value - baseValue;
+        if (lowerIsBetter) diff = -diff;
+        
+        string color = "white";
+        if (diff > 0.01f) color = "#4CFF4C";
+        else if (diff < -0.01f) color = "#FF4C4C";
+        
+        return $"{name}: <color={color}>{valueStr}</color>";
+    }
     
     // Re-check EventSystem when this component is enabled
     void OnEnable()

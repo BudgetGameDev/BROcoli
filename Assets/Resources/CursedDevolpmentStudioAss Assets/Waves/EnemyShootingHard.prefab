@@ -199,7 +199,7 @@ MonoBehaviour:
   stopDistance: 6
   fireRate: 4
   projectileDamage: 10
-  projectilePrefab: {fileID: 6840843683935675129, guid: 0095d1447db99c443a2f848a8f542c53, type: 3}
+  projectilePrefab: {fileID: 1000000000000000000, guid: a1b2c3d4e5f6789012345678abcd1234, type: 3}
   shootPoint: {fileID: 6769356106294995044}
   projectileSpawnForwardOffset: 0.35
   projectileSpawnSideOffset: 0.2
@@ -314,8 +314,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ec2e9ab7a58f9f447960701180b94bc1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ProceduralEnemyGunAudio
-  soundType: 0
-  volume: 0.2
+  soundType: 5
+  volume: 0.25
   randomization: 0.15
 --- !u!114 &1122334455667788908
 MonoBehaviour:
@@ -494,7 +494,7 @@ RectTransform:
   m_GameObject: {fileID: 4837768021220292199}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.4, y: 0.79, z: 1}
+  m_LocalScale: {x: 0.125, y: 0.59, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 6279962739144368904}
@@ -673,7 +673,7 @@ RectTransform:
   m_GameObject: {fileID: 8949344229171505808}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.1, y: 0.1, z: 0.1}
+  m_LocalScale: {x: 0.025, y: 0.025, z: 0.025}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 2638605574218206071}
@@ -698,14 +698,14 @@ Canvas:
   m_PlaneDistance: 100
   m_PixelPerfect: 0
   m_ReceivesEvents: 1
-  m_OverrideSorting: 0
+  m_OverrideSorting: 1
   m_OverridePixelPerfect: 0
   m_SortingBucketNormalizedSize: 0
   m_VertexColorAlwaysGammaSpace: 0
   m_AdditionalShaderChannelsFlag: 0
   m_UpdateRectTransformForStandalone: 0
   m_SortingLayerID: 0
-  m_SortingOrder: 0
+  m_SortingOrder: 100
   m_TargetDisplay: 0
 --- !u!114 &6703029820683304053
 MonoBehaviour:

@@ -10,8 +10,11 @@ public abstract class BoostBase : MonoBehaviour
     [SerializeField] private Rigidbody2D _body;
     [SerializeField] private Collider2D _collider;
     [SerializeField] private float _lifetime = 30f;
-    [SerializeField] private AudioSource _audioSource;
-    [SerializeField] private AudioClip _audioClip;
+
+    /// <summary>
+    /// Override this to specify which procedural sound to play for this boost.
+    /// </summary>
+    public abstract ProceduralBoostAudio.BoostSoundType BoostSoundType { get; }
 
     public abstract void Apply(PlayerStats stats);
 
@@ -38,8 +41,8 @@ public abstract class BoostBase : MonoBehaviour
 
         Debug.Log($"Applying boost: {GetType().Name} with amount {Amount}");
 
-        _audioSource.clip = _audioClip;
-        _audioSource.Play();
+        // Play procedural audio for this boost type
+        ProceduralBoostAudio.PlaySound(BoostSoundType);
 
         Apply(stats);
         Destroy(gameObject);

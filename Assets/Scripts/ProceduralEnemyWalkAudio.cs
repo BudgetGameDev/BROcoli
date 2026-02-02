@@ -22,7 +22,7 @@ public class ProceduralEnemyWalkAudio : MonoBehaviour
 
     [Header("Volume")]
     [Range(0f, 1f)]
-    [SerializeField] private float volume = 0.5f;
+    [SerializeField] private float volume = 0.25f;
 
     [Header("Variation")]
     [Range(0f, 0.3f)]
@@ -73,6 +73,7 @@ public class ProceduralEnemyWalkAudio : MonoBehaviour
     private float[] audioBuffer;
 
     private float[] lpState = new float[4];
+    private float[] hpState = new float[4];  // High-pass filter state
     private float stepTimer;
     private bool isMoving;
     private float lastSpeed;
@@ -141,21 +142,21 @@ public class ProceduralEnemyWalkAudio : MonoBehaviour
                 break;
 
             case EnemyWalkSoundType.Thud:
-                // Heavy, slow stomping - deep bass impact
-                p.duration = 0.15f;
-                p.impactFreq = 45f;
-                p.impactAmount = 0.8f;
-                p.impactDecay = 8f;
-                p.bodyFreq = 70f;
-                p.bodyAmount = 0.6f;
-                p.bodyDecay = 6f;
-                p.secondaryFreq = 120f;
-                p.secondaryDelay = 0.03f;
-                p.secondaryAmount = 0.4f;
-                p.noiseAmount = 0.35f;
-                p.noiseDecay = 10f;
-                p.noiseCutoff = 600f;
-                p.noiseColor = 0.9f;
+                // Heavy, slow stomping - medium-low impact (raised from very low to avoid rumble)
+                p.duration = 0.12f;
+                p.impactFreq = 90f;      // Raised from 45Hz to avoid sub-bass rumble
+                p.impactAmount = 0.6f;   // Reduced from 0.8
+                p.impactDecay = 10f;
+                p.bodyFreq = 120f;       // Raised from 70Hz
+                p.bodyAmount = 0.45f;    // Reduced from 0.6
+                p.bodyDecay = 8f;
+                p.secondaryFreq = 180f;  // Raised from 120Hz
+                p.secondaryDelay = 0.025f;
+                p.secondaryAmount = 0.3f;
+                p.noiseAmount = 0.25f;   // Reduced from 0.35
+                p.noiseDecay = 12f;
+                p.noiseCutoff = 800f;    // Raised from 600Hz
+                p.noiseColor = 0.7f;     // Reduced from 0.9 (less brown noise)
                 p.hasClick = false;
                 p.clickFreq = 0f;
                 p.clickAmount = 0f;
@@ -166,42 +167,42 @@ public class ProceduralEnemyWalkAudio : MonoBehaviour
             case EnemyWalkSoundType.Slither:
                 // Wet, sliding movement - noise-heavy with squelch
                 p.duration = 0.12f;
-                p.impactFreq = 90f;
-                p.impactAmount = 0.25f;
-                p.impactDecay = 12f;
-                p.bodyFreq = 60f;
-                p.bodyAmount = 0.3f;
-                p.bodyDecay = 8f;
-                p.secondaryFreq = 150f;
+                p.impactFreq = 120f;     // Raised from 90Hz
+                p.impactAmount = 0.2f;   // Reduced from 0.25
+                p.impactDecay = 14f;
+                p.bodyFreq = 100f;       // Raised from 60Hz
+                p.bodyAmount = 0.25f;    // Reduced from 0.3
+                p.bodyDecay = 10f;
+                p.secondaryFreq = 200f;  // Raised from 150Hz
                 p.secondaryDelay = 0.02f;
-                p.secondaryAmount = 0.2f;
-                p.noiseAmount = 0.7f;
-                p.noiseDecay = 15f;
-                p.noiseCutoff = 1200f;
-                p.noiseColor = 0.7f;
+                p.secondaryAmount = 0.15f;
+                p.noiseAmount = 0.5f;    // Reduced from 0.7
+                p.noiseDecay = 18f;
+                p.noiseCutoff = 1500f;   // Raised from 1200Hz
+                p.noiseColor = 0.5f;     // Reduced from 0.7
                 p.hasClick = false;
                 p.clickFreq = 0f;
                 p.clickAmount = 0f;
                 p.hasWet = true;
-                p.wetAmount = 0.4f;
+                p.wetAmount = 0.3f;      // Reduced from 0.4
                 break;
 
             case EnemyWalkSoundType.Shuffle:
                 // Shambling, zombie-like - dragging sound
-                p.duration = 0.18f;
-                p.impactFreq = 65f;
-                p.impactAmount = 0.4f;
-                p.impactDecay = 7f;
-                p.bodyFreq = 85f;
-                p.bodyAmount = 0.35f;
-                p.bodyDecay = 6f;
-                p.secondaryFreq = 110f;
-                p.secondaryDelay = 0.06f;
-                p.secondaryAmount = 0.3f;
-                p.noiseAmount = 0.55f;
-                p.noiseDecay = 8f;
-                p.noiseCutoff = 900f;
-                p.noiseColor = 0.8f;
+                p.duration = 0.15f;
+                p.impactFreq = 100f;     // Raised from 65Hz
+                p.impactAmount = 0.3f;   // Reduced from 0.4
+                p.impactDecay = 9f;
+                p.bodyFreq = 130f;       // Raised from 85Hz
+                p.bodyAmount = 0.25f;    // Reduced from 0.35
+                p.bodyDecay = 8f;
+                p.secondaryFreq = 160f;  // Raised from 110Hz
+                p.secondaryDelay = 0.05f;
+                p.secondaryAmount = 0.2f;
+                p.noiseAmount = 0.4f;    // Reduced from 0.55
+                p.noiseDecay = 10f;
+                p.noiseCutoff = 1100f;   // Raised from 900Hz
+                p.noiseColor = 0.6f;     // Reduced from 0.8
                 p.hasClick = false;
                 p.clickFreq = 0f;
                 p.clickAmount = 0f;
@@ -302,6 +303,7 @@ public class ProceduralEnemyWalkAudio : MonoBehaviour
         totalSamples = Mathf.Min(totalSamples, audioBuffer.Length);
 
         System.Array.Clear(lpState, 0, lpState.Length);
+        System.Array.Clear(hpState, 0, hpState.Length);
 
         float phaseImpact = 0f;
         float phaseBody = 0f;
@@ -377,6 +379,9 @@ public class ProceduralEnemyWalkAudio : MonoBehaviour
             // ===== COMBINE =====
             sample = impact + body + secondary + noise + click + wet;
 
+            // High-pass filter to remove low frequency rumble (cutoff ~80Hz)
+            sample = HighpassFilter(sample, 80f, 0);
+
             // Soft clip
             sample = SoftClip(sample);
 
@@ -393,14 +398,14 @@ public class ProceduralEnemyWalkAudio : MonoBehaviour
             audioBuffer[idx] *= fade;
         }
 
-        // Normalize
+        // Normalize with headroom to prevent clipping
         float maxAmp = 0f;
         for (int i = 0; i < totalSamples; i++)
             maxAmp = Mathf.Max(maxAmp, Mathf.Abs(audioBuffer[i]));
 
         if (maxAmp > 0.01f)
         {
-            float normalize = 0.8f / maxAmp;
+            float normalize = 0.65f / maxAmp;  // Leave more headroom
             for (int i = 0; i < totalSamples; i++)
                 audioBuffer[i] *= normalize;
         }
@@ -487,6 +492,19 @@ public class ProceduralEnemyWalkAudio : MonoBehaviour
 
         lpState[stateIndex] += alpha * (input - lpState[stateIndex]);
         return lpState[stateIndex];
+    }
+
+    private float HighpassFilter(float input, float cutoff, int stateIndex)
+    {
+        float rc = 1f / (2f * Mathf.PI * cutoff);
+        float dt = 1f / sampleRate;
+        float alpha = rc / (rc + dt);
+        alpha = Mathf.Clamp01(alpha);
+
+        float output = alpha * (hpState[stateIndex + 2] + input - hpState[stateIndex]);
+        hpState[stateIndex] = input;
+        hpState[stateIndex + 2] = output;
+        return output;
     }
 
     private float SoftClip(float x)

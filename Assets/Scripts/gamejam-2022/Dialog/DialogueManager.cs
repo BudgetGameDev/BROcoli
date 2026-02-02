@@ -15,7 +15,7 @@ public class DialogueManager : MonoBehaviour
     public Animator animator;
     public GameObject img;
 
-    public AudioSource audio;
+    public new AudioSource audio;
     public AudioClip audioEnterPaper;
     public AudioClip audioExitPaper;
 

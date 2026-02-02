@@ -44,7 +44,7 @@ public abstract class EnemyBase : MonoBehaviour
 
     public Rigidbody2D rb;
 
-    void Awake()
+    protected virtual void Awake()
     {
         gameStates = FindFirstObjectByType<GameStates>();
         rb = GetComponent<Rigidbody2D>();

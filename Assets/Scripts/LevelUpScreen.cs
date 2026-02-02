@@ -85,10 +85,20 @@ public class LevelUpScreen : MonoBehaviour
             levelText.text = $"LEVEL {newLevel}";
         }
 
-        // Generate 3 random upgrade options
+        // Generate 3 upgrade options - one might be a troll upgrade
         for (int i = 0; i < 3; i++)
         {
-            currentOptions[i] = UpgradeOption.GenerateRandom(newLevel);
+            // 25% chance for troll upgrade on each slot, higher at higher levels
+            float trollChance = Mathf.Min(0.15f + newLevel * 0.02f, 0.35f);
+            
+            if (Random.value < trollChance)
+            {
+                currentOptions[i] = UpgradeOption.GenerateTrollUpgrade(newLevel);
+            }
+            else
+            {
+                currentOptions[i] = UpgradeOption.GenerateRandom(newLevel);
+            }
             UpdateChoiceUI(i, currentOptions[i]);
         }
 
@@ -110,10 +120,17 @@ public class LevelUpScreen : MonoBehaviour
         if (index < 0 || index >= 3) return;
 
         Color rarityColor = option.GetRarityColor();
+        
+        // Troll upgrades get a special yellow/orange tint
+        if (option.IsTrollUpgrade)
+        {
+            rarityColor = new Color(1f, 0.6f, 0.2f); // Orange for trade-offs
+        }
 
         if (choiceRarityTexts[index] != null)
         {
-            choiceRarityTexts[index].text = option.GetRarityName();
+            string rarityText = option.IsTrollUpgrade ? "TRADE-OFF" : option.GetRarityName();
+            choiceRarityTexts[index].text = rarityText;
             choiceRarityTexts[index].color = rarityColor;
         }
 
@@ -124,8 +141,17 @@ public class LevelUpScreen : MonoBehaviour
 
         if (choiceDescTexts[index] != null)
         {
-            choiceDescTexts[index].text = option.Description;
-            choiceDescTexts[index].color = rarityColor;
+            // Troll upgrades already have colored description
+            if (option.IsTrollUpgrade)
+            {
+                choiceDescTexts[index].text = option.Description;
+                choiceDescTexts[index].color = Color.white; // White base, colors in rich text
+            }
+            else
+            {
+                choiceDescTexts[index].text = option.Description;
+                choiceDescTexts[index].color = rarityColor;
+            }
         }
 
         if (choiceBackgrounds[index] != null)

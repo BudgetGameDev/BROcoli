@@ -1,25 +1,38 @@
 using UnityEngine;
 
+/// <summary>
+/// Hydra enemy that splits into smaller copies when killed.
+/// Each generation is smaller and weaker until minimum generation is reached.
+/// </summary>
 [RequireComponent(typeof(Rigidbody2D))]
 [RequireComponent(typeof(Collider2D))]
-public class EnemyScript : EnemyBase
+public class HydraEnemyScript : EnemyBase
 {
+    [Header("Hydra Split Settings")]
+    [SerializeField] private int splitCount = 2;           // How many children spawn on death
+    [SerializeField] private int currentGeneration = 0;    // 0 = original, increases with each split
+    [SerializeField] private int maxGenerations = 2;       // Max splits (0->1->2, then dies for real)
+    [SerializeField] private float childScaleMultiplier = 0.7f;  // Each generation is 70% the size
+    [SerializeField] private float childHealthMultiplier = 0.5f; // Each generation has 50% health
+    [SerializeField] private float childDamageMultiplier = 0.7f; // Each generation does 70% damage
+    [SerializeField] private float childSpeedMultiplier = 1.1f;  // Each generation is 10% faster
+    [SerializeField] private float splitSpawnRadius = 0.5f;      // How far apart children spawn
+    
     [Header("Melee Attack")]
-    [SerializeField] private float meleeRange = 0.25f;       // Distance to trigger attack (very close range)
-    [SerializeField] private float meleeAttackCooldown = 0.6f; // Time between attacks
+    [SerializeField] private float meleeRange = 0.9f;
+    [SerializeField] private float meleeAttackCooldown = 0.5f;
     private float nextMeleeAttackTime = 0f;
     
     [Header("Attack Animation")]
-    [SerializeField] private float attackWindupDuration = 0.15f;  // Time to pull back before striking
-    [SerializeField] private float attackStrikeDuration = 0.1f;   // Time for the lunge forward
-    [SerializeField] private float attackRecoverDuration = 0.2f;  // Time to return to normal
-    [SerializeField] private float attackLungeDistance = 0.2f;    // How far to lunge toward player (reduced)
-    [SerializeField] private float attackScaleBoost = 1.3f;       // Scale up during attack
-    [SerializeField] private Color attackFlashColor = Color.red;  // Color flash on attack
+    [SerializeField] private float attackWindupDuration = 0.15f;
+    [SerializeField] private float attackStrikeDuration = 0.1f;
+    [SerializeField] private float attackRecoverDuration = 0.2f;
+    [SerializeField] private float attackLungeDistance = 0.4f;
+    [SerializeField] private float attackScaleBoost = 1.3f;
+    [SerializeField] private Color attackFlashColor = Color.red;
     private bool isAttacking = false;
-    private bool hasDamagedThisAttack = false; // Prevents double-damage per attack
     private float attackTimer = 0f;
-    private int attackPhase = 0; // 0=idle, 1=windup, 2=strike, 3=recover
+    private int attackPhase = 0;
     private Vector3 attackStartPos;
     private Vector3 attackTargetPos;
     private Vector3 baseLocalScale;
@@ -29,16 +42,18 @@ public class EnemyScript : EnemyBase
     
     [Header("Melee Audio")]
     [SerializeField] private ProceduralEnemyMeleeAudio meleeAudio;
+    
+    private static bool isQuitting = false;
+    private bool hasSpawnedChildren = false;
+    private GameStates gameStates;
 
     protected override void Awake()
     {
         base.Awake();
         
-        // Try to get melee audio component if not assigned
         if (meleeAudio == null)
             meleeAudio = GetComponent<ProceduralEnemyMeleeAudio>();
         
-        // Find visual transform and sprite renderer for attack animation
         spriteRenderer = GetComponentInChildren<SpriteRenderer>();
         if (spriteRenderer != null)
         {
@@ -57,10 +72,8 @@ public class EnemyScript : EnemyBase
     {
         if (player == null) return;
         
-        // Don't move toward player during knockback
         if (isKnockedBack)
         {
-            // Still apply separation during knockback
             base.FixedUpdate();
             return;
         }
@@ -71,14 +84,9 @@ public class EnemyScript : EnemyBase
         if (distToPlayer < 0.0001f) return;
 
         dir.Normalize();
-
-        // Move towards player at full speed - separation handles preventing overlap
         Vector2 targetVel = dir * Speed;
-
-        // Smooth acceleration towards target velocity
         rb.linearVelocity = Vector2.MoveTowards(rb.linearVelocity, targetVel, acceleration * Time.fixedDeltaTime);
         
-        // Apply separation AFTER movement (so it can push away)
         base.FixedUpdate();
     }
 
@@ -86,21 +94,114 @@ public class EnemyScript : EnemyBase
     {
         base.Update();
         
-        // Update attack animation only - attacks start via trigger collision
         UpdateAttackAnimation();
+        
+        if (player != null && !isAttacking)
+        {
+            float distToPlayer = Vector2.Distance(transform.position, player.position);
+            if (distToPlayer <= meleeRange && Time.time >= nextMeleeAttackTime)
+            {
+                StartAttackAnimation();
+            }
+        }
     }
     
+    /// <summary>
+    /// Initialize this hydra as a child of another hydra
+    /// </summary>
+    public void InitAsChild(int generation, float parentHealth, float parentDamage, float parentSpeed, Vector3 parentScale)
+    {
+        currentGeneration = generation;
+        
+        // Scale down stats based on generation
+        float healthMult = Mathf.Pow(childHealthMultiplier, generation);
+        float damageMult = Mathf.Pow(childDamageMultiplier, generation);
+        float speedMult = Mathf.Pow(childSpeedMultiplier, generation);
+        float scaleMult = Mathf.Pow(childScaleMultiplier, generation);
+        
+        MaxHealth = parentHealth * childHealthMultiplier;
+        Health = MaxHealth;
+        Damage = parentDamage * childDamageMultiplier;
+        Speed = parentSpeed * childSpeedMultiplier;
+        
+        // Scale down visually
+        transform.localScale = parentScale * childScaleMultiplier;
+        
+        // Reduce score value for smaller enemies
+        ScoreValue = Mathf.Max(10, ScoreValue / 2);
+        
+        // Update melee range based on scale
+        meleeRange *= childScaleMultiplier;
+    }
+
+    void OnDestroy()
+    {
+        if (isQuitting) return;
+        if (!gameObject.scene.isLoaded) return;
+        if (hasSpawnedChildren) return;
+        
+        // Spawn children if we haven't reached max generations
+        if (currentGeneration < maxGenerations)
+        {
+            SpawnChildren();
+        }
+    }
+    
+    void OnApplicationQuit()
+    {
+        isQuitting = true;
+    }
+    
+    private void SpawnChildren()
+    {
+        hasSpawnedChildren = true;
+        
+        for (int i = 0; i < splitCount; i++)
+        {
+            // Calculate spawn position in a circle around death position
+            float angle = (360f / splitCount) * i + Random.Range(-15f, 15f);
+            Vector2 offset = new Vector2(
+                Mathf.Cos(angle * Mathf.Deg2Rad),
+                Mathf.Sin(angle * Mathf.Deg2Rad)
+            ) * splitSpawnRadius;
+            
+            Vector3 spawnPos = transform.position + (Vector3)offset;
+            
+            // Instantiate a copy of this prefab
+            GameObject child = Instantiate(gameObject, spawnPos, Quaternion.identity);
+            
+            // Get the hydra component and initialize it as a child
+            HydraEnemyScript childHydra = child.GetComponent<HydraEnemyScript>();
+            if (childHydra != null)
+            {
+                childHydra.hasSpawnedChildren = false; // Reset so it can spawn its own children
+                childHydra.InitAsChild(
+                    currentGeneration + 1,
+                    MaxHealth,
+                    Damage,
+                    Speed,
+                    transform.localScale
+                );
+            }
+            
+            // Give child a small impulse away from spawn point
+            Rigidbody2D childRb = child.GetComponent<Rigidbody2D>();
+            if (childRb != null)
+            {
+                childRb.linearVelocity = offset.normalized * 3f;
+            }
+        }
+    }
+
     private void StartAttackAnimation()
     {
         if (player == null) return;
         
         isAttacking = true;
-        hasDamagedThisAttack = false; // Reset damage flag for new attack
-        attackPhase = 1; // Start with windup
+        attackPhase = 1;
         attackTimer = 0f;
         attackStartPos = visualTransform.localPosition;
         
-        // Calculate lunge direction toward player
         Vector2 toPlayer = ((Vector2)player.position - (Vector2)transform.position).normalized;
         attackTargetPos = attackStartPos + (Vector3)(toPlayer * attackLungeDistance);
     }
@@ -113,40 +214,29 @@ public class EnemyScript : EnemyBase
         
         switch (attackPhase)
         {
-            case 1: // Windup - pull back slightly and prepare
+            case 1: // Windup
                 float windupT = attackTimer / attackWindupDuration;
                 if (windupT >= 1f)
                 {
                     attackPhase = 2;
                     attackTimer = 0f;
-                    // Damage is dealt during strike phase at 60% when lunge visually connects
+                    PerformMeleeAttack();
                 }
                 else
                 {
-                    // Pull back slightly (opposite of lunge direction)
                     Vector3 pullBack = attackStartPos - (attackTargetPos - attackStartPos) * 0.3f;
                     visualTransform.localPosition = Vector3.Lerp(attackStartPos, pullBack, EaseOutQuad(windupT));
                     
-                    // Scale up slightly during windup
                     float scaleT = 1f + (attackScaleBoost - 1f) * 0.5f * windupT;
                     visualTransform.localScale = baseLocalScale * scaleT;
                     
-                    // Start color flash
                     if (spriteRenderer != null)
                         spriteRenderer.color = Color.Lerp(originalColor, attackFlashColor, windupT * 0.5f);
                 }
                 break;
                 
-            case 2: // Strike - lunge forward, damage at midpoint
+            case 2: // Strike
                 float strikeT = attackTimer / attackStrikeDuration;
-                
-                // Deal damage at 60% through strike when visual lunge connects
-                if (strikeT >= 0.6f && !hasDamagedThisAttack)
-                {
-                    hasDamagedThisAttack = true;
-                    PerformMeleeAttack();
-                }
-                
                 if (strikeT >= 1f)
                 {
                     attackPhase = 3;
@@ -154,24 +244,20 @@ public class EnemyScript : EnemyBase
                 }
                 else
                 {
-                    // Lunge toward player
                     Vector3 pullBack = attackStartPos - (attackTargetPos - attackStartPos) * 0.3f;
                     visualTransform.localPosition = Vector3.Lerp(pullBack, attackTargetPos, EaseOutQuad(strikeT));
                     
-                    // Full scale boost at peak
                     visualTransform.localScale = baseLocalScale * attackScaleBoost;
                     
-                    // Full color flash
                     if (spriteRenderer != null)
                         spriteRenderer.color = attackFlashColor;
                 }
                 break;
                 
-            case 3: // Recover - return to normal
+            case 3: // Recover
                 float recoverT = attackTimer / attackRecoverDuration;
                 if (recoverT >= 1f)
                 {
-                    // Attack finished
                     isAttacking = false;
                     attackPhase = 0;
                     visualTransform.localPosition = attackStartPos;
@@ -181,14 +267,11 @@ public class EnemyScript : EnemyBase
                 }
                 else
                 {
-                    // Return to start position
                     visualTransform.localPosition = Vector3.Lerp(attackTargetPos, attackStartPos, EaseOutQuad(recoverT));
                     
-                    // Scale back down
                     float scaleT = Mathf.Lerp(attackScaleBoost, 1f, recoverT);
                     visualTransform.localScale = baseLocalScale * scaleT;
                     
-                    // Fade color back
                     if (spriteRenderer != null)
                         spriteRenderer.color = Color.Lerp(attackFlashColor, originalColor, recoverT);
                 }
@@ -203,19 +286,17 @@ public class EnemyScript : EnemyBase
     
     private void PerformMeleeAttack()
     {
-        // Deal damage to player - only proceed if damage was actually dealt
+        if (player == null) return;
+        
         var playerController = player.GetComponent<PlayerController>();
         if (playerController != null)
         {
-            // Calculate knockback direction (away from enemy)
             Vector2 knockbackDir = ((Vector2)player.position - (Vector2)transform.position).normalized;
             
             if (playerController.TakeMeleeDamage(Damage, knockbackDir))
             {
-                // Only set cooldown and play sound if we actually hit
                 nextMeleeAttackTime = Time.time + meleeAttackCooldown;
                 
-                // Play melee sound
                 if (meleeAudio != null)
                 {
                     meleeAudio.PlayMeleeSound();
@@ -226,7 +307,6 @@ public class EnemyScript : EnemyBase
 
     void OnTriggerEnter2D(Collider2D other)
     {
-        // Trigger attack animation on contact (animation will deal damage)
         if (other.CompareTag("Player") && Time.time >= nextMeleeAttackTime && !isAttacking)
         {
             StartAttackAnimation();

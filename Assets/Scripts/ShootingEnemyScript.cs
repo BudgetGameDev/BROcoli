@@ -18,6 +18,7 @@ public class ShootingEnemyScript : EnemyBase
 
     [Header("Audio")]
     [SerializeField] private ProceduralEnemyGunAudio gunAudio;
+    [SerializeField] private ProceduralEnemyGunAudio.EnemyGunSoundType gunSoundType = ProceduralEnemyGunAudio.EnemyGunSoundType.Sneeze;
 
     private float nextShootTime = 0f;
 
@@ -31,7 +32,7 @@ public class ShootingEnemyScript : EnemyBase
             gunAudio = GetComponent<ProceduralEnemyGunAudio>();
     }
 
-    void FixedUpdate()
+    protected override void FixedUpdate()
     {
         if (player == null) return;
         
@@ -120,10 +121,10 @@ public class ShootingEnemyScript : EnemyBase
             ep.Init(direction);
         }
         
-        // Play procedural gun sound
+        // Play procedural gun sound with configured type
         if (gunAudio != null)
         {
-            gunAudio.PlayGunSound();
+            gunAudio.PlayGunSound(gunSoundType);
         }
     }
 }

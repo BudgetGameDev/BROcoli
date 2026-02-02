@@ -4,7 +4,6 @@ using UnityEngine;
 [RequireComponent(typeof(Collider2D))]
 public class ExpGain : MonoBehaviour
 {
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
     public float lifeTime = 30f;
     public int expAmountGain;
     private Rigidbody2D rb;
@@ -30,6 +29,9 @@ public class ExpGain : MonoBehaviour
     {
         if (other.CompareTag("Player"))
         {
+            // Play satisfying pickup sound
+            ProceduralXPPickupAudio.PlayPickup();
+            
             Destroy(gameObject);
         }
     }

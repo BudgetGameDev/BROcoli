@@ -3,6 +3,15 @@ using UnityEngine;
 /// <summary>
 /// Player stats management with fully programmatic initialization.
 /// All fields are private and discovered/set at runtime - no serialized scene references.
+/// 
+/// STAT EXPLANATIONS:
+/// - Detection Radius: Range at which player auto-targets enemies for combat
+/// - Crit Chance: % chance to deal critical hit damage (0-100)
+/// - Crit Damage: Multiplier for critical hits (e.g., 1.5 = 150% damage)
+/// - Dodge: % chance to completely avoid incoming damage (0-100)
+/// - Armor: Flat damage reduction applied before taking damage
+/// - Health Regen: HP restored per second
+/// - Life Steal: % of damage dealt returned as health (0-100)
 /// </summary>
 public class PlayerStats : MonoBehaviour
 {
@@ -11,9 +20,17 @@ public class PlayerStats : MonoBehaviour
     private const float DefaultMaxHealth = 100f;
     private const float DefaultAttackSpeed = 0.6f;
     private const float DefaultDamage = 10f;
-    private const float DefaultMovementSpeed = 4f;  // Original scene value was 4, not 10
-    private const float DefaultMaxExperience = 30f;  // Level up after ~3 easy enemy kills
+    private const float DefaultMovementSpeed = 4f;
+    private const float DefaultMaxExperience = 30f;
     private const float DefaultDetectionRadius = 12f;
+    
+    // Roguelike stat defaults
+    private const float DefaultCritChance = 5f;        // 5% base crit chance
+    private const float DefaultCritDamage = 1.5f;      // 150% crit damage
+    private const float DefaultDodgeChance = 0f;       // 0% dodge
+    private const float DefaultArmor = 0f;             // 0 flat damage reduction
+    private const float DefaultHealthRegen = 0f;       // 0 HP/sec
+    private const float DefaultLifeSteal = 0f;         // 0% life steal
 
     // Current stat values - private backing fields
     private float _currentHealth;
@@ -28,6 +45,17 @@ public class PlayerStats : MonoBehaviour
     private float _currentSprayRange;
     private float _currentSprayWidth;
     private float _currentSprayDamageMultiplier;
+    
+    // Roguelike stats
+    private float _currentCritChance;
+    private float _currentCritDamage;
+    private float _currentDodgeChance;
+    private float _currentArmor;
+    private float _currentHealthRegen;
+    private float _currentLifeSteal;
+    
+    // Health regen timer
+    private float _regenTimer;
 
 // UI references - discovered dynamically
     private Bar _healthBar;
@@ -48,6 +76,14 @@ public class PlayerStats : MonoBehaviour
     public float CurrentSprayRange => _currentSprayRange;
     public float CurrentSprayWidth => _currentSprayWidth;
     public float CurrentSprayDamageMultiplier => _currentSprayDamageMultiplier;
+    
+    // Roguelike stat properties
+    public float CurrentCritChance => _currentCritChance;
+    public float CurrentCritDamage => _currentCritDamage;
+    public float CurrentDodgeChance => _currentDodgeChance;
+    public float CurrentArmor => _currentArmor;
+    public float CurrentHealthRegen => _currentHealthRegen;
+    public float CurrentLifeSteal => _currentLifeSteal;
 
     private void Awake()
     {
@@ -57,6 +93,22 @@ public class PlayerStats : MonoBehaviour
     private void Start()
     {
         ResetStats();
+    }
+    
+    private void Update()
+    {
+        // Health regeneration
+        if (_currentHealthRegen > 0f && _currentHealth < _currentMaxHealth && _currentHealth > 0f)
+        {
+            _regenTimer += Time.deltaTime;
+            if (_regenTimer >= 1f)
+            {
+                _regenTimer -= 1f;
+                float healAmount = _currentHealthRegen;
+                _currentHealth = Mathf.Min(_currentHealth + healAmount, _currentMaxHealth);
+                _healthBar?.UpdateBar(_currentHealth, _currentMaxHealth);
+            }
+        }
     }
 
     /// <summary>
@@ -106,6 +158,15 @@ public class PlayerStats : MonoBehaviour
         _currentSprayRange = SpraySettings.BaseSprayRange;
         _currentSprayWidth = SpraySettings.BaseSprayAngle;
         _currentSprayDamageMultiplier = 1f;
+        
+        // Reset roguelike stats
+        _currentCritChance = DefaultCritChance;
+        _currentCritDamage = DefaultCritDamage;
+        _currentDodgeChance = DefaultDodgeChance;
+        _currentArmor = DefaultArmor;
+        _currentHealthRegen = DefaultHealthRegen;
+        _currentLifeSteal = DefaultLifeSteal;
+        _regenTimer = 0f;
 
         _healthBar?.UpdateBar(_currentHealth, _currentMaxHealth);
         _experienceBar?.UpdateBar(_currentExperience, _currentMaxExperience);
@@ -149,11 +210,20 @@ public class PlayerStats : MonoBehaviour
     }
 
     /// <summary>
-    /// Apply damage to the player.
+    /// Apply damage to the player. Respects dodge and armor.
     /// </summary>
     public void ApplyDamage(float damage)
     {
-        AddHealth(-damage);
+        // Check dodge
+        if (_currentDodgeChance > 0f && Random.value * 100f < _currentDodgeChance)
+        {
+            // Dodged! No damage taken
+            return;
+        }
+        
+        // Apply armor reduction
+        float reducedDamage = Mathf.Max(0f, damage - _currentArmor);
+        AddHealth(-reducedDamage);
     }
 
     /// <summary>
@@ -172,7 +242,9 @@ public class PlayerStats : MonoBehaviour
         float healthGain = 10f;
         _currentHealth += healthGain;
         _currentMaxHealth += healthGain;
-        _currentExperience -= _currentMaxExperience;
+        
+        // Reset XP to 0 (no carry-over) and double the requirement
+        _currentExperience = 0f;
         _currentMaxExperience *= 2f;  // Double XP needed each level (30 -> 60 -> 120 -> 240...)
 
         _healthBar?.UpdateBar(_currentHealth, _currentMaxHealth);
@@ -269,5 +341,64 @@ public class PlayerStats : MonoBehaviour
     public void AddDetectionRadiusPublic(float amount)
     {
         _currentDetectionRadius += amount;
+    }
+    
+    // Roguelike stat modifiers
+    public void AddCritChance(float amount)
+    {
+        _currentCritChance = Mathf.Clamp(_currentCritChance + amount, 0f, 100f);
+    }
+    
+    public void AddCritDamage(float amount)
+    {
+        _currentCritDamage += amount;
+    }
+    
+    public void AddDodgeChance(float amount)
+    {
+        _currentDodgeChance = Mathf.Clamp(_currentDodgeChance + amount, 0f, 75f); // Cap at 75%
+    }
+    
+    public void AddArmor(float amount)
+    {
+        _currentArmor += amount;
+    }
+    
+    public void AddHealthRegen(float amount)
+    {
+        _currentHealthRegen += amount;
+    }
+    
+    public void AddLifeSteal(float amount)
+    {
+        _currentLifeSteal = Mathf.Clamp(_currentLifeSteal + amount, 0f, 100f);
+    }
+    
+    /// <summary>
+    /// Calculate final damage output with crit chance.
+    /// Call this when dealing damage to enemies.
+    /// </summary>
+    public float CalculateDamageOutput(float baseDamage, out bool wasCrit)
+    {
+        wasCrit = Random.value * 100f < _currentCritChance;
+        if (wasCrit)
+        {
+            return baseDamage * _currentCritDamage;
+        }
+        return baseDamage;
+    }
+    
+    /// <summary>
+    /// Apply life steal healing based on damage dealt.
+    /// Call this after dealing damage to enemies.
+    /// </summary>
+    public void ApplyLifeSteal(float damageDealt)
+    {
+        if (_currentLifeSteal > 0f)
+        {
+            float healAmount = damageDealt * (_currentLifeSteal / 100f);
+            _currentHealth = Mathf.Min(_currentHealth + healAmount, _currentMaxHealth);
+            _healthBar?.UpdateBar(_currentHealth, _currentMaxHealth);
+        }
     }
 }
