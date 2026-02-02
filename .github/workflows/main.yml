@@ -78,6 +78,24 @@ jobs:
           echo "Generated version.json:"
           cat build/WebGL/version.json
 
+      - name: Generate staging manifest (for main branch only)
+        if: github.ref_name == 'main'
+        run: |
+          # Read the base name from release manifest and append " Staging"
+          BASE_NAME=$(jq -r '.name' build/WebGL/manifest.json)
+          SHORT_NAME=$(jq -r '.short_name' build/WebGL/manifest.json)
+          
+          # Update staging manifest with dynamic names
+          jq --arg name "${BASE_NAME} Staging" \
+             --arg short_name "${SHORT_NAME} Staging" \
+             --arg desc "${BASE_NAME} Staging Build - Development/Testing Version" \
+             '.name = $name | .short_name = $short_name | .description = $desc' \
+             build/WebGL/manifest-staging.json > build/WebGL/manifest-staging-tmp.json
+          mv build/WebGL/manifest-staging-tmp.json build/WebGL/manifest-staging.json
+          
+          echo "Generated staging manifest:"
+          cat build/WebGL/manifest-staging.json
+
       - name: Deploy
         # uses: JamesIves/github-pages-deploy-action@v4.4.1
         uses: JamesIves/github-pages-deploy-action@4.1.4

@@ -61,6 +61,13 @@ public class ProceduralProjectileHitAudio : MonoBehaviour
     private float[] lpState = new float[4];
 
     private static ProceduralProjectileHitAudio instance;
+    
+    // Static caching for prewarmed clips
+    private static System.Collections.Generic.Dictionary<HitSoundType, AudioClip> cachedClips;
+    private static bool isPrewarmed = false;
+    private static int staticSampleRate;
+    private static float[] staticAudioBuffer;
+    private static float[] staticLpState = new float[4];
 
     void Awake()
     {
@@ -81,7 +88,38 @@ public class ProceduralProjectileHitAudio : MonoBehaviour
         audioBuffer = new float[maxSamples];
     }
 
-    private HitPreset GetPreset(HitSoundType type)
+    private static void EnsureStaticInitialized()
+    {
+        if (staticAudioBuffer == null)
+        {
+            staticSampleRate = AudioSettings.outputSampleRate;
+            int maxSamples = Mathf.CeilToInt(0.3f * staticSampleRate);
+            staticAudioBuffer = new float[maxSamples];
+            cachedClips = new System.Collections.Generic.Dictionary<HitSoundType, AudioClip>();
+        }
+    }
+
+    /// <summary>
+    /// Pre-generate all hit sound clips to avoid hitches during gameplay.
+    /// Call this during loading screen.
+    /// </summary>
+    public static void PrewarmAll()
+    {
+        EnsureStaticInitialized();
+        if (isPrewarmed) return;
+
+        foreach (HitSoundType type in System.Enum.GetValues(typeof(HitSoundType)))
+        {
+            if (!cachedClips.ContainsKey(type))
+            {
+                HitPreset preset = GetPresetStatic(type);
+                cachedClips[type] = GenerateStaticHitClip(preset);
+            }
+        }
+        isPrewarmed = true;
+    }
+
+    private static HitPreset GetPresetStatic(HitSoundType type)
     {
         HitPreset p = new HitPreset();
 
@@ -181,6 +219,11 @@ public class ProceduralProjectileHitAudio : MonoBehaviour
         return p;
     }
 
+    private HitPreset GetPreset(HitSoundType type)
+    {
+        return GetPresetStatic(type);
+    }
+
     public void PlayHitSound()
     {
         PlayHitSound(soundType);
@@ -188,6 +231,17 @@ public class ProceduralProjectileHitAudio : MonoBehaviour
 
     public void PlayHitSound(HitSoundType type)
     {
+        EnsureStaticInitialized();
+        
+        // Use cached clip if available
+        AudioClip clip;
+        if (cachedClips.TryGetValue(type, out clip) && clip != null)
+        {
+            audioSource.PlayOneShot(clip, volume);
+            return;
+        }
+        
+        // Fallback: generate with randomization
         HitPreset preset = GetPreset(type);
         
         // Apply randomization
@@ -196,7 +250,7 @@ public class ProceduralProjectileHitAudio : MonoBehaviour
         preset.bodyFreq *= randMult;
         preset.sizzleFreq *= Mathf.Lerp(1f, randMult, 0.5f);
 
-        AudioClip clip = GenerateHitClip(preset);
+        clip = GenerateHitClip(preset);
         audioSource.PlayOneShot(clip, volume);
     }
 
@@ -257,6 +311,82 @@ public class ProceduralProjectileHitAudio : MonoBehaviour
         return clip;
     }
 
+    /// <summary>
+    /// Static version of GenerateHitClip for prewarming (doesn't use instance fields).
+    /// </summary>
+    private static AudioClip GenerateStaticHitClip(HitPreset p)
+    {
+        int samples = Mathf.CeilToInt(p.duration * staticSampleRate);
+        samples = Mathf.Min(samples, staticAudioBuffer.Length);
+
+        // Reset filter state
+        for (int i = 0; i < staticLpState.Length; i++) staticLpState[i] = 0;
+
+        float phase1 = 0f, phase2 = 0f, phase3 = 0f, phase4 = 0f;
+
+        for (int i = 0; i < samples; i++)
+        {
+            float t = (float)i / staticSampleRate;
+            float sample = 0f;
+
+            // Initial thump (sub bass)
+            float thumpEnv = Mathf.Exp(-t * 40f);
+            phase1 += p.thumpFreq * 2f * Mathf.PI / staticSampleRate;
+            sample += Mathf.Sin(phase1) * p.thumpAmount * thumpEnv;
+
+            // Impact pop
+            float impactEnv = Mathf.Exp(-t * p.impactDecay);
+            float impactFreq = p.impactFreq * (1f + t * 2f); // Slight pitch rise
+            phase2 += impactFreq * 2f * Mathf.PI / staticSampleRate;
+            sample += Mathf.Sin(phase2) * p.impactAmount * impactEnv;
+
+            // Body resonance
+            float bodyEnv = Mathf.Exp(-t * p.bodyDecay);
+            phase3 += p.bodyFreq * 2f * Mathf.PI / staticSampleRate;
+            sample += Mathf.Sin(phase3) * p.bodyAmount * bodyEnv;
+
+            // High sizzle
+            float sizzleEnv = Mathf.Exp(-t * p.sizzleDecay);
+            phase4 += p.sizzleFreq * 2f * Mathf.PI / staticSampleRate;
+            sample += Mathf.Sin(phase4) * p.sizzleAmount * sizzleEnv;
+            // Add some harmonics to sizzle
+            sample += Mathf.Sin(phase4 * 2.5f) * p.sizzleAmount * 0.3f * sizzleEnv;
+
+            // Noise burst
+            float noiseEnv = Mathf.Exp(-t * p.noiseDecay);
+            float noise = Random.Range(-1f, 1f);
+            noise = StaticLowPassFilter(noise, p.noiseCutoff, 0);
+            sample += noise * p.noiseAmount * noiseEnv;
+
+            // Soft clip for punch
+            sample = SoftClip(sample);
+
+            staticAudioBuffer[i] = sample;
+        }
+
+        AudioClip clip = AudioClip.Create("PlayerHit", samples, 1, staticSampleRate, false);
+        float[] finalBuffer = new float[samples];
+        System.Array.Copy(staticAudioBuffer, finalBuffer, samples);
+        clip.SetData(finalBuffer, 0);
+        return clip;
+    }
+
+    private static float StaticLowPassFilter(float input, float cutoff, int stateIndex)
+    {
+        float rc = 1f / (2f * Mathf.PI * cutoff);
+        float dt = 1f / staticSampleRate;
+        float alpha = dt / (rc + dt);
+        staticLpState[stateIndex] = staticLpState[stateIndex] + alpha * (input - staticLpState[stateIndex]);
+        return staticLpState[stateIndex];
+    }
+
+    private static float SoftClip(float x)
+    {
+        if (x > 1f) return 1f - Mathf.Exp(-(x - 1f));
+        if (x < -1f) return -1f + Mathf.Exp(-(-x - 1f));
+        return x;
+    }
+
     private float LowPassFilter(float input, float cutoff, int stateIndex)
     {
         float rc = 1f / (2f * Mathf.PI * cutoff);
@@ -266,17 +396,21 @@ public class ProceduralProjectileHitAudio : MonoBehaviour
         return lpState[stateIndex];
     }
 
-    private float SoftClip(float x)
-    {
-        if (x > 1f) return 1f - Mathf.Exp(-(x - 1f));
-        if (x < -1f) return -1f + Mathf.Exp(-(-x - 1f));
-        return x;
-    }
-
     // Static helper to play hit sound from anywhere
     public static void PlayHit(Vector3 position, HitSoundType type = HitSoundType.Energy, float vol = 0.5f)
     {
-        // Create temporary audio source at position
+        EnsureStaticInitialized();
+        
+        // Use cached clip directly if available (avoids GameObject/Component overhead)
+        AudioClip clip;
+        if (cachedClips.TryGetValue(type, out clip) && clip != null)
+        {
+            // Play directly using AudioSource.PlayClipAtPoint for minimal overhead
+            AudioSource.PlayClipAtPoint(clip, position, vol);
+            return;
+        }
+        
+        // Fallback: Create temporary audio source (shouldn't happen after prewarming)
         GameObject temp = new GameObject("ProjectileHitSound");
         temp.transform.position = position;
         

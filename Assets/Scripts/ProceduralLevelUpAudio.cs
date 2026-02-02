@@ -13,6 +13,21 @@ public class ProceduralLevelUpAudio : MonoBehaviour
     private AudioSource audioSource;
     private int sampleRate;
 
+    // Static cached clip for prewarming
+    private static AudioClip cachedClip;
+
+    /// <summary>
+    /// Pre-generates the level-up audio clip to avoid hitches on first play.
+    /// Call this during loading or game initialization.
+    /// </summary>
+    public static void PrewarmAll()
+    {
+        if (cachedClip == null)
+        {
+            cachedClip = GenerateLevelUpClipStatic(AudioSettings.outputSampleRate);
+        }
+    }
+
     void Awake()
     {
         audioSource = GetComponent<AudioSource>();
@@ -23,11 +38,42 @@ public class ProceduralLevelUpAudio : MonoBehaviour
 
     public void PlayLevelUpSound()
     {
-        AudioClip clip = GenerateLevelUpClip();
+        AudioClip clip = cachedClip != null ? cachedClip : GenerateLevelUpClip();
         audioSource.PlayOneShot(clip, volume);
     }
 
     private AudioClip GenerateLevelUpClip()
+    {
+        return GenerateLevelUpClipStatic(sampleRate);
+    }
+
+    private float GetNoteEnvelope(float t, float duration)
+    {
+        return GetNoteEnvelopeStatic(t, duration);
+    }
+
+    private static float GetNoteEnvelopeStatic(float t, float duration)
+    {
+        float attack = 0.01f;
+        float decay = 0.1f;
+        float sustainLevel = 0.7f;
+        float release = duration - attack - decay;
+
+        if (t < attack)
+            return t / attack;
+        else if (t < attack + decay)
+            return 1f - (1f - sustainLevel) * (t - attack) / decay;
+        else
+        {
+            float releaseT = (t - attack - decay) / release;
+            return sustainLevel * Mathf.Exp(-releaseT * 4f);
+        }
+    }
+
+    /// <summary>
+    /// Static method to generate level-up clip for prewarming without needing an instance.
+    /// </summary>
+    private static AudioClip GenerateLevelUpClipStatic(int sampleRate)
     {
         float duration = 0.8f;
         int numSamples = Mathf.CeilToInt(duration * sampleRate);
@@ -51,7 +97,7 @@ public class ProceduralLevelUpAudio : MonoBehaviour
                 if (t >= noteStart && t < noteEnd)
                 {
                     float noteT = t - noteStart;
-                    float envelope = GetNoteEnvelope(noteT, noteLength + 0.2f);
+                    float envelope = GetNoteEnvelopeStatic(noteT, noteLength + 0.2f);
 
                     // Main tone with harmonics
                     float freq = notes[n];
@@ -107,23 +153,5 @@ public class ProceduralLevelUpAudio : MonoBehaviour
         AudioClip clip = AudioClip.Create("LevelUp", numSamples, 1, sampleRate, false);
         clip.SetData(audioBuffer, 0);
         return clip;
-    }
-
-    private float GetNoteEnvelope(float t, float duration)
-    {
-        float attack = 0.01f;
-        float decay = 0.1f;
-        float sustainLevel = 0.7f;
-        float release = duration - attack - decay;
-
-        if (t < attack)
-            return t / attack;
-        else if (t < attack + decay)
-            return 1f - (1f - sustainLevel) * (t - attack) / decay;
-        else
-        {
-            float releaseT = (t - attack - decay) / release;
-            return sustainLevel * Mathf.Exp(-releaseT * 4f);
-        }
     }
 }

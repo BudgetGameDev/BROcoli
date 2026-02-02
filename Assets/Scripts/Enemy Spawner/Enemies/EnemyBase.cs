@@ -1,12 +1,11 @@
 using System;
 using UnityEngine;
-using UnityEngine.SceneManagement;
-using UnityEngine.SocialPlatforms.Impl;
+using Pooling;
 
 public abstract class EnemyBase : MonoBehaviour
 {
     [SerializeField] Bar healthBar;
-    [SerializeField] ExpGain expGainPrefab;
+    [SerializeField] protected ExpGain expGainPrefab;
 
     public event Action<EnemyBase> OnDeath;
 
@@ -41,22 +40,58 @@ public abstract class EnemyBase : MonoBehaviour
     [SerializeField] protected float separationRadius = 2.5f;   // How close before pushing away
     [SerializeField] protected float separationForce = 50f;     // Strength of push (higher for stronger effect)
     [SerializeField] protected float playerSeparationRadius = 0.4f; // Minimum distance from player (reduced for close melee)
-    [SerializeField] protected float playerSeparationForce = 40f; // How hard to avoid player overlap (reduced for melee)
+    [SerializeField] protected float playerSeparationForce = 8f;  // How hard to avoid player overlap (gentle push)
+    [SerializeField] protected float maxSeparationSpeed = 6f;    // Cap on separation velocity to prevent enemies flying off
 
     [Header("Walk Audio (Optional)")]
     [SerializeField] protected ProceduralEnemyWalkAudio walkAudio;
 
     public Transform player;
 
-    private GameStates gameStates;
-
     public Rigidbody2D rb;
+    
+    // Cached references for performance
+    protected SpriteRenderer cachedSpriteRenderer;
+    protected Color originalSpriteColor;
+    protected MeshRenderer cachedMeshRenderer;
+    protected Color originalMeshColor;
+    private bool _isPooled = false;
 
     protected virtual void Awake()
     {
-        gameStates = FindFirstObjectByType<GameStates>();
         rb = GetComponent<Rigidbody2D>();
-        player = GameObject.FindGameObjectWithTag("Player")?.transform;
+        
+        // Cache renderer for hit flash - enemies may use SpriteRenderer or MeshRenderer (FBX models)
+        // First check for enabled SpriteRenderer
+        foreach (var sr in GetComponentsInChildren<SpriteRenderer>(true))
+        {
+            if (sr.enabled)
+            {
+                cachedSpriteRenderer = sr;
+                break;
+            }
+        }
+        
+        // If no SpriteRenderer, find MeshRenderer and cache its material for color changes
+        if (cachedSpriteRenderer == null)
+        {
+            foreach (var mr in GetComponentsInChildren<MeshRenderer>(true))
+            {
+                if (mr.enabled)
+                {
+                    cachedMeshRenderer = mr;
+                    if (mr.material != null)
+                    {
+                        originalMeshColor = mr.material.color;
+                    }
+                    break;
+                }
+            }
+        }
+        else
+        {
+            originalSpriteColor = cachedSpriteRenderer.color;
+        }
         
         if (walkAudio == null)
             walkAudio = GetComponent<ProceduralEnemyWalkAudio>();
@@ -78,6 +113,34 @@ public abstract class EnemyBase : MonoBehaviour
         effects.ApplyEliteVisuals();
         
         alwaysShowHealthBar = true;
+    }
+    
+    protected virtual void OnEnable()
+    {
+        // Get cached references from GameContext (single lookup, not per-enemy)
+        var context = GameContext.Instance;
+        if (context != null)
+        {
+            player = context.PlayerTransform;
+        }
+        
+        // Set linear damping to prevent velocity from persisting too long
+        if (rb != null)
+        {
+            rb.linearDamping = 3f;
+        }
+        
+        // Register with spatial hash for efficient neighbor queries
+        EnemySpatialHash.Instance?.Register(this);
+    }
+    
+    protected virtual void OnDisable()
+    {
+        // Skip spatial hash cleanup during scene teardown to prevent creating new singleton
+        if (!gameObject.scene.isLoaded) return;
+        
+        // Unregister from spatial hash
+        EnemySpatialHash.Instance?.Unregister(this);
     }
 
     [Header("Knockback")]
@@ -102,8 +165,7 @@ public abstract class EnemyBase : MonoBehaviour
                 OnEliteDeath?.Invoke(transform.position);
             }
             
-            Destroy(gameObject);
-            OnDeath?.Invoke(this);
+            Die();
             return;
         }
         
@@ -134,26 +196,33 @@ public abstract class EnemyBase : MonoBehaviour
     
     private System.Collections.IEnumerator HitFlash()
     {
-        SpriteRenderer sr = GetComponentInChildren<SpriteRenderer>();
-        if (sr != null)
+        if (cachedSpriteRenderer != null)
         {
-            Color originalColor = sr.color;
-            sr.color = Color.white;
+            cachedSpriteRenderer.color = Color.white;
             yield return new WaitForSeconds(0.05f);
-            sr.color = originalColor;
+            cachedSpriteRenderer.color = originalSpriteColor;
+        }
+        else if (cachedMeshRenderer != null)
+        {
+            // MeshRenderer uses material color
+            cachedMeshRenderer.material.color = Color.white;
+            yield return new WaitForSeconds(0.05f);
+            cachedMeshRenderer.material.color = originalMeshColor;
+        }
+        else
+        {
+            yield break;
         }
     }
 
     void Start()
     {
-        GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
-        Bar _healthBar = FindFirstObjectByType<Bar>();
-
-        if (playerObj != null)
-            player = playerObj.transform;
-
-        if (_healthBar != null)
-            healthBar = _healthBar;
+        // Player reference is set in OnEnable via GameContext
+        // Health bar setup
+        if (healthBar == null)
+        {
+            healthBar = FindFirstObjectByType<Bar>();
+        }
 
         if (healthBar != null)
         {
@@ -199,39 +268,103 @@ public abstract class EnemyBase : MonoBehaviour
     
     protected virtual void FixedUpdate()
     {
+        // Update position in spatial hash for efficient neighbor queries
+        EnemySpatialHash.Instance?.UpdatePosition(this);
+        
         // Apply separation from other enemies and player in physics step
         ApplySeparation();
     }
 
-    void OnDestroy()
+    /// <summary>
+    /// Called when enemy dies. Handles score, XP drop, and pooling.
+    /// </summary>
+    public virtual void Die()
     {
-        // Don't spawn objects if the application is quitting or scene is unloading
         if (isQuitting) return;
         if (!gameObject.scene.isLoaded) return;
         
-        Debug.Log("Destroyed enemy, adding score: " + ScoreValue);
-
-        if (gameStates)
+        // Add score via GameContext
+        var context = GameContext.Instance;
+        if (context?.GameStates != null)
         {
-            gameStates.score += ScoreValue;
+            context.GameStates.score += ScoreValue;
+        }
+        
+        // Spawn experience gain object (use pool if available)
+        SpawnExpGain();
+        
+        // Invoke death event before returning to pool
+        OnDeath?.Invoke(this);
+        
+        // Return to pool or destroy
+        if (_isPooled)
+        {
+            PoolManager.Instance?.ReturnEnemy(this);
         }
         else
         {
-            gameStates = FindFirstObjectByType<GameStates>();
-            if (gameStates == null) return;
-            gameStates.score += ScoreValue;
+            Destroy(gameObject);
         }
+    }
+    
+    /// <summary>
+    /// Spawn experience orb at death position.
+    /// </summary>
+    protected virtual void SpawnExpGain()
+    {
+        if (expGainPrefab == null) return;
         
-        // Initialize and spawn experience gain object
-        if (expGainPrefab != null)
+        // Try to get from pool first
+        ExpGain expGain = PoolManager.Instance?.GetExpGain(transform.position);
+        if (expGain != null)
         {
+            expGain.Init(ScoreValue);
+        }
+        else
+        {
+            // Fallback to instantiate if pool not available
             GameObject expGainObj = Instantiate(expGainPrefab.gameObject, transform.position, Quaternion.identity);
             ExpGain expGainComp = expGainObj.GetComponent<ExpGain>();
             if (expGainComp != null)
             {
-                int expAmount = ScoreValue; // Example: 1 exp per 10 max health
-                expGainComp.Init(expAmount);
+                expGainComp.Init(ScoreValue);
             }
+        }
+    }
+    
+    /// <summary>
+    /// Mark this enemy as pooled (affects death behavior).
+    /// </summary>
+    public void SetPooled(bool pooled)
+    {
+        _isPooled = pooled;
+    }
+    
+    /// <summary>
+    /// Reset enemy state for reuse from pool.
+    /// </summary>
+    public virtual void ResetForPool()
+    {
+        Health = MaxHealth;
+        healthBarVisable = false;
+        isKnockedBack = false;
+        knockbackTimer = 0f;
+        
+        if (cachedSpriteRenderer != null)
+        {
+            cachedSpriteRenderer.enabled = true;  // Ensure sprite is enabled
+            cachedSpriteRenderer.color = originalSpriteColor;
+        }
+        else if (cachedMeshRenderer != null)
+        {
+            cachedMeshRenderer.enabled = true;  // Ensure mesh is enabled
+            cachedMeshRenderer.material.color = originalMeshColor;
+        }
+        
+        if (healthBar != null)
+        {
+            healthBar.UpdateBar(Health, MaxHealth);
+            healthBar.HideBar();
         }
     }
     
@@ -241,7 +374,8 @@ public abstract class EnemyBase : MonoBehaviour
     }
     
     /// <summary>
-    /// Apply separation forces to prevent enemies from overlapping each other and the player
+    /// Apply separation forces to prevent enemies from overlapping each other and the player.
+    /// Uses spatial hash for O(N) performance instead of O(N²) Physics2D.OverlapCircleAll.
     /// </summary>
     protected virtual void ApplySeparation()
     {
@@ -250,24 +384,27 @@ public abstract class EnemyBase : MonoBehaviour
         Vector2 separationVelocity = Vector2.zero;
         Vector2 myPos = rb.position;
         
-        // Separation from other enemies (strong - prevent stacking)
-        Collider2D[] nearbyEnemies = Physics2D.OverlapCircleAll(myPos, separationRadius, LayerMask.GetMask("Enemy"));
-        foreach (Collider2D col in nearbyEnemies)
+        // Separation from other enemies using spatial hash (O(N) instead of O(N²))
+        var spatialHash = EnemySpatialHash.Instance;
+        if (spatialHash != null)
         {
-            if (col.gameObject == gameObject) continue;
-            
-            Rigidbody2D otherRb = col.attachedRigidbody;
-            if (otherRb == null) continue;
-            
-            Vector2 toMe = myPos - otherRb.position;
-            float dist = toMe.magnitude;
-            
-            if (dist > 0.001f && dist < separationRadius)
+            var nearbyEnemies = spatialHash.GetNearbyEnemies(myPos, separationRadius);
+            for (int i = 0; i < nearbyEnemies.Count; i++)
             {
-                // Stronger push when closer (quadratic falloff for more pronounced effect)
-                float t = 1f - (dist / separationRadius);
-                float strength = t * t; // Quadratic for stronger close-range push
-                separationVelocity += toMe.normalized * strength * separationForce;
+                EnemyBase other = nearbyEnemies[i];
+                if (other == null || other == this) continue;
+                
+                Vector2 otherPos = other.rb != null ? other.rb.position : (Vector2)other.transform.position;
+                Vector2 toMe = myPos - otherPos;
+                float dist = toMe.magnitude;
+                
+                if (dist > 0.001f && dist < separationRadius)
+                {
+                    // Stronger push when closer (quadratic falloff for more pronounced effect)
+                    float t = 1f - (dist / separationRadius);
+                    float strength = t * t; // Quadratic for stronger close-range push
+                    separationVelocity += toMe.normalized * strength * separationForce;
+                }
             }
         }
         
@@ -286,9 +423,14 @@ public abstract class EnemyBase : MonoBehaviour
             }
         }
         
-        // Apply separation as velocity change
+        // Apply separation as velocity change (capped to prevent flying)
         if (separationVelocity.sqrMagnitude > 0.01f)
         {
+            // Cap separation velocity to prevent enemies flying off
+            if (separationVelocity.magnitude > maxSeparationSpeed)
+            {
+                separationVelocity = separationVelocity.normalized * maxSeparationSpeed;
+            }
             rb.linearVelocity += separationVelocity * Time.fixedDeltaTime;
         }
     }

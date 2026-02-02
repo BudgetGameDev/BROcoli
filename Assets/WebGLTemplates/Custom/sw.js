@@ -4,15 +4,39 @@
 // This is the nuclear option - change this string and deploy to bust all caches.
 // =============================================================================
 const CACHE_VERSION = 'v2';
-const CACHE_NAME = `unity-game-cache-${CACHE_VERSION}`;
 
-// Remote URL to check for version updates (change this to your GitHub Pages URL)
-const VERSION_CHECK_URL = 'https://budgetgamedev.github.io/BROcoli/version.json';
+// Detect if we're on the staging build (BranchMain) or release build (root)
+function detectBuildPath() {
+  // Service worker scope tells us where we're registered
+  const scope = self.registration ? self.registration.scope : self.location.href;
+  
+  // Check if we're on the staging build path
+  if (scope.includes('/BranchMain/') || scope.includes('/BranchMain')) {
+    return {
+      isStaging: true,
+      basePath: '/BROcoli/BranchMain/',
+      versionUrl: 'https://budgetgamedev.github.io/BROcoli/BranchMain/version.json',
+      cachePrefix: 'staging'
+    };
+  }
+  // Default to release build
+  return {
+    isStaging: false,
+    basePath: '/BROcoli/',
+    versionUrl: 'https://budgetgamedev.github.io/BROcoli/version.json',
+    cachePrefix: 'release'
+  };
+}
+
+const BUILD_INFO = detectBuildPath();
+const CACHE_NAME = `unity-game-cache-${CACHE_VERSION}-${BUILD_INFO.cachePrefix}`;
+
+// Remote URL to check for version updates - dynamically set based on build path
+const VERSION_CHECK_URL = BUILD_INFO.versionUrl;
 
 // Files that should NEVER be cached - always fetch fresh from network
 const NEVER_CACHE_FILES = [
   'version.json',
-  'version-check.js',
   'sw.js'            // Service worker should never be cached by itself
 ];
 
@@ -22,9 +46,12 @@ const NETWORK_FIRST_FILES = [
   'manifest.json'
 ];
 
-// Files to precache on install
+// Files to precache on install (critical for offline PWA)
 const PRECACHE_ASSETS = [
+  './index.html',
   './manifest.json',
+  './manifest-staging.json',
+  './version-check.js',
   './icons/icon-192x192.png',
   './icons/icon-512x512.png'
 ];
@@ -103,7 +130,8 @@ async function clearAllCaches() {
 
 // Check for updates and clear caches if new version found
 async function checkForUpdatesAndClearIfNeeded() {
-  console.log('[ServiceWorker] Checking for updates...');
+  const buildType = BUILD_INFO.isStaging ? '[STAGING]' : '[RELEASE]';
+  console.log('[ServiceWorker]', buildType, 'Checking for updates from:', VERSION_CHECK_URL);
   
   const [remoteVersion, storedVersion] = await Promise.all([
     fetchRemoteVersion(),
@@ -111,7 +139,7 @@ async function checkForUpdatesAndClearIfNeeded() {
   ]);
   
   if (!remoteVersion) {
-    console.log('[ServiceWorker] Could not fetch remote version, skipping update check');
+    console.log('[ServiceWorker]', buildType, 'Could not fetch remote version, skipping update check');
     return false;
   }
   
@@ -149,7 +177,9 @@ async function checkForUpdatesAndClearIfNeeded() {
 
 // Install event
 self.addEventListener('install', (event) => {
-  console.log('[ServiceWorker] Installing version:', CACHE_VERSION);
+  console.log('[ServiceWorker]', BUILD_INFO.isStaging ? '[STAGING]' : '[RELEASE]', 'Installing version:', CACHE_VERSION);
+  console.log('[ServiceWorker] Cache name:', CACHE_NAME);
+  console.log('[ServiceWorker] Version URL:', VERSION_CHECK_URL);
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {
@@ -205,80 +235,159 @@ self.addEventListener('fetch', (event) => {
     return;
   }
   
-  // NEVER cache certain files (version.json, sw.js) - always fetch fresh, no fallback
+  // NEVER cache certain files (version.json, sw.js) - always fetch fresh from network
+  // But return a graceful fallback when offline (not an error that could break things)
   if (shouldNeverCache(url)) {
     event.respondWith(
-      fetch(event.request, { cache: 'no-store' }).catch(() => {
-        return new Response(JSON.stringify({ error: 'offline' }), { 
-          status: 503,
-          headers: { 'Content-Type': 'application/json' }
-        });
-      })
+      (async () => {
+        try {
+          // Add timeout for iOS Safari which can hang on fetch when offline
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
+          
+          const response = await fetch(event.request, { 
+            cache: 'no-store',
+            signal: controller.signal
+          });
+          clearTimeout(timeoutId);
+          return response;
+        } catch (err) {
+          // Offline or timeout - return a "success" response with offline indicator
+          // This prevents errors while allowing version-check.js to handle gracefully
+          console.log('[ServiceWorker] Offline, returning fallback for:', url.pathname);
+          return new Response(JSON.stringify({ 
+            error: 'offline',
+            offline: true,
+            buildId: 'offline-fallback'
+          }), { 
+            status: 200, // Return 200 so it doesn't throw, let the caller handle the 'offline' flag
+            headers: { 'Content-Type': 'application/json' }
+          });
+        }
+      })()
     );
     return;
   }
   
   // Network-first WITH caching for index.html and root path (works offline!)
+  // CRITICAL: On iOS Safari, we must check cache FIRST if we suspect we're offline
+  // because fetch() can hang or fail silently when waking from background
   if (shouldNetworkFirst(url)) {
     event.respondWith(
-      fetch(event.request, { cache: 'no-store' })
-        .then((response) => {
+      (async () => {
+        // Pre-check: try to get cached version first as fallback
+        const cachedResponse = await caches.match(event.request);
+        
+        try {
+          // Create an AbortController with timeout for iOS Safari
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
+          
+          const response = await fetch(event.request, { 
+            cache: 'no-store',
+            signal: controller.signal
+          });
+          clearTimeout(timeoutId);
+          
           if (response && response.status === 200) {
             // Cache the fresh response for offline use
             const responseToCache = response.clone();
             caches.open(CACHE_NAME).then((cache) => {
               cache.put(event.request, responseToCache);
-            });
+            }).catch(() => {}); // Ignore cache write errors
           }
           return response;
-        })
-        .catch(() => {
-          // Offline - serve from cache
-          console.log('[ServiceWorker] Offline, serving from cache:', url.pathname);
-          return caches.match(event.request);
-        })
+        } catch (err) {
+          // Offline or timeout - serve from cache
+          console.log('[ServiceWorker] Network failed, serving from cache:', url.pathname, err.message);
+          if (cachedResponse) {
+            return cachedResponse;
+          }
+          // No cache available - return a basic offline page
+          return new Response(
+            '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Offline</title></head><body style="background:#000;color:#fff;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;"><div style="text-align:center"><h1>Loading...</h1><p>Trying to load from cache...</p><script>setTimeout(function(){location.reload();},2000);</script></div></body></html>',
+            { status: 200, headers: { 'Content-Type': 'text/html' } }
+          );
+        }
+      })()
     );
     return;
   }
   
   // For Unity build files, use cache-first (they're big and versioned by buildId)
+  // CRITICAL: These MUST be served from cache when offline - iOS Safari can fail fetch before cache lookup
   if (url.pathname.includes('/Build/')) {
     event.respondWith(
-      caches.match(event.request)
-        .then((cachedResponse) => {
-          if (cachedResponse) {
-            return cachedResponse;
-          }
-          return fetch(event.request).then((response) => {
-            if (!response || response.status !== 200) {
-              return response;
-            }
-            const responseToCache = response.clone();
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put(event.request, responseToCache);
-            });
+      (async () => {
+        // Always try cache first for build files
+        const cachedResponse = await caches.match(event.request);
+        if (cachedResponse) {
+          console.log('[ServiceWorker] Serving Build file from cache:', url.pathname);
+          return cachedResponse;
+        }
+        
+        // No cache - try network with timeout
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout for large files
+          
+          const response = await fetch(event.request, { signal: controller.signal });
+          clearTimeout(timeoutId);
+          
+          if (!response || response.status !== 200) {
             return response;
-          });
-        })
+          }
+          
+          // Cache the response for future offline use
+          const responseToCache = response.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            console.log('[ServiceWorker] Caching Build file:', url.pathname);
+            cache.put(event.request, responseToCache);
+          }).catch(() => {});
+          
+          return response;
+        } catch (err) {
+          console.warn('[ServiceWorker] Failed to fetch Build file:', url.pathname, err.message);
+          // Return error - Unity loader will handle this
+          return new Response('Build file not cached - please connect to internet', { status: 503 });
+        }
+      })()
     );
     return;
   }
   
-  // For other requests (CSS, JS, images), use network-first with cache fallback
+  // For other requests (CSS, JS, images), use cache-first when offline
+  // This is critical for iOS Safari which can lose network suddenly when backgrounded
   event.respondWith(
-    fetch(event.request)
-      .then((response) => {
+    (async () => {
+      // Always check cache first
+      const cachedResponse = await caches.match(event.request);
+      
+      try {
+        // Try network with a timeout
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+        
+        const response = await fetch(event.request, { signal: controller.signal });
+        clearTimeout(timeoutId);
+        
         if (response && response.status === 200) {
           const responseToCache = response.clone();
           caches.open(CACHE_NAME).then((cache) => {
             cache.put(event.request, responseToCache);
-          });
+          }).catch(() => {}); // Ignore cache write errors
         }
         return response;
-      })
-      .catch(() => {
-        return caches.match(event.request);
-      })
+      } catch (err) {
+        // Network failed - return cached response if available
+        console.log('[ServiceWorker] Network failed for:', url.pathname, '- using cache');
+        if (cachedResponse) {
+          return cachedResponse;
+        }
+        // No cache, return error response
+        return new Response('Offline - resource not cached', { status: 503 });
+      }
+    })()
   );
 });
 
@@ -322,6 +431,41 @@ self.addEventListener('message', (event) => {
             currentCache: CACHE_NAME,
             version: storedVersion
           });
+        }
+      })()
+    );
+  }
+  
+  // Warmup cache with critical files - call this after game loads successfully
+  // This ensures iOS Safari has all files cached for offline use
+  if (event.data?.type === 'WARMUP_CACHE') {
+    event.waitUntil(
+      (async () => {
+        console.log('[ServiceWorker] Warming up cache for offline use...');
+        const urlsToCache = event.data.urls || [];
+        const cache = await caches.open(CACHE_NAME);
+        
+        let cached = 0;
+        for (const url of urlsToCache) {
+          try {
+            // Check if already cached
+            const existing = await cache.match(url);
+            if (!existing) {
+              console.log('[ServiceWorker] Caching:', url);
+              const response = await fetch(url);
+              if (response.ok) {
+                await cache.put(url, response);
+                cached++;
+              }
+            }
+          } catch (err) {
+            console.warn('[ServiceWorker] Failed to cache:', url, err.message);
+          }
+        }
+        
+        console.log('[ServiceWorker] Cache warmup complete. Cached', cached, 'new files.');
+        if (event.source) {
+          event.source.postMessage({ type: 'WARMUP_COMPLETE', cached });
         }
       })()
     );

@@ -3,6 +3,8 @@ using UnityEngine;
 /// <summary>
 /// Creates PBR-style materials for realistic spray particle effects.
 /// Handles reflection, refraction simulation, and lighting interaction.
+/// Materials are cached after first creation to avoid shader compilation hitches.
+/// Call PrewarmAll() during loading to avoid runtime stutters.
 /// </summary>
 public static class SprayMaterialCreator
 {
@@ -11,6 +13,44 @@ public static class SprayMaterialCreator
     private static Material _sprayMistMaterial;
     private static Material _sprayDropletMaterial;
     private static Material _sprayGlowMaterial;
+    
+    // Cached textures
+    private static Texture2D _softCircleTexture;
+    private static Texture2D _dropletTexture;
+    
+    /// <summary>
+    /// Prewarm all materials and textures to avoid runtime shader compilation.
+    /// Call this during scene loading or startup.
+    /// </summary>
+    public static void PrewarmAll()
+    {
+        GetSprayCoreMaterial();
+        GetSprayMistMaterial();
+        GetSprayDropletMaterial();
+        GetSprayGlowMaterial();
+        GetSoftCircleTexture();
+        GetDropletTexture();
+    }
+    
+    /// <summary>
+    /// Get cached soft circle texture (creates if needed)
+    /// </summary>
+    public static Texture2D GetSoftCircleTexture(int size = 64)
+    {
+        if (_softCircleTexture == null)
+            _softCircleTexture = CreateSoftCircleTexture(size);
+        return _softCircleTexture;
+    }
+    
+    /// <summary>
+    /// Get cached droplet texture (creates if needed)
+    /// </summary>
+    public static Texture2D GetDropletTexture(int size = 32)
+    {
+        if (_dropletTexture == null)
+            _dropletTexture = CreateDropletTexture(size);
+        return _dropletTexture;
+    }
     
     /// <summary>
     /// Get or create the main spray core material (dense center spray)

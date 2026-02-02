@@ -6,10 +6,42 @@
     <title>Unity WebGL Player | {{{ PRODUCT_NAME }}}</title>
     
     <!-- PWA Meta Tags -->
-    <link rel="manifest" href="manifest.json">
+    <link rel="manifest" href="manifest.json" id="manifest-link">
     <meta name="theme-color" content="#000000">
     <meta name="mobile-web-app-capable" content="yes">
-    <meta name="application-name" content="{{{ PRODUCT_NAME }}}">
+    <meta name="application-name" content="{{{ PRODUCT_NAME }}}" id="app-name-meta">
+    
+    <!-- Staging/Release manifest detection -->
+    <script>
+      (function() {
+        try {
+          window.isStagingBuild = window.location.pathname.indexOf('/BranchMain') !== -1;
+          if (window.isStagingBuild) {
+            // Switch to staging manifest
+            var manifestLink = document.getElementById('manifest-link');
+            if (manifestLink) manifestLink.href = 'manifest-staging.json';
+            
+            // Fetch release manifest to get base name, then append " Staging"
+            fetch('manifest.json')
+              .then(function(r) { return r.json(); })
+              .then(function(manifest) {
+                var baseName = manifest.name || 'Web Game';
+                var stagingName = baseName + ' Staging';
+                document.title = stagingName;
+                var appNameMeta = document.getElementById('app-name-meta');
+                if (appNameMeta) appNameMeta.content = stagingName;
+              })
+              .catch(function() {
+                // Fallback if fetch fails
+                document.title = document.title + ' Staging';
+              });
+          }
+        } catch (e) {
+          // Staging detection failed - continue with defaults
+          window.isStagingBuild = false;
+        }
+      })();
+    </script>
     
     <!-- iOS Safari specific meta tags -->
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -300,9 +332,27 @@
           font-size: 24px;
         }
       }
+      
+      /* Staging build info overlay - only visible on staging builds */
+      #staging-build-info {
+        display: none;
+        position: fixed;
+        bottom: 4px;
+        right: 8px;
+        color: rgba(255, 255, 255, 0.6);
+        font-family: monospace;
+        font-size: 10px;
+        z-index: 99999;
+        pointer-events: none;
+        text-shadow: 0 0 2px rgba(0, 0, 0, 0.8);
+        white-space: nowrap;
+      }
     </style>
   </head>
   <body style="text-align: center; padding: 0; border: 0; margin: 0; background-color: #000000;">
+    <!-- Staging Build Info Overlay (only shown on staging builds) -->
+    <div id="staging-build-info"></div>
+    
     <!-- Loading Screen -->
     <div id="loading-screen">
       <div class="loading-spinner"></div>
@@ -338,42 +388,195 @@
     
     <script src="Build/{{{ LOADER_FILENAME }}}"></script>
     <script>
-      // Detect iOS Safari for special handling
-      var isiOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-      var isMacWithTouch = (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-      var isiOSDevice = isiOS || isMacWithTouch;
-      var isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-      var isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || isiOSDevice;
-      var isStandalone = window.matchMedia('(display-mode: standalone)').matches || 
-                         window.matchMedia('(display-mode: fullscreen)').matches ||
-                         window.navigator.standalone === true;
+      // Platform detection (wrapped for safety)
+      var isiOS = false;
+      var isMacWithTouch = false;
+      var isiOSDevice = false;
+      var isSafari = false;
+      var isMobile = false;
+      var isStandalone = false;
       
-      console.log('[WebGL] Platform detection - iOS: ' + isiOS + ', MacTouch: ' + isMacWithTouch + ', Safari: ' + isSafari + ', Mobile: ' + isMobile + ', Standalone: ' + isStandalone);
+      try {
+        isiOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+        isMacWithTouch = (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+        isiOSDevice = isiOS || isMacWithTouch;
+        isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+        isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || isiOSDevice;
+        isStandalone = window.matchMedia('(display-mode: standalone)').matches || 
+                       window.matchMedia('(display-mode: fullscreen)').matches ||
+                       window.navigator.standalone === true;
+      } catch (e) {
+        // Platform detection failed - use safe defaults
+      }
       
-      // Try to lock screen orientation to landscape (works on Android, PWAs)
-      function tryLockLandscape() {
-        if (screen.orientation && screen.orientation.lock) {
-          screen.orientation.lock('landscape').then(function() {
-            console.log('[WebGL] Screen orientation locked to landscape');
-          }).catch(function(err) {
-            console.log('[WebGL] Could not lock orientation:', err.message);
-          });
+      // Audio context reference for Unity's audio (not running background oscillator)
+      var audioKeepAlive = null;
+      
+      // Patch canvas.getContext for high-performance GPU before Unity loads
+      try {
+        (function() {
+          var originalGetContext = HTMLCanvasElement.prototype.getContext;
+          HTMLCanvasElement.prototype.getContext = function(type, attributes) {
+            if (type === 'webgl' || type === 'webgl2' || type === 'experimental-webgl') {
+              attributes = attributes || {};
+              attributes.powerPreference = 'high-performance';
+              attributes.preserveDrawingBuffer = false;
+              attributes.desynchronized = true;
+              attributes.failIfMajorPerformanceCaveat = true;
+            }
+            return originalGetContext.call(this, type, attributes);
+          };
+        })();
+      } catch (e) { /* getContext patch failed - continue */ }
+      
+      // ProMotion frame monitoring removed - was consuming background CPU
+      
+      // Screen wake lock
+      var wakeLock = null;
+      async function requestWakeLock() {
+        if ('wakeLock' in navigator) {
+          try {
+            wakeLock = await navigator.wakeLock.request('screen');
+          } catch (e) {}
         }
       }
       
-      // Attempt orientation lock
-      tryLockLandscape();
+      // Visibility API - force canvas wake on tab visibility change
+      document.addEventListener('visibilitychange', function() {
+        if (!document.hidden) {
+          // Re-acquire wake lock
+          if (wakeLock === null) requestWakeLock();
+          // Force style recalc to wake up rendering pipeline
+          var c = document.getElementById('unity-canvas');
+          if (c) {
+            c.style.display = 'none';
+            c.offsetHeight;
+            c.style.display = 'block';
+          }
+        }
+      });
       
-      // Setup viewport meta tag for proper mobile rendering
-      var meta = document.createElement('meta');
-      meta.name = 'viewport';
-      // iOS Safari needs specific viewport settings
-      if (isiOSDevice) {
-        meta.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover';
-      } else {
-        meta.content = 'width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, shrink-to-fit=yes';
+      // Experimental Scheduler API - request high priority for main thread tasks
+      // This is a hint to the browser that our tasks are user-blocking
+      try {
+        if ('scheduler' in window && 'postTask' in window.scheduler) {
+          // Wrap requestAnimationFrame to use high priority scheduling
+          var originalRAF = window.requestAnimationFrame;
+          window.requestAnimationFrame = function(callback) {
+            return window.scheduler.postTask(function() {
+              return originalRAF(callback);
+            }, { priority: 'user-blocking' });
+          };
+        }
+      } catch (e) { /* Scheduler API patch failed - continue */ }
+      
+      // Keep-alive removed - was consuming background CPU
+      
+      // Device motion permission - iOS Safari throttles less when it detects device is being held
+      function requestDeviceMotion() {
+        if ('DeviceMotionEvent' in window && typeof DeviceMotionEvent.requestPermission === 'function') {
+          DeviceMotionEvent.requestPermission().catch(function() {});
+        }
       }
-      document.getElementsByTagName('head')[0].appendChild(meta);
+      
+      // WebGL context loss handling - iOS Safari has hard limits on WebGL contexts
+      function setupContextLossHandling() {
+        var canvas = document.getElementById('unity-canvas');
+        if (!canvas) return;
+        canvas.addEventListener('webglcontextlost', function(e) {
+          e.preventDefault();
+        });
+        canvas.addEventListener('webglcontextrestored', function() {
+          // Unity should auto-recover but we force a resize to help
+          window.dispatchEvent(new Event('resize'));
+        });
+      }
+      
+      // Battery API - always request high performance, track charging state
+      function checkBatteryStatus() {
+        // Always signal we want high performance regardless of battery
+        document.body.setAttribute('data-performance-mode', 'high');
+        
+        if ('getBattery' in navigator) {
+          navigator.getBattery().then(function(battery) {
+            document.body.setAttribute('data-charging', battery.charging ? 'true' : 'false');
+            document.body.setAttribute('data-battery-level', Math.round(battery.level * 100));
+            
+            battery.addEventListener('chargingchange', function() {
+              document.body.setAttribute('data-charging', battery.charging ? 'true' : 'false');
+            });
+            battery.addEventListener('levelchange', function() {
+              document.body.setAttribute('data-battery-level', Math.round(battery.level * 100));
+            });
+          }).catch(function() {});
+        }
+      }
+      
+      // Touch feedback hint - forces Safari to prepare for touch interaction
+      function setupTouchHints() {
+        document.body.style.webkitTapHighlightColor = 'transparent';
+        document.body.style.touchAction = 'manipulation';
+      }
+      
+      // requestIdleCallback fallback for Safari (still not supported in 2026)
+      // if (!('requestIdleCallback' in window)) {
+      //   window.requestIdleCallback = function(cb) {
+      //     var start = Date.now();
+      //     return setTimeout(function() {
+      //       cb({
+      //         didTimeout: false,
+      //         timeRemaining: function() {
+      //           return Math.max(0, 50 - (Date.now() - start));
+      //         }
+      //       });
+      //     }, 1);
+      //   };
+      //   window.cancelIdleCallback = function(id) {
+      //     clearTimeout(id);
+      //   };
+      // }
+      
+      // Start iOS optimizations (all wrapped for safety)
+      if (isiOSDevice) {
+        try { requestWakeLock(); } catch (e) {}
+        try { setupContextLossHandling(); } catch (e) {}
+        try { checkBatteryStatus(); } catch (e) {}
+        try { setupTouchHints(); } catch (e) {}
+        // Request device motion on first touch (requires user gesture)
+        try {
+          document.addEventListener('touchstart', function() {
+            try { requestDeviceMotion(); } catch (e) {}
+            // Resume audio context if needed (one-time on first touch)
+            try {
+              if (audioKeepAlive && audioKeepAlive.state === 'suspended') {
+                audioKeepAlive.resume();
+              }
+            } catch (e) {}
+          }, { once: true });
+        } catch (e) {}
+      }
+      
+      // Orientation lock (wrapped for safety)
+      function tryLockLandscape() {
+        try {
+          if (screen.orientation && screen.orientation.lock) {
+            screen.orientation.lock('landscape').catch(function() {});
+          }
+        } catch (e) {}
+      }
+      try { tryLockLandscape(); } catch (e) {}
+      
+      // Viewport meta (wrapped for safety)
+      try {
+        var meta = document.createElement('meta');
+        meta.name = 'viewport';
+        if (isiOSDevice) {
+          meta.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover';
+        } else {
+          meta.content = 'width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, shrink-to-fit=yes';
+        }
+        document.getElementsByTagName('head')[0].appendChild(meta);
+      } catch (e) {}
 
       var canvas = document.querySelector("#unity-canvas");
       var loadingScreen = document.getElementById('loading-screen');
@@ -405,49 +608,24 @@
                 if (countEl) {
                   countEl.textContent = data.stargazers_count;
                 }
-                console.log('[GameUI] GitHub stars:', data.stargazers_count);
-              } else {
-                throw new Error('Invalid response data');
               }
             })
-            .catch(function(err) {
-              console.warn('[GameUI] Could not fetch star count:', err);
-              // Show 0 on error instead of leaving --
+            .catch(function() {
               if (countEl && countEl.textContent === '--') {
                 countEl.textContent = '0';
               }
             });
         },
         
-        // Show the EndGame CTA overlay
         showEndGameCTA: function(score, minScore) {
-          console.log('[GameUI] showEndGameCTA called with score:', score, 'minScore:', minScore);
           minScore = minScore || 0;
-          
-          // Check minimum score threshold
-          if (score < minScore) {
-            console.log('[GameUI] Score ' + score + ' below minimum ' + minScore + ', not showing CTA');
-            return;
-          }
-          
-          // Fetch star count if not already done
+          if (score < minScore) return;
           this.fetchStarCount();
-          
-          // Show the overlay
-          if (gameUIOverlay) {
-            gameUIOverlay.classList.add('visible');
-            console.log('[GameUI] Showing EndGame CTA - overlay element found and visible class added');
-          } else {
-            console.error('[GameUI] ERROR: gameUIOverlay element not found!');
-          }
+          if (gameUIOverlay) gameUIOverlay.classList.add('visible');
         },
         
-        // Hide the EndGame CTA overlay
         hideEndGameCTA: function() {
-          if (gameUIOverlay) {
-            gameUIOverlay.classList.remove('visible');
-            console.log('[GameUI] Hiding EndGame CTA');
-          }
+          if (gameUIOverlay) gameUIOverlay.classList.remove('visible');
         },
         
         // Show/hide Steam wishlist button (for future use)
@@ -504,8 +682,6 @@
         canvas.style.position = 'fixed';
         canvas.style.top = '0';
         canvas.style.left = '0';
-        
-        console.log('[WebGL] Canvas updated - CSS: ' + width + 'x' + height + ', Buffer: ' + canvas.width + 'x' + canvas.height + ', DPR: ' + dpr + ', Portrait: ' + isPortrait());
       }
       
       // Full-screen canvas setup
@@ -537,8 +713,6 @@
       
       // iOS Safari specific touch handling
       if (isiOSDevice) {
-        console.log('[WebGL] Applying iOS Safari touch fixes');
-        
         // Prevent default touch behaviors that interfere with game input
         document.addEventListener('touchstart', function(e) {
           if (e.target === canvas) {
@@ -590,73 +764,63 @@
       // Handle orientation change events
       if (screen.orientation) {
         screen.orientation.addEventListener('change', function() {
-          console.log('[WebGL] Orientation changed to:', screen.orientation.type);
           setTimeout(updateCanvasSize, 100);
         });
       }
       
       // Also listen for window orientation change (iOS)
       window.addEventListener('orientationchange', function() {
-        console.log('[WebGL] Window orientation changed');
-        // iOS needs multiple delayed updates to settle
         setTimeout(updateCanvasSize, 100);
         setTimeout(updateCanvasSize, 300);
         setTimeout(updateCanvasSize, 500);
       });
 
-      // Register Service Worker for PWA
+      // Register Service Worker for PWA (all errors silently ignored - game must load)
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', function() {
-          navigator.serviceWorker.register('sw.js')
-            .then(function(registration) {
-              console.log('[PWA] ServiceWorker registered:', registration.scope);
-              
-              // Check for updates immediately
-              registration.update();
-              
-              // Listen for new service worker installing
-              registration.addEventListener('updatefound', function() {
-                console.log('[PWA] New service worker found, installing...');
-                var newWorker = registration.installing;
-                newWorker.addEventListener('statechange', function() {
-                  if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                    console.log('[PWA] New service worker installed, will activate on next load');
-                  }
-                });
-              });
-            })
-            .catch(function(error) {
-              console.warn('[PWA] ServiceWorker registration failed:', error);
-            });
+          try {
+            navigator.serviceWorker.register('sw.js')
+              .then(function(registration) {
+                try {
+                  registration.update();
+                  registration.addEventListener('updatefound', function() {
+                    var newWorker = registration.installing;
+                    if (newWorker) {
+                      newWorker.addEventListener('statechange', function() {});
+                    }
+                  });
+                } catch (e) { /* ignore */ }
+              })
+              .catch(function() { /* Service worker registration failed - continue anyway */ });
+          } catch (e) { /* ignore */ }
         });
         
-        // Listen for messages from service worker (e.g., new version available)
-        navigator.serviceWorker.addEventListener('message', function(event) {
-          console.log('[PWA] Message from SW:', event.data);
-          if (event.data && event.data.type === 'NEW_VERSION_AVAILABLE') {
-            console.log('[PWA] New version detected by SW, reloading...');
-            // Show brief message then reload
-            var loadingText = document.querySelector('.loading-text');
-            if (loadingText) {
-              loadingText.textContent = 'New version found! Updating...';
+        try {
+          navigator.serviceWorker.addEventListener('message', function(event) {
+            if (event.data && event.data.type === 'NEW_VERSION_AVAILABLE') {
+              var loadingText = document.querySelector('.loading-text');
+              if (loadingText) {
+                loadingText.textContent = 'New version found! Updating...';
+              }
+              setTimeout(function() {
+                window.location.reload(true);
+              }, 500);
             }
-            setTimeout(function() {
+          });
+          
+          // Only reload on controller change if game hasn't started yet
+          var gameStarted = false;
+          window.addEventListener('unity-game-started', function() { gameStarted = true; });
+          navigator.serviceWorker.addEventListener('controllerchange', function() {
+            if (!gameStarted) {
               window.location.reload(true);
-            }, 500);
-          }
-        });
-        
-        // When SW takes control, reload to ensure fresh content
-        navigator.serviceWorker.addEventListener('controllerchange', function() {
-          console.log('[PWA] Service worker controller changed, reloading for fresh content...');
-          window.location.reload(true);
-        });
+            }
+          });
+        } catch (e) { /* ignore */ }
       }
 
       // Function to start the Unity game
       function startUnityGame() {
-        console.log('[WebGL] Starting Unity game...');
-        
         createUnityInstance(document.querySelector("#unity-canvas"), {
           dataUrl: "Build/{{{ DATA_FILENAME }}}",
           frameworkUrl: "Build/{{{ FRAMEWORK_FILENAME }}}",
@@ -675,6 +839,12 @@
           productVersion: {{{ JSON.stringify(PRODUCT_VERSION) }}},
           matchWebGLToCanvasSize: true, // Enable dynamic resolution to match canvas size
           devicePixelRatio: window.devicePixelRatio || 1, // Use device pixel ratio for sharp rendering
+          // WebGL context attributes for performance
+          webglContextAttributes: {
+            powerPreference: 'high-performance',
+            preserveDrawingBuffer: false,
+            failIfMajorPerformanceCaveat: false
+          },
           // Progress callback
           onProgress: function(progress) {
             if (progressBar) {
@@ -682,11 +852,11 @@
             }
           }
         }).then(function(unityInstance) {
-          console.log('[WebGL] Unity instance created successfully');
-          // Store reference for potential future use
           window.unityInstance = unityInstance;
           
-          // Hide loading screen
+          // Signal that game has started (prevents service worker reload interrupts)
+          window.dispatchEvent(new Event('unity-game-started'));
+          
           if (loadingScreen) {
             loadingScreen.classList.add('hidden');
             setTimeout(function() {
@@ -694,41 +864,146 @@
             }, 500);
           }
           
-          // Update canvas size again after Unity loads to ensure correct resolution
           updateCanvasSize();
-        }).catch(function(error) {
-          console.error('[WebGL] Unity instance creation failed:', error);
-          if (loadingScreen) {
-            var errorMessage = (error && error.message) ? error.message : 'Could not load game files. Please check your connection and try again.';
-            // Check if we're likely offline
-            if (!navigator.onLine) {
-              errorMessage = 'You appear to be offline. The game files may not be cached yet. Please connect to the internet and reload to download the game first.';
+          
+          // iOS Safari cache warmup - ensure all critical files are cached for offline use
+          // Run this after successful load to prevent offline issues on next app restart
+          try {
+            if ('serviceWorker' in navigator && navigator.serviceWorker.controller && (isiOSDevice || isMobile)) {
+              setTimeout(function() {
+                try {
+                  // Get the current page's build file URLs from the loader
+                  var buildFiles = [
+                    'Build/{{{ DATA_FILENAME }}}',
+                    'Build/{{{ FRAMEWORK_FILENAME }}}',
+#if USE_WASM
+                    'Build/{{{ CODE_FILENAME }}}',
+#endif
+#if MEMORY_FILENAME
+                    'Build/{{{ MEMORY_FILENAME }}}',
+#endif
+                    './index.html',
+                    './manifest.json',
+                    './version-check.js',
+                    './pwa-install.js',
+                    './pwa-install.css'
+                  ];
+                  
+                  // Convert relative URLs to absolute
+                  var baseUrl = window.location.href.split('?')[0].replace(/\/[^\/]*$/, '/');
+                  var absoluteUrls = buildFiles.map(function(url) {
+                    return new URL(url, baseUrl).href;
+                  });
+                  
+                  console.log('[CacheWarmup] Requesting cache warmup for', absoluteUrls.length, 'files');
+                  navigator.serviceWorker.controller.postMessage({
+                    type: 'WARMUP_CACHE',
+                    urls: absoluteUrls
+                  });
+                } catch (e) {
+                  console.warn('[CacheWarmup] Error:', e);
+                }
+              }, 3000); // Wait 3 seconds after game loads
             }
-            loadingScreen.innerHTML = '<div style="color: #ff6b6b; font-family: sans-serif; text-align: center; padding: 20px;"><h2>Failed to load game</h2><p>' + errorMessage + '</p><button onclick="location.reload()" style="padding: 10px 20px; margin-top: 10px; cursor: pointer;">Retry</button></div>';
+          } catch (e) { /* ignore */ };
+        }).catch(function(error) {
+          console.warn('[Unity] createUnityInstance failed:', error);
+          
+          // iOS Safari edge case: Sometimes fetch fails on first try after force-close
+          // but cache is actually available. Auto-retry once before showing error.
+          if (!window._unityRetryAttempted) {
+            window._unityRetryAttempted = true;
+            console.log('[Unity] First load failed, auto-retrying in 1 second...');
+            
+            var loadingText = document.querySelector('.loading-text');
+            if (loadingText) {
+              loadingText.textContent = 'Retrying...';
+            }
+            
+            // Wait a moment for service worker to fully initialize
+            setTimeout(function() {
+              console.log('[Unity] Retrying game load...');
+              startUnityGame();
+            }, 1000);
+            return;
+          }
+          
+          // Second attempt also failed - check if we should show offline message
+          if (loadingScreen) {
+            var errorMessage = (error && error.message) ? error.message : 'Could not load game files.';
+            
+            // Provide helpful message based on state
+            if (!navigator.onLine) {
+              // Check if service worker is active (files should be cached)
+              if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+                errorMessage = 'Loading failed. Try closing and reopening the app.';
+              } else {
+                errorMessage = 'You appear to be offline. Please connect to the internet to download the game, then you can play offline.';
+              }
+            }
+            
+            loadingScreen.innerHTML = '<div style="color: #ff6b6b; font-family: sans-serif; text-align: center; padding: 20px;"><h2>Failed to load game</h2><p>' + errorMessage + '</p><button onclick="window._unityRetryAttempted=false;location.reload()" style="padding: 10px 20px; margin-top: 10px; cursor: pointer; background: #333; color: #fff; border: none; border-radius: 4px;">Retry</button></div>';
           }
         });
       }
       
       // Check for updates before starting the game
       // This runs only at page load and will reload the page if an update is found
-      if (window.VersionChecker) {
-        window.VersionChecker.checkForUpdates()
-          .then(function(result) {
-            console.log('[WebGL] Version check complete:', result);
-            // If we get here, either no update was needed or we're offline
-            // Start the game
-            startUnityGame();
-          })
-          .catch(function(error) {
-            console.warn('[WebGL] Version check failed:', error);
-            // Start the game anyway if version check fails
-            startUnityGame();
-          });
-      } else {
-        // Version checker not available, start game directly
-        console.warn('[WebGL] VersionChecker not loaded, starting game directly');
+      // CRITICAL: Any errors must be ignored - game MUST try to load regardless
+      try {
+        if (window.VersionChecker && typeof window.VersionChecker.checkForUpdates === 'function') {
+          window.VersionChecker.checkForUpdates()
+            .then(function() {
+              startUnityGame();
+            })
+            .catch(function(err) {
+              console.warn('[Startup] Version check failed, starting game anyway:', err);
+              startUnityGame();
+            });
+        } else {
+          startUnityGame();
+        }
+      } catch (e) {
+        console.warn('[Startup] Version checker error, starting game anyway:', e);
         startUnityGame();
       }
+      
+      // Show staging build info overlay (only on staging builds)
+      try {
+        if (window.isStagingBuild) {
+          fetch('version.json?_=' + Date.now())
+            .then(function(r) { return r.json(); })
+            .then(function(version) {
+              var overlay = document.getElementById('staging-build-info');
+              if (overlay && version) {
+                var info = version.buildId || 'unknown';
+                if (version.buildTimestamp) {
+                  info += ' | ' + version.buildTimestamp;
+                }
+                overlay.textContent = 'STAGING: ' + info;
+                overlay.style.display = 'block';
+              }
+            })
+            .catch(function() {
+              var overlay = document.getElementById('staging-build-info');
+              if (overlay) {
+                overlay.textContent = 'STAGING BUILD';
+                overlay.style.display = 'block';
+              }
+            });
+        }
+      } catch (e) { /* staging overlay failed - non-critical */ }
+      
+      // Global error handler - prevent uncaught errors from breaking the game
+      window.addEventListener('error', function(e) {
+        console.warn('[Global] Uncaught error (game continues):', e.message);
+        // Don't prevent default - let errors log to console
+      });
+      window.addEventListener('unhandledrejection', function(e) {
+        console.warn('[Global] Unhandled promise rejection (game continues):', e.reason);
+        // Prevent the rejection from being treated as an error
+        e.preventDefault();
+      });
     </script>
   </body>
 </html>

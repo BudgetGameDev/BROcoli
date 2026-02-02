@@ -23,6 +23,9 @@ public class ProceduralXPPickupAudio : MonoBehaviour
     private static float[] audioBuffer;
     private static float[] lpState = new float[4];
     
+    // Cached base clip for instant playback
+    private static AudioClip cachedBaseClip;
+    
     // Combo tracking for pitch scaling
     private static float lastPickupTime;
     private static int comboCount;
@@ -47,6 +50,19 @@ public class ProceduralXPPickupAudio : MonoBehaviour
             sampleRate = AudioSettings.outputSampleRate;
             int maxSamples = Mathf.CeilToInt(0.5f * sampleRate);
             audioBuffer = new float[maxSamples];
+        }
+    }
+    
+    /// <summary>
+    /// Pre-generate the base XP pickup sound clip to avoid hitches on first pickup.
+    /// Call this during loading screen.
+    /// </summary>
+    public static void PrewarmAll()
+    {
+        EnsureInitialized();
+        if (cachedBaseClip == null)
+        {
+            cachedBaseClip = GeneratePickupClip(1f);
         }
     }
 

@@ -6,18 +6,19 @@ using UnityEngine;
 /// </summary>
 public class PlayerAudioHandler : MonoBehaviour
 {
-    // Resource paths for audio clips
-    private const string WalkSoundPath = "Sprites/ggj-2023/sfx/skref";
-    private const string DamageSoundPath = "Sprites/ggj-2023/sfx/damage";
-    private const string CollisionSoundPath = "Sprites/ggj-2023/sfx/damage";
-    private const string PickupSoundPath = "Sprites/ggj-2023/sfx/pickup sound";
+    // Resource paths for audio clips (ggj-2023 sfx folder)
+    // Note: Resources.Load paths are relative to Resources folder, without extension
+    private const string WalkSoundPath = "Audio/walk-0";  // Generic footstep from Audio folder
+    private const string DamageSoundPath = "Sprites/ggj-2023/sfx/ohno-trædid-minkar2";  // Damage/shrink sound
+    private const string CollisionSoundPath = "Sprites/ggj-2023/sfx/rakar-stein-ella-vegg";  // Collision with wall/stone
+    private const string PickupSoundPath = "Sprites/ggj-2023/sfx/drekkur-vatn2";  // Pickup/drink water sound
     private const string GameOverSoundPath = "Sprites/ggj-2023/sfx/game over2";
-    private const string GrowSoundPath = "Sprites/ggj-2023/sfx/pickup sound";
-    private const string ShrinkSoundPath = "Sprites/ggj-2023/sfx/damage";
-    private const string Ambient1Path = "Sprites/ggj-2023/sfx/ambient/ambient-náttúra";
-    private const string Ambient2Path = "Sprites/ggj-2023/sfx/ambient/ambient-náttúra";
-    private const string WindAmbientPath = "Sprites/ggj-2023/sfx/ambient/vindur-langt uppi.x.metrar+";
-    private const string LavaAmbientPath = "Sprites/ggj-2023/sfx/ambient/gos-tætt-við";
+    private const string GrowSoundPath = "Sprites/ggj-2023/sfx/trædid-veksur";  // Tree grows sound
+    private const string ShrinkSoundPath = "Sprites/ggj-2023/sfx/ohno-trædid-minkar2";  // Tree shrinks sound
+    private const string Ambient1Path = "Sprites/ggj-2023/sfx/umhvørvið/ambient-náttúra";  // Nature ambient
+    private const string Ambient2Path = "Sprites/ggj-2023/sfx/umhvørvið/ambient-náttúra";  // Nature ambient
+    private const string WindAmbientPath = "Sprites/ggj-2023/sfx/umhvørvið/vindur-langt uppi.x.metrar+";  // Wind ambient
+    private const string LavaAmbientPath = "Sprites/ggj-2023/sfx/umhvørvið/gos-tætt-við";  // Lava/volcano ambient
 
     // Audio clips (loaded from Resources)
     private AudioClip _walkClip;

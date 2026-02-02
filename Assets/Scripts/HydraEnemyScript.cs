@@ -1,4 +1,5 @@
 using UnityEngine;
+using Pooling;
 
 /// <summary>
 /// Hydra enemy that splits into smaller copies when killed.
@@ -36,7 +37,7 @@ public class HydraEnemyScript : EnemyBase
     private Vector3 attackStartPos;
     private Vector3 attackTargetPos;
     private Vector3 baseLocalScale;
-    private SpriteRenderer spriteRenderer;
+    private SpriteRenderer spriteRenderer;  // Local sprite renderer for attack animations
     private Color originalColor;
     private Transform visualTransform;
     
@@ -45,7 +46,6 @@ public class HydraEnemyScript : EnemyBase
     
     private static bool isQuitting = false;
     private bool hasSpawnedChildren = false;
-    private GameStates gameStates;
 
     protected override void Awake()
     {
@@ -54,17 +54,65 @@ public class HydraEnemyScript : EnemyBase
         if (meleeAudio == null)
             meleeAudio = GetComponent<ProceduralEnemyMeleeAudio>();
         
-        spriteRenderer = GetComponentInChildren<SpriteRenderer>();
-        if (spriteRenderer != null)
+        // Find visual transform for attack animation
+        // Enemy prefabs use FBX models with MeshRenderer, not SpriteRenderer
+        Renderer visualRenderer = null;
+        
+        // First check for enabled SpriteRenderer
+        foreach (var sr in GetComponentsInChildren<SpriteRenderer>(true))
         {
-            originalColor = spriteRenderer.color;
-            visualTransform = spriteRenderer.transform;
+            if (sr.enabled)
+            {
+                spriteRenderer = sr;
+                visualRenderer = sr;
+                break;
+            }
+        }
+        
+        // If no enabled SpriteRenderer, find MeshRenderer (FBX models)
+        if (visualRenderer == null)
+        {
+            foreach (var mr in GetComponentsInChildren<MeshRenderer>(true))
+            {
+                if (mr.enabled)
+                {
+                    visualRenderer = mr;
+                    break;
+                }
+            }
+        }
+        
+        // Set up visual transform from the renderer we found
+        if (visualRenderer != null)
+        {
+            visualTransform = visualRenderer.transform;
             baseLocalScale = visualTransform.localScale;
+            
+            // Safety check: if scale is zero (shouldn't happen), use a reasonable default
+            if (baseLocalScale.sqrMagnitude < 0.0001f)
+            {
+                Debug.LogWarning($"[HydraEnemyScript] {name}: visualTransform '{visualTransform.name}' has zero scale! Using Vector3.one as fallback.");
+                baseLocalScale = Vector3.one;
+                visualTransform.localScale = Vector3.one;
+            }
+            
+            if (spriteRenderer != null)
+            {
+                originalColor = spriteRenderer.color;
+            }
         }
         else
         {
             visualTransform = transform;
             baseLocalScale = transform.localScale;
+            
+            // Safety check for root transform too
+            if (baseLocalScale.sqrMagnitude < 0.0001f)
+            {
+                Debug.LogWarning($"[HydraEnemyScript] {name}: root transform has zero scale! Using Vector3.one as fallback.");
+                baseLocalScale = Vector3.one;
+                transform.localScale = Vector3.one;
+            }
         }
     }
 
@@ -134,17 +182,22 @@ public class HydraEnemyScript : EnemyBase
         meleeRange *= childScaleMultiplier;
     }
 
-    void OnDestroy()
+    /// <summary>
+    /// Override Die to spawn children before death.
+    /// </summary>
+    public override void Die()
     {
         if (isQuitting) return;
         if (!gameObject.scene.isLoaded) return;
-        if (hasSpawnedChildren) return;
         
         // Spawn children if we haven't reached max generations
-        if (currentGeneration < maxGenerations)
+        if (!hasSpawnedChildren && currentGeneration < maxGenerations)
         {
             SpawnChildren();
         }
+        
+        // Call base Die (handles score, XP, and pooling/destroy)
+        base.Die();
     }
     
     void OnApplicationQuit()
@@ -167,11 +220,26 @@ public class HydraEnemyScript : EnemyBase
             
             Vector3 spawnPos = transform.position + (Vector3)offset;
             
-            // Instantiate a copy of this prefab
-            GameObject child = Instantiate(gameObject, spawnPos, Quaternion.identity);
+            // Try to get from pool first (use this as prefab template)
+            HydraEnemyScript childHydra = null;
+            EnemyBase pooledEnemy = PoolManager.Instance?.GetEnemy(this, spawnPos, Quaternion.identity);
             
-            // Get the hydra component and initialize it as a child
-            HydraEnemyScript childHydra = child.GetComponent<HydraEnemyScript>();
+            if (pooledEnemy != null)
+            {
+                childHydra = pooledEnemy as HydraEnemyScript;
+                if (childHydra != null)
+                {
+                    childHydra.SetPooled(true);
+                }
+            }
+            
+            // Fallback to instantiate if pool not available
+            if (childHydra == null)
+            {
+                GameObject child = Instantiate(gameObject, spawnPos, Quaternion.identity);
+                childHydra = child.GetComponent<HydraEnemyScript>();
+            }
+            
             if (childHydra != null)
             {
                 childHydra.hasSpawnedChildren = false; // Reset so it can spawn its own children
@@ -182,14 +250,41 @@ public class HydraEnemyScript : EnemyBase
                     Speed,
                     transform.localScale
                 );
+                
+                // Give child a small impulse away from spawn point
+                if (childHydra.rb != null)
+                {
+                    childHydra.rb.linearVelocity = offset.normalized * 3f;
+                }
             }
-            
-            // Give child a small impulse away from spawn point
-            Rigidbody2D childRb = child.GetComponent<Rigidbody2D>();
-            if (childRb != null)
-            {
-                childRb.linearVelocity = offset.normalized * 3f;
-            }
+        }
+    }
+    
+    /// <summary>
+    /// Reset hydra-specific state for pool reuse.
+    /// </summary>
+    public override void ResetForPool()
+    {
+        base.ResetForPool();
+        
+        hasSpawnedChildren = false;
+        currentGeneration = 0;
+        isAttacking = false;
+        attackPhase = 0;
+        attackTimer = 0f;
+        nextMeleeAttackTime = 0f;
+        
+        // Reset visual state
+        if (visualTransform != null)
+        {
+            // Don't reset localPosition - preserve prefab's Z offset for 3D models
+            visualTransform.localScale = baseLocalScale;
+        }
+        
+        if (spriteRenderer != null)
+        {
+            spriteRenderer.enabled = true;  // Ensure sprite is enabled
+            spriteRenderer.color = originalColor;
         }
     }
 

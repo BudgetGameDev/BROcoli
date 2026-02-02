@@ -16,6 +16,14 @@ public class ProceduralEnemyMeleeAudio : MonoBehaviour
         Stinger         // Piercing/stabbing attack
     }
 
+    // Static caching for prewarmed clips
+    private static System.Collections.Generic.Dictionary<MeleeSoundType, AudioClip> cachedClips;
+    private static bool isPrewarmed = false;
+    private static int staticSampleRate;
+    private static float[] staticAudioBuffer;
+    private static float[] staticLpState;
+    private static float[] staticHpState;
+
     [Header("Sound Type")]
     [SerializeField] private MeleeSoundType soundType = MeleeSoundType.Slash;
 
@@ -220,24 +228,281 @@ public class ProceduralEnemyMeleeAudio : MonoBehaviour
         return Mathf.Sqrt(attenuation); // Smoother falloff
     }
 
+    /// <summary>
+    /// Pre-generates and caches audio clips for all melee sound types.
+    /// Call this during game initialization to eliminate first-use hitches.
+    /// </summary>
+    public static void PrewarmAll()
+    {
+        if (isPrewarmed) return;
+
+        staticSampleRate = AudioSettings.outputSampleRate;
+        int maxSamples = Mathf.CeilToInt(0.8f * staticSampleRate);
+        staticAudioBuffer = new float[maxSamples];
+        staticLpState = new float[4];
+        staticHpState = new float[2];
+
+        cachedClips = new System.Collections.Generic.Dictionary<MeleeSoundType, AudioClip>();
+        cachedClips[MeleeSoundType.Slash] = GenerateMeleeClipStatic(MeleeSoundType.Slash);
+        cachedClips[MeleeSoundType.Bite] = GenerateMeleeClipStatic(MeleeSoundType.Bite);
+        cachedClips[MeleeSoundType.Slam] = GenerateMeleeClipStatic(MeleeSoundType.Slam);
+        cachedClips[MeleeSoundType.Swipe] = GenerateMeleeClipStatic(MeleeSoundType.Swipe);
+        cachedClips[MeleeSoundType.Stinger] = GenerateMeleeClipStatic(MeleeSoundType.Stinger);
+
+        isPrewarmed = true;
+    }
+
+    private static MeleePreset GetPresetStatic(MeleeSoundType type)
+    {
+        MeleePreset p = new MeleePreset();
+
+        switch (type)
+        {
+            case MeleeSoundType.Slash:
+                p.duration = 0.18f;
+                p.whooshFreqStart = 1800f; p.whooshFreqEnd = 400f;
+                p.whooshAmount = 0.5f; p.whooshDecay = 10f;
+                p.impactDelay = 0.08f; p.impactFreq = 180f;
+                p.impactAmount = 0.3f; p.impactDecay = 12f;
+                p.bodyFreq = 120f; p.bodyAmount = 0.25f; p.bodyDecay = 8f;
+                p.noiseBurst = 0.6f; p.noiseDecay = 15f; p.noiseCutoff = 3500f;
+                p.hasMetallic = true; p.metallicFreq = 2800f; p.metallicAmount = 0.15f;
+                break;
+            case MeleeSoundType.Bite:
+                p.duration = 0.15f;
+                p.whooshFreqStart = 600f; p.whooshFreqEnd = 200f;
+                p.whooshAmount = 0.2f; p.whooshDecay = 12f;
+                p.impactDelay = 0.02f; p.impactFreq = 250f;
+                p.impactAmount = 0.6f; p.impactDecay = 18f;
+                p.bodyFreq = 90f; p.bodyAmount = 0.5f; p.bodyDecay = 10f;
+                p.noiseBurst = 0.7f; p.noiseDecay = 20f; p.noiseCutoff = 1200f;
+                p.hasMetallic = false; p.metallicFreq = 0f; p.metallicAmount = 0f;
+                break;
+            case MeleeSoundType.Slam:
+                p.duration = 0.3f;
+                p.whooshFreqStart = 500f; p.whooshFreqEnd = 100f;
+                p.whooshAmount = 0.35f; p.whooshDecay = 6f;
+                p.impactDelay = 0.05f; p.impactFreq = 60f;
+                p.impactAmount = 0.9f; p.impactDecay = 5f;
+                p.bodyFreq = 45f; p.bodyAmount = 0.8f; p.bodyDecay = 4f;
+                p.noiseBurst = 0.5f; p.noiseDecay = 8f; p.noiseCutoff = 800f;
+                p.hasMetallic = false; p.metallicFreq = 0f; p.metallicAmount = 0f;
+                break;
+            case MeleeSoundType.Swipe:
+                p.duration = 0.22f;
+                p.whooshFreqStart = 2200f; p.whooshFreqEnd = 300f;
+                p.whooshAmount = 0.65f; p.whooshDecay = 8f;
+                p.impactDelay = 0.12f; p.impactFreq = 150f;
+                p.impactAmount = 0.25f; p.impactDecay = 10f;
+                p.bodyFreq = 100f; p.bodyAmount = 0.2f; p.bodyDecay = 7f;
+                p.noiseBurst = 0.75f; p.noiseDecay = 12f; p.noiseCutoff = 4500f;
+                p.hasMetallic = true; p.metallicFreq = 3200f; p.metallicAmount = 0.12f;
+                break;
+            case MeleeSoundType.Stinger:
+                p.duration = 0.12f;
+                p.whooshFreqStart = 3500f; p.whooshFreqEnd = 1200f;
+                p.whooshAmount = 0.4f; p.whooshDecay = 18f;
+                p.impactDelay = 0.04f; p.impactFreq = 320f;
+                p.impactAmount = 0.5f; p.impactDecay = 15f;
+                p.bodyFreq = 200f; p.bodyAmount = 0.3f; p.bodyDecay = 12f;
+                p.noiseBurst = 0.45f; p.noiseDecay = 18f; p.noiseCutoff = 5000f;
+                p.hasMetallic = true; p.metallicFreq = 4200f; p.metallicAmount = 0.25f;
+                break;
+        }
+        return p;
+    }
+
+    private static AudioClip GenerateMeleeClipStatic(MeleeSoundType type)
+    {
+        MeleePreset p = GetPresetStatic(type);
+
+        int totalSamples = Mathf.CeilToInt(p.duration * staticSampleRate);
+        totalSamples = Mathf.Min(totalSamples, staticAudioBuffer.Length);
+
+        System.Array.Clear(staticLpState, 0, staticLpState.Length);
+        System.Array.Clear(staticHpState, 0, staticHpState.Length);
+
+        float phaseImpact = 0f, phaseBody = 0f, phaseMetallic = 0f;
+        float noiseState = 0f;
+        uint rngState = (uint)(type + 12345);
+
+        for (int i = 0; i < totalSamples; i++)
+        {
+            float t = (float)i / staticSampleRate;
+            float normalizedT = Mathf.Clamp01(t / p.duration);
+            float sample = 0f;
+
+            // Whoosh
+            float whooshEnv = GetWhooshEnvelopeStatic(t, p.duration, p.whooshDecay);
+            float whooshFreq = Mathf.Lerp(p.whooshFreqStart, p.whooshFreqEnd, normalizedT);
+            rngState = rngState * 1103515245 + 12345;
+            float whooshNoise = ((rngState >> 16) & 0x7FFF) / 16383.5f - 1f;
+            float whoosh = LowpassFilterStatic(whooshNoise, whooshFreq, 0);
+            whoosh = HighpassFilterStatic(whoosh, whooshFreq * 0.3f, 0);
+            whoosh *= whooshEnv * p.whooshAmount;
+
+            // Impact
+            float impactSample = 0f;
+            if (t >= p.impactDelay)
+            {
+                float impactT = t - p.impactDelay;
+                float impactEnv = GetImpactEnvelopeStatic(impactT, p.impactDecay);
+                phaseImpact += p.impactFreq / staticSampleRate;
+                impactSample = Mathf.Sin(phaseImpact * Mathf.PI * 2f);
+                impactSample += Mathf.Sin(phaseImpact * Mathf.PI * 4f) * 0.4f;
+                impactSample *= impactEnv * p.impactAmount;
+            }
+
+            // Body
+            float bodyEnv = GetBodyEnvelopeStatic(t, p.duration, p.bodyDecay);
+            phaseBody += p.bodyFreq / staticSampleRate;
+            float body = Mathf.Sin(phaseBody * Mathf.PI * 2f);
+            body += Mathf.Sin(phaseBody * Mathf.PI * 3f) * 0.3f;
+            body *= bodyEnv * p.bodyAmount;
+
+            // Noise burst
+            float noiseEnv = GetNoiseBurstEnvelopeStatic(t, p.duration, p.noiseDecay);
+            rngState = rngState * 1103515245 + 12345;
+            float whiteNoise = ((rngState >> 16) & 0x7FFF) / 16383.5f - 1f;
+            noiseState = noiseState * 0.85f + whiteNoise * 0.15f;
+            float noiseBurst = LowpassFilterStatic(noiseState + whiteNoise * 0.5f, p.noiseCutoff * (1f - normalizedT * 0.5f), 1);
+            noiseBurst *= noiseEnv * p.noiseBurst;
+
+            // Metallic
+            float metallic = 0f;
+            if (p.hasMetallic && t < p.duration * 0.4f)
+            {
+                float metallicEnv = Mathf.Exp(-t * 20f);
+                phaseMetallic += p.metallicFreq / staticSampleRate;
+                metallic = Mathf.Sin(phaseMetallic * Mathf.PI * 2f);
+                metallic *= metallicEnv * p.metallicAmount;
+            }
+
+            sample = whoosh + impactSample + body + noiseBurst + metallic;
+            sample = SoftClipStatic(sample);
+            staticAudioBuffer[i] = sample;
+        }
+
+        // Fade out
+        int fadeOutSamples = Mathf.Min(totalSamples / 6, staticSampleRate / 20);
+        for (int i = 0; i < fadeOutSamples; i++)
+        {
+            int idx = totalSamples - 1 - i;
+            float fade = (float)i / fadeOutSamples;
+            staticAudioBuffer[idx] *= fade * fade;
+        }
+
+        // Normalize
+        float maxAmp = 0f;
+        for (int i = 0; i < totalSamples; i++)
+            maxAmp = Mathf.Max(maxAmp, Mathf.Abs(staticAudioBuffer[i]));
+        if (maxAmp > 0.01f)
+        {
+            float normalize = 0.85f / maxAmp;
+            for (int i = 0; i < totalSamples; i++)
+                staticAudioBuffer[i] *= normalize;
+        }
+
+        AudioClip clip = AudioClip.Create("EnemyMelee_" + type, totalSamples, 1, staticSampleRate, false);
+        float[] clipData = new float[totalSamples];
+        System.Array.Copy(staticAudioBuffer, clipData, totalSamples);
+        clip.SetData(clipData, 0);
+        return clip;
+    }
+
+    private static float GetWhooshEnvelopeStatic(float t, float duration, float decayRate)
+    {
+        float attack = 0.008f;
+        if (t < attack) return Mathf.Sqrt(t / attack);
+        float dt = (t - attack) / (duration * 0.9f);
+        return Mathf.Exp(-dt * decayRate);
+    }
+
+    private static float GetImpactEnvelopeStatic(float t, float decayRate)
+    {
+        float attack = 0.001f;
+        if (t < attack) return t / attack;
+        return Mathf.Exp(-(t - attack) * decayRate);
+    }
+
+    private static float GetBodyEnvelopeStatic(float t, float duration, float decayRate)
+    {
+        float attack = 0.003f;
+        float sustain = duration * 0.1f;
+        if (t < attack) return t / attack;
+        if (t < attack + sustain) return 1f;
+        float dt = (t - attack - sustain) / (duration * 0.8f);
+        return Mathf.Exp(-dt * decayRate);
+    }
+
+    private static float GetNoiseBurstEnvelopeStatic(float t, float duration, float decayRate)
+    {
+        float attack = 0.002f;
+        if (t < attack) return t / attack;
+        return Mathf.Exp(-(t - attack) * decayRate);
+    }
+
+    private static float LowpassFilterStatic(float input, float cutoff, int stateIndex)
+    {
+        float rc = 1f / (2f * Mathf.PI * cutoff);
+        float dt = 1f / staticSampleRate;
+        float alpha = Mathf.Clamp01(dt / (rc + dt));
+        staticLpState[stateIndex] += alpha * (input - staticLpState[stateIndex]);
+        return staticLpState[stateIndex];
+    }
+
+    private static float HighpassFilterStatic(float input, float cutoff, int stateIndex)
+    {
+        float rc = 1f / (2f * Mathf.PI * cutoff);
+        float dt = 1f / staticSampleRate;
+        float alpha = rc / (rc + dt);
+        float output = alpha * (staticHpState[stateIndex] + input - staticLpState[stateIndex + 2]);
+        staticLpState[stateIndex + 2] = input;
+        staticHpState[stateIndex] = output;
+        return output;
+    }
+
+    private static float SoftClipStatic(float x)
+    {
+        if (Mathf.Abs(x) < 0.7f) return x;
+        if (x > 0) return 0.7f + (1f - 0.7f) * (float)System.Math.Tanh((x - 0.7f) * 3f);
+        return -0.7f + (-1f + 0.7f) * (float)System.Math.Tanh((x + 0.7f) * 3f);
+    }
+
     public void PlayMeleeSound()
     {
         float distAtten = GetDistanceAttenuation();
         if (distAtten < 0.01f) return;
-        
-        currentPreset = GetPreset(soundType);
-        AudioClip clip = GenerateMeleeClip();
-        audioSource.PlayOneShot(clip, volume * distAtten);
+
+        AudioClip clip;
+        if (cachedClips != null && cachedClips.TryGetValue(soundType, out clip))
+        {
+            audioSource.PlayOneShot(clip, volume * distAtten);
+        }
+        else
+        {
+            currentPreset = GetPreset(soundType);
+            clip = GenerateMeleeClip();
+            audioSource.PlayOneShot(clip, volume * distAtten);
+        }
     }
 
     public void PlayMeleeSound(float volumeMultiplier)
     {
         float distAtten = GetDistanceAttenuation();
         if (distAtten < 0.01f) return;
-        
-        currentPreset = GetPreset(soundType);
-        AudioClip clip = GenerateMeleeClip();
-        audioSource.PlayOneShot(clip, volume * volumeMultiplier * distAtten);
+
+        AudioClip clip;
+        if (cachedClips != null && cachedClips.TryGetValue(soundType, out clip))
+        {
+            audioSource.PlayOneShot(clip, volume * volumeMultiplier * distAtten);
+        }
+        else
+        {
+            currentPreset = GetPreset(soundType);
+            clip = GenerateMeleeClip();
+            audioSource.PlayOneShot(clip, volume * volumeMultiplier * distAtten);
+        }
     }
 
     private AudioClip GenerateMeleeClip()

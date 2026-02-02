@@ -27,6 +27,10 @@ public class ProceduralBoostAudio : MonoBehaviour
     private static int sampleRate;
     private static float[] audioBuffer;
     private static float[] filterState = new float[8];
+    
+    // Cached clips for each boost type
+    private static System.Collections.Generic.Dictionary<BoostSoundType, AudioClip> cachedClips;
+    private static bool isPrewarmed = false;
 
     void Awake()
     {
@@ -46,7 +50,27 @@ public class ProceduralBoostAudio : MonoBehaviour
             sampleRate = AudioSettings.outputSampleRate;
             int maxSamples = Mathf.CeilToInt(0.8f * sampleRate);
             audioBuffer = new float[maxSamples];
+            cachedClips = new System.Collections.Generic.Dictionary<BoostSoundType, AudioClip>();
         }
+    }
+    
+    /// <summary>
+    /// Pre-generate all boost sound clips to avoid hitches on first pickup.
+    /// Call this during loading screen.
+    /// </summary>
+    public static void PrewarmAll()
+    {
+        EnsureInitialized();
+        if (isPrewarmed) return;
+        
+        foreach (BoostSoundType type in System.Enum.GetValues(typeof(BoostSoundType)))
+        {
+            if (!cachedClips.ContainsKey(type))
+            {
+                cachedClips[type] = GenerateClip(type);
+            }
+        }
+        isPrewarmed = true;
     }
 
     public void PlayBoostSound(BoostSoundType type)
@@ -57,7 +81,18 @@ public class ProceduralBoostAudio : MonoBehaviour
     public static void PlaySound(BoostSoundType type, float vol = 0.6f)
     {
         EnsureInitialized();
-        AudioClip clip = GenerateClip(type);
+        
+        // Use cached clip if available, otherwise generate
+        AudioClip clip;
+        if (cachedClips.TryGetValue(type, out clip) && clip != null)
+        {
+            // Use cached
+        }
+        else
+        {
+            clip = GenerateClip(type);
+            cachedClips[type] = clip;
+        }
         sharedAudioSource.PlayOneShot(clip, vol);
     }
 
