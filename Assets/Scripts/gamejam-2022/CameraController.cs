@@ -1,13 +1,20 @@
 using UnityEngine;
+using System.Runtime.InteropServices;
 
 /// <summary>
 /// Diablo 3: Reaper of Souls style camera.
 /// - Smooth follow without centering/reset
 /// - Subtle drift in movement direction that stays
 /// - Responsive zoom for portrait/landscape
+/// - Extra zoom on mobile devices
 /// </summary>
 public class CameraController : MonoBehaviour
 {
+#if UNITY_WEBGL && !UNITY_EDITOR
+    [DllImport("__Internal")]
+    private static extern int IsMobileBrowser();
+#endif
+
     [Header("Target")]
     public Transform target;
     
@@ -32,15 +39,26 @@ public class CameraController : MonoBehaviour
     [Tooltip("How quickly camera zooms between sizes")]
     public float zoomSpeed = 5f;
     
+    [Header("Mobile Zoom")]
+    [Tooltip("Extra zoom percentage on mobile (25 = 25% more zoom)")]
+    public float mobileZoomPercent = 25f;
+    
+    [Tooltip("Force mobile zoom in editor for testing")]
+    public bool forceMobileZoomInEditor = false;
+    
     private Vector3 offset;
     private Vector3 currentDrift;
     private bool initialized;
     private Camera cam;
     private float targetFOV;
+    private bool isMobile;
 
     void Start()
     {
         cam = GetComponent<Camera>();
+        
+        // Check if we're on mobile
+        isMobile = CheckIsMobile();
         
         // Store current FOV as landscape FOV if not set
         if (cam != null && landscapeFOV <= 0)
@@ -61,6 +79,39 @@ public class CameraController : MonoBehaviour
         {
             cam.fieldOfView = targetFOV;
         }
+    }
+    
+    private bool CheckIsMobile()
+    {
+        // Check Device Simulator first (works in editor when simulating mobile devices)
+        if (UnityEngine.Device.SystemInfo.deviceType == DeviceType.Handheld)
+        {
+            Debug.Log("[CameraController] Mobile detected via Device.SystemInfo (Device Simulator or real device)");
+            return true;
+        }
+        
+#if UNITY_EDITOR
+        if (forceMobileZoomInEditor)
+        {
+            Debug.Log("[CameraController] Forcing mobile zoom in editor");
+            return true;
+        }
+        // In editor without device simulator, check regular SystemInfo as fallback
+        if (SystemInfo.deviceType == DeviceType.Handheld)
+        {
+            Debug.Log("[CameraController] Mobile detected via SystemInfo");
+            return true;
+        }
+        return false;
+#elif UNITY_WEBGL
+        bool result = IsMobileBrowser() == 1;
+        Debug.Log($"[CameraController] IsMobileBrowser returned: {result}");
+        return result;
+#elif UNITY_IOS || UNITY_ANDROID
+        return true;
+#else
+        return false;
+#endif
     }
 
     void LateUpdate()
@@ -118,6 +169,15 @@ public class CameraController : MonoBehaviour
         {
             // Landscape mode: use base FOV
             targetFOV = landscapeFOV;
+        }
+        
+        // Apply extra zoom on mobile (smaller FOV = more zoom)
+        if (isMobile && mobileZoomPercent > 0)
+        {
+            float zoomFactor = 1f - (mobileZoomPercent / 100f);
+            float originalFOV = targetFOV;
+            targetFOV *= zoomFactor;
+            Debug.Log($"[CameraController] Mobile zoom applied: {originalFOV}° -> {targetFOV}° ({mobileZoomPercent}% zoom)");
         }
     }
 }

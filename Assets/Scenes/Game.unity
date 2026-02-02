@@ -2228,6 +2228,8 @@ MonoBehaviour:
   landscapeFOV: 35
   portraitFOV: 60
   zoomSpeed: 5
+  mobileZoomPercent: 25
+  forceMobileZoomInEditor: 0
 --- !u!114 &733217560
 MonoBehaviour:
   m_ObjectHideFlags: 0
