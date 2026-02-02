@@ -1,7 +1,7 @@
 {
-  "buildId": "build-1770035069-fcf12a1",
-  "buildTimestamp": "2026-02-02T12:24:29Z",
-  "buildNumber": 121,
-  "commitSha": "fcf12a1a9dc3af2ad70eb791852dbfdc571a069c",
-  "description": "fix: pwa improvements"
+  "buildId": "build-1770037166-fa88f46",
+  "buildTimestamp": "2026-02-02T12:59:26Z",
+  "buildNumber": 122,
+  "commitSha": "fa88f46d98d1bc5784fc1bc82b410147e204925c",
+  "description": "fix: ios safari webgl build lowest quality"
 }
