@@ -1,9 +1,6 @@
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.InputSystem;
-#if UNITY_STANDALONE_WIN && !UNITY_EDITOR
-using UnityEngine.NVIDIA;
-#endif
 
 /// <summary>
 /// COMPETITIVE ESPORTS-GRADE LATENCY OPTIMIZER
@@ -12,7 +9,7 @@ using UnityEngine.NVIDIA;
 /// Designed for competitive/esports games where every millisecond matters.
 /// 
 /// Platform-specific technologies:
-/// - Windows + NVIDIA: Reflex Low Latency Mode (On+Boost)
+/// - Windows + NVIDIA: Streamline Reflex Low Latency Mode (On+Boost)
 /// - Windows + AMD: Radeon Anti-Lag via driver (user must enable)
 /// - macOS/iOS: Metal frame pacing optimizations, ProMotion 120Hz
 /// - All platforms: Minimum frame queue, 120Hz physics, optimized input polling
@@ -50,9 +47,27 @@ public class FrameRateOptimizer : MonoBehaviour
         ApplyAllOptimizations();
     }
 
+    private void OnDestroy()
+    {
+        // Shutdown Reflex when the optimizer is destroyed
+#if UNITY_STANDALONE_WIN && !UNITY_EDITOR
+        if (_reflexEnabled)
+        {
+            StreamlineReflexPlugin.Shutdown();
+        }
+#endif
+    }
+
     // Process Reflex markers every frame
     private void Update()
     {
+#if UNITY_STANDALONE_WIN && !UNITY_EDITOR
+        if (_reflexEnabled)
+        {
+            StreamlineReflexPlugin.BeginFrame();
+            StreamlineReflexPlugin.Sleep();
+        }
+#endif
         MarkSimulationStart();
     }
 
@@ -79,6 +94,7 @@ public class FrameRateOptimizer : MonoBehaviour
         
         // Platform-specific low-latency technologies
         TryEnableNvidiaReflex();
+        TryEnableNvidiaDLSS();  // DLSS and Frame Generation
         ApplyAppleMetalOptimizations();
         ApplyAMDOptimizations();
         
@@ -255,46 +271,120 @@ public class FrameRateOptimizer : MonoBehaviour
         Debug.Log("[FrameRateOptimizer] Rendering: Optimized for low latency");
     }
 
-    // ==================== NVIDIA REFLEX (Windows + NVIDIA) ====================
+    // ==================== NVIDIA REFLEX (Windows + NVIDIA via Streamline SDK) ====================
     
     private void TryEnableNvidiaReflex()
     {
 #if UNITY_STANDALONE_WIN && !UNITY_EDITOR
+        string vendor = SystemInfo.graphicsDeviceVendor.ToLower();
+        if (!vendor.Contains("nvidia"))
+        {
+            return;
+        }
+        
+        // Try to initialize Reflex via Streamline SDK native plugin
         try
         {
-            string vendor = SystemInfo.graphicsDeviceVendor.ToLower();
-            if (!vendor.Contains("nvidia"))
+            if (StreamlineReflexPlugin.IsAvailable())
             {
-                Debug.Log("[FrameRateOptimizer] Non-NVIDIA GPU - Reflex not available");
-                return;
+                bool success = StreamlineReflexPlugin.Initialize();
+                if (success)
+                {
+                    // Check if Reflex is actually supported on this GPU
+                    if (StreamlineReflexPlugin.IsReflexSupported())
+                    {
+                        StreamlineReflexPlugin.SetMode(StreamlineReflexPlugin.ReflexMode.LowLatencyWithBoost);
+                        _reflexEnabled = true;
+                        ActiveLatencyMode = "NVIDIA Streamline Reflex On+Boost";
+                        Debug.Log("[FrameRateOptimizer] ✓ NVIDIA Reflex ENABLED via Streamline SDK (On+Boost)");
+                        Debug.Log("[FrameRateOptimizer]   Reflex typically reduces latency by 20-40%");
+                        return;
+                    }
+                    else
+                    {
+                        Debug.Log("[FrameRateOptimizer] Streamline initialized but Reflex not supported on this GPU");
+                    }
+                }
             }
-
-            var device = GraphicsDevice.device;
-            if (device == null)
-            {
-                Debug.Log("[FrameRateOptimizer] NVIDIA device not initialized");
-                return;
-            }
-            
-            if (!device.IsReflex())
-            {
-                Debug.Log("[FrameRateOptimizer] NVIDIA Reflex not supported on this GPU");
-                return;
-            }
-
-            // Enable Reflex On+Boost for absolute minimum latency
-            // - On: Reduces render queue intelligently
-            // - Boost: Increases GPU clocks when CPU-bound to reduce latency
-            device.SetReflexMode(ReflexMode.OnPlusBoost);
-            
-            _reflexEnabled = true;
-            ActiveLatencyMode = "NVIDIA Reflex On+Boost";
-            Debug.Log("[FrameRateOptimizer] ✓ NVIDIA Reflex ENABLED (On+Boost)");
-            Debug.Log("[FrameRateOptimizer]   Reflex typically reduces latency by 20-40%");
+        }
+        catch (System.DllNotFoundException)
+        {
+            // Plugin DLLs not found - expected if Streamline SDK not built/installed
+            Debug.Log("[FrameRateOptimizer] Streamline Reflex plugin not found");
         }
         catch (System.Exception e)
         {
             Debug.LogWarning($"[FrameRateOptimizer] Reflex initialization failed: {e.Message}");
+        }
+        
+        // Fallback: maxQueuedFrames=1 provides similar benefits
+        ActiveLatencyMode = "NVIDIA Low Latency (enable Reflex in drivers)";
+        Debug.Log("[FrameRateOptimizer] ✓ NVIDIA GPU detected");
+        Debug.Log("[FrameRateOptimizer]   Streamline Reflex SDK not available - using maxQueuedFrames=1");
+        Debug.Log("[FrameRateOptimizer]   To enable Reflex SDK: Run build-reflex-plugin.ps1 and copy Streamline DLLs");
+        Debug.Log("[FrameRateOptimizer]   Alternative: Enable 'Ultra Low Latency Mode' in NVIDIA Control Panel");
+#endif
+    }
+
+    // ==================== NVIDIA DLSS & FRAME GENERATION ====================
+    
+    private void TryEnableNvidiaDLSS()
+    {
+#if UNITY_STANDALONE_WIN && !UNITY_EDITOR
+        string vendor = SystemInfo.graphicsDeviceVendor.ToLower();
+        if (!vendor.Contains("nvidia"))
+        {
+            return;
+        }
+        
+        // Check DLSS support
+        bool dlssSupported = false;
+        bool frameGenSupported = false;
+        
+        try
+        {
+            dlssSupported = StreamlineDLSSPlugin.IsDLSSSupported();
+            frameGenSupported = StreamlineDLSSPlugin.IsFrameGenSupported();
+        }
+        catch (System.DllNotFoundException)
+        {
+            // Plugin DLLs not found
+            return;
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogWarning($"[FrameRateOptimizer] DLSS check failed: {e.Message}");
+            return;
+        }
+        
+        Debug.Log($"[FrameRateOptimizer] DLSS Support: {(dlssSupported ? "YES" : "NO")}");
+        Debug.Log($"[FrameRateOptimizer] Frame Gen Support: {(frameGenSupported ? "YES (RTX 40+)" : "NO")}");
+        
+        if (dlssSupported)
+        {
+            // Enable DLSS Quality mode for best visual quality with upscaling
+            // Quality mode renders at ~67% resolution and upscales
+            if (StreamlineDLSSPlugin.SetDLSSMode(StreamlineDLSSPlugin.DLSSMode.MaxQuality))
+            {
+                Debug.Log("[FrameRateOptimizer] ✓ DLSS Quality mode ENABLED");
+                Debug.Log("[FrameRateOptimizer]   Rendering at ~67% resolution with AI upscaling");
+            }
+            
+            // Enable Frame Generation if supported (RTX 40+)
+            if (frameGenSupported)
+            {
+                // 2x Frame Gen = 1 generated frame per rendered frame
+                if (StreamlineDLSSPlugin.SetFrameGenMode(StreamlineDLSSPlugin.DLSSGMode.On, 1))
+                {
+                    Debug.Log("[FrameRateOptimizer] ✓ DLSS Frame Generation 2x ENABLED");
+                    Debug.Log("[FrameRateOptimizer]   Generating 1 frame per rendered frame");
+                    ActiveLatencyMode = "NVIDIA Reflex + DLSS Quality + Frame Gen 2x";
+                }
+            }
+            else
+            {
+                ActiveLatencyMode = "NVIDIA Reflex + DLSS Performance";
+            }
         }
 #endif
     }
@@ -310,7 +400,7 @@ public class FrameRateOptimizer : MonoBehaviour
         if (SystemInfo.graphicsDeviceType != UnityEngine.Rendering.GraphicsDeviceType.Metal)
         {
             Debug.Log("[FrameRateOptimizer] Not using Metal API");
-            return;
+            return;;
         }
         
         _metalOptimized = true;
@@ -428,41 +518,79 @@ public class FrameRateOptimizer : MonoBehaviour
 
     // ==================== REFLEX MARKERS ====================
     
+    /// <summary>
+    /// Call at the start of simulation/game logic each frame.
+    /// Used by Reflex to measure CPU simulation time.
+    /// </summary>
     public static void MarkSimulationStart()
     {
 #if UNITY_STANDALONE_WIN && !UNITY_EDITOR
         if (!_reflexEnabled) return;
-        try { GraphicsDevice.device?.SetReflexMarker(ReflexMarker.SimulationStart); }
-        catch { /* Ignore */ }
+        try { StreamlineReflexPlugin.MarkSimulationStart(); }
+        catch { /* Plugin not available */ }
 #endif
     }
-
+    
+    /// <summary>
+    /// Call at the end of simulation/game logic each frame.
+    /// </summary>
     public static void MarkSimulationEnd()
     {
 #if UNITY_STANDALONE_WIN && !UNITY_EDITOR
         if (!_reflexEnabled) return;
-        try { GraphicsDevice.device?.SetReflexMarker(ReflexMarker.SimulationEnd); }
-        catch { /* Ignore */ }
+        try { StreamlineReflexPlugin.MarkSimulationEnd(); }
+        catch { /* Plugin not available */ }
 #endif
     }
-
+    
+    /// <summary>
+    /// Call at the start of render submission.
+    /// </summary>
     public static void MarkRenderStart()
     {
 #if UNITY_STANDALONE_WIN && !UNITY_EDITOR
         if (!_reflexEnabled) return;
-        try { GraphicsDevice.device?.SetReflexMarker(ReflexMarker.RenderSubmitStart); }
-        catch { /* Ignore */ }
+        try { StreamlineReflexPlugin.MarkRenderSubmitStart(); }
+        catch { /* Plugin not available */ }
 #endif
     }
-
+    
+    /// <summary>
+    /// Call at the end of render submission.
+    /// </summary>
     public static void MarkRenderEnd()
     {
 #if UNITY_STANDALONE_WIN && !UNITY_EDITOR
         if (!_reflexEnabled) return;
-        try { GraphicsDevice.device?.SetReflexMarker(ReflexMarker.RenderSubmitEnd); }
-        catch { /* Ignore */ }
+        try { StreamlineReflexPlugin.MarkRenderSubmitEnd(); }
+        catch { /* Plugin not available */ }
 #endif
     }
+    
+    /// <summary>
+    /// Trigger the Reflex Flash Indicator for latency testing
+    /// </summary>
+    public static void TriggerFlashIndicator()
+    {
+#if UNITY_STANDALONE_WIN && !UNITY_EDITOR
+        if (!_reflexEnabled) return;
+        try { StreamlineReflexPlugin.TriggerFlash(); }
+        catch { /* Plugin not available */ }
+#endif
+    }
+    
+    /// <summary>
+    /// Get latency statistics from Reflex (Windows only)
+    /// </summary>
+#if UNITY_STANDALONE_WIN && !UNITY_EDITOR
+    public static bool GetLatencyStats(out StreamlineReflexPlugin.LatencyStats stats)
+    {
+        stats = default;
+        if (!_reflexEnabled) return false;
+        try { return StreamlineReflexPlugin.GetLatencyStats(out stats); }
+        catch { return false; }
+    }
+#endif
     
     // ==================== DEBUG INFO ====================
     
@@ -471,6 +599,14 @@ public class FrameRateOptimizer : MonoBehaviour
     /// </summary>
     public static string GetLatencyDebugInfo()
     {
+        string reflexStatus = "N/A";
+#if UNITY_STANDALONE_WIN && !UNITY_EDITOR
+        if (_reflexEnabled)
+        {
+            reflexStatus = $"ENABLED ✓ (Mode: {StreamlineReflexPlugin.GetMode()})";
+        }
+#endif
+        
         return $@"=== Latency Debug Info ===
 Platform: {PlatformInfo}
 Mode: {ActiveLatencyMode}
@@ -478,7 +614,7 @@ VSync: {(QualitySettings.vSyncCount == 0 ? "OFF ✓" : "ON ✗")}
 Target FPS: {Application.targetFrameRate}
 Max Queued Frames: {QualitySettings.maxQueuedFrames}
 Physics Rate: {(1f / Time.fixedDeltaTime):F0}Hz
-NVIDIA Reflex: {(_reflexEnabled ? "ENABLED ✓" : "N/A")}
+NVIDIA Reflex: {reflexStatus}
 Metal Optimized: {(_metalOptimized ? "YES ✓" : "N/A")}
 Graphics API: {SystemInfo.graphicsDeviceType}";
     }

@@ -34,9 +34,11 @@ public class EnemyScript : EnemyBase
     {
         base.Awake();
         
-        // Try to get melee audio component if not assigned
+        // Try to get melee audio component, add if missing
         if (meleeAudio == null)
             meleeAudio = GetComponent<ProceduralEnemyMeleeAudio>();
+        if (meleeAudio == null)
+            meleeAudio = gameObject.AddComponent<ProceduralEnemyMeleeAudio>();
         
         // Find visual transform for attack animation
         // Enemy prefabs use FBX models with MeshRenderer, not SpriteRenderer

@@ -179,7 +179,8 @@ public class PlayerDamageHandler : MonoBehaviour
 
     private void HandleExperiencePickup(Collider2D other)
     {
-        _audioHandler?.PlayPickupSound();
+        // Note: Sound is played by ExpGain.cs using ProceduralXPPickupAudio
+        // Don't play duplicate pickup sound here
 
         ExpGain expGain = other.GetComponent<ExpGain>();
         float exp = expGain?.expAmountGain ?? 0f;

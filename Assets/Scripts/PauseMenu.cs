@@ -21,6 +21,9 @@ public class PauseMenu : MonoBehaviour
     [Header("Stats Display")]
     public TextMeshProUGUI statsText;
     
+    [Header("NVIDIA Tech Display")]
+    public TextMeshProUGUI nvidiaTechText;
+    
     private bool isPaused = false;
     private bool isMobilePlatform = false;
     private EventSystem eventSystem;
@@ -575,6 +578,143 @@ public class PauseMenu : MonoBehaviour
         sb.AppendLine(FormatStat("Lifesteal", playerStats.CurrentLifeSteal, baseLifeSteal, false, "%"));
         
         statsText.text = sb.ToString();
+        
+        // Also update NVIDIA tech display
+        UpdateNvidiaTechDisplay();
+    }
+    
+    /// <summary>
+    /// Updates the NVIDIA technology status display with REAL detected values.
+    /// This queries the actual native plugin to get current running state.
+    /// </summary>
+    private void UpdateNvidiaTechDisplay()
+    {
+        if (nvidiaTechText == null)
+        {
+            // Try to find or create it
+            if (pauseMenuUI != null)
+            {
+                var texts = pauseMenuUI.GetComponentsInChildren<TextMeshProUGUI>(true);
+                foreach (var t in texts)
+                {
+                    if (t.gameObject.name.ToLower().Contains("nvidia") || t.gameObject.name.ToLower().Contains("tech"))
+                    {
+                        nvidiaTechText = t;
+                        break;
+                    }
+                }
+            }
+        }
+        
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine("<size=24><b>NVIDIA TECH</b></size>");
+        sb.AppendLine();
+        
+        // Platform check
+        string gpu = SystemInfo.graphicsDeviceName;
+        bool isNvidia = gpu.ToLower().Contains("nvidia") || gpu.ToLower().Contains("geforce") || gpu.ToLower().Contains("rtx");
+        sb.AppendLine($"<size=18>GPU: {gpu}</size>");
+        sb.AppendLine();
+        
+#if UNITY_STANDALONE_WIN && !UNITY_EDITOR
+        // Query REAL status from native plugin
+        try
+        {
+            // Reflex Status
+            bool reflexAvailable = StreamlineReflexPlugin.IsAvailable();
+            bool reflexSupported = reflexAvailable && StreamlineReflexPlugin.IsReflexSupported();
+            var reflexMode = StreamlineReflexPlugin.GetMode();
+            
+            string reflexStatus = "<color=#FF4C4C>OFF</color>";
+            if (reflexSupported && reflexMode != StreamlineReflexPlugin.ReflexMode.Off)
+            {
+                reflexStatus = reflexMode == StreamlineReflexPlugin.ReflexMode.LowLatencyWithBoost 
+                    ? "<color=#4CFF4C>ON + BOOST</color>" 
+                    : "<color=#4CFF4C>ON</color>";
+            }
+            else if (!reflexSupported)
+            {
+                reflexStatus = "<color=#888888>Not Supported</color>";
+            }
+            sb.AppendLine($"Reflex: {reflexStatus}");
+            
+            // DLSS Status
+            bool dlssSupported = StreamlineDLSSPlugin.IsDLSSSupported();
+            var dlssMode = StreamlineDLSSPlugin.GetDLSSMode();
+            
+            string dlssModeStr = dlssMode switch
+            {
+                StreamlineDLSSPlugin.DLSSMode.Off => "<color=#FF4C4C>OFF</color>",
+                StreamlineDLSSPlugin.DLSSMode.MaxPerformance => "<color=#4CFF4C>Performance</color>",
+                StreamlineDLSSPlugin.DLSSMode.Balanced => "<color=#4CFF4C>Balanced</color>",
+                StreamlineDLSSPlugin.DLSSMode.MaxQuality => "<color=#4CFF4C>Quality</color>",
+                StreamlineDLSSPlugin.DLSSMode.UltraPerformance => "<color=#4CFF4C>Ultra Perf</color>",
+                StreamlineDLSSPlugin.DLSSMode.UltraQuality => "<color=#4CFF4C>Ultra Quality</color>",
+                StreamlineDLSSPlugin.DLSSMode.DLAA => "<color=#4CFF4C>DLAA</color>",
+                _ => "<color=#888888>Unknown</color>"
+            };
+            
+            if (!dlssSupported)
+            {
+                dlssModeStr = "<color=#888888>Not Supported</color>";
+            }
+            sb.AppendLine($"DLSS: {dlssModeStr}");
+            
+            // Frame Generation Status
+            bool frameGenSupported = StreamlineDLSSPlugin.IsFrameGenSupported();
+            var frameGenMode = StreamlineDLSSPlugin.GetFrameGenMode();
+            int framesGenerated = StreamlineDLSSPlugin.GetNumFramesToGenerate();
+            
+            string frameGenStr;
+            if (!frameGenSupported)
+            {
+                frameGenStr = "<color=#888888>Not Supported (RTX 40+)</color>";
+            }
+            else if (frameGenMode == StreamlineDLSSPlugin.DLSSGMode.Off || framesGenerated == 0)
+            {
+                frameGenStr = "<color=#FF4C4C>OFF</color>";
+            }
+            else
+            {
+                int multiplier = framesGenerated + 1; // 1 generated = 2x, 2 generated = 3x
+                frameGenStr = $"<color=#4CFF4C>{multiplier}x ({framesGenerated} gen)</color>";
+            }
+            sb.AppendLine($"Frame Gen: {frameGenStr}");
+            
+            // Latency stats if available
+            if (StreamlineReflexPlugin.IsPCLSupported())
+            {
+                if (StreamlineReflexPlugin.GetLatencyStats(out var stats) && stats.TotalLatencyMs > 0)
+                {
+                    sb.AppendLine();
+                    sb.AppendLine($"<size=18>Latency: {stats.TotalLatencyMs:F1}ms</size>");
+                }
+            }
+        }
+        catch (System.DllNotFoundException)
+        {
+            sb.AppendLine("<color=#888888>Plugin not loaded</color>");
+            sb.AppendLine("<size=16>Run build-reflex-plugin.ps1</size>");
+        }
+        catch (System.Exception e)
+        {
+            sb.AppendLine($"<color=#FF4C4C>Error: {e.Message}</color>");
+        }
+#else
+        // Not Windows standalone build
+        sb.AppendLine("<color=#888888>NVIDIA tech only available</color>");
+        sb.AppendLine("<color=#888888>in Windows builds</color>");
+#endif
+        
+        if (nvidiaTechText != null)
+        {
+            nvidiaTechText.text = sb.ToString();
+        }
+        else
+        {
+            // Log to console if no UI element
+            Debug.Log("[PauseMenu] NVIDIA Tech Status:\n" + sb.ToString().Replace("<color=#4CFF4C>", "").Replace("<color=#FF4C4C>", "").Replace("<color=#888888>", "").Replace("</color>", ""));
+        }
     }
     
     private string FormatStat(string name, float value, float baseValue, bool noColor = false, string suffix = "", bool lowerIsBetter = false)

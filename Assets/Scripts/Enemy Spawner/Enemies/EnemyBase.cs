@@ -400,10 +400,9 @@ public abstract class EnemyBase : MonoBehaviour
                 
                 if (dist > 0.001f && dist < separationRadius)
                 {
-                    // Stronger push when closer (quadratic falloff for more pronounced effect)
+                    // Linear falloff - gentler than quadratic to prevent velocity spikes
                     float t = 1f - (dist / separationRadius);
-                    float strength = t * t; // Quadratic for stronger close-range push
-                    separationVelocity += toMe.normalized * strength * separationForce;
+                    separationVelocity += toMe.normalized * t * separationForce;
                 }
             }
         }
@@ -418,12 +417,11 @@ public abstract class EnemyBase : MonoBehaviour
             if (dist > 0.001f && dist < playerSeparationRadius)
             {
                 float t = 1f - (dist / playerSeparationRadius);
-                float strength = t * t; // Quadratic - gentle push
-                separationVelocity += toMe.normalized * strength * playerSeparationForce;
+                separationVelocity += toMe.normalized * t * playerSeparationForce;
             }
         }
         
-        // Apply separation as velocity change (capped to prevent flying)
+        // Apply separation - use MoveTowards to prevent velocity spikes
         if (separationVelocity.sqrMagnitude > 0.01f)
         {
             // Cap separation velocity to prevent enemies flying off
@@ -431,7 +429,15 @@ public abstract class EnemyBase : MonoBehaviour
             {
                 separationVelocity = separationVelocity.normalized * maxSeparationSpeed;
             }
-            rb.linearVelocity += separationVelocity * Time.fixedDeltaTime;
+            // Blend toward separation velocity instead of adding to prevent accumulation
+            Vector2 targetVel = rb.linearVelocity + separationVelocity * Time.fixedDeltaTime;
+            // Hard cap on total velocity to absolutely prevent flying
+            float maxTotalSpeed = Speed * 2f + maxSeparationSpeed;
+            if (targetVel.magnitude > maxTotalSpeed)
+            {
+                targetVel = targetVel.normalized * maxTotalSpeed;
+            }
+            rb.linearVelocity = targetVel;
         }
     }
 }

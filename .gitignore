@@ -66,3 +66,11 @@ out/*
 *.dwlt
 UserSettings/Layouts/default-6000.dwlt
 .DS_Store
+
+# External SDKs (downloaded by build scripts)
+/external/Streamline/
+
+# Native plugin build artifacts
+/native/NvidiaReflex/build/
+Assets/Plugins/x86_64/*.dll
+Assets/Plugins/x86_64/*.pdb

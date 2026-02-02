@@ -29,9 +29,11 @@ public class ShootingEnemyScript : EnemyBase
         if (shootPoint == null)
             shootPoint = transform;
         
-        // Try to get gun audio component if not assigned
+        // Try to get gun audio component, add if missing
         if (gunAudio == null)
             gunAudio = GetComponent<ProceduralEnemyGunAudio>();
+        if (gunAudio == null)
+            gunAudio = gameObject.AddComponent<ProceduralEnemyGunAudio>();
         
         // Cache projectile prefab component for pooling
         if (projectilePrefab != null)
@@ -42,11 +44,10 @@ public class ShootingEnemyScript : EnemyBase
     {
         if (player == null) return;
         
-        // Don't move toward player during knockback
+        // Don't move toward player during knockback - skip separation to prevent flying
         if (isKnockedBack)
         {
-            // Still apply separation during knockback
-            base.FixedUpdate();
+            EnemySpatialHash.Instance?.UpdatePosition(this);
             return;
         }
 
