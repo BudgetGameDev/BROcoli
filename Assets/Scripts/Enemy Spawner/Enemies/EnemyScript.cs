@@ -104,11 +104,22 @@ public class EnemyScript : EnemyBase
     {
         if (player == null) return;
         
-        // Don't move toward player during knockback
+        // Don't move toward player during knockback - skip separation too to prevent flying
         if (isKnockedBack)
         {
-            // Still apply separation during knockback
-            base.FixedUpdate();
+            // Update spatial hash position but skip separation forces during knockback
+            EnemySpatialHash.Instance?.UpdatePosition(this);
+            return;
+        }
+        
+        // Stop movement during attack animation - only visual transform moves, not the collider
+        // This prevents physics conflicts when lunge animation plays
+        if (isAttacking)
+        {
+            // Update spatial hash but don't move or apply separation during attack
+            EnemySpatialHash.Instance?.UpdatePosition(this);
+            // Zero out velocity during attack to prevent drift
+            rb.linearVelocity = Vector2.zero;
             return;
         }
 
@@ -274,10 +285,28 @@ public class EnemyScript : EnemyBase
     void OnTriggerEnter2D(Collider2D other)
     {
         // Trigger attack animation on contact (animation will deal damage)
-        if (other.CompareTag("Player") && Time.time >= nextMeleeAttackTime && !isAttacking)
+        if (other.CompareTag("Player") && CanStartAttack())
         {
             StartAttackAnimation();
         }
+    }
+    
+    void OnTriggerStay2D(Collider2D other)
+    {
+        // Re-trigger attack if player stays inside and cooldown expired
+        // This handles cases where player walks into enemy center and stays there
+        if (other.CompareTag("Player") && CanStartAttack())
+        {
+            StartAttackAnimation();
+        }
+    }
+    
+    /// <summary>
+    /// Check if enemy can start a new attack (not attacking, cooldown expired)
+    /// </summary>
+    private bool CanStartAttack()
+    {
+        return !isAttacking && Time.time >= nextMeleeAttackTime;
     }
     
     /// <summary>

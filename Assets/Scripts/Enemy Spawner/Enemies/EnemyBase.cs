@@ -32,7 +32,8 @@ public abstract class EnemyBase : MonoBehaviour
     [SerializeField] protected float separationRadius = 2.5f;   // How close before pushing away
     [SerializeField] protected float separationForce = 50f;     // Strength of push (higher for stronger effect)
     [SerializeField] protected float playerSeparationRadius = 0.4f; // Minimum distance from player (reduced for close melee)
-    [SerializeField] protected float playerSeparationForce = 40f; // How hard to avoid player overlap (reduced for melee)
+    [SerializeField] protected float playerSeparationForce = 8f;  // How hard to avoid player overlap (gentle push)
+    [SerializeField] protected float maxSeparationSpeed = 6f;    // Cap on separation velocity to prevent enemies flying off
 
     [Header("Walk Audio (Optional)")]
     [SerializeField] protected ProceduralEnemyWalkAudio walkAudio;
@@ -98,12 +99,21 @@ public abstract class EnemyBase : MonoBehaviour
             player = context.PlayerTransform;
         }
         
+        // Set linear damping to prevent velocity from persisting too long
+        if (rb != null)
+        {
+            rb.linearDamping = 3f;
+        }
+        
         // Register with spatial hash for efficient neighbor queries
         EnemySpatialHash.Instance?.Register(this);
     }
     
     protected virtual void OnDisable()
     {
+        // Skip spatial hash cleanup during scene teardown to prevent creating new singleton
+        if (!gameObject.scene.isLoaded) return;
+        
         // Unregister from spatial hash
         EnemySpatialHash.Instance?.Unregister(this);
     }
@@ -383,9 +393,14 @@ public abstract class EnemyBase : MonoBehaviour
             }
         }
         
-        // Apply separation as velocity change
+        // Apply separation as velocity change (capped to prevent flying)
         if (separationVelocity.sqrMagnitude > 0.01f)
         {
+            // Cap separation velocity to prevent enemies flying off
+            if (separationVelocity.magnitude > maxSeparationSpeed)
+            {
+                separationVelocity = separationVelocity.normalized * maxSeparationSpeed;
+            }
             rb.linearVelocity += separationVelocity * Time.fixedDeltaTime;
         }
     }

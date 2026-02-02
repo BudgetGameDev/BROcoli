@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 /// <summary>
 /// Spatial hash grid for efficient enemy neighbor queries.
@@ -9,13 +10,14 @@ public class EnemySpatialHash : MonoBehaviour
 {
     private static EnemySpatialHash _instance;
     private static bool _applicationIsQuitting = false;
+    private static bool _isSceneUnloading = false;
     
     public static EnemySpatialHash Instance
     {
         get
         {
-            // Don't create new instance during application quit / scene teardown
-            if (_applicationIsQuitting)
+            // Don't create new instance during application quit or scene teardown
+            if (_applicationIsQuitting || _isSceneUnloading)
             {
                 return null;
             }
@@ -58,6 +60,10 @@ public class EnemySpatialHash : MonoBehaviour
             return;
         }
         _instance = this;
+        
+        // Subscribe to scene events to prevent singleton creation during teardown
+        SceneManager.sceneUnloaded += OnSceneUnloaded;
+        SceneManager.sceneLoaded += OnSceneLoaded;
     }
 
     void OnApplicationQuit()
@@ -67,10 +73,24 @@ public class EnemySpatialHash : MonoBehaviour
 
     void OnDestroy()
     {
+        SceneManager.sceneUnloaded -= OnSceneUnloaded;
+        SceneManager.sceneLoaded -= OnSceneLoaded;
+        
         if (_instance == this)
         {
             _instance = null;
         }
+    }
+    
+    private static void OnSceneUnloaded(Scene scene)
+    {
+        _isSceneUnloading = true;
+    }
+    
+    private static void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        // Reset flag when a new scene loads
+        _isSceneUnloading = false;
     }
 
     /// <summary>

@@ -11,6 +11,7 @@ public class PlayerDamageHandler : MonoBehaviour
     // Scaled knockback parameters - moderate force for feel without losing control
     private const float MinKnockbackForce = 5f;
     private const float MaxKnockbackForce = 12f;
+    private const float DamageImmunityDuration = 0.3f; // Immunity frames after taking damage
 
     private PlayerStats _playerStats;
     private PlayerMovement _playerMovement;
@@ -18,6 +19,7 @@ public class PlayerDamageHandler : MonoBehaviour
     private ShuffleWalkVisual _hopVisual;
 
     private bool _gameOver;
+    private float _lastDamageTime = -999f; // Time of last damage taken
 
     /// <summary>
     /// Whether the game is over (player died).
@@ -117,6 +119,13 @@ public class PlayerDamageHandler : MonoBehaviour
     public bool TakeMeleeDamage(float damage, Vector2 knockbackDirection)
     {
         if (_gameOver) return false;
+        
+        // Check damage immunity window to prevent rapid multiple hits
+        if (Time.time - _lastDamageTime < DamageImmunityDuration)
+        {
+            return false;
+        }
+        _lastDamageTime = Time.time;
 
         // Play damage sound
         _audioHandler?.PlayDamageSound();
