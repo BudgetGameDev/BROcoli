@@ -117,6 +117,13 @@ const VersionChecker = (function() {
       }
       
       const version = await response.json();
+      
+      // Check if this is an offline fallback response from service worker
+      if (version && version.offline === true) {
+        log('Received offline fallback from service worker');
+        return null; // Treat as if we couldn't fetch (offline mode)
+      }
+      
       log('Remote version:', version);
       return version;
     } catch (err) {

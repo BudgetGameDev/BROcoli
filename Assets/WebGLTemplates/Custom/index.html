@@ -863,14 +863,84 @@
           }
           
           updateCanvasSize();
-        }).catch(function(error) {
-          if (loadingScreen) {
-            var errorMessage = (error && error.message) ? error.message : 'Could not load game files. Please check your connection and try again.';
-            // Check if we're likely offline
-            if (!navigator.onLine) {
-              errorMessage = 'You appear to be offline. The game files may not be cached yet. Please connect to the internet and reload to download the game first.';
+          
+          // iOS Safari cache warmup - ensure all critical files are cached for offline use
+          // Run this after successful load to prevent offline issues on next app restart
+          try {
+            if ('serviceWorker' in navigator && navigator.serviceWorker.controller && (isiOSDevice || isMobile)) {
+              setTimeout(function() {
+                try {
+                  // Get the current page's build file URLs from the loader
+                  var buildFiles = [
+                    'Build/{{{ DATA_FILENAME }}}',
+                    'Build/{{{ FRAMEWORK_FILENAME }}}',
+#if USE_WASM
+                    'Build/{{{ CODE_FILENAME }}}',
+#endif
+#if MEMORY_FILENAME
+                    'Build/{{{ MEMORY_FILENAME }}}',
+#endif
+                    './index.html',
+                    './manifest.json',
+                    './version-check.js',
+                    './pwa-install.js',
+                    './pwa-install.css'
+                  ];
+                  
+                  // Convert relative URLs to absolute
+                  var baseUrl = window.location.href.split('?')[0].replace(/\/[^\/]*$/, '/');
+                  var absoluteUrls = buildFiles.map(function(url) {
+                    return new URL(url, baseUrl).href;
+                  });
+                  
+                  console.log('[CacheWarmup] Requesting cache warmup for', absoluteUrls.length, 'files');
+                  navigator.serviceWorker.controller.postMessage({
+                    type: 'WARMUP_CACHE',
+                    urls: absoluteUrls
+                  });
+                } catch (e) {
+                  console.warn('[CacheWarmup] Error:', e);
+                }
+              }, 3000); // Wait 3 seconds after game loads
             }
-            loadingScreen.innerHTML = '<div style="color: #ff6b6b; font-family: sans-serif; text-align: center; padding: 20px;"><h2>Failed to load game</h2><p>' + errorMessage + '</p><button onclick="location.reload()" style="padding: 10px 20px; margin-top: 10px; cursor: pointer;">Retry</button></div>';
+          } catch (e) { /* ignore */ };
+        }).catch(function(error) {
+          console.warn('[Unity] createUnityInstance failed:', error);
+          
+          // iOS Safari edge case: Sometimes fetch fails on first try after force-close
+          // but cache is actually available. Auto-retry once before showing error.
+          if (!window._unityRetryAttempted) {
+            window._unityRetryAttempted = true;
+            console.log('[Unity] First load failed, auto-retrying in 1 second...');
+            
+            var loadingText = document.querySelector('.loading-text');
+            if (loadingText) {
+              loadingText.textContent = 'Retrying...';
+            }
+            
+            // Wait a moment for service worker to fully initialize
+            setTimeout(function() {
+              console.log('[Unity] Retrying game load...');
+              startUnityGame();
+            }, 1000);
+            return;
+          }
+          
+          // Second attempt also failed - check if we should show offline message
+          if (loadingScreen) {
+            var errorMessage = (error && error.message) ? error.message : 'Could not load game files.';
+            
+            // Provide helpful message based on state
+            if (!navigator.onLine) {
+              // Check if service worker is active (files should be cached)
+              if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+                errorMessage = 'Loading failed. Try closing and reopening the app.';
+              } else {
+                errorMessage = 'You appear to be offline. Please connect to the internet to download the game, then you can play offline.';
+              }
+            }
+            
+            loadingScreen.innerHTML = '<div style="color: #ff6b6b; font-family: sans-serif; text-align: center; padding: 20px;"><h2>Failed to load game</h2><p>' + errorMessage + '</p><button onclick="window._unityRetryAttempted=false;location.reload()" style="padding: 10px 20px; margin-top: 10px; cursor: pointer; background: #333; color: #fff; border: none; border-radius: 4px;">Retry</button></div>';
           }
         });
       }
