@@ -80,10 +80,265 @@ Procedural audio components prefixed with `Procedural*Audio` (e.g., `ProceduralG
 
 ## Build & Deploy
 - Primary target: WebGL (hosted at `budgetgamedev.github.io/BROcoli`)
-- **Verify compilation**: Run `dotnet build .\unity-2.slnx` before committing
 - Open in Unity Editor, build via File → Build Settings → WebGL
 - PWA manifest and service worker in `Assets/WebGLTemplates/`
-- Check Unity console logs in `%LOCALAPPDATA%\Unity\Editor\Editor.log` for runtime errors
+
+## Build Verification (CRITICAL - Before Completing Any Task)
+
+**The agent MUST verify builds succeed before marking any coding task complete.**
+
+### Verification Tiers (Choose Based on Change Complexity)
+
+| Change Type | Verification Required | Time |
+|-------------|----------------------|------|
+| **Trivial** (comments, formatting, docs) | None | 0s |
+| **Simple** (single file logic change) | `dotnet build unity-2.slnx` | ~3s |
+| **Moderate** (multiple files, new classes) | `dotnet build unity-2.slnx` | ~3s |
+| **Complex** (Unity APIs, scenes, prefabs) | `./scripts/unity-build-check.sh` | ~30s |
+| **Integration** (new packages, assets) | `./scripts/unity-build-check.sh` | ~30s |
+
+### Quick Verification Commands
+
+**For most code changes** (fast, catches 90% of errors):
+```bash
+dotnet build unity-2.slnx
+```
+*Note: Requires `Library/` folder to exist. If this fails with package errors, run `./scripts/unity-build-check.sh` first.*
+
+**For Unity-specific changes** (scenes, prefabs, Input System, URP):
+```bash
+./scripts/unity-build-check.sh
+```
+
+### When `dotnet build` Works vs Doesn't
+
+`dotnet build unity-2.slnx` **DOES catch:**
+- Syntax errors
+- Missing semicolons, braces
+- Type mismatches
+- Missing `using` statements for standard C#
+- Method signature errors
+- Most compile-time errors in YOUR code
+
+`dotnet build unity-2.slnx` **DOES NOT catch:**
+- Missing Unity package references (InputSystem, URP, etc.)
+- Scene/prefab reference errors
+- Unity-specific API availability
+- Asset import errors
+
+**Rule of thumb:** If you touched anything Unity-specific (scenes, Input System, shaders, URP), use the full Unity build check.
+
+## Unity CLI Compilation (Headless/Batch Mode)
+
+**IMPORTANT:** `dotnet build unity-2.slnx` does NOT work for Unity projects with package dependencies (InputSystem, URP, etc.). Use Unity's batch mode instead.
+
+### Quick Verification
+Use the provided script:
+```bash
+./scripts/unity-build-check.sh
+```
+
+### Unity Editor Paths by Platform
+
+**macOS:**
+```bash
+/Applications/Unity/Hub/Editor/<version>/Unity.app/Contents/MacOS/Unity
+# Example: /Applications/Unity/Hub/Editor/6000.3.6f1/Unity.app/Contents/MacOS/Unity
+```
+
+**Windows:**
+```powershell
+"C:\Program Files\Unity\Hub\Editor\<version>\Editor\Unity.exe"
+# Example: "C:\Program Files\Unity\Hub\Editor\6000.3.6f1\Editor\Unity.exe"
+```
+
+**Linux:**
+```bash
+~/Unity/Hub/Editor/<version>/Editor/Unity
+# Example: ~/Unity/Hub/Editor/6000.3.6f1/Editor/Unity
+```
+
+### Batch Mode Compilation Command
+
+**macOS/Linux:**
+```bash
+/path/to/Unity -batchmode -projectPath /path/to/unity-2 -buildTarget WebGL -logFile /tmp/unity_build.log -quit
+```
+
+**Windows (PowerShell):**
+```powershell
+& "C:\Program Files\Unity\Hub\Editor\6000.3.6f1\Editor\Unity.exe" -batchmode -projectPath . -buildTarget WebGL -logFile "$env:TEMP\unity_build.log" -quit
+```
+
+### Reading Build Logs
+
+**Check for success:**
+```bash
+# Success indicator
+grep "Exiting batchmode successfully" /tmp/unity_build.log
+
+# Check for script errors in YOUR code (not package cache)
+grep "Assets/Scripts.*error CS" /tmp/unity_build.log
+
+# Check for warnings
+grep "Assets/Scripts.*warning CS" /tmp/unity_build.log
+```
+
+**Log file locations:**
+- macOS/Linux: Use `-logFile /tmp/unity_build.log` or `-logFile -` for stdout
+- Windows: Use `-logFile "$env:TEMP\unity_build.log"` 
+- Default (no -logFile): `%LOCALAPPDATA%\Unity\Editor\Editor.log` (Windows) or `~/Library/Logs/Unity/Editor.log` (macOS)
+
+### Interpreting Build Results
+
+| Log Message | Meaning |
+|-------------|---------|
+| `Exiting batchmode successfully now!` | ✅ Build succeeded |
+| `Scripts have compiler errors.` | ❌ Compilation failed |
+| `error CS####:` in `Assets/Scripts/` | ❌ Error in YOUR code - fix it |
+| `error CS####:` in `Library/PackageCache/` | ⚠️ Package cache corruption - see Clean Rebuild |
+
+## Clean Rebuild Process (LAST RESORT ONLY)
+
+**⚠️ Clean rebuilds take 2-5 minutes. Only use when all other options are exhausted!**
+
+### Troubleshooting Order (Try These First!)
+
+1. **First:** Run `dotnet build unity-2.slnx` - catches most code errors in ~3 seconds
+2. **Second:** Run `./scripts/unity-build-check.sh` - full Unity compilation in ~30 seconds
+3. **Third:** Check if the error is in YOUR code (`Assets/Scripts/`) or package cache (`Library/PackageCache/`)
+4. **Fourth:** If error is in your code, FIX IT - don't clean rebuild!
+5. **LAST RESORT:** Clean rebuild only if errors are in `Library/PackageCache/` with no code changes
+
+### Symptoms that ACTUALLY require a clean rebuild:
+- Errors in `Library/PackageCache/` (not your code) AND you made no code changes
+- "The type or namespace name 'X' does not exist" for Unity packages after package updates
+- Build worked before, you reverted all changes, still fails
+- Corrupt meta files or asset database
+
+### Symptoms that DO NOT require clean rebuild (fix code instead!):
+- Errors in `Assets/Scripts/` - these are YOUR bugs, fix them!
+- Missing references after renaming/moving files - update the references
+- New compile errors after your changes - your code has bugs
+
+### ⚠️ SAFETY GUARDRAILS (CRITICAL)
+
+**NEVER run `rm -rf` or `Remove-Item -Recurse` on paths outside the Unity project directory.**
+
+Before running any destructive delete command:
+1. **Verify you are in the project root**: Run `pwd` and confirm it is the correct project
+2. **Only delete these folders** (all are gitignored and regenerable):
+   - `Library/` - Unity's cache (safe to delete entirely)
+   - `Library/PackageCache/` - Downloaded packages
+   - `Library/Bee/` - Build cache
+   - `Library/ScriptAssemblies/` - Compiled scripts
+   - `Temp/` - Temporary build files
+   - `Logs/` - Editor logs
+3. **Use relative paths only**: `rm -rf Library/` NOT `rm -rf /Users/.../Library/`
+4. **Never delete**: `Assets/`, `Packages/manifest.json`, `ProjectSettings/`, or any code
+
+**Safe delete patterns:**
+```bash
+# ✅ SAFE - relative paths within project
+rm -rf Library/
+rm -rf Temp/
+rm -f Packages/packages-lock.json
+
+# ❌ DANGEROUS - never use absolute paths or parent traversal
+rm -rf /Users/user/Library/        # WRONG - system Library!
+rm -rf ../                          # WRONG - parent directory
+rm -rf ~/Library/                   # WRONG - user Library folder
+```
+
+### Step 1: Clean the Library Folder
+
+**macOS/Linux:**
+```bash
+# First, verify you're in the project directory
+pwd  # Should show: .../unity-2
+
+# Then clean (relative paths only)
+rm -rf Library/
+rm -f Packages/packages-lock.json
+```
+
+**Windows (PowerShell):**
+```powershell
+# First, verify you're in the project directory
+Get-Location  # Should show: ...\unity-2
+
+# Then clean (relative paths only)
+Remove-Item -Recurse -Force Library
+Remove-Item -Force Packages\packages-lock.json -ErrorAction SilentlyContinue
+```
+
+### Step 2: Rebuild (Allow Extra Time)
+
+First build after cleaning takes **2-5 minutes** as Unity must:
+1. Download all packages from Unity Package Registry
+2. Import all assets
+3. Compile all scripts
+
+```bash
+# macOS/Linux - with progress monitoring
+/path/to/Unity -batchmode -projectPath . -buildTarget WebGL -logFile /tmp/unity_rebuild.log -quit &
+tail -f /tmp/unity_rebuild.log | grep -E "(Package|Compil|error|Import)"
+```
+
+```powershell
+# Windows - run and wait
+& "C:\Program Files\Unity\Hub\Editor\6000.3.6f1\Editor\Unity.exe" -batchmode -projectPath . -buildTarget WebGL -logFile "$env:TEMP\unity_rebuild.log" -quit
+Get-Content "$env:TEMP\unity_rebuild.log" -Tail 50
+```
+
+### Step 3: Verify Success
+
+```bash
+# Check for compiled assemblies
+ls -la Library/ScriptAssemblies/Assembly-CSharp*
+
+# Should see:
+# Assembly-CSharp.dll (your game code)
+# Assembly-CSharp.pdb (debug symbols)
+# Assembly-CSharp-Editor.dll (editor scripts)
+```
+
+### Partial Clean (Faster, Less Thorough)
+
+If full clean is too slow, try cleaning only specific folders:
+
+```bash
+# Just clear compilation cache (keeps packages)
+rm -rf Library/Bee
+rm -rf Library/ScriptAssemblies
+
+# Clear package cache only (keeps asset imports)
+rm -rf Library/PackageCache
+rm -f Packages/packages-lock.json
+```
+
+### CI/CD Considerations
+
+For automated builds, always start with a clean Library or use Unity's cache server:
+
+```bash
+# CI script example
+if [ ! -d "Library/PackageCache" ]; then
+    echo "First build - expect 3-5 minute package download"
+fi
+
+/path/to/Unity -batchmode -projectPath . -buildTarget WebGL -logFile build.log -quit
+EXIT_CODE=$?
+
+if grep -q "Exiting batchmode successfully" build.log; then
+    echo "✅ Build passed"
+    exit 0
+else
+    echo "❌ Build failed"
+    grep "error CS" build.log
+    exit 1
+fi
+```
 
 ## Verification & Testing (IMPORTANT)
 After implementing UI or visual changes, **verify by running in Unity Editor and capturing a screenshot**:
