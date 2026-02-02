@@ -4,26 +4,78 @@
  * This module checks for new versions of the game before loading.
  * It compares a local cached version ID with the remote version on GitHub Pages,
  * and forces a cache refresh if they don't match.
+ * 
+ * CRITICAL: This module is designed to NEVER block game loading.
+ * All errors are caught and logged - the game will always attempt to start.
  */
 
 const VersionChecker = (function() {
+  'use strict';
+  
+  // Safe wrapper for any async operation - never throws
+  function safeAsync(fn) {
+    return async function(...args) {
+      try {
+        return await fn.apply(this, args);
+      } catch (err) {
+        console.warn('[VersionCheck] Safe async caught error:', err);
+        return null;
+      }
+    };
+  }
+  
+  // Detect if we're on the staging build (BranchMain) or release build (root)
+  function detectBuildPath() {
+    try {
+      const path = window.location.pathname;
+    // Check if we're on the staging build path
+    if (path.includes('/BranchMain/') || path.includes('/BranchMain')) {
+      return {
+        isStaging: true,
+        basePath: '/BROcoli/BranchMain/',
+        versionUrl: 'https://budgetgamedev.github.io/BROcoli/BranchMain/version.json',
+        cachePrefix: 'staging'
+      };
+    }
+    // Default to release build
+    return {
+      isStaging: false,
+      basePath: '/BROcoli/',
+      versionUrl: 'https://budgetgamedev.github.io/BROcoli/version.json',
+      cachePrefix: 'release'
+    };
+    } catch (err) {
+      console.warn('[VersionCheck] detectBuildPath error:', err);
+      return {
+        isStaging: false,
+        basePath: '/BROcoli/',
+        versionUrl: 'https://budgetgamedev.github.io/BROcoli/version.json',
+        cachePrefix: 'release'
+      };
+    }
+  }
+  
+  const BUILD_INFO = detectBuildPath();
+  
   // Configuration
   const CONFIG = {
-    // Remote URL to check for version (GitHub Pages)
-    remoteVersionUrl: 'https://budgetgamedev.github.io/BROcoli/version.json',
-    // Local storage key for cached version
-    localVersionKey: 'brocoli_cached_version',
+    // Remote URL to check for version (GitHub Pages) - dynamically set based on build
+    remoteVersionUrl: BUILD_INFO.versionUrl,
+    // Local storage key for cached version - separate for release vs staging
+    localVersionKey: `brocoli_cached_version_${BUILD_INFO.cachePrefix}`,
     // Cache name used by service worker (must match sw.js)
-    cacheName: 'unity-game-cache-v1',
+    cacheName: `unity-game-cache-v1-${BUILD_INFO.cachePrefix}`,
     // Timeout for version check (ms)
     checkTimeout: 5000,
     // Enable debug logging
-    debug: true
+    debug: true,
+    // Build info for reference
+    buildInfo: BUILD_INFO
   };
 
   function log(...args) {
     if (CONFIG.debug) {
-      console.log('[VersionCheck]', ...args);
+      console.log('[VersionCheck]', `[${CONFIG.buildInfo.isStaging ? 'STAGING' : 'RELEASE'}]`, ...args);
     }
   }
 
@@ -110,51 +162,66 @@ const VersionChecker = (function() {
 
   /**
    * Clears all service worker caches
+   * Always returns gracefully - never throws
    */
   async function clearAllCaches() {
     log('Clearing all caches...');
     
     try {
+      if (typeof caches === 'undefined') {
+        log('Cache API not available');
+        return false;
+      }
       const cacheNames = await caches.keys();
       log('Found caches:', cacheNames);
       
       await Promise.all(
         cacheNames.map(name => {
-          log('Deleting cache:', name);
-          return caches.delete(name);
+          try {
+            log('Deleting cache:', name);
+            return caches.delete(name);
+          } catch (e) {
+            warn('Failed to delete cache:', name, e);
+            return Promise.resolve();
+          }
         })
       );
       
       log('All caches cleared');
       return true;
     } catch (err) {
-      error('Failed to clear caches:', err);
+      warn('Failed to clear caches (non-blocking):', err);
       return false;
     }
   }
 
   /**
    * Unregisters and re-registers the service worker
+   * Always returns gracefully - never throws
    */
   async function refreshServiceWorker() {
-    if (!('serviceWorker' in navigator)) {
-      return false;
-    }
-    
-    log('Refreshing service worker...');
-    
     try {
+      if (!('serviceWorker' in navigator)) {
+        return false;
+      }
+      
+      log('Refreshing service worker...');
+      
       const registrations = await navigator.serviceWorker.getRegistrations();
       
       for (const registration of registrations) {
-        log('Unregistering service worker:', registration.scope);
-        await registration.unregister();
+        try {
+          log('Unregistering service worker:', registration.scope);
+          await registration.unregister();
+        } catch (e) {
+          warn('Failed to unregister SW (non-blocking):', e);
+        }
       }
       
       log('All service workers unregistered');
       return true;
     } catch (err) {
-      error('Failed to refresh service worker:', err);
+      warn('Failed to refresh service worker (non-blocking):', err);
       return false;
     }
   }
@@ -229,29 +296,37 @@ const VersionChecker = (function() {
   /**
    * Main function: Check for updates and handle accordingly
    * Returns a promise that resolves when it's safe to start the game
+   * NEVER throws - always allows the game to start (offline-first PWA)
    */
   async function checkForUpdates() {
     log('Starting version check...');
     
-    // Check if we're offline first - skip the "Checking for updates" message
-    if (!navigator.onLine) {
-      log('Device is offline, skipping version check');
-      updateLoadingMessage('Loading cached game...');
-      return { updated: false, reason: 'offline' };
-    }
-    
-    updateLoadingMessage('Checking for updates...');
-    
-    // Get local and remote versions in parallel
-    const localVersion = getLocalVersion();
-    const remoteVersion = await fetchRemoteVersion();
-    
-    // If we couldn't fetch remote version, continue with cached version
-    if (!remoteVersion) {
-      log('Could not fetch remote version, continuing with cached game');
-      updateLoadingMessage('Loading game...');
-      return { updated: false, reason: 'fetch-failed' };
-    }
+    try {
+      // Check if we're offline first - skip version check entirely
+      if (!navigator.onLine) {
+        log('Device is offline, skipping version check - using cached game');
+        updateLoadingMessage('Loading cached game...');
+        return { updated: false, reason: 'offline' };
+      }
+      
+      updateLoadingMessage('Checking for updates...');
+      
+      // Get local and remote versions in parallel
+      const localVersion = getLocalVersion();
+      let remoteVersion = null;
+      
+      try {
+        remoteVersion = await fetchRemoteVersion();
+      } catch (fetchErr) {
+        log('Version fetch failed, continuing with cached game:', fetchErr.message);
+      }
+      
+      // If we couldn't fetch remote version, continue with cached version (offline-friendly)
+      if (!remoteVersion) {
+        log('Could not fetch remote version, continuing with cached game');
+        updateLoadingMessage('Loading game...');
+        return { updated: false, reason: 'fetch-failed' };
+      }
     
     // If no local version, this is a fresh install - just save and continue
     if (!localVersion) {
@@ -295,25 +370,39 @@ const VersionChecker = (function() {
     log('Version is up to date');
     updateLoadingMessage('Loading game...');
     return { updated: false, reason: 'up-to-date' };
+    
+    } catch (err) {
+      // NEVER block game start due to version check errors
+      warn('Version check encountered an error, continuing anyway:', err.message);
+      updateLoadingMessage('Loading game...');
+      return { updated: false, reason: 'error', error: err.message };
+    }
   }
 
   /**
    * Force clear cache and reload (can be called manually)
+   * Always attempts reload even if clearing fails
    */
   async function forceUpdate() {
-    log('Forcing update...');
-    updateLoadingMessage('Forcing update...');
+    try {
+      log('Forcing update...');
+      updateLoadingMessage('Forcing update...');
+      
+      // Clear local version to force re-download
+      try {
+        localStorage.removeItem(CONFIG.localVersionKey);
+      } catch (e) { /* ignore */ }
+      
+      // Clear all caches (non-blocking)
+      await clearAllCaches();
+      
+      // Refresh service worker (non-blocking)
+      await refreshServiceWorker();
+    } catch (err) {
+      warn('forceUpdate had errors (proceeding with reload):', err);
+    }
     
-    // Clear local version to force re-download
-    localStorage.removeItem(CONFIG.localVersionKey);
-    
-    // Clear all caches
-    await clearAllCaches();
-    
-    // Refresh service worker
-    await refreshServiceWorker();
-    
-    // Hard reload
+    // Always reload regardless of errors
     window.location.reload(true);
   }
 
@@ -327,5 +416,16 @@ const VersionChecker = (function() {
   };
 })();
 
-// Make it available globally
-window.VersionChecker = VersionChecker;
+// Make it available globally with a fallback that never blocks game loading
+try {
+  window.VersionChecker = VersionChecker;
+} catch (e) {
+  console.warn('[VersionCheck] Failed to initialize, creating no-op fallback');
+  window.VersionChecker = {
+    checkForUpdates: function() { return Promise.resolve({ updated: false, reason: 'init-failed' }); },
+    forceUpdate: function() { window.location.reload(true); },
+    getLocalVersion: function() { return null; },
+    clearAllCaches: function() { return Promise.resolve(false); },
+    CONFIG: {}
+  };
+}

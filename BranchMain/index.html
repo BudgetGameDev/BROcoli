@@ -6,10 +6,42 @@
     <title>Unity WebGL Player | BROcoli</title>
     
     <!-- PWA Meta Tags -->
-    <link rel="manifest" href="manifest.json">
+    <link rel="manifest" href="manifest.json" id="manifest-link">
     <meta name="theme-color" content="#000000">
     <meta name="mobile-web-app-capable" content="yes">
-    <meta name="application-name" content="BROcoli">
+    <meta name="application-name" content="BROcoli" id="app-name-meta">
+    
+    <!-- Staging/Release manifest detection -->
+    <script>
+      (function() {
+        try {
+          window.isStagingBuild = window.location.pathname.indexOf('/BranchMain') !== -1;
+          if (window.isStagingBuild) {
+            // Switch to staging manifest
+            var manifestLink = document.getElementById('manifest-link');
+            if (manifestLink) manifestLink.href = 'manifest-staging.json';
+            
+            // Fetch release manifest to get base name, then append " Staging"
+            fetch('manifest.json')
+              .then(function(r) { return r.json(); })
+              .then(function(manifest) {
+                var baseName = manifest.name || 'Web Game';
+                var stagingName = baseName + ' Staging';
+                document.title = stagingName;
+                var appNameMeta = document.getElementById('app-name-meta');
+                if (appNameMeta) appNameMeta.content = stagingName;
+              })
+              .catch(function() {
+                // Fallback if fetch fails
+                document.title = document.title + ' Staging';
+              });
+          }
+        } catch (e) {
+          // Staging detection failed - continue with defaults
+          window.isStagingBuild = false;
+        }
+      })();
+    </script>
     
     <!-- iOS Safari specific meta tags -->
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -300,9 +332,27 @@
           font-size: 24px;
         }
       }
+      
+      /* Staging build info overlay - only visible on staging builds */
+      #staging-build-info {
+        display: none;
+        position: fixed;
+        bottom: 4px;
+        right: 8px;
+        color: rgba(255, 255, 255, 0.6);
+        font-family: monospace;
+        font-size: 10px;
+        z-index: 99999;
+        pointer-events: none;
+        text-shadow: 0 0 2px rgba(0, 0, 0, 0.8);
+        white-space: nowrap;
+      }
     </style>
   </head>
   <body style="text-align: center; padding: 0; border: 0; margin: 0; background-color: #000000;">
+    <!-- Staging Build Info Overlay (only shown on staging builds) -->
+    <div id="staging-build-info"></div>
+    
     <!-- Loading Screen -->
     <div id="loading-screen">
       <div class="loading-spinner"></div>
@@ -338,34 +388,44 @@
     
     <script src="Build/WebGL.loader.js"></script>
     <script>
-      // Platform detection
-      var isiOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-      var isMacWithTouch = (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-      var isiOSDevice = isiOS || isMacWithTouch;
-      var isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-      var isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || isiOSDevice;
-      var isStandalone = window.matchMedia('(display-mode: standalone)').matches || 
-                         window.matchMedia('(display-mode: fullscreen)').matches ||
-                         window.navigator.standalone === true;
+      // Platform detection (wrapped for safety)
+      var isiOS = false;
+      var isMacWithTouch = false;
+      var isiOSDevice = false;
+      var isSafari = false;
+      var isMobile = false;
+      var isStandalone = false;
+      
+      try {
+        isiOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+        isMacWithTouch = (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+        isiOSDevice = isiOS || isMacWithTouch;
+        isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+        isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || isiOSDevice;
+        isStandalone = window.matchMedia('(display-mode: standalone)').matches || 
+                       window.matchMedia('(display-mode: fullscreen)').matches ||
+                       window.navigator.standalone === true;
+      } catch (e) {
+        // Platform detection failed - use safe defaults
+      }
       
       // Audio context reference for Unity's audio (not running background oscillator)
       var audioKeepAlive = null;
       
       // Patch canvas.getContext for high-performance GPU before Unity loads
-      (function() {
-        var originalGetContext = HTMLCanvasElement.prototype.getContext;
-        HTMLCanvasElement.prototype.getContext = function(type, attributes) {
-          if (type === 'webgl' || type === 'webgl2' || type === 'experimental-webgl') {
-            attributes = attributes || {};
-            attributes.powerPreference = 'high-performance';
-            attributes.preserveDrawingBuffer = false;
-            attributes.failIfMajorPerformanceCaveat = false;
-            attributes.desynchronized = true; // Hint for low-latency rendering
-            attributes.antialias = true; // User wants antialiasing kept
-          }
-          return originalGetContext.call(this, type, attributes);
-        };
-      })();
+      try {
+        (function() {
+          var originalGetContext = HTMLCanvasElement.prototype.getContext;
+          HTMLCanvasElement.prototype.getContext = function(type, attributes) {
+            if (type === 'webgl' || type === 'webgl2' || type === 'experimental-webgl') {
+              attributes = attributes || {};
+              attributes.powerPreference = 'high-performance';
+              attributes.preserveDrawingBuffer = false;
+            }
+            return originalGetContext.call(this, type, attributes);
+          };
+        })();
+      } catch (e) { /* getContext patch failed - continue */ }
       
       // ProMotion frame monitoring removed - was consuming background CPU
       
@@ -396,15 +456,17 @@
       
       // Experimental Scheduler API - request high priority for main thread tasks
       // This is a hint to the browser that our tasks are user-blocking
-      if ('scheduler' in window && 'postTask' in window.scheduler) {
-        // Wrap requestAnimationFrame to use high priority scheduling
-        var originalRAF = window.requestAnimationFrame;
-        window.requestAnimationFrame = function(callback) {
-          return window.scheduler.postTask(function() {
-            return originalRAF(callback);
-          }, { priority: 'user-blocking' });
-        };
-      }
+      try {
+        if ('scheduler' in window && 'postTask' in window.scheduler) {
+          // Wrap requestAnimationFrame to use high priority scheduling
+          var originalRAF = window.requestAnimationFrame;
+          window.requestAnimationFrame = function(callback) {
+            return window.scheduler.postTask(function() {
+              return originalRAF(callback);
+            }, { priority: 'user-blocking' });
+          };
+        }
+      } catch (e) { /* Scheduler API patch failed - continue */ }
       
       // Keep-alive removed - was consuming background CPU
       
@@ -455,74 +517,64 @@
       }
       
       // requestIdleCallback fallback for Safari (still not supported in 2026)
-      if (!('requestIdleCallback' in window)) {
-        window.requestIdleCallback = function(cb) {
-          var start = Date.now();
-          return setTimeout(function() {
-            cb({
-              didTimeout: false,
-              timeRemaining: function() {
-                return Math.max(0, 50 - (Date.now() - start));
-              }
-            });
-          }, 1);
-        };
-        window.cancelIdleCallback = function(id) {
-          clearTimeout(id);
-        };
-      }
+      // if (!('requestIdleCallback' in window)) {
+      //   window.requestIdleCallback = function(cb) {
+      //     var start = Date.now();
+      //     return setTimeout(function() {
+      //       cb({
+      //         didTimeout: false,
+      //         timeRemaining: function() {
+      //           return Math.max(0, 50 - (Date.now() - start));
+      //         }
+      //       });
+      //     }, 1);
+      //   };
+      //   window.cancelIdleCallback = function(id) {
+      //     clearTimeout(id);
+      //   };
+      // }
       
-      // Force GPU process warmup before Unity loads
-      function warmupGPU() {
-        var warmupCanvas = document.createElement('canvas');
-        warmupCanvas.width = 64;
-        warmupCanvas.height = 64;
-        var ctx = warmupCanvas.getContext('webgl2', { powerPreference: 'high-performance' }) ||
-                  warmupCanvas.getContext('webgl', { powerPreference: 'high-performance' });
-        if (ctx) {
-          // Draw something to ensure GPU is initialized
-          ctx.clearColor(0, 0, 0, 1);
-          ctx.clear(ctx.COLOR_BUFFER_BIT);
-          // Clean up
-          var ext = ctx.getExtension('WEBGL_lose_context');
-          if (ext) ext.loseContext();
-        }
-      }
-      
-      // Start iOS optimizations
+      // Start iOS optimizations (all wrapped for safety)
       if (isiOSDevice) {
-        warmupGPU();
-        requestWakeLock();
-        setupContextLossHandling();
-        checkBatteryStatus();
-        setupTouchHints();
+        try { requestWakeLock(); } catch (e) {}
+        try { setupContextLossHandling(); } catch (e) {}
+        try { checkBatteryStatus(); } catch (e) {}
+        try { setupTouchHints(); } catch (e) {}
         // Request device motion on first touch (requires user gesture)
-        document.addEventListener('touchstart', function() {
-          requestDeviceMotion();
-          // Resume audio context if needed (one-time on first touch)
-          if (audioKeepAlive && audioKeepAlive.state === 'suspended') {
-            audioKeepAlive.resume();
-          }
-        }, { once: true });
+        try {
+          document.addEventListener('touchstart', function() {
+            try { requestDeviceMotion(); } catch (e) {}
+            // Resume audio context if needed (one-time on first touch)
+            try {
+              if (audioKeepAlive && audioKeepAlive.state === 'suspended') {
+                audioKeepAlive.resume();
+              }
+            } catch (e) {}
+          }, { once: true });
+        } catch (e) {}
       }
       
-      // Orientation lock
+      // Orientation lock (wrapped for safety)
       function tryLockLandscape() {
-        if (screen.orientation && screen.orientation.lock) {
-          screen.orientation.lock('landscape').catch(function() {});
-        }
+        try {
+          if (screen.orientation && screen.orientation.lock) {
+            screen.orientation.lock('landscape').catch(function() {});
+          }
+        } catch (e) {}
       }
-      tryLockLandscape();
+      try { tryLockLandscape(); } catch (e) {}
       
-      // Viewport meta
-      var meta = document.createElement('meta');
-      meta.name = 'viewport';
-      if (isiOSDevice) {
-        meta.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover';
-      } else {
-        meta.content = 'width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, shrink-to-fit=yes';
-      }
-      document.getElementsByTagName('head')[0].appendChild(meta);
+      // Viewport meta (wrapped for safety)
+      try {
+        var meta = document.createElement('meta');
+        meta.name = 'viewport';
+        if (isiOSDevice) {
+          meta.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover';
+        } else {
+          meta.content = 'width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, shrink-to-fit=yes';
+        }
+        document.getElementsByTagName('head')[0].appendChild(meta);
+      } catch (e) {}
 
       var canvas = document.querySelector("#unity-canvas");
       var loadingScreen = document.getElementById('loading-screen');
@@ -721,35 +773,48 @@
         setTimeout(updateCanvasSize, 500);
       });
 
-      // Register Service Worker for PWA
+      // Register Service Worker for PWA (all errors silently ignored - game must load)
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', function() {
-          navigator.serviceWorker.register('sw.js')
-            .then(function(registration) {
-              registration.update();
-              registration.addEventListener('updatefound', function() {
-                var newWorker = registration.installing;
-                newWorker.addEventListener('statechange', function() {});
-              });
-            })
-            .catch(function() {});
+          try {
+            navigator.serviceWorker.register('sw.js')
+              .then(function(registration) {
+                try {
+                  registration.update();
+                  registration.addEventListener('updatefound', function() {
+                    var newWorker = registration.installing;
+                    if (newWorker) {
+                      newWorker.addEventListener('statechange', function() {});
+                    }
+                  });
+                } catch (e) { /* ignore */ }
+              })
+              .catch(function() { /* Service worker registration failed - continue anyway */ });
+          } catch (e) { /* ignore */ }
         });
         
-        navigator.serviceWorker.addEventListener('message', function(event) {
-          if (event.data && event.data.type === 'NEW_VERSION_AVAILABLE') {
-            var loadingText = document.querySelector('.loading-text');
-            if (loadingText) {
-              loadingText.textContent = 'New version found! Updating...';
+        try {
+          navigator.serviceWorker.addEventListener('message', function(event) {
+            if (event.data && event.data.type === 'NEW_VERSION_AVAILABLE') {
+              var loadingText = document.querySelector('.loading-text');
+              if (loadingText) {
+                loadingText.textContent = 'New version found! Updating...';
+              }
+              setTimeout(function() {
+                window.location.reload(true);
+              }, 500);
             }
-            setTimeout(function() {
+          });
+          
+          // Only reload on controller change if game hasn't started yet
+          var gameStarted = false;
+          window.addEventListener('unity-game-started', function() { gameStarted = true; });
+          navigator.serviceWorker.addEventListener('controllerchange', function() {
+            if (!gameStarted) {
               window.location.reload(true);
-            }, 500);
-          }
-        });
-        
-        navigator.serviceWorker.addEventListener('controllerchange', function() {
-          window.location.reload(true);
-        });
+            }
+          });
+        } catch (e) { /* ignore */ }
       }
 
       // Function to start the Unity game
@@ -761,7 +826,7 @@
           streamingAssetsUrl: "StreamingAssets",
           companyName: "BudgetGameDev",
           productName: "BROcoli",
-          productVersion: "0.0.145",
+          productVersion: "0.0.147",
           matchWebGLToCanvasSize: true, // Enable dynamic resolution to match canvas size
           devicePixelRatio: window.devicePixelRatio || 1, // Use device pixel ratio for sharp rendering
           // WebGL context attributes for performance
@@ -778,6 +843,9 @@
           }
         }).then(function(unityInstance) {
           window.unityInstance = unityInstance;
+          
+          // Signal that game has started (prevents service worker reload interrupts)
+          window.dispatchEvent(new Event('unity-game-started'));
           
           if (loadingScreen) {
             loadingScreen.classList.add('hidden');
@@ -801,17 +869,61 @@
       
       // Check for updates before starting the game
       // This runs only at page load and will reload the page if an update is found
-      if (window.VersionChecker) {
-        window.VersionChecker.checkForUpdates()
-          .then(function() {
-            startUnityGame();
-          })
-          .catch(function() {
-            startUnityGame();
-          });
-      } else {
+      // CRITICAL: Any errors must be ignored - game MUST try to load regardless
+      try {
+        if (window.VersionChecker && typeof window.VersionChecker.checkForUpdates === 'function') {
+          window.VersionChecker.checkForUpdates()
+            .then(function() {
+              startUnityGame();
+            })
+            .catch(function(err) {
+              console.warn('[Startup] Version check failed, starting game anyway:', err);
+              startUnityGame();
+            });
+        } else {
+          startUnityGame();
+        }
+      } catch (e) {
+        console.warn('[Startup] Version checker error, starting game anyway:', e);
         startUnityGame();
       }
+      
+      // Show staging build info overlay (only on staging builds)
+      try {
+        if (window.isStagingBuild) {
+          fetch('version.json?_=' + Date.now())
+            .then(function(r) { return r.json(); })
+            .then(function(version) {
+              var overlay = document.getElementById('staging-build-info');
+              if (overlay && version) {
+                var info = version.buildId || 'unknown';
+                if (version.buildTimestamp) {
+                  info += ' | ' + version.buildTimestamp;
+                }
+                overlay.textContent = 'STAGING: ' + info;
+                overlay.style.display = 'block';
+              }
+            })
+            .catch(function() {
+              var overlay = document.getElementById('staging-build-info');
+              if (overlay) {
+                overlay.textContent = 'STAGING BUILD';
+                overlay.style.display = 'block';
+              }
+            });
+        }
+      } catch (e) { /* staging overlay failed - non-critical */ }
+      
+      // Global error handler - prevent uncaught errors from breaking the game
+      window.addEventListener('error', function(e) {
+        console.warn('[Global] Uncaught error (game continues):', e.message);
+        // Don't prevent default - let errors log to console
+      });
+      window.addEventListener('unhandledrejection', function(e) {
+        console.warn('[Global] Unhandled promise rejection (game continues):', e.reason);
+        // Prevent the rejection from being treated as an error
+        e.preventDefault();
+      });
     </script>
   </body>
 </html>

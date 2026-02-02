@@ -1,7 +1,7 @@
 {
-  "buildId": "build-1770031372-1d2bd4d",
-  "buildTimestamp": "2026-02-02T11:22:52Z",
-  "buildNumber": 120,
-  "commitSha": "1d2bd4dbf223b306ee38355602864cd068cebb01",
-  "description": "fix: ios safari performance optimizations"
+  "buildId": "build-1770035069-fcf12a1",
+  "buildTimestamp": "2026-02-02T12:24:29Z",
+  "buildNumber": 121,
+  "commitSha": "fcf12a1a9dc3af2ad70eb791852dbfdc571a069c",
+  "description": "fix: pwa improvements"
 }

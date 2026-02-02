@@ -4,15 +4,39 @@
 // This is the nuclear option - change this string and deploy to bust all caches.
 // =============================================================================
 const CACHE_VERSION = 'v2';
-const CACHE_NAME = `unity-game-cache-${CACHE_VERSION}`;
 
-// Remote URL to check for version updates (change this to your GitHub Pages URL)
-const VERSION_CHECK_URL = 'https://budgetgamedev.github.io/BROcoli/version.json';
+// Detect if we're on the staging build (BranchMain) or release build (root)
+function detectBuildPath() {
+  // Service worker scope tells us where we're registered
+  const scope = self.registration ? self.registration.scope : self.location.href;
+  
+  // Check if we're on the staging build path
+  if (scope.includes('/BranchMain/') || scope.includes('/BranchMain')) {
+    return {
+      isStaging: true,
+      basePath: '/BROcoli/BranchMain/',
+      versionUrl: 'https://budgetgamedev.github.io/BROcoli/BranchMain/version.json',
+      cachePrefix: 'staging'
+    };
+  }
+  // Default to release build
+  return {
+    isStaging: false,
+    basePath: '/BROcoli/',
+    versionUrl: 'https://budgetgamedev.github.io/BROcoli/version.json',
+    cachePrefix: 'release'
+  };
+}
+
+const BUILD_INFO = detectBuildPath();
+const CACHE_NAME = `unity-game-cache-${CACHE_VERSION}-${BUILD_INFO.cachePrefix}`;
+
+// Remote URL to check for version updates - dynamically set based on build path
+const VERSION_CHECK_URL = BUILD_INFO.versionUrl;
 
 // Files that should NEVER be cached - always fetch fresh from network
 const NEVER_CACHE_FILES = [
   'version.json',
-  'version-check.js',
   'sw.js'            // Service worker should never be cached by itself
 ];
 
@@ -22,9 +46,12 @@ const NETWORK_FIRST_FILES = [
   'manifest.json'
 ];
 
-// Files to precache on install
+// Files to precache on install (critical for offline PWA)
 const PRECACHE_ASSETS = [
+  './index.html',
   './manifest.json',
+  './manifest-staging.json',
+  './version-check.js',
   './icons/icon-192x192.png',
   './icons/icon-512x512.png'
 ];
@@ -103,7 +130,8 @@ async function clearAllCaches() {
 
 // Check for updates and clear caches if new version found
 async function checkForUpdatesAndClearIfNeeded() {
-  console.log('[ServiceWorker] Checking for updates...');
+  const buildType = BUILD_INFO.isStaging ? '[STAGING]' : '[RELEASE]';
+  console.log('[ServiceWorker]', buildType, 'Checking for updates from:', VERSION_CHECK_URL);
   
   const [remoteVersion, storedVersion] = await Promise.all([
     fetchRemoteVersion(),
@@ -111,7 +139,7 @@ async function checkForUpdatesAndClearIfNeeded() {
   ]);
   
   if (!remoteVersion) {
-    console.log('[ServiceWorker] Could not fetch remote version, skipping update check');
+    console.log('[ServiceWorker]', buildType, 'Could not fetch remote version, skipping update check');
     return false;
   }
   
@@ -149,7 +177,9 @@ async function checkForUpdatesAndClearIfNeeded() {
 
 // Install event
 self.addEventListener('install', (event) => {
-  console.log('[ServiceWorker] Installing version:', CACHE_VERSION);
+  console.log('[ServiceWorker]', BUILD_INFO.isStaging ? '[STAGING]' : '[RELEASE]', 'Installing version:', CACHE_VERSION);
+  console.log('[ServiceWorker] Cache name:', CACHE_NAME);
+  console.log('[ServiceWorker] Version URL:', VERSION_CHECK_URL);
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {
