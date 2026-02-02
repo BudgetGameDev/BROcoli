@@ -232,6 +232,14 @@ const VersionChecker = (function() {
    */
   async function checkForUpdates() {
     log('Starting version check...');
+    
+    // Check if we're offline first - skip the "Checking for updates" message
+    if (!navigator.onLine) {
+      log('Device is offline, skipping version check');
+      updateLoadingMessage('Loading cached game...');
+      return { updated: false, reason: 'offline' };
+    }
+    
     updateLoadingMessage('Checking for updates...');
     
     // Get local and remote versions in parallel
@@ -242,7 +250,7 @@ const VersionChecker = (function() {
     if (!remoteVersion) {
       log('Could not fetch remote version, continuing with cached game');
       updateLoadingMessage('Loading game...');
-      return { updated: false, reason: 'offline' };
+      return { updated: false, reason: 'fetch-failed' };
     }
     
     // If no local version, this is a fresh install - just save and continue

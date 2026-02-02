@@ -699,7 +699,12 @@
         }).catch(function(error) {
           console.error('[WebGL] Unity instance creation failed:', error);
           if (loadingScreen) {
-            loadingScreen.innerHTML = '<div style="color: #ff6b6b; font-family: sans-serif; text-align: center; padding: 20px;"><h2>Failed to load game</h2><p>' + error.message + '</p><button onclick="location.reload()" style="padding: 10px 20px; margin-top: 10px; cursor: pointer;">Retry</button></div>';
+            var errorMessage = (error && error.message) ? error.message : 'Could not load game files. Please check your connection and try again.';
+            // Check if we're likely offline
+            if (!navigator.onLine) {
+              errorMessage = 'You appear to be offline. The game files may not be cached yet. Please connect to the internet and reload to download the game first.';
+            }
+            loadingScreen.innerHTML = '<div style="color: #ff6b6b; font-family: sans-serif; text-align: center; padding: 20px;"><h2>Failed to load game</h2><p>' + errorMessage + '</p><button onclick="location.reload()" style="padding: 10px 20px; margin-top: 10px; cursor: pointer;">Retry</button></div>';
           }
         });
       }
