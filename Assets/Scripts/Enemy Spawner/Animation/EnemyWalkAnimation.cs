@@ -28,9 +28,30 @@ public class EnemyWalkAnimation : MonoBehaviour
     private Rigidbody2D rb;
     private float timeOffset;
     private float currentSpin = 0f;
+    private bool isInitialized = false;
+    
+    void Awake()
+    {
+        // Initialize in Awake so baseScale/basePosition are set before OnDisable can run (during pooling)
+        InitializeVisualTransform();
+    }
     
     void Start()
     {
+        // Ensure initialization (in case Awake didn't complete for some reason)
+        if (!isInitialized)
+        {
+            InitializeVisualTransform();
+        }
+        
+        // Random offset so not all enemies animate in sync
+        timeOffset = Random.Range(0f, Mathf.PI * 2f);
+    }
+    
+    private void InitializeVisualTransform()
+    {
+        if (isInitialized) return;
+        
         rb = GetComponentInParent<Rigidbody2D>();
         if (rb == null)
             rb = GetComponent<Rigidbody2D>();
@@ -62,7 +83,6 @@ public class EnemyWalkAnimation : MonoBehaviour
         // Safety check: if scale is zero, use Vector3.one as fallback
         if (baseScale.sqrMagnitude < 0.0001f)
         {
-            Debug.LogWarning($"[EnemyWalkAnimation] {name}: visualTransform '{visualTransform.name}' has zero scale! Using Vector3.one as fallback.");
             baseScale = Vector3.one;
             visualTransform.localScale = Vector3.one;
         }
@@ -75,8 +95,7 @@ public class EnemyWalkAnimation : MonoBehaviour
             basePosition.z = -0.5f;
         }
         
-        // Random offset so not all enemies animate in sync
-        timeOffset = Random.Range(0f, Mathf.PI * 2f);
+        isInitialized = true;
     }
     
     void Update()
@@ -124,7 +143,8 @@ public class EnemyWalkAnimation : MonoBehaviour
     void OnDisable()
     {
         // Reset to base state when disabled
-        if (visualTransform != null)
+        // Only reset if baseScale was initialized (Start has run) - prevents setting scale to zero
+        if (visualTransform != null && baseScale.sqrMagnitude > 0.0001f)
         {
             visualTransform.localScale = baseScale;
             visualTransform.localPosition = basePosition;
