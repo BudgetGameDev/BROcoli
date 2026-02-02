@@ -12,7 +12,7 @@ public class PlayerStats : MonoBehaviour
     private const float DefaultAttackSpeed = 0.6f;
     private const float DefaultDamage = 10f;
     private const float DefaultMovementSpeed = 4f;  // Original scene value was 4, not 10
-    private const float DefaultMaxExperience = 100f;
+    private const float DefaultMaxExperience = 30f;  // Level up after ~3 easy enemy kills
     private const float DefaultDetectionRadius = 12f;
 
     // Current stat values - private backing fields
@@ -29,9 +29,10 @@ public class PlayerStats : MonoBehaviour
     private float _currentSprayWidth;
     private float _currentSprayDamageMultiplier;
 
-    // UI references - discovered dynamically
+// UI references - discovered dynamically
     private Bar _healthBar;
     private Bar _experienceBar;
+    private LevelUpScreen _levelUpScreen;
 
     // Public read-only properties
     public bool IsAlive => _currentHealth > 0f;
@@ -167,20 +168,25 @@ public class PlayerStats : MonoBehaviour
     {
         _currentLevel += 1f;
 
-        _currentHealth += 20f;
-        _currentMaxHealth += 20f;
-        _currentAttackSpeed *= 0.9f;
-        _currentDamage += 10f;
-        _currentMovementSpeed += 0.25f;  // Small speed boost per level
+        // Base stat gains on level up (smaller now since player chooses upgrades)
+        float healthGain = 10f;
+        _currentHealth += healthGain;
+        _currentMaxHealth += healthGain;
         _currentExperience -= _currentMaxExperience;
-        _currentMaxExperience *= 1.2f;
-        _currentDetectionRadius += 2f;
-        _currentSprayRange += 0.15f;
-        _currentSprayWidth += 3f;
-        _currentSprayDamageMultiplier += 0.1f;
+        _currentMaxExperience *= 2f;  // Double XP needed each level (30 -> 60 -> 120 -> 240...)
 
         _healthBar?.UpdateBar(_currentHealth, _currentMaxHealth);
         _experienceBar?.UpdateBar(_currentExperience, _currentMaxExperience);
+
+        // Show level up screen with upgrade choices
+        if (_levelUpScreen == null)
+        {
+            _levelUpScreen = FindAnyObjectByType<LevelUpScreen>();
+        }
+        if (_levelUpScreen != null)
+        {
+            _levelUpScreen.Show((int)_currentLevel, this);
+        }
     }
 
     private void AddHealth(float amount)
@@ -235,5 +241,33 @@ public class PlayerStats : MonoBehaviour
     public void AddSprayDamageMultiplier(float amount)
     {
         _currentSprayDamageMultiplier += amount;
+    }
+
+    // Public methods for upgrade system
+    public void AddMaxHealth(float amount)
+    {
+        _currentMaxHealth += amount;
+        _currentHealth += amount; // Also heal by that amount
+        _healthBar?.UpdateBar(_currentHealth, _currentMaxHealth);
+    }
+
+    public void AddDamagePublic(float amount)
+    {
+        _currentDamage += amount;
+    }
+
+    public void AddSpeedPublic(float amount)
+    {
+        _currentMovementSpeed += amount;
+    }
+
+    public void AddAttackSpeedPublic(float amount)
+    {
+        _currentAttackSpeed *= (1f + amount);
+    }
+
+    public void AddDetectionRadiusPublic(float amount)
+    {
+        _currentDetectionRadius += amount;
     }
 }

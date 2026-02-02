@@ -45,7 +45,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BoostHandler
   _gameState: {fileID: 0}
-  _spawnRateInterval: 3
+  _spawnRateInterval: 90
   _player: {fileID: 0}
   _boosters:
   - {fileID: 1283658744970203081, guid: 138cb509d2059094faa87b92534898e0, type: 3}

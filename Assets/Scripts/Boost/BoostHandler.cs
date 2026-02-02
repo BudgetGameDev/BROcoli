@@ -3,7 +3,7 @@
 public class BoostHandler : MonoBehaviour
 {
     [SerializeField] GameStates _gameState;
-    [SerializeField] private float _spawnRateInterval = 3f;
+    [SerializeField] private float _spawnRateInterval = 90f;  // Very rare - about 1 per wave max
     [SerializeField] private Transform _player;
     [SerializeField] private GameObject[] _boosters;
     [SerializeField] private float _spawnDistance = 2f;
