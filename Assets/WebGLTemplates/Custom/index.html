@@ -6,10 +6,37 @@
     <title>Unity WebGL Player | {{{ PRODUCT_NAME }}}</title>
     
     <!-- PWA Meta Tags -->
-    <link rel="manifest" href="manifest.json">
+    <link rel="manifest" href="manifest.json" id="manifest-link">
     <meta name="theme-color" content="#000000">
     <meta name="mobile-web-app-capable" content="yes">
-    <meta name="application-name" content="{{{ PRODUCT_NAME }}}">
+    <meta name="application-name" content="{{{ PRODUCT_NAME }}}" id="app-name-meta">
+    
+    <!-- Staging/Release manifest detection -->
+    <script>
+      (function() {
+        window.isStagingBuild = window.location.pathname.indexOf('/BranchMain') !== -1;
+        if (window.isStagingBuild) {
+          // Switch to staging manifest
+          var manifestLink = document.getElementById('manifest-link');
+          if (manifestLink) manifestLink.href = 'manifest-staging.json';
+          
+          // Fetch release manifest to get base name, then append " Staging"
+          fetch('manifest.json')
+            .then(function(r) { return r.json(); })
+            .then(function(manifest) {
+              var baseName = manifest.name || 'Web Game';
+              var stagingName = baseName + ' Staging';
+              document.title = stagingName;
+              var appNameMeta = document.getElementById('app-name-meta');
+              if (appNameMeta) appNameMeta.content = stagingName;
+            })
+            .catch(function() {
+              // Fallback if fetch fails
+              document.title = document.title + ' Staging';
+            });
+        }
+      })();
+    </script>
     
     <!-- iOS Safari specific meta tags -->
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -300,9 +327,27 @@
           font-size: 24px;
         }
       }
+      
+      /* Staging build info overlay - only visible on staging builds */
+      #staging-build-info {
+        display: none;
+        position: fixed;
+        bottom: 4px;
+        right: 8px;
+        color: rgba(255, 255, 255, 0.6);
+        font-family: monospace;
+        font-size: 10px;
+        z-index: 99999;
+        pointer-events: none;
+        text-shadow: 0 0 2px rgba(0, 0, 0, 0.8);
+        white-space: nowrap;
+      }
     </style>
   </head>
   <body style="text-align: center; padding: 0; border: 0; margin: 0; background-color: #000000;">
+    <!-- Staging Build Info Overlay (only shown on staging builds) -->
+    <div id="staging-build-info"></div>
+    
     <!-- Loading Screen -->
     <div id="loading-screen">
       <div class="loading-spinner"></div>
@@ -359,9 +404,9 @@
             attributes = attributes || {};
             attributes.powerPreference = 'high-performance';
             attributes.preserveDrawingBuffer = false;
-            attributes.failIfMajorPerformanceCaveat = false;
-            attributes.desynchronized = true; // Hint for low-latency rendering
-            attributes.antialias = true; // User wants antialiasing kept
+            // attributes.failIfMajorPerformanceCaveat = false;
+            // attributes.desynchronized = true; // Hint for low-latency rendering
+            // attributes.antialias = true; // User wants antialiasing kept
           }
           return originalGetContext.call(this, type, attributes);
         };
@@ -455,43 +500,25 @@
       }
       
       // requestIdleCallback fallback for Safari (still not supported in 2026)
-      if (!('requestIdleCallback' in window)) {
-        window.requestIdleCallback = function(cb) {
-          var start = Date.now();
-          return setTimeout(function() {
-            cb({
-              didTimeout: false,
-              timeRemaining: function() {
-                return Math.max(0, 50 - (Date.now() - start));
-              }
-            });
-          }, 1);
-        };
-        window.cancelIdleCallback = function(id) {
-          clearTimeout(id);
-        };
-      }
-      
-      // Force GPU process warmup before Unity loads
-      function warmupGPU() {
-        var warmupCanvas = document.createElement('canvas');
-        warmupCanvas.width = 64;
-        warmupCanvas.height = 64;
-        var ctx = warmupCanvas.getContext('webgl2', { powerPreference: 'high-performance' }) ||
-                  warmupCanvas.getContext('webgl', { powerPreference: 'high-performance' });
-        if (ctx) {
-          // Draw something to ensure GPU is initialized
-          ctx.clearColor(0, 0, 0, 1);
-          ctx.clear(ctx.COLOR_BUFFER_BIT);
-          // Clean up
-          var ext = ctx.getExtension('WEBGL_lose_context');
-          if (ext) ext.loseContext();
-        }
-      }
+      // if (!('requestIdleCallback' in window)) {
+      //   window.requestIdleCallback = function(cb) {
+      //     var start = Date.now();
+      //     return setTimeout(function() {
+      //       cb({
+      //         didTimeout: false,
+      //         timeRemaining: function() {
+      //           return Math.max(0, 50 - (Date.now() - start));
+      //         }
+      //       });
+      //     }, 1);
+      //   };
+      //   window.cancelIdleCallback = function(id) {
+      //     clearTimeout(id);
+      //   };
+      // }
       
       // Start iOS optimizations
       if (isiOSDevice) {
-        warmupGPU();
         requestWakeLock();
         setupContextLossHandling();
         checkBatteryStatus();
@@ -819,6 +846,30 @@
           });
       } else {
         startUnityGame();
+      }
+      
+      // Show staging build info overlay (only on staging builds)
+      if (window.isStagingBuild) {
+        fetch('version.json?_=' + Date.now())
+          .then(function(r) { return r.json(); })
+          .then(function(version) {
+            var overlay = document.getElementById('staging-build-info');
+            if (overlay && version) {
+              var info = version.buildId || 'unknown';
+              if (version.buildTimestamp) {
+                info += ' | ' + version.buildTimestamp;
+              }
+              overlay.textContent = 'STAGING: ' + info;
+              overlay.style.display = 'block';
+            }
+          })
+          .catch(function() {
+            var overlay = document.getElementById('staging-build-info');
+            if (overlay) {
+              overlay.textContent = 'STAGING BUILD';
+              overlay.style.display = 'block';
+            }
+          });
       }
     </script>
   </body>
