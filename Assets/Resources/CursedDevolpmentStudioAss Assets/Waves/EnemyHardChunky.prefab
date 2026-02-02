@@ -407,10 +407,10 @@ MonoBehaviour:
   TimeToStartSpawning: 180
   TimeToEndSpawning: 250
   ScoreValue: 1000
-  Damage: 200
-  Speed: 4
-  Health: 1500
-  MaxHealth: 1500
+  Damage: 40
+  Speed: 3
+  Health: 600
+  MaxHealth: 600
   acceleration: 25
   separationRadius: 2.5
   separationForce: 50

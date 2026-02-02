@@ -14,11 +14,18 @@ public class WaveGenerator : MonoBehaviour
     
     [Header("Powerup Drops")]
     [SerializeField] private GameObject[] powerupPrefabs;
+    
+    [Header("Victory Settings")]
+    [SerializeField] private int victoryWave = 15;
+    [SerializeField] private VictoryScreen victoryScreenPrefab;
 
     private EnemySpawner spawner;
     private int currentWave = 1;
+    private bool isInfiniteMode = false;
+    private VictoryScreen victoryScreen;
 
     public int CurrentWaveNumber => currentWave;
+    public bool IsInfiniteMode => isInfiniteMode;
 
     private void Start()
     {
@@ -28,7 +35,6 @@ public class WaveGenerator : MonoBehaviour
         );
         spawner.player = player;
         
-        // Pass powerup prefabs to spawner for enemy drop system
         if (powerupPrefabs != null && powerupPrefabs.Length > 0)
         {
             spawner.SetPowerupPrefabs(powerupPrefabs);
@@ -47,12 +53,52 @@ public class WaveGenerator : MonoBehaviour
 
             Debug.Log($"Starting Wave {currentWave}...");
 
-            spawner.StartWave(config);
+            spawner.StartWave(config, currentWave);
 
             yield return new WaitUntil(() => spawner.IsWaveComplete);
 
+            // Check for victory at wave 15
+            if (currentWave == victoryWave && !isInfiniteMode)
+            {
+                yield return StartCoroutine(ShowVictoryScreen());
+            }
+
             currentWave++;
         }
+    }
+
+    private IEnumerator ShowVictoryScreen()
+    {
+        // Create victory screen if needed
+        if (victoryScreen == null)
+        {
+            if (victoryScreenPrefab != null)
+            {
+                victoryScreen = Instantiate(victoryScreenPrefab);
+            }
+            else
+            {
+                // Create dynamically
+                GameObject vsObj = new GameObject("VictoryScreen");
+                victoryScreen = vsObj.AddComponent<VictoryScreen>();
+            }
+        }
+        
+        bool decided = false;
+        
+        victoryScreen.OnContinueToInfinite += () => {
+            isInfiniteMode = true;
+            decided = true;
+        };
+        
+        victoryScreen.OnEndRun += () => {
+            decided = true;
+        };
+        
+        victoryScreen.Show();
+        
+        // Wait for player decision
+        yield return new WaitUntil(() => decided);
     }
 
     private IEnumerator PreWaveCountdown()

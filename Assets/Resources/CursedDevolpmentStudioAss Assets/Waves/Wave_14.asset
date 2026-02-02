@@ -14,10 +14,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::WaveConfig
   enemyPrefabs:
   - {fileID: 5305235475111336575, guid: 6f5da7ed59e2cee408662ca8ae1579a1, type: 3}
-  - {fileID: 5305235475111336575, guid: 3d636f13ae2db234c88e50595c2253fa, type: 3}
   - {fileID: 5305235475111336575, guid: a1b1ad73dad81da40bc8ee4f28847395, type: 3}
-  - {fileID: 1960914997709195999, guid: 49e4656b6cd06104da96ae9b7fe204f9, type: 3}
   - {fileID: 5305235475111336575, guid: 252bf1c5216b7f44baed7f1758618826, type: 3}
-  - {fileID: 5305235475111336575, guid: c6691ebacff5f024092234867a189248, type: 3}
-  enemyCount: 75
-  spawnInterval: 0.5
+  - {fileID: 5305235475111336575, guid: b6640fcd792bb974aa2e1c588519d176, type: 3}
+  - {fileID: 5305235475111336575, guid: 3d636f13ae2db234c88e50595c2253fa, type: 3}
+  - {fileID: 1960914997709195999, guid: 49e4656b6cd06104da96ae9b7fe204f9, type: 3}
+  - {fileID: 1960914997709195999, guid: 7d7b1e7e23b0d4347894ac19d9748aa7, type: 3}
+  enemyCount: 65
+  spawnInterval: 0.35

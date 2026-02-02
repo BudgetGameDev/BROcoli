@@ -26,8 +26,16 @@ public abstract class EnemyBase : MonoBehaviour
     public float Health = 50f;
     public float MaxHealth = 50f;
 
+    [Header("Elite Settings")]
+    public bool isElite = false;
+    public float eliteHealthMultiplier = 3f;
+    public float eliteScaleMultiplier = 1.3f;
+    
+    // Callback for guaranteed powerup drop on elite death
+    public event Action<Vector3> OnEliteDeath;
+
     [Header("Physics Tuning")]
-    public float acceleration = 25f; // how quickly they reach max speed
+    public float acceleration = 25f;
     
     [Header("Separation")]
     [SerializeField] protected float separationRadius = 2.5f;   // How close before pushing away
@@ -50,9 +58,26 @@ public abstract class EnemyBase : MonoBehaviour
         rb = GetComponent<Rigidbody2D>();
         player = GameObject.FindGameObjectWithTag("Player")?.transform;
         
-        // Try to get walk audio component if not assigned
         if (walkAudio == null)
             walkAudio = GetComponent<ProceduralEnemyWalkAudio>();
+    }
+    
+    /// <summary>
+    /// Make this enemy an elite variant with increased HP and visual effects.
+    /// </summary>
+    public void MakeElite()
+    {
+        isElite = true;
+        Health *= eliteHealthMultiplier;
+        MaxHealth *= eliteHealthMultiplier;
+        ScoreValue = Mathf.RoundToInt(ScoreValue * 2.5f);
+        transform.localScale *= eliteScaleMultiplier;
+        
+        // Add and apply elite visual effects
+        var effects = gameObject.AddComponent<EliteEnemyEffects>();
+        effects.ApplyEliteVisuals();
+        
+        alwaysShowHealthBar = true;
     }
 
     [Header("Knockback")]
@@ -71,6 +96,12 @@ public abstract class EnemyBase : MonoBehaviour
         Health -= damage;
         if (Health <= 0f)
         {
+            // Invoke elite death for guaranteed powerup drop
+            if (isElite)
+            {
+                OnEliteDeath?.Invoke(transform.position);
+            }
+            
             Destroy(gameObject);
             OnDeath?.Invoke(this);
             return;

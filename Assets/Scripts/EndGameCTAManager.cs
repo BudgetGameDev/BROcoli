@@ -76,7 +76,8 @@ public class EndGameCTAManager : MonoBehaviour
                 DontDestroyOnLoad(managerObj);
             }
             
-            instance.ShowCTA();
+            // Delay slightly to ensure Canvas is ready
+            instance.StartCoroutine(instance.DelayedShowCTA());
         }
         else
         {
@@ -86,6 +87,13 @@ public class EndGameCTAManager : MonoBehaviour
                 instance.HideCTA();
             }
         }
+    }
+    
+    private System.Collections.IEnumerator DelayedShowCTA()
+    {
+        // Wait one frame for Canvas to be fully initialized
+        yield return null;
+        ShowCTA();
     }
 
     void ShowCTA()

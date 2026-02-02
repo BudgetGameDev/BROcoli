@@ -10,11 +10,23 @@ public class EnemySpawner : MonoBehaviour
 
     [Header("Powerup Drops")]
     [SerializeField] private GameObject[] powerupPrefabs;
-    [SerializeField] private float powerupDropChance = 0.15f; // 15% chance per enemy kill
+    [SerializeField] private float powerupDropChance = 0.15f;
+    
+    [Header("Elite Settings")]
+    [SerializeField] private float eliteChance = 0.05f;
+    [SerializeField] private int minWaveForElites = 3;
+    
+    [Header("Infinite Mode Scaling")]
+    [SerializeField] private int infiniteModeStartWave = 16;
+    [SerializeField] private float infiniteHpScalePerWave = 0.25f;
+    [SerializeField] private float infiniteSpeedScalePerWave = 0.02f;
+    [SerializeField] private float infiniteCountScalePerWave = 0.15f;
     
     private int aliveEnemies;
     private WaveConfig currentWave;
     private bool hasPowerupDroppedThisWave = false;
+    private int actualEnemyCount;
+    private int currentWaveNumber = 1;
 
     public event Action OnWaveCompleted;
 
@@ -26,7 +38,7 @@ public class EnemySpawner : MonoBehaviour
         powerupPrefabs = prefabs;
     }
 
-    public void StartWave(WaveConfig config)
+    public void StartWave(WaveConfig config, int waveNumber = 1)
     {
         if (config == null)
         {
@@ -35,11 +47,22 @@ public class EnemySpawner : MonoBehaviour
         }
 
         currentWave = config;
+        currentWaveNumber = waveNumber;
         IsWaveComplete = false;
         aliveEnemies = 0;
-        hasPowerupDroppedThisWave = false; // Reset powerup drop for new wave
+        hasPowerupDroppedThisWave = false;
+        
+        actualEnemyCount = currentWave.GetRandomizedEnemyCount();
+        
+        // Infinite mode scaling: more enemies
+        if (waveNumber >= infiniteModeStartWave)
+        {
+            int wavesIntoInfinite = waveNumber - infiniteModeStartWave + 1;
+            float countMultiplier = 1f + (wavesIntoInfinite * infiniteCountScalePerWave);
+            actualEnemyCount = Mathf.RoundToInt(actualEnemyCount * countMultiplier);
+        }
 
-        Debug.Log($"EnemySpawner: Starting wave with {currentWave.enemyCount} enemies.");
+        Debug.Log($"EnemySpawner: Wave {waveNumber} with {actualEnemyCount} enemies.");
 
         StopAllCoroutines();
         StartCoroutine(SpawnRoutine());
@@ -47,10 +70,12 @@ public class EnemySpawner : MonoBehaviour
 
     private IEnumerator SpawnRoutine()
     {
-        for (int i = 0; i < currentWave.enemyCount; i++)
+        for (int i = 0; i < actualEnemyCount; i++)
         {
             SpawnEnemy();
-            yield return new WaitForSeconds(currentWave.spawnInterval);
+            // Get randomized spawn interval for each spawn
+            float interval = currentWave.GetRandomizedSpawnInterval();
+            yield return new WaitForSeconds(interval);
         }
     }
 
@@ -68,16 +93,45 @@ public class EnemySpawner : MonoBehaviour
         EnemyBase e = enemy.GetComponent<EnemyBase>();
         if (e != null)
         {
+            // Apply infinite mode scaling
+            if (currentWaveNumber >= infiniteModeStartWave)
+            {
+                int wavesIntoInfinite = currentWaveNumber - infiniteModeStartWave + 1;
+                float hpMultiplier = 1f + (wavesIntoInfinite * infiniteHpScalePerWave);
+                float speedMultiplier = 1f + (wavesIntoInfinite * infiniteSpeedScalePerWave);
+                
+                e.Health *= hpMultiplier;
+                e.MaxHealth *= hpMultiplier;
+                e.Speed *= speedMultiplier;
+            }
+            
             e.OnDeath += HandleEnemyDeath;
+            
+            // Roll for elite status (only after minWaveForElites)
+            if (currentWaveNumber >= minWaveForElites)
+            {
+                float adjustedChance = eliteChance + (currentWaveNumber - minWaveForElites) * 0.005f;
+                adjustedChance = Mathf.Min(adjustedChance, 0.15f);
+                
+                if (UnityEngine.Random.value < adjustedChance)
+                {
+                    e.MakeElite();
+                    e.OnEliteDeath += HandleEliteDeath;
+                }
+            }
         }
     }
 
     private void HandleEnemyDeath(EnemyBase enemy)
     {
         enemy.OnDeath -= HandleEnemyDeath;
+        enemy.OnEliteDeath -= HandleEliteDeath;
         
-        // Try to drop a powerup (max 1 per wave)
-        TryDropPowerup(enemy.transform.position);
+        // Try to drop a powerup (max 1 per wave for non-elites)
+        if (!enemy.isElite)
+        {
+            TryDropPowerup(enemy.transform.position);
+        }
         
         aliveEnemies--;
 
@@ -86,6 +140,16 @@ public class EnemySpawner : MonoBehaviour
             IsWaveComplete = true;
             OnWaveCompleted?.Invoke();
         }
+    }
+    
+    private void HandleEliteDeath(Vector3 position)
+    {
+        // Elites ALWAYS drop a powerup (doesn't count toward regular wave drop)
+        if (powerupPrefabs == null || powerupPrefabs.Length == 0) return;
+        
+        GameObject prefab = powerupPrefabs[UnityEngine.Random.Range(0, powerupPrefabs.Length)];
+        Instantiate(prefab, position, Quaternion.identity);
+        Debug.Log($"Elite powerup dropped at {position}!");
     }
     
     private void TryDropPowerup(Vector3 position)

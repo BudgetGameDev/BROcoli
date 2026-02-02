@@ -13,8 +13,6 @@ MonoBehaviour:
   m_Name: Wave_4
   m_EditorClassIdentifier: Assembly-CSharp::WaveConfig
   enemyPrefabs:
-  - {fileID: 5305235475111336575, guid: c6691ebacff5f024092234867a189248, type: 3}
   - {fileID: 5305235475111336575, guid: a1b1ad73dad81da40bc8ee4f28847395, type: 3}
-  - {fileID: 1960914997709195999, guid: 49e4656b6cd06104da96ae9b7fe204f9, type: 3}
   enemyCount: 12
-  spawnInterval: 0.5
+  spawnInterval: 0.7

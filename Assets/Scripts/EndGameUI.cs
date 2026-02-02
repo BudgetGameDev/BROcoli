@@ -4,6 +4,7 @@ using UnityEngine.UI;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using System.Collections.Generic;
+using TMPro;
 
 /// <summary>
 /// End game screen UI with full controller/keyboard navigation support.
@@ -13,6 +14,10 @@ public class EndGameUI : MonoBehaviour
     [Header("Button References")]
     [SerializeField] private Button restartButton;
     [SerializeField] private Button mainMenuButton;
+    
+    [Header("Stats Display")]
+    [SerializeField] private TextMeshProUGUI waveText;
+    [SerializeField] private TextMeshProUGUI scoreText;
     
     // Controller navigation
     private Button[] menuButtons;
@@ -24,7 +29,68 @@ public class EndGameUI : MonoBehaviour
     
     void Start()
     {
+        DisplayStats();
         SetupControllerNavigation();
+    }
+    
+    private void DisplayStats()
+    {
+        int wave = PlayerPrefs.GetInt("LastWave", 1);
+        int score = PlayerPrefs.GetInt("LastScore", 0);
+        bool wasInfinite = PlayerPrefs.GetInt("WasInfiniteMode", 0) == 1;
+        
+        // Try to find or create wave text
+        if (waveText == null)
+        {
+            waveText = CreateStatsText("WaveText", new Vector2(0, 120));
+        }
+        
+        if (waveText != null)
+        {
+            string modeText = wasInfinite ? " (Infinite Mode)" : "";
+            waveText.text = $"Wave Reached: {wave}{modeText}";
+        }
+        
+        // Try to find existing score text or create new one
+        if (scoreText == null)
+        {
+            var allTexts = FindObjectsByType<TextMeshProUGUI>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            foreach (var txt in allTexts)
+            {
+                if (txt.gameObject.name.ToLower().Contains("score"))
+                {
+                    scoreText = txt;
+                    break;
+                }
+            }
+        }
+        
+        if (scoreText != null)
+        {
+            scoreText.text = $"Score: {score}";
+        }
+    }
+    
+    private TextMeshProUGUI CreateStatsText(string name, Vector2 position)
+    {
+        Canvas canvas = FindAnyObjectByType<Canvas>();
+        if (canvas == null) return null;
+        
+        GameObject textObj = new GameObject(name);
+        textObj.transform.SetParent(canvas.transform, false);
+        
+        RectTransform rect = textObj.AddComponent<RectTransform>();
+        rect.anchorMin = new Vector2(0.5f, 0.5f);
+        rect.anchorMax = new Vector2(0.5f, 0.5f);
+        rect.anchoredPosition = position;
+        rect.sizeDelta = new Vector2(500, 60);
+        
+        TextMeshProUGUI tmp = textObj.AddComponent<TextMeshProUGUI>();
+        tmp.fontSize = 36;
+        tmp.alignment = TextAlignmentOptions.Center;
+        tmp.color = Color.white;
+        
+        return tmp;
     }
     
     private void SetupControllerNavigation()
@@ -164,8 +230,6 @@ public class EndGameUI : MonoBehaviour
             Button btn = menuButtons[selectedIndex];
             if (btn != null && btn.interactable)
             {
-                // Play select sound and invoke action
-                ProceduralUIAudio.PlaySelect();
                 if (btn == restartButton)
                 {
                     Restart();
@@ -181,12 +245,6 @@ public class EndGameUI : MonoBehaviour
     private void SelectButton(int index)
     {
         if (menuButtons == null || index < 0 || index >= menuButtons.Length) return;
-        
-        // Play hover sound if index changed
-        if (index != selectedIndex)
-        {
-            ProceduralUIAudio.PlayHover();
-        }
         
         selectedIndex = index;
         
