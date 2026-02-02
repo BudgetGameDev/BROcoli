@@ -40,6 +40,14 @@ public static class ProceduralUIAudio
     }
     
     /// <summary>
+    /// Pre-initialize all UI audio clips. Call during loading screen.
+    /// </summary>
+    public static void PrewarmAll()
+    {
+        EnsureInitialized();
+    }
+    
+    /// <summary>
     /// Play a subtle tick/blip sound when hovering over a UI element
     /// </summary>
     public static void PlayHover()

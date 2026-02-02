@@ -58,7 +58,22 @@ public class EnemyWalkAnimation : MonoBehaviour
         }
         
         baseScale = visualTransform.localScale;
+        
+        // Safety check: if scale is zero, use Vector3.one as fallback
+        if (baseScale.sqrMagnitude < 0.0001f)
+        {
+            Debug.LogWarning($"[EnemyWalkAnimation] {name}: visualTransform '{visualTransform.name}' has zero scale! Using Vector3.one as fallback.");
+            baseScale = Vector3.one;
+            visualTransform.localScale = Vector3.one;
+        }
+        
         basePosition = visualTransform.localPosition;
+        
+        // Ensure Z offset for 3D models to prevent clipping into background
+        if (Mathf.Approximately(basePosition.z, 0f))
+        {
+            basePosition.z = -0.5f;
+        }
         
         // Random offset so not all enemies animate in sync
         timeOffset = Random.Range(0f, Mathf.PI * 2f);

@@ -51,6 +51,7 @@
   <ItemGroup>
     <Compile Include="Assets/Scripts/Boost/SprayRangeBoost.cs" />
     <Compile Include="Assets/Scripts/GameStates.cs" />
+    <Compile Include="Assets/Scripts/GamePreloader.cs" />
     <Compile Include="Assets/TextMesh Pro/Examples &amp; Extras/Scripts/TMP_TextEventHandler.cs" />
     <Compile Include="Assets/Scripts/gamejam-2022/ClueData.cs" />
     <Compile Include="Assets/Scripts/UI/ControllerUINavigator.cs" />
@@ -59,6 +60,7 @@
     <Compile Include="Assets/TextMesh Pro/Examples &amp; Extras/Scripts/TMP_TextSelector_A.cs" />
     <Compile Include="Assets/Scripts/ProceduralGunAudio.cs" />
     <Compile Include="Assets/Scripts/LevelUpScreen.cs" />
+    <Compile Include="Assets/Scripts/Core/EnemySpatialHash.cs" />
     <Compile Include="Assets/Scripts/Singleton.cs" />
     <Compile Include="Assets/Scripts/Spray/ProceduralSprayAudio.cs" />
     <Compile Include="Assets/Scripts/ProceduralEnemyWalkAudio.cs" />
@@ -75,6 +77,7 @@
     <Compile Include="Assets/Scripts/gamejam-2022/CountDownTimer.cs" />
     <Compile Include="Assets/Scripts/Spray/SanitizerSpray.cs" />
     <Compile Include="Assets/Scripts/gamejam-2022/ClueDialog.cs" />
+    <Compile Include="Assets/Scripts/Pooling/ObjectPool.cs" />
     <Compile Include="Assets/Scripts/ProceduralXPPickupAudio.cs" />
     <Compile Include="Assets/Scripts/gamejam-2022/PlayerCombat.cs" />
     <Compile Include="Assets/TextMesh Pro/Examples &amp; Extras/Scripts/TMP_ExampleScript_01.cs" />
@@ -87,6 +90,7 @@
     <Compile Include="Assets/TextMesh Pro/Examples &amp; Extras/Scripts/VertexJitter.cs" />
     <Compile Include="Assets/Scripts/Boost/AttackSpeedBoost.cs" />
     <Compile Include="Assets/Scripts/InputManager.cs" />
+    <Compile Include="Assets/Scripts/LoadingScreenUI.cs" />
     <Compile Include="Assets/Scripts/gamejam-2022/PlayerAudioHandler.cs" />
     <Compile Include="Assets/TextMesh Pro/Examples &amp; Extras/Scripts/TMP_UiFrameRateCounter.cs" />
     <Compile Include="Assets/TextMesh Pro/Examples &amp; Extras/Scripts/VertexZoom.cs" />
@@ -102,10 +106,12 @@
     <Compile Include="Assets/Scripts/Enemy Spawner/Enemies/EnemyBase.cs" />
     <Compile Include="Assets/Scripts/gamejam-2022/CloseObject.cs" />
     <Compile Include="Assets/Scripts/InfiniteBackground.cs" />
+    <Compile Include="Assets/Scripts/IPrewarmable.cs" />
     <Compile Include="Assets/Scripts/Face2DMovementDirection.cs" />
     <Compile Include="Assets/Scripts/Boost/HealthBoost.cs" />
     <Compile Include="Assets/Scripts/EndGameUI.cs" />
     <Compile Include="Assets/Scripts/gamejam-2022/EndScreen.cs" />
+    <Compile Include="Assets/Scripts/Core/GameContext.cs" />
     <Compile Include="Assets/TextMesh Pro/Examples &amp; Extras/Scripts/TMP_TextInfoDebugTool.cs" />
     <Compile Include="Assets/Scripts/ProceduralEnemyProjectileHitAudio.cs" />
     <Compile Include="Assets/Scripts/Boost/MagnetBoost.cs" />
@@ -138,6 +144,7 @@
     <Compile Include="Assets/Scripts/Boost/TemporaryBoostType.cs" />
     <Compile Include="Assets/Scripts/PitchFromInputRelativeToDownPose.cs" />
     <Compile Include="Assets/Scripts/Enemy Spawner/EnemySpawner.cs" />
+    <Compile Include="Assets/Scripts/Pooling/PoolManager.cs" />
     <Compile Include="Assets/Scripts/Boost/MovementSpeedBoost.cs" />
     <Compile Include="Assets/Scripts/UI/ProceduralUIAudio.cs" />
     <Compile Include="Assets/TextMesh Pro/Examples &amp; Extras/Scripts/CameraController.cs" />

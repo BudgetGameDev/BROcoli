@@ -38,18 +38,65 @@ public class EnemyScript : EnemyBase
         if (meleeAudio == null)
             meleeAudio = GetComponent<ProceduralEnemyMeleeAudio>();
         
-        // Find visual transform and sprite renderer for attack animation
-        spriteRenderer = GetComponentInChildren<SpriteRenderer>();
-        if (spriteRenderer != null)
+        // Find visual transform for attack animation
+        // Enemy prefabs use FBX models with MeshRenderer, not SpriteRenderer
+        Renderer visualRenderer = null;
+        
+        // First check for enabled SpriteRenderer
+        foreach (var sr in GetComponentsInChildren<SpriteRenderer>(true))
         {
-            originalColor = spriteRenderer.color;
-            visualTransform = spriteRenderer.transform;
+            if (sr.enabled)
+            {
+                spriteRenderer = sr;
+                visualRenderer = sr;
+                break;
+            }
+        }
+        
+        // If no enabled SpriteRenderer, find MeshRenderer (FBX models)
+        if (visualRenderer == null)
+        {
+            foreach (var mr in GetComponentsInChildren<MeshRenderer>(true))
+            {
+                if (mr.enabled)
+                {
+                    visualRenderer = mr;
+                    break;
+                }
+            }
+        }
+        
+        // Set up visual transform from the renderer we found
+        if (visualRenderer != null)
+        {
+            visualTransform = visualRenderer.transform;
             baseLocalScale = visualTransform.localScale;
+            
+            // Safety check: if scale is zero (shouldn't happen), use a reasonable default
+            if (baseLocalScale.sqrMagnitude < 0.0001f)
+            {
+                Debug.LogWarning($"[EnemyScript] {name}: visualTransform '{visualTransform.name}' has zero scale! Using Vector3.one as fallback.");
+                baseLocalScale = Vector3.one;
+                visualTransform.localScale = Vector3.one;
+            }
+            
+            if (spriteRenderer != null)
+            {
+                originalColor = spriteRenderer.color;
+            }
         }
         else
         {
             visualTransform = transform;
             baseLocalScale = transform.localScale;
+            
+            // Safety check for root transform too
+            if (baseLocalScale.sqrMagnitude < 0.0001f)
+            {
+                Debug.LogWarning($"[EnemyScript] {name}: root transform has zero scale! Using Vector3.one as fallback.");
+                baseLocalScale = Vector3.one;
+                transform.localScale = Vector3.one;
+            }
         }
     }
 
@@ -230,6 +277,42 @@ public class EnemyScript : EnemyBase
         if (other.CompareTag("Player") && Time.time >= nextMeleeAttackTime && !isAttacking)
         {
             StartAttackAnimation();
+        }
+    }
+    
+    /// <summary>
+    /// Reset enemy state for reuse from pool.
+    /// </summary>
+    public override void ResetForPool()
+    {
+        base.ResetForPool();
+        
+        // Reset attack animation state
+        isAttacking = false;
+        hasDamagedThisAttack = false;
+        attackPhase = 0;
+        attackTimer = 0f;
+        nextMeleeAttackTime = 0f;
+        
+        // Reset visual state - critical for fixing invisible enemies!
+        if (visualTransform != null)
+        {
+            // Don't reset localPosition - preserve prefab's Z offset for 3D models
+            
+            // Safety: ensure we never set zero scale
+            if (baseLocalScale.sqrMagnitude < 0.0001f)
+            {
+                baseLocalScale = Vector3.one;
+                Debug.LogWarning($"[EnemyScript.ResetForPool] {name}: baseLocalScale was zero, using Vector3.one");
+            }
+            visualTransform.localScale = baseLocalScale;
+        }
+        
+        // Reset sprite color to original (fixes enemy stuck in attack flash color)
+        if (spriteRenderer != null)
+        {
+            spriteRenderer.enabled = true;  // Ensure sprite is enabled
+            spriteRenderer.color = originalColor;
         }
     }
 }

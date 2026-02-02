@@ -7,6 +7,16 @@ using UnityEngine;
 [RequireComponent(typeof(AudioSource))]
 public class ProceduralFootstepAudio : MonoBehaviour
 {
+    // Static cache for prewarmed footstep clip
+    private static AudioClip cachedClip;
+    private static bool isPrewarmed;
+    
+    // Default parameters for static generation
+    private const float DefaultBaseFrequency = 65f;
+    private const float DefaultDuration = 0.08f;
+    private const float DefaultNoiseMix = 0.4f;
+    private const float DefaultLowPassCutoff = 400f;
+    
     [Header("References")]
     [SerializeField] private ShuffleWalkVisual hopVisual;
     
@@ -54,6 +64,104 @@ public class ProceduralFootstepAudio : MonoBehaviour
         int maxSamples = Mathf.CeilToInt(0.3f * sampleRate);
         audioBuffer = new float[maxSamples];
     }
+    
+    /// <summary>
+    /// Pre-generates and caches a footstep clip to avoid hitches on first play.
+    /// Call this during loading/startup.
+    /// </summary>
+    public static void PrewarmAll()
+    {
+        if (isPrewarmed) return;
+        
+        cachedClip = GenerateFootstepClipStatic(
+            DefaultBaseFrequency,
+            DefaultDuration,
+            DefaultNoiseMix,
+            DefaultLowPassCutoff
+        );
+        isPrewarmed = true;
+    }
+    
+    /// <summary>
+    /// Static clip generation using provided parameters (no instance fields needed).
+    /// </summary>
+    private static AudioClip GenerateFootstepClipStatic(
+        float baseFrequency,
+        float duration,
+        float noiseMix,
+        float lowPassCutoff)
+    {
+        int staticSampleRate = AudioSettings.outputSampleRate;
+        int numSamples = Mathf.CeilToInt(duration * staticSampleRate);
+        float[] buffer = new float[numSamples];
+        
+        // Low-pass filter coefficient (simple one-pole)
+        float rc = 1f / (2f * Mathf.PI * lowPassCutoff);
+        float dt = 1f / staticSampleRate;
+        float alpha = dt / (rc + dt);
+        float filterState = 0f;
+        
+        for (int i = 0; i < numSamples; i++)
+        {
+            float t = (float)i / staticSampleRate;
+            float envelope = GetEnvelopeStatic(t, duration);
+            
+            // Base tone (sine wave with slight frequency decay for "thump")
+            float freqDecay = baseFrequency * Mathf.Exp(-t * 15f);
+            float phase = 2f * Mathf.PI * freqDecay * t;
+            float tone = Mathf.Sin(phase);
+            
+            // Add some harmonics for body
+            tone += 0.3f * Mathf.Sin(phase * 2f);
+            tone += 0.1f * Mathf.Sin(phase * 3f);
+            
+            // Noise component for texture
+            float noise = Random.Range(-1f, 1f);
+            
+            // Mix tone and noise
+            float sample = Mathf.Lerp(tone, noise, noiseMix);
+            
+            // Apply envelope
+            sample *= envelope;
+            
+            // Simple low-pass filter
+            filterState += alpha * (sample - filterState);
+            sample = filterState;
+            
+            // Soft clip to prevent harsh peaks
+            sample = SoftClipStatic(sample);
+            
+            buffer[i] = sample;
+        }
+        
+        AudioClip clip = AudioClip.Create("FootstepCached", numSamples, 1, staticSampleRate, false);
+        clip.SetData(buffer, 0);
+        
+        return clip;
+    }
+    
+    private static float GetEnvelopeStatic(float time, float totalDuration)
+    {
+        float attackTime = 0.005f;
+        
+        if (time < attackTime)
+        {
+            return time / attackTime;
+        }
+        else
+        {
+            float decayTime = time - attackTime;
+            float decayDuration = totalDuration - attackTime;
+            return Mathf.Exp(-decayTime / (decayDuration * 0.25f));
+        }
+    }
+    
+    private static float SoftClipStatic(float x)
+    {
+        if (x > 1f) return 1f;
+        if (x < -1f) return -1f;
+        return x - (x * x * x) / 3f;
+    }
 
     void Update()
     {
@@ -75,7 +183,8 @@ public class ProceduralFootstepAudio : MonoBehaviour
 
     public void PlayFootstep()
     {
-        AudioClip clip = GenerateFootstepClip();
+        // Use cached clip if available, otherwise generate new one
+        AudioClip clip = (cachedClip != null) ? cachedClip : GenerateFootstepClip();
         audioSource.PlayOneShot(clip, volume);
     }
 

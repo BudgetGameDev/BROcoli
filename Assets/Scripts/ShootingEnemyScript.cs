@@ -1,4 +1,5 @@
 using UnityEngine;
+using Pooling;
 
 [RequireComponent(typeof(Rigidbody2D))]
 [RequireComponent(typeof(Collider2D))]
@@ -21,6 +22,7 @@ public class ShootingEnemyScript : EnemyBase
     [SerializeField] private ProceduralEnemyGunAudio.EnemyGunSoundType gunSoundType = ProceduralEnemyGunAudio.EnemyGunSoundType.Sneeze;
 
     private float nextShootTime = 0f;
+    private EnemyProjectile _cachedProjectilePrefab;
 
     void Start()
     {
@@ -30,6 +32,10 @@ public class ShootingEnemyScript : EnemyBase
         // Try to get gun audio component if not assigned
         if (gunAudio == null)
             gunAudio = GetComponent<ProceduralEnemyGunAudio>();
+        
+        // Cache projectile prefab component for pooling
+        if (projectilePrefab != null)
+            _cachedProjectilePrefab = projectilePrefab.GetComponent<EnemyProjectile>();
     }
 
     protected override void FixedUpdate()
@@ -113,9 +119,20 @@ public class ShootingEnemyScript : EnemyBase
         // Use Z position for visual "height" - this doesn't affect 2D collision
         Vector3 spawnPos = new Vector3(spawnPos2D.x, spawnPos2D.y, projectileVisualHeight);
         
-        GameObject proj = Instantiate(projectilePrefab, spawnPos, Quaternion.identity);
+        // Try to get projectile from pool first
+        EnemyProjectile ep = null;
+        if (_cachedProjectilePrefab != null)
+        {
+            ep = PoolManager.Instance?.GetProjectile(_cachedProjectilePrefab, spawnPos, Quaternion.identity);
+        }
+        
+        // Fallback to instantiate if pool not available
+        if (ep == null)
+        {
+            GameObject proj = Instantiate(projectilePrefab, spawnPos, Quaternion.identity);
+            ep = proj.GetComponent<EnemyProjectile>();
+        }
 
-        EnemyProjectile ep = proj.GetComponent<EnemyProjectile>();
         if (ep != null)
         {
             ep.Init(direction);

@@ -74,8 +74,20 @@ public class iOSSafariWebGLOptimizer : MonoBehaviour
 
         ApplyQualitySettings();
         ApplyURPSettings();
+        WarmupShadersForWebGL();
         
         Debug.Log("[iOSSafariOptimizer] All optimizations applied");
+    }
+
+    private void WarmupShadersForWebGL()
+    {
+        // Shader warmup is critical on iOS Safari WebGL to prevent runtime compilation stutters
+        Shader.WarmupAllShaders();
+        Debug.Log("[iOSSafariOptimizer] Shaders warmed up");
+        
+        // Also prewarm spray materials which use runtime material creation
+        SprayMaterialCreator.PrewarmAll();
+        Debug.Log("[iOSSafariOptimizer] Spray materials prewarmed");
     }
 
     private void ApplyQualitySettings()
