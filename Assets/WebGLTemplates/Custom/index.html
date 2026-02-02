@@ -379,10 +379,37 @@
             attributes.powerPreference = 'high-performance';
             attributes.preserveDrawingBuffer = false;
             attributes.failIfMajorPerformanceCaveat = false;
+            attributes.desynchronized = true; // Hint for low-latency rendering
+            attributes.antialias = true; // User wants antialiasing kept
           }
           return originalGetContext.call(this, type, attributes);
         };
       })();
+      
+      // ProMotion (120Hz) display support for iPhone 16 Pro
+      // Safari throttles to 60fps by default - this hints we want high refresh
+      var targetFrameRate = 120;
+      var lastFrameTime = 0;
+      var frameTimeAccumulator = 0;
+      var frameCount = 0;
+      function measureFrameRate(timestamp) {
+        if (lastFrameTime > 0) {
+          var delta = timestamp - lastFrameTime;
+          frameTimeAccumulator += delta;
+          frameCount++;
+          if (frameCount >= 60) {
+            // Update running average
+            window.__avgFrameTime = frameTimeAccumulator / frameCount;
+            frameTimeAccumulator = 0;
+            frameCount = 0;
+          }
+        }
+        lastFrameTime = timestamp;
+        requestAnimationFrame(measureFrameRate);
+      }
+      if (isiOSDevice) {
+        requestAnimationFrame(measureFrameRate);
+      }
       
       // Screen wake lock
       var wakeLock = null;
@@ -437,11 +464,98 @@
         }
       }
       
+      // WebGL context loss handling - iOS Safari has hard limits on WebGL contexts
+      function setupContextLossHandling() {
+        var canvas = document.getElementById('unity-canvas');
+        if (!canvas) return;
+        canvas.addEventListener('webglcontextlost', function(e) {
+          e.preventDefault();
+        });
+        canvas.addEventListener('webglcontextrestored', function() {
+          // Unity should auto-recover but we force a resize to help
+          window.dispatchEvent(new Event('resize'));
+        });
+      }
+      
+      // Battery API - always request high performance, track charging state
+      function checkBatteryStatus() {
+        // Always signal we want high performance regardless of battery
+        document.body.setAttribute('data-performance-mode', 'high');
+        
+        if ('getBattery' in navigator) {
+          navigator.getBattery().then(function(battery) {
+            document.body.setAttribute('data-charging', battery.charging ? 'true' : 'false');
+            document.body.setAttribute('data-battery-level', Math.round(battery.level * 100));
+            
+            battery.addEventListener('chargingchange', function() {
+              document.body.setAttribute('data-charging', battery.charging ? 'true' : 'false');
+            });
+            battery.addEventListener('levelchange', function() {
+              document.body.setAttribute('data-battery-level', Math.round(battery.level * 100));
+            });
+          }).catch(function() {});
+        }
+      }
+      
+      // Touch feedback hint - forces Safari to prepare for touch interaction
+      function setupTouchHints() {
+        document.body.style.webkitTapHighlightColor = 'transparent';
+        document.body.style.touchAction = 'manipulation';
+        // Pre-emptive touch listener keeps event system active
+        var touchStartTime = 0;
+        document.addEventListener('touchstart', function() {
+          touchStartTime = performance.now();
+        }, { passive: true });
+        document.addEventListener('touchend', function() {
+          // Touch response timing helps Safari understand app is interactive
+          window.__lastTouchResponse = performance.now() - touchStartTime;
+        }, { passive: true });
+      }
+      
+      // requestIdleCallback fallback for Safari (still not supported in 2026)
+      if (!('requestIdleCallback' in window)) {
+        window.requestIdleCallback = function(cb) {
+          var start = Date.now();
+          return setTimeout(function() {
+            cb({
+              didTimeout: false,
+              timeRemaining: function() {
+                return Math.max(0, 50 - (Date.now() - start));
+              }
+            });
+          }, 1);
+        };
+        window.cancelIdleCallback = function(id) {
+          clearTimeout(id);
+        };
+      }
+      
+      // Force GPU process warmup before Unity loads
+      function warmupGPU() {
+        var warmupCanvas = document.createElement('canvas');
+        warmupCanvas.width = 64;
+        warmupCanvas.height = 64;
+        var ctx = warmupCanvas.getContext('webgl2', { powerPreference: 'high-performance' }) ||
+                  warmupCanvas.getContext('webgl', { powerPreference: 'high-performance' });
+        if (ctx) {
+          // Draw something to ensure GPU is initialized
+          ctx.clearColor(0, 0, 0, 1);
+          ctx.clear(ctx.COLOR_BUFFER_BIT);
+          // Clean up
+          var ext = ctx.getExtension('WEBGL_lose_context');
+          if (ext) ext.loseContext();
+        }
+      }
+      
       // Start iOS optimizations
       if (isiOSDevice) {
+        warmupGPU();
         startAudioKeepAlive();
         startKeepAlive();
         requestWakeLock();
+        setupContextLossHandling();
+        checkBatteryStatus();
+        setupTouchHints();
         // Request device motion on first touch (requires user gesture)
         document.addEventListener('touchstart', function() {
           requestDeviceMotion();
