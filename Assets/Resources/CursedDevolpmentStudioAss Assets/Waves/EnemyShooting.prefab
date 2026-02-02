@@ -190,7 +190,7 @@ MonoBehaviour:
   separationRadius: 2.5
   separationForce: 50
   playerSeparationRadius: 1.2
-  playerSeparationForce: 40
+  playerSeparationForce: 8
   walkAudio: {fileID: 0}
   player: {fileID: 0}
   rb: {fileID: 2177051095443035704}
