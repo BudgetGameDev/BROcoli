@@ -1,7 +1,7 @@
 {
-  "buildId": "build-1770038391-396cdf6",
-  "buildTimestamp": "2026-02-02T13:19:51Z",
-  "buildNumber": 123,
-  "commitSha": "396cdf669d061e289f682fd43ff6c52b4a75c9c2",
-  "description": "fix: pwa offline mode"
+  "buildId": "build-1770040115-f1d29f0",
+  "buildTimestamp": "2026-02-02T13:48:35Z",
+  "buildNumber": 124,
+  "commitSha": "f1d29f08980c99f460548769cde4a3aae2d0ff37",
+  "description": "fix: build problems and implement a clean build and also build check for when it is bugging out, and also instructions for copliot agent"
 }
