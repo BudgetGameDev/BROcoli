@@ -1,7 +1,7 @@
 {
-  "buildId": "build-1769994999-d344303",
-  "buildTimestamp": "2026-02-02T01:16:39Z",
-  "buildNumber": 114,
-  "commitSha": "d344303a68c8b9585d571aa4c4691c0909cdbfa1",
-  "description": "fix: not correctly working offline in pwa"
+  "buildId": "build-1769997964-912c372",
+  "buildTimestamp": "2026-02-02T02:06:04Z",
+  "buildNumber": 115,
+  "commitSha": "912c3728edc4a75f1c74578149e41bca5f73e980",
+  "description": "feat: add level up screen and sfx"
 }
