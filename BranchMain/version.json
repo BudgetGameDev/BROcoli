@@ -1,7 +1,7 @@
 {
-  "buildId": "build-1770045992-47e967b",
-  "buildTimestamp": "2026-02-02T15:26:32Z",
-  "buildNumber": 126,
-  "commitSha": "47e967b9f7d845649138f168b9332047041f0fc9",
-  "description": "fix: ios safari webgl lighting and hide quit button on web builds and optimize input latency"
+  "buildId": "build-1770055881-e48e712",
+  "buildTimestamp": "2026-02-02T18:11:21Z",
+  "buildNumber": 127,
+  "commitSha": "e48e7123a0edb046a1c1af3315e103a66063f00e",
+  "description": "fix: optimize performance"
 }
