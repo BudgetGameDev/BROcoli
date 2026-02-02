@@ -12,6 +12,10 @@ public class MainMenu : MonoBehaviour
     [Tooltip("Assign a button to show/hide based on PWA install status")]
     public GameObject installAppButton;
     
+    [Header("Quit Button (Hidden on WebGL)")]
+    [Tooltip("Assign the quit button to auto-hide on WebGL builds")]
+    public GameObject quitButton;
+    
     [Header("Menu Buttons")]
     [SerializeField] private Button[] menuButtons;
     
@@ -35,6 +39,15 @@ public class MainMenu : MonoBehaviour
                 Debug.Log("[MainMenu] Running as installed PWA - hiding install button");
             }
         }
+        
+        // Hide quit button on WebGL - Application.Quit() doesn't work reliably in browsers
+#if UNITY_WEBGL
+        if (quitButton != null)
+        {
+            quitButton.SetActive(false);
+            Debug.Log("[MainMenu] WebGL build - hiding quit button");
+        }
+#endif
         
         PWAHelper.LogStatus();
         

@@ -83,6 +83,7 @@
     <Compile Include="Assets/Scripts/gamejam-2022/Dialog/Dialogue.cs" />
     <Compile Include="Assets/Scripts/gamejam-2022/Projectile.cs" />
     <Compile Include="Assets/Scripts/Boost/ProceduralBoostAudio.cs" />
+    <Compile Include="Assets/Scripts/FrameRateOptimizer.cs" />
     <Compile Include="Assets/TextMesh Pro/Examples &amp; Extras/Scripts/VertexJitter.cs" />
     <Compile Include="Assets/Scripts/Boost/AttackSpeedBoost.cs" />
     <Compile Include="Assets/Scripts/InputManager.cs" />

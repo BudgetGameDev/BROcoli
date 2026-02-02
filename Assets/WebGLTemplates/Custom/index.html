@@ -421,6 +421,8 @@
               attributes = attributes || {};
               attributes.powerPreference = 'high-performance';
               attributes.preserveDrawingBuffer = false;
+              attributes.desynchronized = true;
+              attributes.failIfMajorPerformanceCaveat = true;
             }
             return originalGetContext.call(this, type, attributes);
           };

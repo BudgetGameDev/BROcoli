@@ -14,9 +14,10 @@ using UnityShadowResolution = UnityEngine.ShadowResolution;
 /// Settings applied:
 /// - Lowest quality level
 /// - Native resolution (no scaling)
-/// - 120 FPS target frame rate
-/// - VSync disabled
 /// - MSAA disabled
+/// - Minimal shadows for lighting
+/// 
+/// Note: Frame rate settings are handled by FrameRateOptimizer (all platforms).
 /// </summary>
 [DefaultExecutionOrder(-1000)] // Run very early
 public class iOSSafariWebGLOptimizer : MonoBehaviour
@@ -72,7 +73,6 @@ public class iOSSafariWebGLOptimizer : MonoBehaviour
         _optimizationsApplied = true;
 
         ApplyQualitySettings();
-        ApplyFrameRateSettings();
         ApplyURPSettings();
         
         Debug.Log("[iOSSafariOptimizer] All optimizations applied");
@@ -88,19 +88,18 @@ public class iOSSafariWebGLOptimizer : MonoBehaviour
             Debug.Log($"[iOSSafariOptimizer] Quality level set to {lowestQuality} (lowest)");
         }
 
-        // Disable VSync
-        QualitySettings.vSyncCount = 0;
-        Debug.Log("[iOSSafariOptimizer] VSync disabled");
+        // Note: VSync and frame rate are handled by FrameRateOptimizer
 
         // Disable MSAA via quality settings
         QualitySettings.antiAliasing = 0;
         Debug.Log("[iOSSafariOptimizer] MSAA disabled (QualitySettings)");
 
-        // Set shadow settings to minimum
-        QualitySettings.shadows = UnityShadowQuality.Disable;
+        // Use hard shadows only (cheapest shadow option that still provides some depth)
+        // NOTE: Completely disabling shadows can make 3D models appear flat/black
+        QualitySettings.shadows = UnityShadowQuality.HardOnly;
         QualitySettings.shadowResolution = UnityShadowResolution.Low;
-        QualitySettings.shadowDistance = 0f;
-        Debug.Log("[iOSSafariOptimizer] Shadows disabled");
+        QualitySettings.shadowDistance = 20f; // Minimal distance for nearby shadows
+        Debug.Log("[iOSSafariOptimizer] Shadows set to HardOnly (minimal)");
 
         // Reduce other quality settings
         QualitySettings.softParticles = false;
@@ -111,17 +110,6 @@ public class iOSSafariWebGLOptimizer : MonoBehaviour
         QualitySettings.maximumLODLevel = 2;
         QualitySettings.particleRaycastBudget = 16;
         Debug.Log("[iOSSafariOptimizer] Additional quality reductions applied");
-    }
-
-    private void ApplyFrameRateSettings()
-    {
-        // Target 120 FPS for ProMotion displays
-        Application.targetFrameRate = 120;
-        Debug.Log("[iOSSafariOptimizer] Target frame rate set to 120 FPS");
-
-        // Ensure OnDemandRendering is at full rate
-        OnDemandRendering.renderFrameInterval = 1;
-        Debug.Log("[iOSSafariOptimizer] OnDemandRendering set to every frame");
     }
 
     private void ApplyURPSettings()
@@ -146,12 +134,15 @@ public class iOSSafariWebGLOptimizer : MonoBehaviour
         // Note: HDR property might not be directly settable at runtime
         // urpAsset.supportsHDR = false;
 
-        // Reduce shadow settings in URP
-        urpAsset.shadowDistance = 0f;
-        Debug.Log("[iOSSafariOptimizer] URP shadow distance set to 0");
+        // Keep minimal shadow distance for basic lighting to work
+        // NOTE: Setting to 0 can cause 3D models to appear completely black
+        urpAsset.shadowDistance = 20f;
+        Debug.Log("[iOSSafariOptimizer] URP shadow distance set to 20 (minimal)");
 
-        // Set max additional lights to 0 for performance
-        urpAsset.maxAdditionalLightsCount = 0;
-        Debug.Log("[iOSSafariOptimizer] URP max additional lights set to 0");
+        // Allow 1 additional light for minimal scene lighting
+        // NOTE: Setting to 0 can cause 3D models to appear completely black
+        // The main directional light is separate, but some scenes need at least 1 additional
+        urpAsset.maxAdditionalLightsCount = 1;
+        Debug.Log("[iOSSafariOptimizer] URP max additional lights set to 1 (minimal)");
     }
 }
