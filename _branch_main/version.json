@@ -1,7 +1,7 @@
 {
-  "buildId": "build-1769994757-4d3a924",
-  "buildTimestamp": "2026-02-02T01:12:37Z",
-  "buildNumber": 112,
-  "commitSha": "4d3a92456a735e5e8ff4f8f5351b67328432c063",
-  "description": "fix: spray v2"
+  "buildId": "build-1769994999-d344303",
+  "buildTimestamp": "2026-02-02T01:16:39Z",
+  "buildNumber": 114,
+  "commitSha": "d344303a68c8b9585d571aa4c4691c0909cdbfa1",
+  "description": "fix: not correctly working offline in pwa"
 }
