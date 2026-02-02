@@ -988,7 +988,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 60, y: 60}
+  m_SizeDelta: {x: 80, y: 80}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &172777393
 MonoBehaviour:
@@ -1084,7 +1084,7 @@ MonoBehaviour:
   actionButton: {fileID: 717690963}
   pauseButton: {fileID: 7777770004}
   canvas: {fileID: 1680648535}
-  joystickRange: 50
+  joystickRange: 65
   deadZone: 0.1
   ringThickness: 12
   ringColor: {r: 0.4, g: 0.4, b: 0.45, a: 0.55}
@@ -1094,8 +1094,8 @@ MonoBehaviour:
   portraitJoystickAnchor: {x: 0.5, y: 0.35}
   portraitButtonAnchor: {x: 0.85, y: 0.35}
   portraitPauseButtonAnchor: {x: 0.92, y: 0.92}
-  landscapeJoystickAnchor: {x: 0.15, y: 0.3}
-  landscapeButtonAnchor: {x: 0.85, y: 0.3}
+  landscapeJoystickAnchor: {x: 0.25, y: 0.5}
+  landscapeButtonAnchor: {x: 0.85, y: 0.5}
   landscapePauseButtonAnchor: {x: 0.95, y: 0.9}
   pauseButtonColor: {r: 0.2, g: 0.2, b: 0.25, a: 0.85}
   pauseIconColor: {r: 1, g: 1, b: 1, a: 0.95}
@@ -5063,7 +5063,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 150, y: 150}
+  m_SizeDelta: {x: 200, y: 200}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1933989427
 MonoBehaviour:

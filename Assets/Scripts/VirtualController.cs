@@ -36,7 +36,7 @@ public class VirtualController : MonoBehaviour
     [SerializeField] private Canvas canvas;
 
     [Header("Joystick Settings")]
-    [SerializeField] private float joystickRange = 50f;
+    [SerializeField] private float joystickRange = 65f;
     [SerializeField] private float deadZone = 0.1f;
 
     [Header("Joystick Visuals")]
@@ -52,8 +52,8 @@ public class VirtualController : MonoBehaviour
     [SerializeField] private Vector2 portraitPauseButtonAnchor = new Vector2(0.92f, 0.92f);
 
     [Header("Landscape Position (left side for thumb)")]
-    [SerializeField] private Vector2 landscapeJoystickAnchor = new Vector2(0.15f, 0.3f);
-    [SerializeField] private Vector2 landscapeButtonAnchor = new Vector2(0.85f, 0.3f);
+    [SerializeField] private Vector2 landscapeJoystickAnchor = new Vector2(0.25f, 0.5f);
+    [SerializeField] private Vector2 landscapeButtonAnchor = new Vector2(0.85f, 0.5f);
     [SerializeField] private Vector2 landscapePauseButtonAnchor = new Vector2(0.95f, 0.9f);
 
     [Header("Pause Button Visual")]
