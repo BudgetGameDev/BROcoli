@@ -1,7 +1,7 @@
 {
-  "buildId": "build-1770056456-3b9db9b",
-  "buildTimestamp": "2026-02-02T18:20:56Z",
-  "buildNumber": 128,
-  "commitSha": "3b9db9bd967de6457544550935d4e6dc3b172b58",
-  "description": "fix: virtual controller size and position on iphone"
+  "buildId": "build-1770060180-254c2bc",
+  "buildTimestamp": "2026-02-02T19:23:00Z",
+  "buildNumber": 129,
+  "commitSha": "254c2bc5f07f9ae7743b6d8fc85d0cc9ceeb0089",
+  "description": "fix: missing guids and missing components etc"
 }
