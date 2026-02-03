@@ -67,16 +67,16 @@ uint32_t g_numFramesToGenerate = 1;
 uint64_t g_frameId = 0;
 std::mutex g_mutex;
 
-// Logging callback storage
+// Logging callback storage (shared with StreamlineDLSSPlugin.cpp)
 typedef void (*LogCallback)(const char* message);
-static LogCallback g_logCallback = nullptr;
+LogCallback g_logCallback = nullptr;
 
 // Error tracking for diagnostics
 static int g_lastErrorCode = 0;  // 0 = no error, negative = init error
 static const char* g_lastErrorMessage = "Not initialized yet";
 
-// File logging
-static FILE* g_logFile = nullptr;
+// File logging (shared with StreamlineDLSSPlugin.cpp)
+FILE* g_logFile = nullptr;
 static char g_logFilePath[MAX_PATH] = {0};
 
 // ============================================================================

@@ -5,17 +5,24 @@ using UnityEngine.Rendering.Universal;
 
 /// <summary>
 /// Render pass that performs DLSS upscaling.
-/// Tags resources and evaluates DLSS in a single pass.
+/// 
+/// DLSS flow:
+/// 1. Unity renders at lower resolution (renderScale applied by DLSSRenderScaleManager)
+/// 2. This pass tags the lower-res input and full-res output buffers
+/// 3. DLSS evaluates and writes upscaled result to output buffer
+/// 4. Output buffer is blitted to screen
 /// </summary>
 public class DLSSUpscalePass : ScriptableRenderPass, IDisposable
 {
     private DLSSRenderFeature.DLSSSettings _settings;
     private Matrix4x4 _prevViewProjection;
-#pragma warning disable CS0414 // Field assigned but not used (only used in Windows builds)
     private bool _firstFrame = true;
-#pragma warning restore CS0414
     private ScriptableRenderer _renderer;
-    private RenderingData _renderingData;
+    
+    // Output render texture at full resolution for DLSS to write to
+    private RenderTexture _dlssOutputRT;
+    private int _lastOutputWidth;
+    private int _lastOutputHeight;
     
     // D3D12 resource states
     private const uint D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE = 0x80;
@@ -32,7 +39,46 @@ public class DLSSUpscalePass : ScriptableRenderPass, IDisposable
     public void Setup(ScriptableRenderer renderer, ref RenderingData renderingData)
     {
         _renderer = renderer;
-        _renderingData = renderingData;
+    }
+    
+    /// <summary>
+    /// Ensure DLSS output render texture exists at correct resolution
+    /// </summary>
+    private void EnsureOutputRT(int width, int height)
+    {
+        if (_dlssOutputRT != null && _dlssOutputRT.width == width && _dlssOutputRT.height == height)
+            return;
+        
+        // Release old RT
+        if (_dlssOutputRT != null)
+        {
+            _dlssOutputRT.Release();
+            UnityEngine.Object.Destroy(_dlssOutputRT);
+        }
+        
+        // Create new RT at full output resolution
+        var desc = new RenderTextureDescriptor(width, height)
+        {
+            colorFormat = _settings.colorBuffersHDR ? RenderTextureFormat.ARGBHalf : RenderTextureFormat.ARGB32,
+            depthBufferBits = 0,
+            msaaSamples = 1,
+            useMipMap = false,
+            autoGenerateMips = false,
+            enableRandomWrite = true, // Required for DLSS to write to
+            sRGB = !_settings.colorBuffersHDR
+        };
+        
+        _dlssOutputRT = new RenderTexture(desc);
+        _dlssOutputRT.name = "DLSS Output";
+        _dlssOutputRT.Create();
+        
+        _lastOutputWidth = width;
+        _lastOutputHeight = height;
+        
+        if (_settings.debugLogging)
+        {
+            Debug.Log($"[DLSS] Created output RT: {width}x{height}, format={desc.colorFormat}");
+        }
     }
     
     [Obsolete]
@@ -44,19 +90,24 @@ public class DLSSUpscalePass : ScriptableRenderPass, IDisposable
         
         using (new ProfilingScope(cmd, profilingSampler))
         {
+            // Get render and output dimensions
+            // renderWidth/Height = what Unity rendered at (after renderScale)
+            // outputWidth/Height = final display resolution
+            int renderWidth = camera.pixelWidth;
+            int renderHeight = camera.pixelHeight;
+            int outputWidth = Screen.width;
+            int outputHeight = Screen.height;
+            
+            // Ensure we have an output RT at the correct resolution
+            EnsureOutputRT(outputWidth, outputHeight);
+            
             // 1. Set viewport
             StreamlineDLSSPlugin.SetViewport(0);
             
             // 2. Set camera constants
             SetConstants(camera);
             
-            // 3. Get render dimensions
-            int renderWidth = camera.pixelWidth;
-            int renderHeight = camera.pixelHeight;
-            int outputWidth = Screen.width;
-            int outputHeight = Screen.height;
-            
-            // 4. Set DLSS options
+            // 3. Set DLSS options
             bool optionsSet = StreamlineDLSSPlugin.SetOptions(
                 _settings.dlssMode,
                 (uint)outputWidth,
@@ -69,10 +120,20 @@ public class DLSSUpscalePass : ScriptableRenderPass, IDisposable
                 Debug.LogWarning("[DLSS] SetOptions failed");
             }
             
-            // 5. Tag resources (depth, motion vectors, input color, output color)
-            TagResources(renderingData.cameraData, renderWidth, renderHeight);
+            // 4. Tag all required resources
+            bool resourcesTagged = TagResources(renderingData.cameraData, renderWidth, renderHeight, outputWidth, outputHeight);
             
-            // 6. Evaluate DLSS
+            if (!resourcesTagged)
+            {
+                if (_settings.debugLogging)
+                    Debug.LogWarning("[DLSS] Failed to tag all required resources");
+            }
+            
+            // 5. Execute command buffer to ensure resources are in correct state
+            context.ExecuteCommandBuffer(cmd);
+            cmd.Clear();
+            
+            // 6. Evaluate DLSS (this runs the upscaling)
             bool evalResult = StreamlineDLSSPlugin.Evaluate(IntPtr.Zero);
             
             if (_settings.debugLogging)
@@ -82,6 +143,12 @@ public class DLSSUpscalePass : ScriptableRenderPass, IDisposable
                     Debug.Log($"[DLSS] Evaluate: {(evalResult ? "OK" : "FAILED")} " +
                               $"(Render: {renderWidth}x{renderHeight} → Output: {outputWidth}x{outputHeight})");
                 }
+            }
+            
+            // 7. Blit DLSS output to screen
+            if (evalResult && _dlssOutputRT != null)
+            {
+                cmd.Blit(_dlssOutputRT, BuiltinRenderTextureType.CameraTarget);
             }
             
             _firstFrame = false;
@@ -106,7 +173,7 @@ public class DLSSUpscalePass : ScriptableRenderPass, IDisposable
         Matrix4x4 prevClipToClip = clipToPrevClip.inverse;
         
         // Jitter offset - DLSS needs this for temporal stability
-        // For now using zero jitter as we're not using TAA
+        // Without TAA, we use zero jitter but DLSS can still work
         Vector2 jitterOffset = Vector2.zero;
         
         // Motion vector scale - converts from screen UV to pixel space
@@ -138,12 +205,12 @@ public class DLSSUpscalePass : ScriptableRenderPass, IDisposable
 #endif
     }
     
-    private void TagResources(CameraData cameraData, int renderWidth, int renderHeight)
+    private bool TagResources(CameraData cameraData, int renderWidth, int renderHeight, int outputWidth, int outputHeight)
     {
 #if UNITY_STANDALONE_WIN && !UNITY_EDITOR
-        // Get native texture pointers for DLSS buffer tagging
+        bool allTagged = true;
         
-        // Try to get depth texture
+        // === DEPTH BUFFER ===
         var depthTexture = Shader.GetGlobalTexture("_CameraDepthTexture");
         if (depthTexture != null)
         {
@@ -151,24 +218,28 @@ public class DLSSUpscalePass : ScriptableRenderPass, IDisposable
             if (depthPtr != IntPtr.Zero)
             {
                 // DXGI_FORMAT_D32_FLOAT = 40
-                uint depthFormat = 40;
                 StreamlineDLSSPlugin.TagResource(
                     depthPtr,
                     StreamlineDLSSPlugin.BufferType.Depth,
                     (uint)renderWidth,
                     (uint)renderHeight,
-                    depthFormat,
+                    40,
                     D3D12_RESOURCE_STATE_DEPTH_READ
                 );
                 
                 if (_settings.debugLogging && _firstFrame)
-                {
-                    Debug.Log($"[DLSS] Tagged depth buffer: {renderWidth}x{renderHeight}");
-                }
+                    Debug.Log($"[DLSS] Tagged depth: {renderWidth}x{renderHeight}");
             }
+            else allTagged = false;
+        }
+        else 
+        {
+            allTagged = false;
+            if (_settings.debugLogging && _firstFrame)
+                Debug.LogWarning("[DLSS] Depth texture not available!");
         }
         
-        // Try to get motion vectors texture
+        // === MOTION VECTORS ===
         var motionTexture = Shader.GetGlobalTexture("_MotionVectorTexture");
         if (motionTexture != null)
         {
@@ -176,28 +247,28 @@ public class DLSSUpscalePass : ScriptableRenderPass, IDisposable
             if (mvecPtr != IntPtr.Zero)
             {
                 // DXGI_FORMAT_R16G16_FLOAT = 34
-                uint mvecFormat = 34;
                 StreamlineDLSSPlugin.TagResource(
                     mvecPtr,
                     StreamlineDLSSPlugin.BufferType.MotionVectors,
                     (uint)renderWidth,
                     (uint)renderHeight,
-                    mvecFormat,
+                    34,
                     D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE
                 );
                 
                 if (_settings.debugLogging && _firstFrame)
-                {
                     Debug.Log($"[DLSS] Tagged motion vectors: {renderWidth}x{renderHeight}");
-                }
             }
+            else allTagged = false;
         }
-        else if (_settings.debugLogging && _firstFrame)
+        else
         {
-            Debug.LogWarning("[DLSS] Motion vectors texture not available - enable in URP settings!");
+            // Motion vectors are important but DLSS can work without them (quality suffers)
+            if (_settings.debugLogging && _firstFrame)
+                Debug.LogWarning("[DLSS] Motion vectors not available - enable in URP settings for best quality!");
         }
         
-        // Try to get the current camera color target
+        // === INPUT COLOR (lower resolution rendered image) ===
         var colorTexture = Shader.GetGlobalTexture("_CameraColorTexture");
         if (colorTexture != null)
         {
@@ -216,15 +287,64 @@ public class DLSSUpscalePass : ScriptableRenderPass, IDisposable
                 );
                 
                 if (_settings.debugLogging && _firstFrame)
-                {
                     Debug.Log($"[DLSS] Tagged input color: {renderWidth}x{renderHeight}");
-                }
+            }
+            else allTagged = false;
+        }
+        else
+        {
+            allTagged = false;
+            if (_settings.debugLogging && _firstFrame)
+                Debug.LogWarning("[DLSS] Camera color texture not available!");
+        }
+        
+        // === OUTPUT COLOR (full resolution - DLSS writes upscaled result here) ===
+        if (_dlssOutputRT != null)
+        {
+            IntPtr outputPtr = _dlssOutputRT.GetNativeTexturePtr();
+            if (outputPtr != IntPtr.Zero)
+            {
+                // DXGI_FORMAT_R16G16B16A16_FLOAT = 10 (HDR), DXGI_FORMAT_R8G8B8A8_UNORM = 28 (SDR)
+                uint outputFormat = _settings.colorBuffersHDR ? (uint)10 : (uint)28;
+                StreamlineDLSSPlugin.TagResource(
+                    outputPtr,
+                    StreamlineDLSSPlugin.BufferType.ScalingOutputColor,
+                    (uint)outputWidth,
+                    (uint)outputHeight,
+                    outputFormat,
+                    D3D12_RESOURCE_STATE_UNORDERED_ACCESS
+                );
+                
+                if (_settings.debugLogging && _firstFrame)
+                    Debug.Log($"[DLSS] Tagged output color: {outputWidth}x{outputHeight}");
+            }
+            else
+            {
+                allTagged = false;
+                if (_settings.debugLogging)
+                    Debug.LogError("[DLSS] Failed to get native pointer for output RT!");
             }
         }
+        else
+        {
+            allTagged = false;
+            if (_settings.debugLogging)
+                Debug.LogError("[DLSS] Output RT is null!");
+        }
+        
+        return allTagged;
+#else
+        return false;
 #endif
     }
     
     public void Dispose()
     {
+        if (_dlssOutputRT != null)
+        {
+            _dlssOutputRT.Release();
+            UnityEngine.Object.Destroy(_dlssOutputRT);
+            _dlssOutputRT = null;
+        }
     }
 }

@@ -103,12 +103,22 @@ public class DLSSRenderFeature : ScriptableRendererFeature
                 Debug.Log("[DLSS] Reflex Low Latency enabled");
         }
         
-        // Set DLSS mode in native plugin
+        // Set DLSS options in native plugin - MUST use SetOptions with output dimensions
         if (StreamlineDLSSPlugin.IsDLSSSupported())
         {
-            bool success = StreamlineDLSSPlugin.SetDLSSMode(settings.dlssMode);
+            // Get actual output resolution (the final display size)
+            uint outputWidth = (uint)Screen.width;
+            uint outputHeight = (uint)Screen.height;
+            
+            bool success = StreamlineDLSSPlugin.SetOptions(
+                settings.dlssMode,
+                outputWidth,
+                outputHeight,
+                colorBuffersHDR: true
+            );
+            
             if (settings.debugLogging)
-                Debug.Log($"[DLSS] SetDLSSMode({settings.dlssMode}): {(success ? "OK" : "FAILED")}");
+                Debug.Log($"[DLSS] SetOptions({settings.dlssMode}, {outputWidth}x{outputHeight}): {(success ? "OK" : "FAILED")}");
         }
         else if (settings.debugLogging)
         {

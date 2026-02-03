@@ -7,6 +7,8 @@
 #include <windows.h>
 #include <cstdint>
 #include <cstring>
+#include <cstdio>
+#include <ctime>
 #include <mutex>
 #include <cstdarg>
 
@@ -28,6 +30,11 @@ extern sl::DLSSGMode g_dlssgMode;
 extern uint32_t g_numFramesToGenerate;
 extern std::mutex g_mutex;
 
+// External logging infrastructure from StreamlineReflexPlugin.cpp
+extern FILE* g_logFile;
+typedef void(*LogCallback)(const char*);
+extern LogCallback g_logCallback;
+
 // ============================================================================
 // Export Macro
 // ============================================================================
@@ -35,7 +42,7 @@ extern std::mutex g_mutex;
 #define EXPORT extern "C" __declspec(dllexport)
 
 // ============================================================================
-// Logging
+// Logging (writes to shared log file)
 // ============================================================================
 
 static void LogDLSS(const char* format, ...)
@@ -46,6 +53,29 @@ static void LogDLSS(const char* format, ...)
     vsnprintf(buffer, sizeof(buffer), format, args);
     va_end(args);
     
+    // Get timestamp
+    time_t now = time(NULL);
+    struct tm* t = localtime(&now);
+    char timestamp[32];
+    snprintf(timestamp, sizeof(timestamp), "[%02d:%02d:%02d] ",
+             t->tm_hour, t->tm_min, t->tm_sec);
+    
+    // Write to shared log file
+    if (g_logFile)
+    {
+        fprintf(g_logFile, "%s[DLSS] %s\n", timestamp, buffer);
+        fflush(g_logFile);
+    }
+    
+    // C# callback
+    if (g_logCallback)
+    {
+        char fullMsg[1100];
+        snprintf(fullMsg, sizeof(fullMsg), "[DLSS] %s", buffer);
+        g_logCallback(fullMsg);
+    }
+    
+    // Debug output
     OutputDebugStringA("[GfxPluginStreamline/DLSS] ");
     OutputDebugStringA(buffer);
     OutputDebugStringA("\n");
