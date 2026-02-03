@@ -613,95 +613,141 @@ public class PauseMenu : MonoBehaviour
         // Platform check
         string gpu = SystemInfo.graphicsDeviceName;
         bool isNvidia = gpu.ToLower().Contains("nvidia") || gpu.ToLower().Contains("geforce") || gpu.ToLower().Contains("rtx");
-        sb.AppendLine($"<size=18>GPU: {gpu}</size>");
-        sb.AppendLine();
+        sb.AppendLine($"<size=16>GPU: {gpu}</size>");
         
 #if UNITY_STANDALONE_WIN && !UNITY_EDITOR
-        // Query REAL status from native plugin
-        try
+        // Show graphics API info
+        string gfxApi = SystemInfo.graphicsDeviceType.ToString();
+        sb.AppendLine($"<size=14>Graphics API: {gfxApi}</size>");
+        
+        // Query diagnostic info
+        bool streamlineInit = StreamlineReflexPlugin.IsStreamlineInitialized();
+        int rendererType = StreamlineReflexPlugin.GetRendererType();
+        bool hasD3D12 = StreamlineReflexPlugin.HasD3D12Device();
+        bool hasD3D11 = StreamlineReflexPlugin.HasD3D11Device();
+        
+        string rendererName = rendererType switch
         {
-            // Reflex Status
-            bool reflexAvailable = StreamlineReflexPlugin.IsAvailable();
-            bool reflexSupported = reflexAvailable && StreamlineReflexPlugin.IsReflexSupported();
-            var reflexMode = StreamlineReflexPlugin.GetMode();
+            2 => "D3D11",
+            18 => "D3D12",
+            _ => $"Unknown ({rendererType})"
+        };
+        
+        sb.AppendLine($"<size=14>Plugin Device: {(hasD3D12 ? "D3D12" : hasD3D11 ? "D3D11" : "None")}</size>");
+        sb.AppendLine();
+        
+        if (!streamlineInit)
+        {
+            // Get detailed error info
+            int errorCode = StreamlineReflexPlugin.GetLastErrorCode();
+            string errorMsg = StreamlineReflexPlugin.GetLastErrorMessage();
             
-            string reflexStatus = "<color=#FF4C4C>OFF</color>";
-            if (reflexSupported && reflexMode != StreamlineReflexPlugin.ReflexMode.Off)
-            {
-                reflexStatus = reflexMode == StreamlineReflexPlugin.ReflexMode.LowLatencyWithBoost 
-                    ? "<color=#4CFF4C>ON + BOOST</color>" 
-                    : "<color=#4CFF4C>ON</color>";
-            }
-            else if (!reflexSupported)
-            {
-                reflexStatus = "<color=#888888>Not Supported</color>";
-            }
-            sb.AppendLine($"Reflex: {reflexStatus}");
+            sb.AppendLine("<color=#FF8800>Streamline not initialized</color>");
+            sb.AppendLine($"<size=14>Error: {errorMsg} ({errorCode})</size>");
+            sb.AppendLine($"<size=14>Renderer: {rendererName}</size>");
+            sb.AppendLine($"<size=14>Has D3D12: {hasD3D12}, D3D11: {hasD3D11}</size>");
             
-            // DLSS Status
-            bool dlssSupported = StreamlineDLSSPlugin.IsDLSSSupported();
-            var dlssMode = StreamlineDLSSPlugin.GetDLSSMode();
-            
-            string dlssModeStr = dlssMode switch
+            // Add retry button hint
+            sb.AppendLine();
+            sb.AppendLine("<size=12>Try calling TryInitialize() from code</size>");
+        }
+        else
+        {
+            // Query REAL status from native plugin
+            try
             {
-                StreamlineDLSSPlugin.DLSSMode.Off => "<color=#FF4C4C>OFF</color>",
-                StreamlineDLSSPlugin.DLSSMode.MaxPerformance => "<color=#4CFF4C>Performance</color>",
-                StreamlineDLSSPlugin.DLSSMode.Balanced => "<color=#4CFF4C>Balanced</color>",
-                StreamlineDLSSPlugin.DLSSMode.MaxQuality => "<color=#4CFF4C>Quality</color>",
-                StreamlineDLSSPlugin.DLSSMode.UltraPerformance => "<color=#4CFF4C>Ultra Perf</color>",
-                StreamlineDLSSPlugin.DLSSMode.UltraQuality => "<color=#4CFF4C>Ultra Quality</color>",
-                StreamlineDLSSPlugin.DLSSMode.DLAA => "<color=#4CFF4C>DLAA</color>",
-                _ => "<color=#888888>Unknown</color>"
-            };
-            
-            if (!dlssSupported)
-            {
-                dlssModeStr = "<color=#888888>Not Supported</color>";
-            }
-            sb.AppendLine($"DLSS: {dlssModeStr}");
-            
-            // Frame Generation Status
-            bool frameGenSupported = StreamlineDLSSPlugin.IsFrameGenSupported();
-            var frameGenMode = StreamlineDLSSPlugin.GetFrameGenMode();
-            int framesGenerated = StreamlineDLSSPlugin.GetNumFramesToGenerate();
-            
-            string frameGenStr;
-            if (!frameGenSupported)
-            {
-                frameGenStr = "<color=#888888>Not Supported (RTX 40+)</color>";
-            }
-            else if (frameGenMode == StreamlineDLSSPlugin.DLSSGMode.Off || framesGenerated == 0)
-            {
-                frameGenStr = "<color=#FF4C4C>OFF</color>";
-            }
-            else
-            {
-                int multiplier = framesGenerated + 1; // 1 generated = 2x, 2 generated = 3x
-                frameGenStr = $"<color=#4CFF4C>{multiplier}x ({framesGenerated} gen)</color>";
-            }
-            sb.AppendLine($"Frame Gen: {frameGenStr}");
-            
-            // Latency stats if available
-            if (StreamlineReflexPlugin.IsPCLSupported())
-            {
-                if (StreamlineReflexPlugin.GetLatencyStats(out var stats) && stats.TotalLatencyMs > 0)
+                // Reflex Status
+                bool reflexAvailable = StreamlineReflexPlugin.IsAvailable();
+                bool reflexSupported = reflexAvailable && StreamlineReflexPlugin.IsReflexSupported();
+                var reflexMode = StreamlineReflexPlugin.GetMode();
+                
+                string reflexStatus = "<color=#FF4C4C>OFF</color>";
+                if (reflexSupported && reflexMode != StreamlineReflexPlugin.ReflexMode.Off)
                 {
-                    sb.AppendLine();
-                    sb.AppendLine($"<size=18>Latency: {stats.TotalLatencyMs:F1}ms</size>");
+                    reflexStatus = reflexMode == StreamlineReflexPlugin.ReflexMode.LowLatencyWithBoost 
+                        ? "<color=#4CFF4C>ON + BOOST</color>" 
+                        : "<color=#4CFF4C>ON</color>";
+                }
+                else if (!reflexSupported)
+                {
+                    reflexStatus = "<color=#888888>Not Supported</color>";
+                }
+                sb.AppendLine($"Reflex: {reflexStatus}");
+                
+                // DLSS Status
+                bool dlssSupported = StreamlineDLSSPlugin.IsDLSSSupported();
+                var dlssMode = StreamlineDLSSPlugin.GetDLSSMode();
+                
+                string dlssModeStr = dlssMode switch
+                {
+                    StreamlineDLSSPlugin.DLSSMode.Off => "<color=#FF4C4C>OFF</color>",
+                    StreamlineDLSSPlugin.DLSSMode.MaxPerformance => "<color=#4CFF4C>Performance</color>",
+                    StreamlineDLSSPlugin.DLSSMode.Balanced => "<color=#4CFF4C>Balanced</color>",
+                    StreamlineDLSSPlugin.DLSSMode.MaxQuality => "<color=#4CFF4C>Quality</color>",
+                    StreamlineDLSSPlugin.DLSSMode.UltraPerformance => "<color=#4CFF4C>Ultra Perf</color>",
+                    StreamlineDLSSPlugin.DLSSMode.UltraQuality => "<color=#4CFF4C>Ultra Quality</color>",
+                    StreamlineDLSSPlugin.DLSSMode.DLAA => "<color=#4CFF4C>DLAA</color>",
+                    _ => "<color=#888888>Unknown</color>"
+                };
+                
+                if (!dlssSupported)
+                {
+                    dlssModeStr = "<color=#888888>Not Supported</color>";
+                }
+                sb.AppendLine($"DLSS: {dlssModeStr}");
+                
+                // Frame Generation Status
+                bool frameGenSupported = StreamlineDLSSPlugin.IsFrameGenSupported();
+                var frameGenMode = StreamlineDLSSPlugin.GetFrameGenMode();
+                int framesGenerated = StreamlineDLSSPlugin.GetNumFramesToGenerate();
+                
+                string frameGenStr;
+                if (!frameGenSupported)
+                {
+                    frameGenStr = "<color=#888888>Not Supported (RTX 40+)</color>";
+                }
+                else if (frameGenMode == StreamlineDLSSPlugin.DLSSGMode.Off || framesGenerated == 0)
+                {
+                    frameGenStr = "<color=#FF4C4C>OFF</color>";
+                }
+                else
+                {
+                    int multiplier = framesGenerated + 1;
+                    frameGenStr = $"<color=#4CFF4C>{multiplier}x ({framesGenerated} gen)</color>";
+                }
+                sb.AppendLine($"Frame Gen: {frameGenStr}");
+                
+                // Latency stats if available
+                if (StreamlineReflexPlugin.IsPCLSupported())
+                {
+                    if (StreamlineReflexPlugin.GetLatencyStats(out var stats) && stats.TotalLatencyMs > 0)
+                    {
+                        sb.AppendLine();
+                        sb.AppendLine($"<size=18>Latency: {stats.TotalLatencyMs:F1}ms</size>");
+                    }
                 }
             }
+            catch (System.DllNotFoundException)
+            {
+                sb.AppendLine("<color=#888888>Plugin not loaded</color>");
+                sb.AppendLine("<size=14>Run build-reflex-plugin.ps1</size>");
+            }
+            catch (System.Exception e)
+            {
+                sb.AppendLine($"<color=#FF4C4C>Error: {e.Message}</color>");
+            }
         }
-        catch (System.DllNotFoundException)
-        {
-            sb.AppendLine("<color=#888888>Plugin not loaded</color>");
-            sb.AppendLine("<size=16>Run build-reflex-plugin.ps1</size>");
-        }
-        catch (System.Exception e)
-        {
-            sb.AppendLine($"<color=#FF4C4C>Error: {e.Message}</color>");
-        }
+#elif UNITY_WEBGL
+        // WebGL build - NVIDIA features not available
+        sb.AppendLine();
+        sb.AppendLine("<color=#76B900>NVIDIA features available</color>");
+        sb.AppendLine("<color=#76B900>in Windows standalone build</color>");
+        sb.AppendLine();
+        sb.AppendLine("<size=14>WebGL uses browser rendering</size>");
+        sb.AppendLine("<size=14>which doesn't support DLSS/Reflex</size>");
 #else
-        // Not Windows standalone build
+        // Other platform
+        sb.AppendLine();
         sb.AppendLine("<color=#888888>NVIDIA tech only available</color>");
         sb.AppendLine("<color=#888888>in Windows builds</color>");
 #endif
@@ -712,8 +758,7 @@ public class PauseMenu : MonoBehaviour
         }
         else
         {
-            // Log to console if no UI element
-            Debug.Log("[PauseMenu] NVIDIA Tech Status:\n" + sb.ToString().Replace("<color=#4CFF4C>", "").Replace("<color=#FF4C4C>", "").Replace("<color=#888888>", "").Replace("</color>", ""));
+            Debug.Log("[PauseMenu] NVIDIA Tech Status:\n" + sb.ToString().Replace("<color=#4CFF4C>", "").Replace("<color=#FF4C4C>", "").Replace("<color=#888888>", "").Replace("<color=#76B900>", "").Replace("<color=#FF8800>", "").Replace("</color>", ""));
         }
     }
     

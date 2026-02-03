@@ -1,8 +1,9 @@
-# Streamline Reflex Plugin for Unity
-# Builds a native DLL that wraps Streamline SDK for Unity integration
+# GfxPluginStreamline for Unity
+# Native DLL wrapping NVIDIA Streamline SDK (Reflex, DLSS, Frame Generation) for Unity
+# Named GfxPlugin* so Unity loads it early in the graphics pipeline
 
 cmake_minimum_required(VERSION 3.20)
-project(StreamlineReflexPlugin VERSION 1.0.0 LANGUAGES CXX)
+project(GfxPluginStreamline VERSION 1.0.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -42,23 +43,24 @@ endif()
 
 message(STATUS "Streamline lib: ${STREAMLINE_LIB}")
 
-# Unity Native Plugin Interface (optional, for advanced integration)
-# If you have Unity's plugin interface headers, uncomment and set path:
-# set(UNITY_PLUGIN_API "${CMAKE_CURRENT_SOURCE_DIR}/UnityPluginAPI")
+# Unity Native Plugin Interface headers (for proper D3D device access)
+set(UNITY_PLUGIN_API "${CMAKE_CURRENT_SOURCE_DIR}/Unity")
+message(STATUS "Unity Plugin API: ${UNITY_PLUGIN_API}")
 
 # Create the DLL
-add_library(StreamlineReflexPlugin SHARED
+add_library(GfxPluginStreamline SHARED
     StreamlineReflexPlugin.cpp
     StreamlineDLSSPlugin.cpp
 )
 
 # Include directories
-target_include_directories(StreamlineReflexPlugin PRIVATE
+target_include_directories(GfxPluginStreamline PRIVATE
     ${STREAMLINE_INCLUDE}
+    ${UNITY_PLUGIN_API}
 )
 
 # Platform-specific settings
-target_compile_definitions(StreamlineReflexPlugin PRIVATE
+target_compile_definitions(GfxPluginStreamline PRIVATE
     WIN32_LEAN_AND_MEAN
     NOMINMAX
     _CRT_SECURE_NO_WARNINGS
@@ -66,7 +68,7 @@ target_compile_definitions(StreamlineReflexPlugin PRIVATE
 
 # Compiler flags
 if(MSVC)
-    target_compile_options(StreamlineReflexPlugin PRIVATE
+    target_compile_options(GfxPluginStreamline PRIVATE
         /W4         # Warning level 4
         /WX-        # Don't treat warnings as errors (Streamline headers have some)
         /MP         # Multi-processor compilation
@@ -74,25 +76,27 @@ if(MSVC)
     )
     
     # Release optimizations
-    target_compile_options(StreamlineReflexPlugin PRIVATE
+    target_compile_options(GfxPluginStreamline PRIVATE
         $<$<CONFIG:Release>:/O2 /Oi /GL>
     )
-    target_link_options(StreamlineReflexPlugin PRIVATE
+    target_link_options(GfxPluginStreamline PRIVATE
         $<$<CONFIG:Release>:/LTCG>
     )
 endif()
 
-# Link against Streamline and Windows libraries
-target_link_libraries(StreamlineReflexPlugin PRIVATE
+# Link against Streamline, Windows, and D3D12 libraries
+target_link_libraries(GfxPluginStreamline PRIVATE
     ${STREAMLINE_LIB}
     kernel32
     user32
+    d3d12
+    dxgi
 )
 
 # Output to Unity's plugin folder (native/NvidiaReflex -> Assets/Plugins/x86_64)
 get_filename_component(UNITY_PLUGIN_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../Assets/Plugins/x86_64" ABSOLUTE)
-set_target_properties(StreamlineReflexPlugin PROPERTIES
-    OUTPUT_NAME "StreamlineReflexPlugin"
+set_target_properties(GfxPluginStreamline PROPERTIES
+    OUTPUT_NAME "GfxPluginStreamline"
     RUNTIME_OUTPUT_DIRECTORY "${UNITY_PLUGIN_DIR}"
     RUNTIME_OUTPUT_DIRECTORY_DEBUG "${UNITY_PLUGIN_DIR}"
     RUNTIME_OUTPUT_DIRECTORY_RELEASE "${UNITY_PLUGIN_DIR}"
@@ -100,15 +104,13 @@ set_target_properties(StreamlineReflexPlugin PROPERTIES
 )
 
 # Post-build: Copy Streamline DLLs to plugin folder
-# We need sl.interposer.dll and sl.reflex.dll at minimum
-# These come from the Streamline SDK release package
-add_custom_command(TARGET StreamlineReflexPlugin POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E echo "Plugin built successfully!"
-    COMMAND ${CMAKE_COMMAND} -E echo "Remember to copy Streamline DLLs (sl.interposer.dll, sl.reflex.dll, sl.pcl.dll) to the plugin folder"
+add_custom_command(TARGET GfxPluginStreamline POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E echo "GfxPluginStreamline built successfully!"
+    COMMAND ${CMAKE_COMMAND} -E echo "Ensure Streamline DLLs are in plugin folder"
 )
 
 # Install target (optional)
-install(TARGETS StreamlineReflexPlugin
+install(TARGETS GfxPluginStreamline
     RUNTIME DESTINATION bin
     LIBRARY DESTINATION lib
 )

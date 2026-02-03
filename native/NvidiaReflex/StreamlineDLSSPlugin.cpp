@@ -1,21 +1,13 @@
 // StreamlineDLSSPlugin.cpp
-// Unity Native Plugin wrapping NVIDIA Streamline SDK for DLSS and Frame Generation
+// DLSS and Frame Generation functions for GfxPluginStreamline
 //
-// This plugin provides DLSS Super Resolution and Frame Generation for Unity.
-//
-// Required DLLs (copy to Assets/Plugins/x86_64/):
-//   - StreamlineReflexPlugin.dll (our wrapper - handles both Reflex and DLSS)
-//   - sl.interposer.dll
-//   - sl.dlss.dll
-//   - sl.dlss_g.dll  
-//   - nvngx_dlss.dll
-//   - nvngx_dlssg.dll
+// This file contains the DLSS Super Resolution and Frame Generation API.
+// It shares initialization state with StreamlineReflexPlugin.cpp.
 
 #include <windows.h>
 #include <cstdint>
 #include <cstring>
 #include <mutex>
-#include <string>
 #include <cstdarg>
 
 // Streamline SDK headers
@@ -24,30 +16,17 @@
 #include "sl_dlss_g.h"
 
 // ============================================================================
-// Plugin State  
+// External state from StreamlineReflexPlugin.cpp
 // ============================================================================
 
-static bool g_dlssInitialized = false;
-static bool g_dlssSupported = false;
-static bool g_dlssgSupported = false;
-static sl::DLSSMode g_dlssMode = sl::DLSSMode::eOff;
-static sl::DLSSGMode g_dlssgMode = sl::DLSSGMode::eOff;
-static uint32_t g_numFramesToGenerate = 2; // Default to 3x (2 generated frames)
-static std::mutex g_dlssMutex;
-
-// Logging function (shared with main plugin)
-static void LogMessageDLSS(const char* format, ...)
-{
-    char buffer[1024];
-    va_list args;
-    va_start(args, format);
-    vsnprintf(buffer, sizeof(buffer), format, args);
-    va_end(args);
-    
-    OutputDebugStringA("[StreamlineDLSS] ");
-    OutputDebugStringA(buffer);
-    OutputDebugStringA("\n");
-}
+// These are defined in StreamlineReflexPlugin.cpp and shared across the plugin
+extern bool g_initialized;
+extern bool g_dlssSupported;
+extern bool g_dlssgSupported;
+extern sl::DLSSMode g_dlssMode;
+extern sl::DLSSGMode g_dlssgMode;
+extern uint32_t g_numFramesToGenerate;
+extern std::mutex g_mutex;
 
 // ============================================================================
 // Export Macro
@@ -56,28 +35,21 @@ static void LogMessageDLSS(const char* format, ...)
 #define EXPORT extern "C" __declspec(dllexport)
 
 // ============================================================================
-// DLSS Enums for C# interop
+// Logging
 // ============================================================================
 
-// Matches sl::DLSSMode
-enum DLSSModeExport : int32_t
+static void LogDLSS(const char* format, ...)
 {
-    DLSS_Off = 0,
-    DLSS_MaxPerformance = 1,    // Render at 50% resolution
-    DLSS_Balanced = 2,          // Render at 58% resolution
-    DLSS_MaxQuality = 3,        // Render at 67% resolution
-    DLSS_UltraPerformance = 4,  // Render at 33% resolution
-    DLSS_UltraQuality = 5,      // Render at 77% resolution
-    DLSS_DLAA = 6               // Native resolution with AA
-};
-
-// Matches sl::DLSSGMode  
-enum DLSSGModeExport : int32_t
-{
-    DLSSG_Off = 0,
-    DLSSG_On = 1,
-    DLSSG_Auto = 2
-};
+    char buffer[1024];
+    va_list args;
+    va_start(args, format);
+    vsnprintf(buffer, sizeof(buffer), format, args);
+    va_end(args);
+    
+    OutputDebugStringA("[GfxPluginStreamline/DLSS] ");
+    OutputDebugStringA(buffer);
+    OutputDebugStringA("\n");
+}
 
 // ============================================================================
 // DLSS Structures for C# interop
@@ -104,57 +76,44 @@ struct DLSSGStateExport
 };
 
 // ============================================================================
-// DLSS Functions
+// DLSS Super Resolution (Legacy API - use functions in StreamlineReflexPlugin.cpp instead)
 // ============================================================================
 
-EXPORT bool SLDLSS_IsSupported()
-{
-    sl::AdapterInfo adapterInfo{};
-    sl::Result result = slIsFeatureSupported(sl::kFeatureDLSS, adapterInfo);
-    g_dlssSupported = (result == sl::Result::eOk);
-    return g_dlssSupported;
-}
+// Note: The main DLSS APIs (SLDLSS_SetOptions, SLDLSS_GetOptimalSettings, SLDLSS_TagResourceD3D12,
+// SLDLSS_SetConstants, SLDLSS_Evaluate) are now in StreamlineReflexPlugin.cpp for better integration
+// with buffer tagging. The functions below are legacy wrappers.
 
-EXPORT bool SLDLSS_IsFrameGenSupported()
-{
-    sl::AdapterInfo adapterInfo{};
-    sl::Result result = slIsFeatureSupported(sl::kFeatureDLSS_G, adapterInfo);
-    g_dlssgSupported = (result == sl::Result::eOk);
-    return g_dlssgSupported;
-}
-
-EXPORT bool SLDLSS_GetOptimalSettings(
+EXPORT bool SLDLSS_GetOptimalSettingsLegacy(
     int mode, 
     uint32_t targetWidth, 
     uint32_t targetHeight,
     DLSSSettingsExport* outSettings)
 {
-    if (!outSettings) return false;
+    if (!outSettings || !g_initialized || !g_dlssSupported) return false;
     
-    std::lock_guard<std::mutex> lock(g_dlssMutex);
+    std::lock_guard<std::mutex> lock(g_mutex);
     
-    // Set up options
     sl::DLSSOptions options{};
     options.mode = static_cast<sl::DLSSMode>(mode);
     options.outputWidth = targetWidth;
     options.outputHeight = targetHeight;
     
-    // Get optimal settings
     sl::DLSSOptimalSettings settings{};
     
-    // Use slDLSSGetOptimalSettings via function pointer
     using PFN_slDLSSGetOptimalSettings = sl::Result(*)(const sl::DLSSOptions&, sl::DLSSOptimalSettings&);
     PFN_slDLSSGetOptimalSettings fn = nullptr;
     sl::Result result = slGetFeatureFunction(sl::kFeatureDLSS, "slDLSSGetOptimalSettings", (void*&)fn);
     
     if (result != sl::Result::eOk || !fn)
     {
+        LogDLSS("Failed to get slDLSSGetOptimalSettings function");
         return false;
     }
     
     result = fn(options, settings);
     if (result != sl::Result::eOk)
     {
+        LogDLSS("slDLSSGetOptimalSettings failed: %d", (int)result);
         return false;
     }
     
@@ -171,18 +130,24 @@ EXPORT bool SLDLSS_GetOptimalSettings(
 
 EXPORT bool SLDLSS_SetMode(int mode)
 {
-    std::lock_guard<std::mutex> lock(g_dlssMutex);
+    if (!g_initialized || !g_dlssSupported) 
+    {
+        LogDLSS("Cannot set DLSS mode - not initialized or not supported");
+        return false;
+    }
+    
+    std::lock_guard<std::mutex> lock(g_mutex);
     
     sl::DLSSOptions options{};
     options.mode = static_cast<sl::DLSSMode>(mode);
     
-    // Use slDLSSSetOptions via function pointer
     using PFN_slDLSSSetOptions = sl::Result(*)(const sl::ViewportHandle&, const sl::DLSSOptions&);
     PFN_slDLSSSetOptions fn = nullptr;
     sl::Result result = slGetFeatureFunction(sl::kFeatureDLSS, "slDLSSSetOptions", (void*&)fn);
     
     if (result != sl::Result::eOk || !fn)
     {
+        LogDLSS("Failed to get slDLSSSetOptions function");
         return false;
     }
     
@@ -192,9 +157,11 @@ EXPORT bool SLDLSS_SetMode(int mode)
     if (result == sl::Result::eOk)
     {
         g_dlssMode = static_cast<sl::DLSSMode>(mode);
+        LogDLSS("DLSS mode set to: %d", mode);
         return true;
     }
     
+    LogDLSS("Failed to set DLSS mode: %d", (int)result);
     return false;
 }
 
@@ -204,24 +171,30 @@ EXPORT int SLDLSS_GetMode()
 }
 
 // ============================================================================
-// DLSS Frame Generation Functions
+// DLSS Frame Generation
 // ============================================================================
 
 EXPORT bool SLDLSSG_SetMode(int mode, int numFramesToGenerate)
 {
-    std::lock_guard<std::mutex> lock(g_dlssMutex);
+    if (!g_initialized || !g_dlssgSupported)
+    {
+        LogDLSS("Cannot set Frame Gen mode - not initialized or not supported");
+        return false;
+    }
+    
+    std::lock_guard<std::mutex> lock(g_mutex);
     
     sl::DLSSGOptions options{};
     options.mode = static_cast<sl::DLSSGMode>(mode);
     options.numFramesToGenerate = static_cast<uint32_t>(numFramesToGenerate);
     
-    // Use slDLSSGSetOptions via function pointer
     using PFN_slDLSSGSetOptions = sl::Result(*)(const sl::ViewportHandle&, const sl::DLSSGOptions&);
     PFN_slDLSSGSetOptions fn = nullptr;
     sl::Result result = slGetFeatureFunction(sl::kFeatureDLSS_G, "slDLSSGSetOptions", (void*&)fn);
     
     if (result != sl::Result::eOk || !fn)
     {
+        LogDLSS("Failed to get slDLSSGSetOptions function");
         return false;
     }
     
@@ -232,9 +205,11 @@ EXPORT bool SLDLSSG_SetMode(int mode, int numFramesToGenerate)
     {
         g_dlssgMode = static_cast<sl::DLSSGMode>(mode);
         g_numFramesToGenerate = numFramesToGenerate;
+        LogDLSS("Frame Gen mode set to: %d, frames: %d", mode, numFramesToGenerate);
         return true;
     }
     
+    LogDLSS("Failed to set Frame Gen mode: %d", (int)result);
     return false;
 }
 
@@ -248,17 +223,16 @@ EXPORT int SLDLSSG_GetNumFramesToGenerate()
     return static_cast<int>(g_numFramesToGenerate);
 }
 
-EXPORT bool SLDLSSG_GetState(DLSSGStateExport* outState)
+EXPORT bool SLDLSSG_GetStateLegacy(DLSSGStateExport* outState)
 {
-    if (!outState) return false;
+    if (!outState || !g_initialized || !g_dlssgSupported) return false;
     
-    std::lock_guard<std::mutex> lock(g_dlssMutex);
+    std::lock_guard<std::mutex> lock(g_mutex);
     
     sl::DLSSGState state{};
     sl::DLSSGOptions options{};
     options.flags = sl::DLSSGFlags::eRequestVRAMEstimate;
     
-    // Use slDLSSGGetState via function pointer
     using PFN_slDLSSGGetState = sl::Result(*)(const sl::ViewportHandle&, sl::DLSSGState&, const sl::DLSSGOptions*);
     PFN_slDLSSGGetState fn = nullptr;
     sl::Result result = slGetFeatureFunction(sl::kFeatureDLSS_G, "slDLSSGGetState", (void*&)fn);
@@ -285,39 +259,67 @@ EXPORT bool SLDLSSG_GetState(DLSSGStateExport* outState)
 }
 
 // ============================================================================
-// Combined DLSS + Frame Gen Preset
+// Convenience Presets
 // ============================================================================
+
+EXPORT bool SLStreamline_EnableDLSSQualityWithFrameGen2x()
+{
+    LogDLSS("Enabling DLSS Quality + Frame Gen 2x preset");
+    
+    // Enable DLSS Quality mode (67% render scale)
+    if (!SLDLSS_SetMode(3)) // 3 = MaxQuality
+    {
+        LogDLSS("Failed to enable DLSS Quality mode");
+        return false;
+    }
+    
+    // Enable Frame Generation with 2x multiplier (1 generated frame)
+    if (!SLDLSSG_SetMode(1, 1)) // 1 = On, 1 generated frame = 2x
+    {
+        LogDLSS("DLSS enabled but Frame Gen failed - partial success");
+        return true;
+    }
+    
+    LogDLSS("DLSS Quality + Frame Gen 2x enabled successfully");
+    return true;
+}
 
 EXPORT bool SLStreamline_EnableDLSSPerformanceWithFrameGen3x()
 {
-    // Enable DLSS Performance mode
-    if (!SLDLSS_SetMode(DLSS_MaxPerformance))
+    LogDLSS("Enabling DLSS Performance + Frame Gen 3x preset");
+    
+    // Enable DLSS Performance mode (50% render scale)
+    if (!SLDLSS_SetMode(1)) // 1 = MaxPerformance
     {
+        LogDLSS("Failed to enable DLSS Performance mode");
         return false;
     }
     
     // Enable Frame Generation with 3x multiplier (2 generated frames)
-    if (!SLDLSSG_SetMode(DLSSG_On, 2))
+    if (!SLDLSSG_SetMode(1, 2)) // 1 = On, 2 generated frames = 3x
     {
-        // DLSS enabled but Frame Gen failed - still partial success
+        LogDLSS("DLSS enabled but Frame Gen failed - partial success");
         return true;
     }
     
+    LogDLSS("DLSS Performance + Frame Gen 3x enabled successfully");
     return true;
 }
 
 EXPORT bool SLStreamline_DisableDLSSAndFrameGen()
 {
+    LogDLSS("Disabling DLSS and Frame Gen");
+    
     bool success = true;
     
     // Disable Frame Generation first
-    if (!SLDLSSG_SetMode(DLSSG_Off, 0))
+    if (!SLDLSSG_SetMode(0, 0))
     {
         success = false;
     }
     
     // Disable DLSS
-    if (!SLDLSS_SetMode(DLSS_Off))
+    if (!SLDLSS_SetMode(0))
     {
         success = false;
     }

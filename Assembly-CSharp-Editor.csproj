@@ -50,6 +50,7 @@
   <ItemGroup>
     <Compile Include="Assets\Scripts\Editor\SanitizerSpraySetup.cs" />
     <Compile Include="Assets\Scripts\Editor\VirtualControllerSetup.cs" />
+    <Compile Include="Assets\Scripts\Editor\StreamlinePostBuild.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="UnityEngine">

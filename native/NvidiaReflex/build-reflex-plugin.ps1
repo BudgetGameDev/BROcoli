@@ -299,6 +299,7 @@ Write-Host "Copying Streamline DLLs to Unity..." -ForegroundColor Yellow
 $streamlineBinDir = "$StreamlineDir/bin/x64"
 $requiredDLLs = @(
     "sl.interposer.dll",
+    "sl.common.dll",
     "sl.reflex.dll",
     "sl.pcl.dll",
     "sl.dlss.dll",
@@ -367,7 +368,7 @@ Write-Host "============================================" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "SDK Version: $sdkVersion"
 Write-Host "SDK Location: $StreamlineDir"
-Write-Host "Plugin DLL: $OutputDir/StreamlineReflexPlugin.dll"
+Write-Host "Plugin DLL: $OutputDir/GfxPluginStreamline.dll"
 Write-Host ""
 
 if ($missingDLLs.Count -gt 0) {

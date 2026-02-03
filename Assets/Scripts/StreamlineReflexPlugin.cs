@@ -6,8 +6,11 @@ using UnityEngine.Rendering;
 /// <summary>
 /// Native plugin wrapper for NVIDIA Streamline Reflex SDK.
 /// 
-/// This class provides C# bindings to the StreamlineReflexPlugin native DLL.
+/// This class provides C# bindings to the GfxPluginStreamline native DLL.
 /// The plugin integrates NVIDIA's Streamline SDK for Reflex Low Latency Mode.
+/// 
+/// The plugin uses Unity's native plugin interface (UnityPluginLoad) to automatically
+/// capture the D3D12/D3D11 device, so no manual device passing is required.
 /// 
 /// Setup:
 /// 1. Run build-reflex-plugin.ps1 to build the native plugin
@@ -15,14 +18,16 @@ using UnityEngine.Rendering;
 /// 3. Copy required DLLs to Assets/Plugins/x86_64/
 /// 
 /// Required DLLs:
-/// - StreamlineReflexPlugin.dll (built by this project)
+/// - GfxPluginStreamline.dll (built by this project)
 /// - sl.interposer.dll (from Streamline SDK)
 /// - sl.reflex.dll (from Streamline SDK)
-/// - sl.pcl.dll (from Streamline SDK)
+/// - sl.dlss.dll, sl.dlss_g.dll (for DLSS/Frame Gen)
+/// - nvngx_dlss.dll, nvngx_dlssg.dll (NVIDIA neural network models)
 /// </summary>
 public static class StreamlineReflexPlugin
 {
-    private const string DLL_NAME = "StreamlineReflexPlugin";
+    // GfxPlugin* prefix ensures Unity loads this plugin early in the graphics pipeline
+    private const string DLL_NAME = "GfxPluginStreamline";
     
     /// <summary>
     /// Reflex latency mode settings
@@ -132,6 +137,28 @@ public static class StreamlineReflexPlugin
     
     [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl)]
     private static extern IntPtr SLReflex_GetRenderEventFunc();
+    
+    // New diagnostic functions
+    [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl)]
+    private static extern bool SLReflex_IsInitialized();
+    
+    [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl)]
+    private static extern int SLReflex_GetRendererType();
+    
+    [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl)]
+    private static extern bool SLReflex_HasD3D12Device();
+    
+    [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl)]
+    private static extern bool SLReflex_HasD3D11Device();
+    
+    [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl)]
+    private static extern int SLReflex_GetLastErrorCode();
+    
+    [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl)]
+    private static extern IntPtr SLReflex_GetLastErrorMessage();
+    
+    [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl)]
+    private static extern bool SLReflex_TryInitialize();
     
     private static LogCallbackDelegate _logCallback;
     private static GCHandle _logCallbackHandle;
@@ -261,6 +288,114 @@ public static class StreamlineReflexPlugin
         if (!_initialized) return false;
         try { return SLReflex_IsPCLSupported(); }
         catch { return false; }
+#else
+        return false;
+#endif
+    }
+    
+    /// <summary>
+    /// Check if Streamline is fully initialized with a D3D device
+    /// </summary>
+    public static bool IsStreamlineInitialized()
+    {
+#if UNITY_STANDALONE_WIN && !UNITY_EDITOR
+        try { return SLReflex_IsInitialized(); }
+        catch { return false; }
+#else
+        return false;
+#endif
+    }
+    
+    /// <summary>
+    /// Get the renderer type Unity is using (for diagnostics)
+    /// 2 = D3D11, 18 = D3D12
+    /// </summary>
+    public static int GetRendererType()
+    {
+#if UNITY_STANDALONE_WIN && !UNITY_EDITOR
+        try { return SLReflex_GetRendererType(); }
+        catch { return 0; }
+#else
+        return 0;
+#endif
+    }
+    
+    /// <summary>
+    /// Check if a D3D12 device was captured
+    /// </summary>
+    public static bool HasD3D12Device()
+    {
+#if UNITY_STANDALONE_WIN && !UNITY_EDITOR
+        try { return SLReflex_HasD3D12Device(); }
+        catch { return false; }
+#else
+        return false;
+#endif
+    }
+    
+    /// <summary>
+    /// Check if a D3D11 device was captured
+    /// </summary>
+    public static bool HasD3D11Device()
+    {
+#if UNITY_STANDALONE_WIN && !UNITY_EDITOR
+        try { return SLReflex_HasD3D11Device(); }
+        catch { return false; }
+#else
+        return false;
+#endif
+    }
+    
+    /// <summary>
+    /// Get the last Streamline error code (0 = success, negative = error)
+    /// </summary>
+    public static int GetLastErrorCode()
+    {
+#if UNITY_STANDALONE_WIN && !UNITY_EDITOR
+        try { return SLReflex_GetLastErrorCode(); }
+        catch { return -9999; }
+#else
+        return 0;
+#endif
+    }
+    
+    /// <summary>
+    /// Get the last Streamline error message
+    /// </summary>
+    public static string GetLastErrorMessage()
+    {
+#if UNITY_STANDALONE_WIN && !UNITY_EDITOR
+        try 
+        { 
+            IntPtr ptr = SLReflex_GetLastErrorMessage();
+            return ptr != IntPtr.Zero ? Marshal.PtrToStringAnsi(ptr) : "Unknown error";
+        }
+        catch { return "Error getting message"; }
+#else
+        return "Not available on this platform";
+#endif
+    }
+    
+    /// <summary>
+    /// Try to manually initialize Streamline (for debugging)
+    /// </summary>
+    public static bool TryInitialize()
+    {
+#if UNITY_STANDALONE_WIN && !UNITY_EDITOR
+        try 
+        { 
+            bool result = SLReflex_TryInitialize();
+            if (result)
+            {
+                _initialized = true;
+            }
+            return result;
+        }
+        catch (Exception e)
+        { 
+            Debug.LogError($"[StreamlineReflex] TryInitialize failed: {e.Message}");
+            return false; 
+        }
 #else
         return false;
 #endif
