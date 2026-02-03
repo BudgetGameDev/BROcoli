@@ -127,6 +127,7 @@
     <Compile Include="Assets\TextMesh Pro\Examples &amp; Extras\Scripts\VertexShakeA.cs" />
     <Compile Include="Assets\Scripts\Spray\SprayLayerCore.cs" />
     <Compile Include="Assets\Scripts\Enemy Spawner\Animation\EnemyWalkAnimation.cs" />
+    <Compile Include="Assets\Scripts\Rendering\DLSSRenderScaleManager.cs" />
     <Compile Include="Assets\Scripts\gamejam-2022\PlayerDamageHandler.cs" />
     <Compile Include="Assets\Scripts\gamejam-2022\GameOverScreen.cs" />
     <Compile Include="Assets\Scripts\ShootingEnemyScript.cs" />
@@ -147,6 +148,7 @@
     <Compile Include="Assets\Scripts\Boost\TemporaryBoostType.cs" />
     <Compile Include="Assets\Scripts\PitchFromInputRelativeToDownPose.cs" />
     <Compile Include="Assets\Scripts\Enemy Spawner\EnemySpawner.cs" />
+    <Compile Include="Assets\Scripts\Rendering\DLSSUpscalePass.cs" />
     <Compile Include="Assets\Scripts\Pooling\PoolManager.cs" />
     <Compile Include="Assets\Scripts\Boost\MovementSpeedBoost.cs" />
     <Compile Include="Assets\Scripts\UI\ProceduralUIAudio.cs" />

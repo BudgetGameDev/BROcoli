@@ -6,8 +6,10 @@ using UnityEngine.Rendering.Universal;
 /// <summary>
 /// URP ScriptableRenderFeature that integrates NVIDIA DLSS with Unity's rendering pipeline.
 /// 
-/// This feature captures depth, motion vectors, and color buffers at the appropriate
-/// pipeline stages and tags them for DLSS processing.
+/// This feature:
+/// 1. Sets render scale to render at lower internal resolution
+/// 2. Tags depth, motion vectors, and color buffers with native GPU pointers
+/// 3. Evaluates DLSS to upscale to output resolution
 /// 
 /// Add this to your URP Renderer Asset to enable DLSS support.
 /// </summary>
@@ -33,25 +35,23 @@ public class DLSSRenderFeature : ScriptableRendererFeature
         public bool colorBuffersHDR = true;
         
         [Header("Debug")]
-        [Tooltip("Log buffer tagging to console")]
+        [Tooltip("Log DLSS operations to console")]
         public bool debugLogging = false;
     }
     
     public DLSSSettings settings = new DLSSSettings();
     
-    private DLSSTagPass _tagPass;
-    private DLSSEvaluatePass _evaluatePass;
+    private DLSSUpscalePass _upscalePass;
     private bool _dlssInitialized = false;
+#pragma warning disable CS0649 // Field never assigned (only used in Windows builds)
+    private static DLSSRenderScaleManager _renderScaleManager;
+#pragma warning restore CS0649
     
     public override void Create()
     {
-        _tagPass = new DLSSTagPass(settings)
+        _upscalePass = new DLSSUpscalePass(settings)
         {
-            renderPassEvent = RenderPassEvent.BeforeRenderingPostProcessing
-        };
-        
-        _evaluatePass = new DLSSEvaluatePass(settings)
-        {
+            // Run after all rendering but before final blit
             renderPassEvent = RenderPassEvent.AfterRenderingPostProcessing
         };
         
@@ -68,200 +68,71 @@ public class DLSSRenderFeature : ScriptableRendererFeature
         if (settings.dlssMode == StreamlineDLSSPlugin.DLSSMode.Off)
             return;
         
-        // Initialize DLSS on first frame (must be done after graphics device is ready)
+        // Initialize DLSS on first frame
         if (!_dlssInitialized)
         {
-            InitializeDLSS();
+            InitializeDLSS(ref renderingData);
             _dlssInitialized = true;
         }
-            
-        renderer.EnqueuePass(_tagPass);
-        renderer.EnqueuePass(_evaluatePass);
+        
+        // Pass the camera data to the upscale pass
+        _upscalePass.Setup(renderer, ref renderingData);
+        renderer.EnqueuePass(_upscalePass);
     }
     
-    private void InitializeDLSS()
+    private void InitializeDLSS(ref RenderingData renderingData)
     {
 #if UNITY_STANDALONE_WIN && !UNITY_EDITOR
-        // Enable Reflex Low Latency Mode (works with any RTX GPU)
-        if (StreamlineReflexPlugin.IsReflexSupported())
+        // Find or create render scale manager
+        if (_renderScaleManager == null)
         {
-            bool reflexSuccess = StreamlineReflexPlugin.SetMode(StreamlineReflexPlugin.ReflexMode.LowLatencyWithBoost);
-            if (settings.debugLogging)
-            {
-                Debug.Log($"[DLSSRenderFeature] SetReflexMode(LowLatencyWithBoost): {(reflexSuccess ? "OK" : "FAILED")}");
-            }
-        }
-        else if (settings.debugLogging)
-        {
-            Debug.Log("[DLSSRenderFeature] Reflex not supported on this GPU");
+            var go = new GameObject("[DLSS Render Scale Manager]");
+            go.hideFlags = HideFlags.HideAndDontSave;
+            _renderScaleManager = go.AddComponent<DLSSRenderScaleManager>();
+            UnityEngine.Object.DontDestroyOnLoad(go);
         }
         
-        // Set DLSS mode
+        // Set render scale for DLSS mode
+        _renderScaleManager.SetDLSSMode(settings.dlssMode);
+        
+        // Enable Reflex Low Latency Mode
+        if (StreamlineReflexPlugin.IsReflexSupported())
+        {
+            StreamlineReflexPlugin.SetMode(StreamlineReflexPlugin.ReflexMode.LowLatencyWithBoost);
+            if (settings.debugLogging)
+                Debug.Log("[DLSS] Reflex Low Latency enabled");
+        }
+        
+        // Set DLSS mode in native plugin
         if (StreamlineDLSSPlugin.IsDLSSSupported())
         {
             bool success = StreamlineDLSSPlugin.SetDLSSMode(settings.dlssMode);
             if (settings.debugLogging)
-            {
-                Debug.Log($"[DLSSRenderFeature] SetDLSSMode({settings.dlssMode}): {(success ? "OK" : "FAILED")}");
-            }
+                Debug.Log($"[DLSS] SetDLSSMode({settings.dlssMode}): {(success ? "OK" : "FAILED")}");
         }
         else if (settings.debugLogging)
         {
-            Debug.LogWarning("[DLSSRenderFeature] DLSS not supported on this GPU");
+            Debug.LogWarning("[DLSS] DLSS not supported on this GPU");
         }
         
-        // Set Frame Generation mode
+        // Enable Frame Generation if requested
         if (settings.enableFrameGen && StreamlineDLSSPlugin.IsFrameGenSupported())
         {
-            bool success = StreamlineDLSSPlugin.SetFrameGenMode(
-                StreamlineDLSSPlugin.DLSSGMode.On, 
-                settings.framesToGenerate
-            );
+            StreamlineDLSSPlugin.SetFrameGenMode(StreamlineDLSSPlugin.DLSSGMode.On, settings.framesToGenerate);
             if (settings.debugLogging)
-            {
-                Debug.Log($"[DLSSRenderFeature] SetFrameGenMode(On, {settings.framesToGenerate}): {(success ? "OK" : "FAILED")}");
-            }
-        }
-        else if (settings.enableFrameGen && settings.debugLogging)
-        {
-            Debug.LogWarning("[DLSSRenderFeature] Frame Generation not supported (requires RTX 40+)");
+                Debug.Log($"[DLSS] Frame Generation enabled ({settings.framesToGenerate + 1}x)");
         }
 #endif
     }
     
     protected override void Dispose(bool disposing)
     {
-        _tagPass?.Dispose();
-        _evaluatePass?.Dispose();
-    }
-}
-
-/// <summary>
-/// Render pass that tags depth, motion vectors, and input color for DLSS
-/// </summary>
-public class DLSSTagPass : ScriptableRenderPass, IDisposable
-{
-    private DLSSRenderFeature.DLSSSettings _settings;
-    private Matrix4x4 _prevViewProjection;
-    private bool _firstFrame = true;
-    
-    public DLSSTagPass(DLSSRenderFeature.DLSSSettings settings)
-    {
-        _settings = settings;
-        profilingSampler = new ProfilingSampler("DLSS Tag Resources");
-    }
-    
-    public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
-    {
-#if UNITY_STANDALONE_WIN && !UNITY_EDITOR
-        var camera = renderingData.cameraData.camera;
-        var cmd = CommandBufferPool.Get("DLSS Tag");
+        _upscalePass?.Dispose();
         
-        using (new ProfilingScope(cmd, profilingSampler))
+        // Restore render scale
+        if (_renderScaleManager != null)
         {
-            // Calculate matrices
-            Matrix4x4 viewMatrix = camera.worldToCameraMatrix;
-            Matrix4x4 projMatrix = GL.GetGPUProjectionMatrix(camera.projectionMatrix, true);
-            Matrix4x4 viewProj = projMatrix * viewMatrix;
-            Matrix4x4 invViewProj = viewProj.inverse;
-            
-            // Calculate clip-to-prev-clip for temporal stability
-            Matrix4x4 clipToPrevClip = _firstFrame ? Matrix4x4.identity : _prevViewProjection * invViewProj;
-            Matrix4x4 prevClipToClip = clipToPrevClip.inverse;
-            
-            // Get jitter offset from TAA if enabled
-            Vector2 jitterOffset = Vector2.zero;
-            // URP stores jitter in camera.projectionMatrix - we need to extract it
-            // For now, use zero jitter (DLSS will handle it internally)
-            
-            // Motion vector scale (screen space UV to pixel space)
-            Vector2 mvecScale = new Vector2(camera.pixelWidth, camera.pixelHeight);
-            
-            // Set constants
-            bool success = StreamlineDLSSPlugin.SetConstants(
-                projMatrix,                    // cameraViewToClip
-                projMatrix.inverse,            // clipToCameraView
-                clipToPrevClip,
-                prevClipToClip,
-                jitterOffset,
-                mvecScale,
-                camera.nearClipPlane,
-                camera.farClipPlane,
-                camera.fieldOfView * Mathf.Deg2Rad,
-                camera.aspect,
-                depthInverted: SystemInfo.usesReversedZBuffer,
-                cameraMotionIncluded: true,    // URP includes camera motion in mvec
-                reset: _firstFrame
-            );
-            
-            if (_settings.debugLogging && !success)
-            {
-                Debug.LogWarning("[DLSS] Failed to set constants");
-            }
-            
-            // Store for next frame
-            _prevViewProjection = viewProj;
-            _firstFrame = false;
-            
-            // Set DLSS options
-            StreamlineDLSSPlugin.SetOptions(
-                _settings.dlssMode,
-                (uint)camera.pixelWidth,
-                (uint)camera.pixelHeight,
-                _settings.colorBuffersHDR
-            );
-            
-            // Note: Actual resource tagging requires native texture pointers
-            // which need to be obtained through render graph or RTHandle system
-            // This is a framework that will be completed when integrated with
-            // Unity's render graph system
+            _renderScaleManager.RestoreOriginalScale();
         }
-        
-        context.ExecuteCommandBuffer(cmd);
-        CommandBufferPool.Release(cmd);
-#endif
-    }
-    
-    public void Dispose()
-    {
-    }
-}
-
-/// <summary>
-/// Render pass that evaluates DLSS (runs the upscaling)
-/// </summary>
-public class DLSSEvaluatePass : ScriptableRenderPass, IDisposable
-{
-    private DLSSRenderFeature.DLSSSettings _settings;
-    
-    public DLSSEvaluatePass(DLSSRenderFeature.DLSSSettings settings)
-    {
-        _settings = settings;
-        profilingSampler = new ProfilingSampler("DLSS Evaluate");
-    }
-    
-    public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
-    {
-#if UNITY_STANDALONE_WIN && !UNITY_EDITOR
-        var cmd = CommandBufferPool.Get("DLSS Evaluate");
-        
-        using (new ProfilingScope(cmd, profilingSampler))
-        {
-            // Evaluate DLSS
-            bool success = StreamlineDLSSPlugin.Evaluate(IntPtr.Zero);
-            
-            if (_settings.debugLogging && !success)
-            {
-                Debug.LogWarning("[DLSS] Failed to evaluate");
-            }
-        }
-        
-        context.ExecuteCommandBuffer(cmd);
-        CommandBufferPool.Release(cmd);
-#endif
-    }
-    
-    public void Dispose()
-    {
     }
 }

@@ -18,7 +18,7 @@ MonoBehaviour:
     enableFrameGen: 1
     framesToGenerate: 2
     colorBuffersHDR: 1
-    debugLogging: 0
+    debugLogging: 1
 --- !u!114 &11400000
 MonoBehaviour:
   m_ObjectHideFlags: 0
