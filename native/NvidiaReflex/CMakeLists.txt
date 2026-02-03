@@ -49,8 +49,12 @@ message(STATUS "Unity Plugin API: ${UNITY_PLUGIN_API}")
 
 # Create the DLL
 add_library(GfxPluginStreamline SHARED
-    StreamlineReflexPlugin.cpp
-    StreamlineDLSSPlugin.cpp
+    StreamlineCommon.cpp
+    StreamlineInit.cpp
+    StreamlineReflex.cpp
+    StreamlineDLSSCore.cpp
+    StreamlineFrameGen.cpp
+    StreamlineDLSSLegacy.cpp
 )
 
 # Include directories

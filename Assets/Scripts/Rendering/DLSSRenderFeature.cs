@@ -56,21 +56,46 @@ public class DLSSRenderFeature : ScriptableRendererFeature
         };
         
         _dlssInitialized = false;
+        
+        if (settings.debugLogging)
+        {
+            Debug.Log($"[DLSS] DLSSRenderFeature.Create() - pass created, event={RenderPassEvent.AfterRenderingPostProcessing}");
+        }
     }
+    
+    private static int _addPassCount = 0;
     
     public override void AddRenderPasses(ScriptableRenderer renderer, ref RenderingData renderingData)
     {
+        _addPassCount++;
+        
         // Only run in game view, not scene view or preview
         if (renderingData.cameraData.cameraType != CameraType.Game)
+        {
+            if (settings.debugLogging && _addPassCount <= 5)
+                Debug.Log($"[DLSS] AddRenderPasses: skipping non-game camera type {renderingData.cameraData.cameraType}");
             return;
+        }
             
         // Skip if DLSS is off
         if (settings.dlssMode == StreamlineDLSSPlugin.DLSSMode.Off)
+        {
+            if (settings.debugLogging && _addPassCount <= 5)
+                Debug.Log("[DLSS] AddRenderPasses: DLSS mode is Off, skipping");
             return;
+        }
+        
+        // Log that we're adding the pass
+        if (settings.debugLogging && (_addPassCount == 1 || _addPassCount % 300 == 0))
+        {
+            Debug.Log($"[DLSS] AddRenderPasses #{_addPassCount}: enqueueing DLSS pass for camera {renderingData.cameraData.camera.name}");
+        }
         
         // Initialize DLSS on first frame
         if (!_dlssInitialized)
         {
+            if (settings.debugLogging)
+                Debug.Log("[DLSS] AddRenderPasses: initializing DLSS...");
             InitializeDLSS(ref renderingData);
             _dlssInitialized = true;
         }

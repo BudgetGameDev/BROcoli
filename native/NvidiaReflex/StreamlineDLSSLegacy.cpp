@@ -1,48 +1,16 @@
 // StreamlineDLSSPlugin.cpp
-// DLSS and Frame Generation functions for GfxPluginStreamline
+// Legacy DLSS API wrappers and convenience presets
 //
-// This file contains the DLSS Super Resolution and Frame Generation API.
-// It shares initialization state with StreamlineReflexPlugin.cpp.
+// This file provides backward-compatible API wrappers. New code should
+// use the functions in StreamlineDLSSCore.cpp directly.
 
-#include <windows.h>
-#include <cstdint>
-#include <cstring>
-#include <cstdio>
-#include <ctime>
-#include <mutex>
+#include "StreamlineCommon.h"
 #include <cstdarg>
-
-// Streamline SDK headers
-#include "sl.h"
-#include "sl_dlss.h"
-#include "sl_dlss_g.h"
+#include <ctime>
+#include <cstring>
 
 // ============================================================================
-// External state from StreamlineReflexPlugin.cpp
-// ============================================================================
-
-// These are defined in StreamlineReflexPlugin.cpp and shared across the plugin
-extern bool g_initialized;
-extern bool g_dlssSupported;
-extern bool g_dlssgSupported;
-extern sl::DLSSMode g_dlssMode;
-extern sl::DLSSGMode g_dlssgMode;
-extern uint32_t g_numFramesToGenerate;
-extern std::mutex g_mutex;
-
-// External logging infrastructure from StreamlineReflexPlugin.cpp
-extern FILE* g_logFile;
-typedef void(*LogCallback)(const char*);
-extern LogCallback g_logCallback;
-
-// ============================================================================
-// Export Macro
-// ============================================================================
-
-#define EXPORT extern "C" __declspec(dllexport)
-
-// ============================================================================
-// Logging (writes to shared log file)
+// Legacy Logging (for backward compatibility)
 // ============================================================================
 
 static void LogDLSS(const char* format, ...)
@@ -53,21 +21,17 @@ static void LogDLSS(const char* format, ...)
     vsnprintf(buffer, sizeof(buffer), format, args);
     va_end(args);
     
-    // Get timestamp
     time_t now = time(NULL);
     struct tm* t = localtime(&now);
     char timestamp[32];
-    snprintf(timestamp, sizeof(timestamp), "[%02d:%02d:%02d] ",
-             t->tm_hour, t->tm_min, t->tm_sec);
+    snprintf(timestamp, sizeof(timestamp), "[%02d:%02d:%02d] ", t->tm_hour, t->tm_min, t->tm_sec);
     
-    // Write to shared log file
     if (g_logFile)
     {
         fprintf(g_logFile, "%s[DLSS] %s\n", timestamp, buffer);
         fflush(g_logFile);
     }
     
-    // C# callback
     if (g_logCallback)
     {
         char fullMsg[1100];
@@ -75,14 +39,13 @@ static void LogDLSS(const char* format, ...)
         g_logCallback(fullMsg);
     }
     
-    // Debug output
     OutputDebugStringA("[GfxPluginStreamline/DLSS] ");
     OutputDebugStringA(buffer);
     OutputDebugStringA("\n");
 }
 
 // ============================================================================
-// DLSS Structures for C# interop
+// C# Interop Structures
 // ============================================================================
 
 struct DLSSSettingsExport
@@ -106,12 +69,8 @@ struct DLSSGStateExport
 };
 
 // ============================================================================
-// DLSS Super Resolution (Legacy API - use functions in StreamlineReflexPlugin.cpp instead)
+// Legacy DLSS APIs
 // ============================================================================
-
-// Note: The main DLSS APIs (SLDLSS_SetOptions, SLDLSS_GetOptimalSettings, SLDLSS_TagResourceD3D12,
-// SLDLSS_SetConstants, SLDLSS_Evaluate) are now in StreamlineReflexPlugin.cpp for better integration
-// with buffer tagging. The functions below are legacy wrappers.
 
 EXPORT bool SLDLSS_GetOptimalSettingsLegacy(
     int mode, 
@@ -201,7 +160,7 @@ EXPORT int SLDLSS_GetMode()
 }
 
 // ============================================================================
-// DLSS Frame Generation
+// Legacy Frame Generation APIs
 // ============================================================================
 
 EXPORT bool SLDLSSG_SetMode(int mode, int numFramesToGenerate)
@@ -267,10 +226,7 @@ EXPORT bool SLDLSSG_GetStateLegacy(DLSSGStateExport* outState)
     PFN_slDLSSGGetState fn = nullptr;
     sl::Result result = slGetFeatureFunction(sl::kFeatureDLSS_G, "slDLSSGGetState", (void*&)fn);
     
-    if (result != sl::Result::eOk || !fn)
-    {
-        return false;
-    }
+    if (result != sl::Result::eOk || !fn) return false;
     
     sl::ViewportHandle viewport(0);
     result = fn(viewport, state, &options);
@@ -296,15 +252,13 @@ EXPORT bool SLStreamline_EnableDLSSQualityWithFrameGen2x()
 {
     LogDLSS("Enabling DLSS Quality + Frame Gen 2x preset");
     
-    // Enable DLSS Quality mode (67% render scale)
-    if (!SLDLSS_SetMode(3)) // 3 = MaxQuality
+    if (!SLDLSS_SetMode(3))
     {
         LogDLSS("Failed to enable DLSS Quality mode");
         return false;
     }
     
-    // Enable Frame Generation with 2x multiplier (1 generated frame)
-    if (!SLDLSSG_SetMode(1, 1)) // 1 = On, 1 generated frame = 2x
+    if (!SLDLSSG_SetMode(1, 1))
     {
         LogDLSS("DLSS enabled but Frame Gen failed - partial success");
         return true;
@@ -318,15 +272,13 @@ EXPORT bool SLStreamline_EnableDLSSPerformanceWithFrameGen3x()
 {
     LogDLSS("Enabling DLSS Performance + Frame Gen 3x preset");
     
-    // Enable DLSS Performance mode (50% render scale)
-    if (!SLDLSS_SetMode(1)) // 1 = MaxPerformance
+    if (!SLDLSS_SetMode(1))
     {
         LogDLSS("Failed to enable DLSS Performance mode");
         return false;
     }
     
-    // Enable Frame Generation with 3x multiplier (2 generated frames)
-    if (!SLDLSSG_SetMode(1, 2)) // 1 = On, 2 generated frames = 3x
+    if (!SLDLSSG_SetMode(1, 2))
     {
         LogDLSS("DLSS enabled but Frame Gen failed - partial success");
         return true;
@@ -341,18 +293,8 @@ EXPORT bool SLStreamline_DisableDLSSAndFrameGen()
     LogDLSS("Disabling DLSS and Frame Gen");
     
     bool success = true;
-    
-    // Disable Frame Generation first
-    if (!SLDLSSG_SetMode(0, 0))
-    {
-        success = false;
-    }
-    
-    // Disable DLSS
-    if (!SLDLSS_SetMode(0))
-    {
-        success = false;
-    }
+    if (!SLDLSSG_SetMode(0, 0)) success = false;
+    if (!SLDLSS_SetMode(0)) success = false;
     
     return success;
 }

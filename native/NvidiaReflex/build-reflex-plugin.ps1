@@ -197,15 +197,35 @@ function Get-StreamlineSDK {
 # PREREQUISITE CHECKS
 # ============================================
 
-# Check for CMake
+# Check for CMake - try PATH first, then known install locations
+$cmakePath = "cmake"
 if (-not (Test-Command "cmake")) {
-    Write-Host "ERROR: CMake not found!" -ForegroundColor Red
-    Write-Host "Install CMake via: winget install cmake" -ForegroundColor Yellow
-    Write-Host "Or download from: https://cmake.org/download/" -ForegroundColor Yellow
-    exit 1
+    # Try common installation paths
+    $knownPaths = @(
+        "${env:ProgramFiles}\CMake\bin\cmake.exe",
+        "${env:ProgramFiles(x86)}\CMake\bin\cmake.exe",
+        "$env:LOCALAPPDATA\CMake\bin\cmake.exe"
+    )
+    
+    $found = $false
+    foreach ($path in $knownPaths) {
+        if (Test-Path $path) {
+            $cmakePath = $path
+            $found = $true
+            Write-Host "Found CMake at: $path" -ForegroundColor Green
+            break
+        }
+    }
+    
+    if (-not $found) {
+        Write-Host "ERROR: CMake not found!" -ForegroundColor Red
+        Write-Host "Install CMake via: winget install cmake" -ForegroundColor Yellow
+        Write-Host "Or download from: https://cmake.org/download/" -ForegroundColor Yellow
+        exit 1
+    }
 }
 
-$cmakeVersion = cmake --version | Select-Object -First 1
+$cmakeVersion = & $cmakePath --version | Select-Object -First 1
 Write-Host "CMake: $cmakeVersion" -ForegroundColor Green
 
 # Check for Visual Studio
@@ -269,7 +289,7 @@ if ($SkipBuild) {
     Push-Location $BuildDir
     try {
         $streamlineInclude = "$StreamlineDir/include"
-        cmake -G "$generator" -A x64 -DSTREAMLINE_SDK_PATH="$StreamlineDir" ..
+        & $cmakePath -G "$generator" -A x64 -DSTREAMLINE_SDK_PATH="$StreamlineDir" ..
         if ($LASTEXITCODE -ne 0) {
             Write-Host "ERROR: CMake configuration failed" -ForegroundColor Red
             exit 1
@@ -280,7 +300,7 @@ if ($SkipBuild) {
     
     # Build
     Write-Host "Building $Configuration..." -ForegroundColor Yellow
-    cmake --build $BuildDir --config $Configuration --parallel
+    & $cmakePath --build $BuildDir --config $Configuration --parallel
     if ($LASTEXITCODE -ne 0) {
         Write-Host "ERROR: Build failed" -ForegroundColor Red
         exit 1

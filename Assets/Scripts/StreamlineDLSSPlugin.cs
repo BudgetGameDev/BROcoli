@@ -1,6 +1,7 @@
 using System;
 using System.Runtime.InteropServices;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 /// <summary>
 /// Native plugin wrapper for NVIDIA DLSS and Frame Generation via Streamline SDK.
@@ -162,6 +163,15 @@ public static class StreamlineDLSSPlugin
     
     [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl)]
     private static extern bool SLDLSS_Evaluate(IntPtr commandBuffer);
+    
+    [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl)]
+    private static extern void SLDLSS_PrepareEvaluate();
+    
+    [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl)]
+    private static extern IntPtr SLDLSS_GetRenderCallback();
+    
+    [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl)]
+    private static extern int SLDLSS_GetEvaluateEventID();
     
     [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl)]
     private static extern bool SLDLSSG_SetOptions(
@@ -557,6 +567,141 @@ public static class StreamlineDLSSPlugin
         }
 #else
         return false;
+#endif
+    }
+    
+    // Cache the render callback to avoid repeated P/Invoke
+    private static IntPtr _cachedRenderCallback = IntPtr.Zero;
+    private static int _cachedEventID = 0;
+    
+    /// <summary>
+    /// Prepare DLSS for evaluation and issue a plugin event to run it on the render thread.
+    /// This is the correct way to invoke DLSS as it provides access to the D3D12 command list.
+    /// Call this instead of Evaluate() when using Unity's CommandBuffer.
+    /// </summary>
+    /// <param name="cmd">Unity CommandBuffer to issue the plugin event on</param>
+    public static void IssueEvaluateEvent(UnityEngine.Rendering.CommandBuffer cmd)
+    {
+#if UNITY_STANDALONE_WIN && !UNITY_EDITOR
+        try
+        {
+            Debug.Log("[StreamlineDLSS] IssueEvaluateEvent called");
+            
+            // Get render callback if not cached
+            if (_cachedRenderCallback == IntPtr.Zero)
+            {
+                Debug.Log("[StreamlineDLSS] Getting render callback from native plugin...");
+                _cachedRenderCallback = SLDLSS_GetRenderCallback();
+                _cachedEventID = SLDLSS_GetEvaluateEventID();
+                Debug.Log($"[StreamlineDLSS] Got callback: 0x{_cachedRenderCallback.ToInt64():X}, eventID: 0x{_cachedEventID:X}");
+            }
+            
+            if (_cachedRenderCallback == IntPtr.Zero)
+            {
+                Debug.LogError("[StreamlineDLSS] Failed to get render callback - pointer is null!");
+                return;
+            }
+            
+            // Prepare evaluation state in native plugin
+            Debug.Log("[StreamlineDLSS] Calling PrepareEvaluate...");
+            SLDLSS_PrepareEvaluate();
+            
+            // Issue plugin event - this will invoke DLSS on the render thread
+            // where we have access to the actual D3D12 command list
+            Debug.Log($"[StreamlineDLSS] Issuing plugin event 0x{_cachedEventID:X}...");
+            cmd.IssuePluginEvent(_cachedRenderCallback, _cachedEventID);
+            Debug.Log("[StreamlineDLSS] Plugin event issued successfully");
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"[StreamlineDLSS] IssueEvaluateEvent failed: {e.Message}\n{e.StackTrace}");
+        }
+#else
+        Debug.LogWarning("[StreamlineDLSS] IssueEvaluateEvent: Not available on this platform (preprocessor excluded)");
+#endif
+    }
+    
+    /// <summary>
+    /// Overload for UnsafeCommandBuffer (used in Render Graph passes).
+    /// </summary>
+    /// <param name="cmd">UnsafeCommandBuffer from Render Graph context</param>
+    public static void IssueEvaluateEvent(UnsafeCommandBuffer cmd)
+    {
+#if UNITY_STANDALONE_WIN && !UNITY_EDITOR
+        try
+        {
+            Debug.Log("[StreamlineDLSS] IssueEvaluateEvent (UnsafeCommandBuffer) called");
+            
+            // Get render callback if not cached
+            if (_cachedRenderCallback == IntPtr.Zero)
+            {
+                Debug.Log("[StreamlineDLSS] Getting render callback from native plugin...");
+                _cachedRenderCallback = SLDLSS_GetRenderCallback();
+                _cachedEventID = SLDLSS_GetEvaluateEventID();
+                Debug.Log($"[StreamlineDLSS] Got callback: 0x{_cachedRenderCallback.ToInt64():X}, eventID: 0x{_cachedEventID:X}");
+            }
+            
+            if (_cachedRenderCallback == IntPtr.Zero)
+            {
+                Debug.LogError("[StreamlineDLSS] Failed to get render callback - pointer is null!");
+                return;
+            }
+            
+            // Prepare evaluation state in native plugin
+            Debug.Log("[StreamlineDLSS] Calling PrepareEvaluate...");
+            SLDLSS_PrepareEvaluate();
+            
+            // Issue plugin event on UnsafeCommandBuffer
+            Debug.Log($"[StreamlineDLSS] Issuing plugin event 0x{_cachedEventID:X} on UnsafeCommandBuffer...");
+            cmd.IssuePluginEvent(_cachedRenderCallback, _cachedEventID);
+            Debug.Log("[StreamlineDLSS] Plugin event issued successfully");
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"[StreamlineDLSS] IssueEvaluateEvent (UnsafeCommandBuffer) failed: {e.Message}\n{e.StackTrace}");
+        }
+#else
+        Debug.LogWarning("[StreamlineDLSS] IssueEvaluateEvent: Not available on this platform (preprocessor excluded)");
+#endif
+    }
+    
+    /// <summary>
+    /// Get the DLSS render callback function pointer.
+    /// Use with CommandBuffer.IssuePluginEvent for proper GPU integration.
+    /// </summary>
+    public static IntPtr GetRenderCallback()
+    {
+#if UNITY_STANDALONE_WIN && !UNITY_EDITOR
+        try
+        {
+            return SLDLSS_GetRenderCallback();
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"[StreamlineDLSS] GetRenderCallback failed: {e.Message}");
+            return IntPtr.Zero;
+        }
+#else
+        return IntPtr.Zero;
+#endif
+    }
+    
+    /// <summary>
+    /// Get the event ID for DLSS evaluation plugin event.
+    /// </summary>
+    public static int GetEvaluateEventID()
+    {
+#if UNITY_STANDALONE_WIN && !UNITY_EDITOR
+        try
+        {
+            return SLDLSS_GetEvaluateEventID();
+        }
+        catch
+        {
+            return 0;
+        }
+#else
+        return 0;
 #endif
     }
     
