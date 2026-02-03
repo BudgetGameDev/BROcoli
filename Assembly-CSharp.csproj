@@ -56,6 +56,8 @@
     <Compile Include="Assets\Scripts\UI\ControllerUINavigator.cs" />
     <Compile Include="Assets\Scripts\gamejam-2022\Statics.cs" />
     <Compile Include="Assets\TextMesh Pro\Examples &amp; Extras\Scripts\EnvMapAnimator.cs" />
+    <Compile Include="Assets\Scripts\Rendering\DLSS\StreamlineDLSSNative.cs" />
+    <Compile Include="Assets\Scripts\Rendering\DLSS\StreamlineDLSSCore.cs" />
     <Compile Include="Assets\TextMesh Pro\Examples &amp; Extras\Scripts\TMP_TextSelector_A.cs" />
     <Compile Include="Assets\Scripts\ProceduralGunAudio.cs" />
     <Compile Include="Assets\Scripts\LevelUpScreen.cs" />
@@ -78,7 +80,6 @@
     <Compile Include="Assets\Scripts\gamejam-2022\ClueDialog.cs" />
     <Compile Include="Assets\Scripts\EnemyProximityLighting.cs" />
     <Compile Include="Assets\Scripts\Pooling\ObjectPool.cs" />
-    <Compile Include="Assets\Scripts\StreamlineDLSSPlugin.cs" />
     <Compile Include="Assets\Scripts\UI\VictoryScreen.cs" />
     <Compile Include="Assets\Scripts\ProceduralXPPickupAudio.cs" />
     <Compile Include="Assets\Scripts\gamejam-2022\PlayerCombat.cs" />
@@ -86,6 +87,7 @@
     <Compile Include="Assets\TextMesh Pro\Examples &amp; Extras\Scripts\TMPro_InstructionOverlay.cs" />
     <Compile Include="Assets\TextMesh Pro\Examples &amp; Extras\Scripts\VertexShakeB.cs" />
     <Compile Include="Assets\Scripts\gamejam-2022\Dialog\Dialogue.cs" />
+    <Compile Include="Assets\Scripts\Rendering\Reflex\StreamlineReflexCore.cs" />
     <Compile Include="Assets\Scripts\gamejam-2022\Projectile.cs" />
     <Compile Include="Assets\Scripts\Boost\ProceduralBoostAudio.cs" />
     <Compile Include="Assets\Scripts\FrameRateOptimizer.cs" />
@@ -102,6 +104,7 @@
     <Compile Include="Assets\Scripts\Rendering\DLSSRenderFeature.cs" />
     <Compile Include="Assets\Scripts\Boost\SprayWidthBoost.cs" />
     <Compile Include="Assets\TextMesh Pro\Examples &amp; Extras\Scripts\SkewTextExample.cs" />
+    <Compile Include="Assets\Scripts\Rendering\DLSS\DLSSUpscalePass.cs" />
     <Compile Include="Assets\TextMesh Pro\Examples &amp; Extras\Scripts\WarpTextExample.cs" />
     <Compile Include="Assets\Scripts\PauseMenu.cs" />
     <Compile Include="Assets\Scripts\Boost\ExperienceBoost.cs" />
@@ -115,6 +118,8 @@
     <Compile Include="Assets\Scripts\EndGameUI.cs" />
     <Compile Include="Assets\Scripts\gamejam-2022\EndScreen.cs" />
     <Compile Include="Assets\Scripts\Core\GameContext.cs" />
+    <Compile Include="Assets\Scripts\Rendering\Reflex\StreamlineReflexPlugin.cs" />
+    <Compile Include="Assets\Scripts\Rendering\Reflex\StreamlineReflexTypes.cs" />
     <Compile Include="Assets\TextMesh Pro\Examples &amp; Extras\Scripts\TMP_TextInfoDebugTool.cs" />
     <Compile Include="Assets\Scripts\ProceduralEnemyProjectileHitAudio.cs" />
     <Compile Include="Assets\Scripts\Boost\MagnetBoost.cs" />
@@ -125,6 +130,7 @@
     <Compile Include="Assets\Scripts\Boost\BoostHandler.cs" />
     <Compile Include="Assets\Scripts\ProceduralEnemyGunAudio.cs" />
     <Compile Include="Assets\TextMesh Pro\Examples &amp; Extras\Scripts\VertexShakeA.cs" />
+    <Compile Include="Assets\Scripts\Rendering\Reflex\StreamlineReflexDiagnostics.cs" />
     <Compile Include="Assets\Scripts\Spray\SprayLayerCore.cs" />
     <Compile Include="Assets\Scripts\Enemy Spawner\Animation\EnemyWalkAnimation.cs" />
     <Compile Include="Assets\Scripts\Rendering\DLSSRenderScaleManager.cs" />
@@ -148,8 +154,9 @@
     <Compile Include="Assets\Scripts\Boost\TemporaryBoostType.cs" />
     <Compile Include="Assets\Scripts\PitchFromInputRelativeToDownPose.cs" />
     <Compile Include="Assets\Scripts\Enemy Spawner\EnemySpawner.cs" />
-    <Compile Include="Assets\Scripts\Rendering\DLSSUpscalePass.cs" />
+    <Compile Include="Assets\Scripts\Rendering\DLSS\StreamlineDLSSTypes.cs" />
     <Compile Include="Assets\Scripts\Pooling\PoolManager.cs" />
+    <Compile Include="Assets\Scripts\Rendering\DLSS\StreamlineDLSSEvaluate.cs" />
     <Compile Include="Assets\Scripts\Boost\MovementSpeedBoost.cs" />
     <Compile Include="Assets\Scripts\UI\ProceduralUIAudio.cs" />
     <Compile Include="Assets\TextMesh Pro\Examples &amp; Extras\Scripts\CameraController.cs" />
@@ -163,18 +170,21 @@
     <Compile Include="Assets\Scripts\TouchAction.cs" />
     <Compile Include="Assets\Scripts\Spray\SprayAudioFilters.cs" />
     <Compile Include="Assets\Scripts\Enemy Spawner\Enemies\EnemyProjectile.cs" />
+    <Compile Include="Assets\Scripts\Rendering\DLSS\StreamlineDLSSPlugin.cs" />
     <Compile Include="Assets\Scripts\Spray\SprayMaterialCreator.cs" />
     <Compile Include="Assets\Scripts\Spray\SprayAudioClipGenerator.cs" />
     <Compile Include="Assets\TextMesh Pro\Examples &amp; Extras\Scripts\DropdownSample.cs" />
     <Compile Include="Assets\TextMesh Pro\Examples &amp; Extras\Scripts\VertexColorCycler.cs" />
     <Compile Include="Assets\Scripts\ProceduralProjectileHitAudio.cs" />
     <Compile Include="Assets\Scripts\Boost\DetectionRadiusBoost.cs" />
+    <Compile Include="Assets\Scripts\Rendering\Reflex\StreamlineReflexMarkers.cs" />
     <Compile Include="Assets\Scripts\EndGameCTAManager.cs" />
     <Compile Include="Assets\Scripts\DLSSManager.cs" />
     <Compile Include="Assets\Scripts\GraphicRegistryCleaner.cs" />
     <Compile Include="Assets\Scripts\ProceduralEnemyMeleeAudio.cs" />
     <Compile Include="Assets\Scripts\Enemy Spawner\Waves\WaveConfig.cs" />
     <Compile Include="Assets\Scripts\PlayerSpotlight2D.cs" />
+    <Compile Include="Assets\Scripts\Rendering\Reflex\StreamlineReflexNative.cs" />
     <Compile Include="Assets\Scripts\gamejam-2022\Clue.cs" />
     <Compile Include="Assets\Scripts\gamejam-2022\PlayerMovement.cs" />
     <Compile Include="Assets\Scripts\ShuffleWalkVisual.cs" />
@@ -183,6 +193,7 @@
     <Compile Include="Assets\Scripts\Enemy Spawner\Enemies\EliteEnemyEffects.cs" />
     <Compile Include="Assets\Scripts\Boost\BoostBase.cs" />
     <Compile Include="Assets\Scripts\ProceduralLevelUpAudio.cs" />
+    <Compile Include="Assets\Scripts\Rendering\DLSS\StreamlineDLSSBuffers.cs" />
     <Compile Include="Assets\Scripts\Spray\SprayLayerDroplet.cs" />
     <Compile Include="Assets\Scripts\gamejam-2022\PlayerInputHandler.cs" />
     <Compile Include="Assets\TextMesh Pro\Examples &amp; Extras\Scripts\TextConsoleSimulator.cs" />
@@ -196,7 +207,7 @@
     <Compile Include="Assets\Scripts\ScoreValue.cs" />
     <Compile Include="Assets\Scripts\VirtualController.cs" />
     <Compile Include="Assets\Scripts\PWAHelper.cs" />
-    <Compile Include="Assets\Scripts\StreamlineReflexPlugin.cs" />
+    <Compile Include="Assets\Scripts\Rendering\DLSS\DLSSUpscalePassLegacy.cs" />
     <Compile Include="Assets\Scripts\ProceduralFootstepAudio.cs" />
     <Compile Include="Assets\Scripts\gamejam-2022\ClueSystem.cs" />
     <Compile Include="Assets\Scripts\Spray\SprayLayerMist.cs" />
@@ -204,7 +215,9 @@
     <Compile Include="Assets\Scripts\Utils.cs" />
     <Compile Include="Assets\Scripts\player_enemy_collition_event.cs" />
     <Compile Include="Assets\Scripts\Bar.cs" />
+    <Compile Include="Assets\Scripts\Rendering\DLSS\DLSSPassHelpers.cs" />
     <Compile Include="Assets\Scripts\Spray\SprayParticleLayers.cs" />
+    <Compile Include="Assets\Scripts\Rendering\DLSS\DLSSResourceTagger.cs" />
     <Compile Include="Assets\Scripts\Spray\SprayParticleController.cs" />
   </ItemGroup>
   <ItemGroup>

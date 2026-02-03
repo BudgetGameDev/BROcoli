@@ -51,6 +51,7 @@
     <Compile Include="Assets\Scripts\Editor\SanitizerSpraySetup.cs" />
     <Compile Include="Assets\Scripts\Editor\VirtualControllerSetup.cs" />
     <Compile Include="Assets\Scripts\Editor\StreamlinePostBuild.cs" />
+    <Compile Include="Assets\Scripts\Editor\ConfigurePlayerLog.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="UnityEngine">

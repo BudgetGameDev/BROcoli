@@ -16,6 +16,24 @@ static sl::Constants g_dlssConstants{};
 static bool g_dlssConstantsValid = false;
 
 // ============================================================================
+// DLSS Frame Management
+// ============================================================================
+
+// Increment frame ID - call once per frame before DLSS evaluation
+EXPORT void SLDLSS_BeginFrame()
+{
+    if (!g_initialized) return;
+    g_frameId++;
+    LogMessage("DLSS BeginFrame: frameId=%llu", g_frameId);
+}
+
+// Get current frame ID for debugging
+EXPORT uint64_t SLDLSS_GetFrameId()
+{
+    return g_frameId;
+}
+
+// ============================================================================
 // DLSS Viewport
 // ============================================================================
 
@@ -101,9 +119,18 @@ EXPORT bool SLDLSS_TagResourceD3D12(
     uint32_t state
 )
 {
-    if (!g_initialized || !d3d12Resource)
+    LogMessage("SLDLSS_TagResourceD3D12 called: type=%u, %ux%u, format=%u, state=%u, ptr=%p",
+               bufferType, width, height, nativeFormat, state, d3d12Resource);
+    
+    if (!g_initialized)
     {
-        LogMessage("SLDLSS_TagResourceD3D12 failed: not initialized or null resource");
+        LogMessage("SLDLSS_TagResourceD3D12 failed: not initialized");
+        return false;
+    }
+    
+    if (!d3d12Resource)
+    {
+        LogMessage("SLDLSS_TagResourceD3D12 failed: null resource");
         return false;
     }
     
@@ -196,7 +223,14 @@ EXPORT bool SLDLSS_GetOptimalSettings(
     uint32_t* maxRenderHeight
 )
 {
-    if (!g_initialized) return false;
+    // CRITICAL: Check both initialized AND DLSS is supported
+    // slDLSSGetOptimalSettings will crash if DLSS feature isn't loaded
+    if (!g_initialized || !g_dlssSupported)
+    {
+        LogMessage("SLDLSS_GetOptimalSettings: skipped (init=%d, dlss=%d)", 
+                   g_initialized ? 1 : 0, g_dlssSupported ? 1 : 0);
+        return false;
+    }
     
     sl::DLSSOptions options{};
     options.mode = static_cast<sl::DLSSMode>(mode);
@@ -274,9 +308,11 @@ static int g_callbackInvocationCount = 0;
 // Mark DLSS ready for evaluation - call this from C# before IssuePluginEvent
 EXPORT void SLDLSS_PrepareEvaluate()
 {
+    LogMessage(">>> PrepareEvaluate ENTRY, frame %u, initialized=%d, dlssSupported=%d", 
+               (uint32_t)(g_frameId & 0xFFFFFFFF), g_initialized ? 1 : 0, g_dlssSupported ? 1 : 0);
     g_dlssPending.ready = true;
     g_dlssPending.frameIndex = (uint32_t)(g_frameId & 0xFFFFFFFF);
-    LogMessage("PrepareEvaluate called, frame %u", g_dlssPending.frameIndex);
+    LogMessage("<<< PrepareEvaluate EXIT, ready=%d", g_dlssPending.ready ? 1 : 0);
 }
 
 // The actual render callback invoked by Unity on the render thread
@@ -284,16 +320,27 @@ static void UNITY_INTERFACE_API OnDLSSRenderEvent(int eventID)
 {
     g_callbackInvocationCount++;
     
-    // Log every 60 frames to avoid spam
-    if (g_callbackInvocationCount % 60 == 1)
+    // Log first few frames and then periodically
+    bool shouldLog = (g_callbackInvocationCount <= 5) || (g_callbackInvocationCount % 300 == 1);
+    
+    if (shouldLog)
     {
-        LogMessage("OnDLSSRenderEvent: eventID=%d (expected %d), ready=%d, initialized=%d, dlssSupported=%d",
-                   eventID, kDLSSEventID_Evaluate, g_dlssPending.ready ? 1 : 0, 
-                   g_initialized ? 1 : 0, g_dlssSupported ? 1 : 0);
+        LogMessage("OnDLSSRenderEvent #%d: eventID=0x%X (expected 0x%X), ready=%d, init=%d, supported=%d, frameId=%llu",
+                   g_callbackInvocationCount, eventID, kDLSSEventID_Evaluate, 
+                   g_dlssPending.ready ? 1 : 0, g_initialized ? 1 : 0, 
+                   g_dlssSupported ? 1 : 0, g_frameId);
     }
     
-    if (eventID != kDLSSEventID_Evaluate) return;
-    if (!g_dlssPending.ready) return;
+    if (eventID != kDLSSEventID_Evaluate)
+    {
+        if (shouldLog) LogMessage("OnDLSSRenderEvent: wrong event ID, ignoring");
+        return;
+    }
+    if (!g_dlssPending.ready)
+    {
+        if (shouldLog) LogMessage("OnDLSSRenderEvent: not ready, ignoring");
+        return;
+    }
     if (!g_initialized || !g_dlssSupported)
     {
         LogMessage("DLSS render callback: not initialized or DLSS not supported");
@@ -356,12 +403,15 @@ static void UNITY_INTERFACE_API OnDLSSRenderEvent(int eventID)
 // Return the render callback function pointer for Unity
 EXPORT UnityRenderingEvent SLDLSS_GetRenderCallback()
 {
-    LogMessage("GetRenderCallback called, returning OnDLSSRenderEvent at %p", (void*)OnDLSSRenderEvent);
+    LogMessage(">>> GetRenderCallback ENTRY");
+    LogMessage("    OnDLSSRenderEvent address: %p", (void*)OnDLSSRenderEvent);
+    LogMessage("<<< GetRenderCallback EXIT, returning %p", (void*)OnDLSSRenderEvent);
     return OnDLSSRenderEvent;
 }
 
 // Get the DLSS event ID
 EXPORT int SLDLSS_GetEvaluateEventID()
 {
+    LogMessage("GetEvaluateEventID called, returning 0x%X", kDLSSEventID_Evaluate);
     return kDLSSEventID_Evaluate;
 }

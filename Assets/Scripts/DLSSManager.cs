@@ -1,4 +1,5 @@
 using UnityEngine;
+using StreamlineDLSS;
 
 /// <summary>
 /// Component to manage NVIDIA DLSS and Frame Generation settings at runtime.
@@ -22,11 +23,11 @@ public class DLSSManager : MonoBehaviour
 {
     [Header("DLSS Settings")]
     [Tooltip("DLSS Super Resolution quality mode")]
-    [SerializeField] private StreamlineDLSSPlugin.DLSSMode _dlssMode = StreamlineDLSSPlugin.DLSSMode.MaxQuality;
+    [SerializeField] private DLSSMode _dlssMode = DLSSMode.MaxQuality;
     
     [Header("Frame Generation Settings")]
-    [Tooltip("Enable Frame Generation (RTX 40+ only)")]
-    [SerializeField] private bool _enableFrameGen = true;
+    [Tooltip("Enable Frame Generation (RTX 40+ only) - EXPERIMENTAL, requires HUDLess buffer setup")]
+    [SerializeField] private bool _enableFrameGen = false;
     
     [Tooltip("Frame multiplier: 1=2x, 2=3x, 3=4x")]
     [Range(1, 3)]
@@ -56,7 +57,7 @@ public class DLSSManager : MonoBehaviour
     /// <summary>
     /// Current DLSS mode
     /// </summary>
-    public StreamlineDLSSPlugin.DLSSMode DLSSMode => _dlssMode;
+    public DLSSMode CurrentDLSSMode => _dlssMode;
     
     /// <summary>
     /// Current Frame Generation multiplier (1-3)
@@ -94,7 +95,7 @@ public class DLSSManager : MonoBehaviour
         {
             _dlssEnabled = StreamlineDLSSPlugin.SetDLSSMode(_dlssMode);
             
-            if (_dlssEnabled && _dlssMode != StreamlineDLSSPlugin.DLSSMode.Off)
+            if (_dlssEnabled && _dlssMode != DLSSMode.Off)
             {
                 // Get and log optimal settings for current resolution
                 uint width = (uint)Screen.width;
@@ -114,9 +115,7 @@ public class DLSSManager : MonoBehaviour
         // Enable Frame Generation if requested and supported
         if (_enableFrameGen && StreamlineDLSSPlugin.IsFrameGenSupported())
         {
-            _frameGenEnabled = StreamlineDLSSPlugin.SetFrameGenMode(
-                StreamlineDLSSPlugin.DLSSGMode.On, 
-                _frameGenMultiplier);
+            _frameGenEnabled = StreamlineDLSSPlugin.SetFrameGenMode(DLSSGMode.On, _frameGenMultiplier);
         }
         else if (_enableFrameGen)
         {
@@ -137,7 +136,7 @@ public class DLSSManager : MonoBehaviour
     /// <summary>
     /// Set DLSS mode at runtime
     /// </summary>
-    public void SetDLSSMode(StreamlineDLSSPlugin.DLSSMode mode)
+    public void SetDLSSMode(DLSSMode mode)
     {
         _dlssMode = mode;
         if (_dlssEnabled || _autoEnableOnStart)
@@ -154,9 +153,7 @@ public class DLSSManager : MonoBehaviour
         _frameGenMultiplier = Mathf.Clamp(multiplier, 1, 3);
         if (_frameGenEnabled)
         {
-            StreamlineDLSSPlugin.SetFrameGenMode(
-                StreamlineDLSSPlugin.DLSSGMode.On, 
-                _frameGenMultiplier);
+            StreamlineDLSSPlugin.SetFrameGenMode(DLSSGMode.On, _frameGenMultiplier);
         }
     }
     
@@ -168,24 +165,22 @@ public class DLSSManager : MonoBehaviour
         _enableFrameGen = enabled;
         if (enabled && StreamlineDLSSPlugin.IsFrameGenSupported())
         {
-            _frameGenEnabled = StreamlineDLSSPlugin.SetFrameGenMode(
-                StreamlineDLSSPlugin.DLSSGMode.On, 
-                _frameGenMultiplier);
+            _frameGenEnabled = StreamlineDLSSPlugin.SetFrameGenMode(DLSSGMode.On, _frameGenMultiplier);
         }
         else
         {
-            StreamlineDLSSPlugin.SetFrameGenMode(StreamlineDLSSPlugin.DLSSGMode.Off, 0);
+            StreamlineDLSSPlugin.SetFrameGenMode(DLSSGMode.Off, 0);
             _frameGenEnabled = false;
         }
     }
-    
+
     /// <summary>
     /// Quick preset: Maximum performance (DLSS Performance + Frame Gen 3x)
     /// </summary>
     [ContextMenu("Enable Max Performance")]
     public void EnableMaxPerformance()
     {
-        _dlssMode = StreamlineDLSSPlugin.DLSSMode.MaxPerformance;
+        _dlssMode = DLSSMode.MaxPerformance;
         _enableFrameGen = true;
         _frameGenMultiplier = 2;
         EnableDLSS();
@@ -197,7 +192,7 @@ public class DLSSManager : MonoBehaviour
     [ContextMenu("Enable Balanced")]
     public void EnableBalanced()
     {
-        _dlssMode = StreamlineDLSSPlugin.DLSSMode.Balanced;
+        _dlssMode = DLSSMode.Balanced;
         _enableFrameGen = true;
         _frameGenMultiplier = 1;
         EnableDLSS();
@@ -209,7 +204,7 @@ public class DLSSManager : MonoBehaviour
     [ContextMenu("Enable Quality")]
     public void EnableQuality()
     {
-        _dlssMode = StreamlineDLSSPlugin.DLSSMode.MaxQuality;
+        _dlssMode = DLSSMode.MaxQuality;
         _enableFrameGen = false;
         _frameGenMultiplier = 0;
         EnableDLSS();

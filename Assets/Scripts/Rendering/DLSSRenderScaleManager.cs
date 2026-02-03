@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
+using StreamlineDLSS;
 
 /// <summary>
 /// Manages Unity's render scale based on DLSS mode.
@@ -19,7 +20,7 @@ public class DLSSRenderScaleManager : MonoBehaviour
     [Header("Debug")]
     [SerializeField] private bool _debugLogging = false;
     
-    private StreamlineDLSSPlugin.DLSSMode _currentMode = StreamlineDLSSPlugin.DLSSMode.Off;
+    private DLSSMode _currentMode = DLSSMode.Off;
     private bool _initialized = false;
     
     /// <summary>
@@ -81,7 +82,7 @@ public class DLSSRenderScaleManager : MonoBehaviour
     /// <summary>
     /// Set DLSS mode and automatically adjust render scale
     /// </summary>
-    public void SetDLSSMode(StreamlineDLSSPlugin.DLSSMode mode)
+    public void SetDLSSMode(DLSSMode mode)
     {
         if (!_initialized) Initialize();
         if (_urpAsset == null) return;
@@ -106,17 +107,17 @@ public class DLSSRenderScaleManager : MonoBehaviour
     /// Get optimal render scale for a DLSS mode.
     /// These are approximate values - for exact values, query DLSS optimal settings.
     /// </summary>
-    public static float GetRenderScaleForMode(StreamlineDLSSPlugin.DLSSMode mode)
+    public static float GetRenderScaleForMode(DLSSMode mode)
     {
         return mode switch
         {
-            StreamlineDLSSPlugin.DLSSMode.Off => 1.0f,
-            StreamlineDLSSPlugin.DLSSMode.DLAA => 1.0f,           // Native resolution AA
-            StreamlineDLSSPlugin.DLSSMode.UltraQuality => 0.77f,  // ~77% 
-            StreamlineDLSSPlugin.DLSSMode.MaxQuality => 0.67f,    // ~67%
-            StreamlineDLSSPlugin.DLSSMode.Balanced => 0.58f,      // ~58%
-            StreamlineDLSSPlugin.DLSSMode.MaxPerformance => 0.50f,// ~50%
-            StreamlineDLSSPlugin.DLSSMode.UltraPerformance => 0.33f, // ~33%
+            DLSSMode.Off => 1.0f,
+            DLSSMode.DLAA => 1.0f,           // Native resolution AA
+            DLSSMode.UltraQuality => 0.77f,  // ~77% 
+            DLSSMode.MaxQuality => 0.67f,    // ~67%
+            DLSSMode.Balanced => 0.58f,      // ~58%
+            DLSSMode.MaxPerformance => 0.50f,// ~50%
+            DLSSMode.UltraPerformance => 0.33f, // ~33%
             _ => 1.0f
         };
     }
@@ -124,14 +125,22 @@ public class DLSSRenderScaleManager : MonoBehaviour
     /// <summary>
     /// Query DLSS for exact optimal render dimensions
     /// </summary>
-    public bool GetOptimalRenderSize(StreamlineDLSSPlugin.DLSSMode mode, out int renderWidth, out int renderHeight)
+    public bool GetOptimalRenderSize(DLSSMode mode, out int renderWidth, out int renderHeight)
     {
         renderWidth = OutputWidth;
         renderHeight = OutputHeight;
         
 #if UNITY_STANDALONE_WIN && !UNITY_EDITOR
+        // Early-out if DLSS is not supported - prevents crash on GetOptimalSettings
+        if (!StreamlineDLSSPlugin.IsDLSSSupported())
+        {
+            if (_debugLogging)
+                Debug.Log("[DLSSRenderScale] DLSS not supported, using fallback");
+            goto Fallback;
+        }
+        
         if (StreamlineDLSSPlugin.GetOptimalSettings(mode, (uint)OutputWidth, (uint)OutputHeight, 
-            out StreamlineDLSSPlugin.DLSSSettings settings))
+            out DLSSSettings settings))
         {
             renderWidth = (int)settings.OptimalRenderWidth;
             renderHeight = (int)settings.OptimalRenderHeight;
@@ -146,6 +155,8 @@ public class DLSSRenderScaleManager : MonoBehaviour
             }
             return true;
         }
+        
+        Fallback:
 #endif
         
         // Fallback to estimated values
@@ -165,7 +176,7 @@ public class DLSSRenderScaleManager : MonoBehaviour
         {
             _urpAsset.renderScale = _originalRenderScale;
             CurrentRenderScale = _originalRenderScale;
-            _currentMode = StreamlineDLSSPlugin.DLSSMode.Off;
+            _currentMode = DLSSMode.Off;
             
             if (_debugLogging)
             {

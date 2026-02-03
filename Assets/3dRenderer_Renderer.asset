@@ -15,7 +15,7 @@ MonoBehaviour:
   m_Active: 1
   settings:
     dlssMode: 5
-    enableFrameGen: 1
+    enableFrameGen: 0
     framesToGenerate: 2
     colorBuffersHDR: 1
     debugLogging: 1

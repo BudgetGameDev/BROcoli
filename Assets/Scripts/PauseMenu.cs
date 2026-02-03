@@ -5,6 +5,8 @@ using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using System.Runtime.InteropServices;
 using TMPro;
+using StreamlineReflex;
+using StreamlineDLSS;
 
 /// <summary>
 /// Handles pause menu functionality.
@@ -662,9 +664,9 @@ public class PauseMenu : MonoBehaviour
                 var reflexMode = StreamlineReflexPlugin.GetMode();
                 
                 string reflexStatus = "<color=#FF4C4C>OFF</color>";
-                if (reflexSupported && reflexMode != StreamlineReflexPlugin.ReflexMode.Off)
+                if (reflexSupported && reflexMode != ReflexMode.Off)
                 {
-                    reflexStatus = reflexMode == StreamlineReflexPlugin.ReflexMode.LowLatencyWithBoost 
+                    reflexStatus = reflexMode == ReflexMode.LowLatencyWithBoost 
                         ? "<color=#4CFF4C>ON + BOOST</color>" 
                         : "<color=#4CFF4C>ON</color>";
                 }
@@ -680,13 +682,13 @@ public class PauseMenu : MonoBehaviour
                 
                 string dlssModeStr = dlssMode switch
                 {
-                    StreamlineDLSSPlugin.DLSSMode.Off => "<color=#FF4C4C>OFF</color>",
-                    StreamlineDLSSPlugin.DLSSMode.MaxPerformance => "<color=#4CFF4C>Performance</color>",
-                    StreamlineDLSSPlugin.DLSSMode.Balanced => "<color=#4CFF4C>Balanced</color>",
-                    StreamlineDLSSPlugin.DLSSMode.MaxQuality => "<color=#4CFF4C>Quality</color>",
-                    StreamlineDLSSPlugin.DLSSMode.UltraPerformance => "<color=#4CFF4C>Ultra Perf</color>",
-                    StreamlineDLSSPlugin.DLSSMode.UltraQuality => "<color=#4CFF4C>Ultra Quality</color>",
-                    StreamlineDLSSPlugin.DLSSMode.DLAA => "<color=#4CFF4C>DLAA</color>",
+                    DLSSMode.Off => "<color=#FF4C4C>OFF</color>",
+                    DLSSMode.MaxPerformance => "<color=#4CFF4C>Performance</color>",
+                    DLSSMode.Balanced => "<color=#4CFF4C>Balanced</color>",
+                    DLSSMode.MaxQuality => "<color=#4CFF4C>Quality</color>",
+                    DLSSMode.UltraPerformance => "<color=#4CFF4C>Ultra Perf</color>",
+                    DLSSMode.UltraQuality => "<color=#4CFF4C>Ultra Quality</color>",
+                    DLSSMode.DLAA => "<color=#4CFF4C>DLAA</color>",
                     _ => "<color=#888888>Unknown</color>"
                 };
                 
@@ -706,7 +708,7 @@ public class PauseMenu : MonoBehaviour
                 {
                     frameGenStr = "<color=#888888>Not Supported (RTX 40+)</color>";
                 }
-                else if (frameGenMode == StreamlineDLSSPlugin.DLSSGMode.Off || framesGenerated == 0)
+                else if (frameGenMode == DLSSGMode.Off || framesGenerated == 0)
                 {
                     frameGenStr = "<color=#FF4C4C>OFF</color>";
                 }

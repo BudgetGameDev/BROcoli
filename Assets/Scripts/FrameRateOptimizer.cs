@@ -1,6 +1,8 @@
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.InputSystem;
+using StreamlineReflex;
+using StreamlineDLSS;
 
 /// <summary>
 /// COMPETITIVE ESPORTS-GRADE LATENCY OPTIMIZER
@@ -293,7 +295,7 @@ public class FrameRateOptimizer : MonoBehaviour
                     // Check if Reflex is actually supported on this GPU
                     if (StreamlineReflexPlugin.IsReflexSupported())
                     {
-                        StreamlineReflexPlugin.SetMode(StreamlineReflexPlugin.ReflexMode.LowLatencyWithBoost);
+                        StreamlineReflexPlugin.SetMode(ReflexMode.LowLatencyWithBoost);
                         _reflexEnabled = true;
                         ActiveLatencyMode = "NVIDIA Streamline Reflex On+Boost";
                         Debug.Log("[FrameRateOptimizer] ✓ NVIDIA Reflex ENABLED via Streamline SDK (On+Boost)");
@@ -364,9 +366,9 @@ public class FrameRateOptimizer : MonoBehaviour
         {
             // Enable DLSS Quality mode for best visual quality with upscaling
             // Quality mode renders at ~67% resolution and upscales
-            if (StreamlineDLSSPlugin.SetDLSSMode(StreamlineDLSSPlugin.DLSSMode.MaxQuality))
+            if (StreamlineDLSSPlugin.SetDLSSMode(DLSSMode.MaxQuality))
             {
-                Debug.Log("[FrameRateOptimizer] ✓ DLSS Quality mode ENABLED");
+                Debug.Log("[FrameRateOptimizer] DLSS Quality mode ENABLED");
                 Debug.Log("[FrameRateOptimizer]   Rendering at ~67% resolution with AI upscaling");
             }
             
@@ -374,7 +376,7 @@ public class FrameRateOptimizer : MonoBehaviour
             if (frameGenSupported)
             {
                 // 2x Frame Gen = 1 generated frame per rendered frame
-                if (StreamlineDLSSPlugin.SetFrameGenMode(StreamlineDLSSPlugin.DLSSGMode.On, 1))
+                if (StreamlineDLSSPlugin.SetFrameGenMode(DLSSGMode.On, 1))
                 {
                     Debug.Log("[FrameRateOptimizer] ✓ DLSS Frame Generation 2x ENABLED");
                     Debug.Log("[FrameRateOptimizer]   Generating 1 frame per rendered frame");
@@ -583,7 +585,7 @@ public class FrameRateOptimizer : MonoBehaviour
     /// Get latency statistics from Reflex (Windows only)
     /// </summary>
 #if UNITY_STANDALONE_WIN && !UNITY_EDITOR
-    public static bool GetLatencyStats(out StreamlineReflexPlugin.LatencyStats stats)
+    public static bool GetLatencyStats(out LatencyStats stats)
     {
         stats = default;
         if (!_reflexEnabled) return false;

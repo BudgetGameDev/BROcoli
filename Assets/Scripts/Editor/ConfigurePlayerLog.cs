@@ -38,12 +38,23 @@ public class ConfigurePlayerLog : IPostprocessBuildWithReport
         string content = File.ReadAllText(bootConfigPath);
 
         // Add player-log-file setting if not already present
-        // Using ".." to go up from Data folder to exe folder, then Player.log
+        // Using "..\\" to go up from Data folder to exe folder, then Player.log
+        // This ensures the log file is written next to the .exe
         if (!content.Contains("player-log-file="))
         {
-            content += "\nplayer-log-file=Player.log";
+            content += "\nplayer-log-file=..\\Player.log";
             File.WriteAllText(bootConfigPath, content);
-            Debug.Log($"[ConfigurePlayerLog] Added player-log-file setting to boot.config");
+            Debug.Log($"[ConfigurePlayerLog] Added player-log-file setting to boot.config: ..\\Player.log");
+        }
+        else if (!content.Contains("..\\Player.log") && !content.Contains("../Player.log"))
+        {
+            // Update existing setting if it's not using the correct relative path
+            content = System.Text.RegularExpressions.Regex.Replace(
+                content, 
+                @"player-log-file=.*", 
+                "player-log-file=..\\Player.log");
+            File.WriteAllText(bootConfigPath, content);
+            Debug.Log($"[ConfigurePlayerLog] Updated player-log-file setting to: ..\\Player.log");
         }
     }
 }
