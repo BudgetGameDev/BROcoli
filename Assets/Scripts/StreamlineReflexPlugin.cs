@@ -248,7 +248,8 @@ public static class StreamlineReflexPlugin
     public static void Shutdown()
     {
 #if UNITY_STANDALONE_WIN && !UNITY_EDITOR
-        if (!_initialized) return;
+        // Check native initialization state (native auto-initializes)
+        if (!IsStreamlineInitialized() && !_initialized) return;
         try
         {
             SLReflex_Shutdown();
@@ -271,7 +272,8 @@ public static class StreamlineReflexPlugin
     public static bool IsReflexSupported()
     {
 #if UNITY_STANDALONE_WIN && !UNITY_EDITOR
-        if (!_initialized) return false;
+        // Check native initialization state, not C# flag (native auto-initializes)
+        if (!IsStreamlineInitialized()) return false;
         try { return SLReflex_IsSupported(); }
         catch { return false; }
 #else
@@ -285,7 +287,8 @@ public static class StreamlineReflexPlugin
     public static bool IsPCLSupported()
     {
 #if UNITY_STANDALONE_WIN && !UNITY_EDITOR
-        if (!_initialized) return false;
+        // Check native initialization state, not C# flag (native auto-initializes)
+        if (!IsStreamlineInitialized()) return false;
         try { return SLReflex_IsPCLSupported(); }
         catch { return false; }
 #else
@@ -407,12 +410,14 @@ public static class StreamlineReflexPlugin
     public static bool SetMode(ReflexMode mode)
     {
 #if UNITY_STANDALONE_WIN && !UNITY_EDITOR
-        if (!_initialized) return false;
+        // Check native initialization state, not C# flag (native auto-initializes)
+        if (!IsStreamlineInitialized()) return false;
         try
         {
             bool result = SLReflex_SetMode((int)mode);
             if (result)
             {
+                _initialized = true; // Sync C# flag for compatibility
                 Debug.Log($"[StreamlineReflex] Mode set to: {mode}");
             }
             return result;
@@ -433,7 +438,8 @@ public static class StreamlineReflexPlugin
     public static ReflexMode GetMode()
     {
 #if UNITY_STANDALONE_WIN && !UNITY_EDITOR
-        if (!_initialized) return ReflexMode.Off;
+        // Check native initialization state, not C# flag (native auto-initializes)
+        if (!IsStreamlineInitialized()) return ReflexMode.Off;
         try { return (ReflexMode)SLReflex_GetMode(); }
         catch { return ReflexMode.Off; }
 #else
@@ -449,7 +455,8 @@ public static class StreamlineReflexPlugin
         lowLatencyAvailable = false;
         flashIndicatorDriverControlled = false;
 #if UNITY_STANDALONE_WIN && !UNITY_EDITOR
-        if (!_initialized) return false;
+        // Check native initialization state, not C# flag (native auto-initializes)
+        if (!IsStreamlineInitialized()) return false;
         try { return SLReflex_GetState(out lowLatencyAvailable, out flashIndicatorDriverControlled); }
         catch { return false; }
 #else
@@ -463,7 +470,8 @@ public static class StreamlineReflexPlugin
     public static void BeginFrame()
     {
 #if UNITY_STANDALONE_WIN && !UNITY_EDITOR
-        if (!_initialized) return;
+        // Check native initialization state, not C# flag (native auto-initializes)
+        if (!IsStreamlineInitialized()) return;
         try { SLReflex_BeginFrame(); } catch { }
 #endif
     }
@@ -475,7 +483,7 @@ public static class StreamlineReflexPlugin
     public static void Sleep()
     {
 #if UNITY_STANDALONE_WIN && !UNITY_EDITOR
-        if (!_initialized) return;
+        if (!IsStreamlineInitialized()) return;
         try { SLReflex_Sleep(); } catch { }
 #endif
     }
@@ -486,7 +494,7 @@ public static class StreamlineReflexPlugin
     public static void SetMarker(PCLMarker marker)
     {
 #if UNITY_STANDALONE_WIN && !UNITY_EDITOR
-        if (!_initialized) return;
+        if (!IsStreamlineInitialized()) return;
         try { SLReflex_SetMarker((int)marker); } catch { }
 #endif
     }
@@ -497,7 +505,7 @@ public static class StreamlineReflexPlugin
     public static void MarkSimulationStart()
     {
 #if UNITY_STANDALONE_WIN && !UNITY_EDITOR
-        if (!_initialized) return;
+        if (!IsStreamlineInitialized()) return;
         try { SLReflex_MarkSimulationStart(); } catch { }
 #endif
     }
@@ -508,7 +516,7 @@ public static class StreamlineReflexPlugin
     public static void MarkSimulationEnd()
     {
 #if UNITY_STANDALONE_WIN && !UNITY_EDITOR
-        if (!_initialized) return;
+        if (!IsStreamlineInitialized()) return;
         try { SLReflex_MarkSimulationEnd(); } catch { }
 #endif
     }
@@ -519,7 +527,7 @@ public static class StreamlineReflexPlugin
     public static void MarkRenderSubmitStart()
     {
 #if UNITY_STANDALONE_WIN && !UNITY_EDITOR
-        if (!_initialized) return;
+        if (!IsStreamlineInitialized()) return;
         try { SLReflex_MarkRenderSubmitStart(); } catch { }
 #endif
     }
@@ -530,7 +538,7 @@ public static class StreamlineReflexPlugin
     public static void MarkRenderSubmitEnd()
     {
 #if UNITY_STANDALONE_WIN && !UNITY_EDITOR
-        if (!_initialized) return;
+        if (!IsStreamlineInitialized()) return;
         try { SLReflex_MarkRenderSubmitEnd(); } catch { }
 #endif
     }
@@ -541,7 +549,7 @@ public static class StreamlineReflexPlugin
     public static void TriggerFlash()
     {
 #if UNITY_STANDALONE_WIN && !UNITY_EDITOR
-        if (!_initialized) return;
+        if (!IsStreamlineInitialized()) return;
         try { SLReflex_TriggerFlash(); } catch { }
 #endif
     }
@@ -553,7 +561,7 @@ public static class StreamlineReflexPlugin
     {
         stats = default;
 #if UNITY_STANDALONE_WIN && !UNITY_EDITOR
-        if (!_initialized) return false;
+        if (!IsStreamlineInitialized()) return false;
         try { return SLReflex_GetLatencyStats(out stats); }
         catch { return false; }
 #else
@@ -567,7 +575,7 @@ public static class StreamlineReflexPlugin
     public static IntPtr GetRenderEventFunc()
     {
 #if UNITY_STANDALONE_WIN && !UNITY_EDITOR
-        if (!_initialized) return IntPtr.Zero;
+        if (!IsStreamlineInitialized()) return IntPtr.Zero;
         try { return SLReflex_GetRenderEventFunc(); }
         catch { return IntPtr.Zero; }
 #else

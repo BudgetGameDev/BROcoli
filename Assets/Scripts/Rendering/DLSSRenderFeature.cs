@@ -82,6 +82,20 @@ public class DLSSRenderFeature : ScriptableRendererFeature
     private void InitializeDLSS()
     {
 #if UNITY_STANDALONE_WIN && !UNITY_EDITOR
+        // Enable Reflex Low Latency Mode (works with any RTX GPU)
+        if (StreamlineReflexPlugin.IsReflexSupported())
+        {
+            bool reflexSuccess = StreamlineReflexPlugin.SetMode(StreamlineReflexPlugin.ReflexMode.LowLatencyWithBoost);
+            if (settings.debugLogging)
+            {
+                Debug.Log($"[DLSSRenderFeature] SetReflexMode(LowLatencyWithBoost): {(reflexSuccess ? "OK" : "FAILED")}");
+            }
+        }
+        else if (settings.debugLogging)
+        {
+            Debug.Log("[DLSSRenderFeature] Reflex not supported on this GPU");
+        }
+        
         // Set DLSS mode
         if (StreamlineDLSSPlugin.IsDLSSSupported())
         {
