@@ -1,7 +1,7 @@
 {
-  "buildId": "build-1770060180-254c2bc",
-  "buildTimestamp": "2026-02-02T19:23:00Z",
-  "buildNumber": 129,
-  "commitSha": "254c2bc5f07f9ae7743b6d8fc85d0cc9ceeb0089",
-  "description": "fix: missing guids and missing components etc"
+  "buildId": "build-1770244479-47e967b",
+  "buildTimestamp": "2026-02-04T22:34:39Z",
+  "buildNumber": 132,
+  "commitSha": "47e967b9f7d845649138f168b9332047041f0fc9",
+  "description": "fix: ios safari webgl lighting and hide quit button on web builds and optimize input latency"
 }
