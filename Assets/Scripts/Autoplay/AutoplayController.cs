@@ -9,9 +9,11 @@ using UnityEngine.SceneManagement;
 /// build/editor is launched with <c>--autoplay</c> (or env <c>BROCOLI_AUTOPLAY=1</c>).
 /// When not requested this class does nothing, so normal play is unaffected.
 ///
-/// On activation it seeds RNG, optionally enables a deterministic fixed timestep,
-/// forces a landscape window, jumps straight to the <c>Game</c> scene, and wires up
-/// the bot driver, frame capture, telemetry, and the level-up auto-resolver.
+/// Deterministic mode advances a fixed amount of GAME time per rendered frame
+/// (<see cref="Time.captureDeltaTime"/>) with rendering uncapped — i.e. "fake time"
+/// fast-forward. Physics still runs at the fixed <c>Time.fixedDeltaTime</c> step
+/// (sub-stepped per frame), so simulation stays accurate while wall-clock time is
+/// compressed. A bigger <c>--timestep</c> compresses harder (coarser Update step).
 /// See plans/2026-06-13-autoplay-e2e-harness.md.
 /// </summary>
 public class AutoplayController : MonoBehaviour
@@ -44,17 +46,24 @@ public class AutoplayController : MonoBehaviour
         Application.runInBackground = true;
         UnityEngine.Random.InitState(_config.Seed);
 
-        // Force a landscape window so ForceLandscapeAspect does not pause the run.
-        Screen.SetResolution(1280, 720, false);
+        // Make each frame cheap so the fake-time fast-forward actually accelerates even
+        // in heavy combat. Capturing stack traces for log/warning spam (thousands of
+        // pool-capacity warnings) and high-res/quality rendering otherwise pin us near
+        // real-time. Exceptions/errors keep their traces for debugging.
+        Application.SetStackTraceLogType(LogType.Log, StackTraceLogType.None);
+        Application.SetStackTraceLogType(LogType.Warning, StackTraceLogType.None);
+        QualitySettings.SetQualityLevel(0, true);
 
-        // Deterministic mode: fixed simulation step decoupled from real frame rate,
-        // so two runs with the same seed produce the same gameplay. The run then
-        // executes as fast as it can render.
+        // Small landscape window (keeps ForceLandscapeAspect happy; fewer pixels = faster).
+        Screen.SetResolution(640, 360, false);
+
         if (_config.Deterministic)
         {
             QualitySettings.vSyncCount = 0;
             Application.targetFrameRate = -1;
-            Time.captureDeltaTime = 1f / 60f;
+            // Game-seconds advanced per rendered frame. Physics keeps its own fixed
+            // step, so larger values compress wall-clock time without breaking the sim.
+            Time.captureDeltaTime = Mathf.Clamp(_config.Timestep, 1f / 240f, 0.1f);
         }
 
         SceneManager.sceneLoaded += OnSceneLoaded;
@@ -93,10 +102,11 @@ public sealed class AutoplayConfig
 {
     public bool Enabled;
     public int Seed = 12345;
-    public float Duration = 60f;        // game-seconds
+    public float Duration = 60f;        // game-seconds to simulate
     public float Interval = 0.5f;       // game-seconds between samples/captures
     public string OutDir;
     public bool Deterministic = true;
+    public float Timestep = 1f / 60f;   // captureDeltaTime: game-seconds advanced per rendered frame
     public string Scenario = "survive"; // smoke | survive | progress
     public int MinLevel = 2;            // pass threshold for the "progress" scenario
     public string Sha = "";             // git SHA, for the run manifest
@@ -114,6 +124,7 @@ public sealed class AutoplayConfig
             else if (arg.StartsWith("--seed=")) TryInt(arg.Substring(7), ref cfg.Seed);
             else if (arg.StartsWith("--duration=")) TryFloat(arg.Substring(11), ref cfg.Duration);
             else if (arg.StartsWith("--interval=")) TryFloat(arg.Substring(11), ref cfg.Interval);
+            else if (arg.StartsWith("--timestep=")) TryFloat(arg.Substring(11), ref cfg.Timestep);
             else if (arg.StartsWith("--minlevel=")) TryInt(arg.Substring(11), ref cfg.MinLevel);
             else if (arg.StartsWith("--out=")) cfg.OutDir = arg.Substring(6);
             else if (arg.StartsWith("--scenario=")) cfg.Scenario = arg.Substring(11);
@@ -125,6 +136,7 @@ public sealed class AutoplayConfig
         var s = Environment.GetEnvironmentVariable("BROCOLI_SEED"); if (!string.IsNullOrEmpty(s)) TryInt(s, ref cfg.Seed);
         var d = Environment.GetEnvironmentVariable("BROCOLI_DURATION"); if (!string.IsNullOrEmpty(d)) TryFloat(d, ref cfg.Duration);
         var i = Environment.GetEnvironmentVariable("BROCOLI_INTERVAL"); if (!string.IsNullOrEmpty(i)) TryFloat(i, ref cfg.Interval);
+        var ts = Environment.GetEnvironmentVariable("BROCOLI_TIMESTEP"); if (!string.IsNullOrEmpty(ts)) TryFloat(ts, ref cfg.Timestep);
         var o = Environment.GetEnvironmentVariable("BROCOLI_OUT"); if (!string.IsNullOrEmpty(o)) cfg.OutDir = o;
         var sc = Environment.GetEnvironmentVariable("BROCOLI_SCENARIO"); if (!string.IsNullOrEmpty(sc)) cfg.Scenario = sc;
 
@@ -138,8 +150,8 @@ public sealed class AutoplayConfig
     }
 
     public override string ToString() =>
-        $"seed={Seed} duration={Duration}s interval={Interval}s deterministic={Deterministic} " +
-        $"scenario={Scenario} sha={Sha} out={OutDir}";
+        $"seed={Seed} duration={Duration}s interval={Interval}s timestep={Timestep:0.####} " +
+        $"deterministic={Deterministic} scenario={Scenario} sha={Sha} out={OutDir}";
 
     private static bool EnvFlag(string name)
     {

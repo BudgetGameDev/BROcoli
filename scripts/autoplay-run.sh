@@ -65,18 +65,21 @@ fi
 BIN="$(ls "$APP/Contents/MacOS/"* 2>/dev/null | head -1 || true)"
 [ -n "$BIN" ] && [ -x "$BIN" ] || { echo "No executable found in $APP/Contents/MacOS"; exit 1; }
 
-echo "Running [$SCENARIO] ${DURATION}s seed=$SEED sha=$SHA -> $OUT"
+echo "Running [$SCENARIO] ${DURATION}s game-time seed=$SEED sha=$SHA -> $OUT"
+START=$(date +%s)
 set +e
 "$BIN" --autoplay --seed="$SEED" --duration="$DURATION" --interval="$INTERVAL" \
   --scenario="$SCENARIO" --sha="$SHA" "${EXTRA[@]+"${EXTRA[@]}"}" --out="$OUT" \
   -logFile "$OUT/player.log"
 RC=$?
 set -e
+REAL=$(( $(date +%s) - START ))
 
 echo ""
 echo "=== summary.json ==="; cat "$OUT/summary.json" 2>/dev/null; echo
 echo "frames:    $OUT/frames ($(ls "$OUT/frames" 2>/dev/null | wc -l | tr -d ' ') png)"
 echo "telemetry: $OUT/telemetry.jsonl"
+echo "real time: ${REAL}s for ${DURATION}s game-time (~$([ "$REAL" -gt 0 ] && echo $((DURATION/REAL)) || echo 'inf')x speedup)"
 if [ "$RC" -eq 0 ]; then echo "RESULT: PASS (exit 0)"; else echo "RESULT: FAIL (exit $RC)"; fi
 
 if command -v python3 >/dev/null 2>&1; then

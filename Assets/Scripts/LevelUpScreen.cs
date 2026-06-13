@@ -231,6 +231,13 @@ public class LevelUpScreen : MonoBehaviour
     /// </summary>
     public void AutoSelectUpgrade(int index) => SelectUpgrade(index);
 
+    /// <summary>Autoplay/E2E hook: number of upgrade options currently offered.</summary>
+    public int OptionCount => currentOptions?.Length ?? 0;
+
+    /// <summary>Autoplay/E2E hook: read an offered option so a bot can score/choose it.</summary>
+    public UpgradeOption GetOption(int index) =>
+        (currentOptions != null && index >= 0 && index < currentOptions.Length) ? currentOptions[index] : null;
+
     private void SelectUpgrade(int index)
     {
         if (index < 0 || index >= currentOptions.Length) return;
