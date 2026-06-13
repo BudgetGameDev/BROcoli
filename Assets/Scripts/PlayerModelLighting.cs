@@ -17,8 +17,14 @@ public class PlayerModelLighting : MonoBehaviour
 {
     private const string LayerName = "PlayerModel";
 
-    /// <summary>Player fill brightness as a fraction of the world light's intensity.</summary>
-    private const float FillFactor = 0.6f;
+    /// <summary>Default player fill brightness as a fraction of the world light's intensity.</summary>
+    public const float DefaultFillFactor = 0.6f;
+
+    /// <summary>The bright light that lights the world (player excluded). Null until applied.</summary>
+    public static Light WorldLight { get; private set; }
+
+    /// <summary>The dim, player-only fill light. Null until applied.</summary>
+    public static Light FillLight { get; private set; }
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void Bootstrap()
@@ -73,13 +79,15 @@ public class PlayerModelLighting : MonoBehaviour
         if (main != null)
         {
             main.cullingMask &= ~(1 << _layer);
+            WorldLight = main;
 
             // 3) Clone it as a dimmer, player-only fill (keeps same type/unit/range).
             var fill = Instantiate(main, main.transform.parent);
             fill.name = "PlayerFillLight";
             fill.cullingMask = 1 << _layer;
-            fill.intensity = main.intensity * FillFactor;
+            fill.intensity = main.intensity * DefaultFillFactor;
             fill.shadows = LightShadows.None;
+            FillLight = fill;
         }
 
         _applied = true;

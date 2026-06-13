@@ -202,6 +202,7 @@
     <Compile Include="Assets/Scripts/player_enemy_collition_event.cs" />
     <Compile Include="Assets/Scripts/Bar.cs" />
     <Compile Include="Assets/Scripts/Spray/SprayParticleLayers.cs" />
+    <Compile Include="Assets/Scripts/Autoplay/RuntimeTuning.cs" />
     <Compile Include="Assets/Scripts/Autoplay/AutoplayController.cs" />
     <Compile Include="Assets/Scripts/Spray/SprayParticleController.cs" />
   </ItemGroup>

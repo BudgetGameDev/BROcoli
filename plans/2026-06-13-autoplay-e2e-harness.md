@@ -145,9 +145,17 @@ Turns "watch it play" into "test it."
 - **Run manifest:** `summary.json` gains pass/fail, seed, git SHA, scenario,
   timings, error list — a self-describing artifact.
 
-## Phase 3 — Smart bot, video, one-command pipeline (NOT THIS PASS)
+## Phase 3 — Smart bot, video, one-command pipeline (IN PROGRESS)
 
 Quality-of-life + fidelity.
+
+**Done (2026-06-13):** smarter bot (engage/kite/edge-avoid so combat + leveling
+actually happen); hot-reload lighting tuning — `RuntimeTuning` watches a JSON
+(`--tuning=PATH`) and live-applies world-light intensity, player fill factor,
+light height, and ambient, via `scripts/autoplay-tune.sh` (tune lighting with no
+rebuild).
+**Remaining:** video/montage capture (needs ffmpeg or Unity Recorder — not
+installed); one-command build→run→montage→summarize pipeline + optional CI job.
 
 - **Smarter bot:** threat prioritization, XP/pickup seeking, kiting, edge
   avoidance — playthroughs that resemble real play, parameterized by a "skill"
