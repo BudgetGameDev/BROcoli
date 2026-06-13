@@ -1,0 +1,89 @@
+using UnityEngine;
+using UnityEngine.SceneManagement;
+
+/// <summary>
+/// Lights the environment around the player without overexposing the player model.
+///
+/// On each gameplay scene it:
+///   1. Moves the player's renderers onto the "PlayerModel" layer.
+///   2. Removes that layer from the brightest scene light's culling mask, so the
+///      bright world light lights the ground/enemies but no longer hits the player.
+///   3. Clones that light as a dimmer, player-only "fill" (same type/unit/range),
+///      so the player stays readable instead of going flat/dark.
+///
+/// Self-bootstrapping (no scene wiring). No-op if the "PlayerModel" layer is absent.
+/// </summary>
+public class PlayerModelLighting : MonoBehaviour
+{
+    private const string LayerName = "PlayerModel";
+
+    /// <summary>Player fill brightness as a fraction of the world light's intensity.</summary>
+    private const float FillFactor = 0.6f;
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+    private static void Bootstrap()
+    {
+        var go = new GameObject("[PlayerModelLighting]");
+        DontDestroyOnLoad(go);
+        go.AddComponent<PlayerModelLighting>();
+    }
+
+    private int _layer;
+    private bool _applied;
+
+    private void Awake()
+    {
+        _layer = LayerMask.NameToLayer(LayerName);
+        SceneManager.sceneLoaded += OnSceneLoaded;
+    }
+
+    private void OnDestroy()
+    {
+        SceneManager.sceneLoaded -= OnSceneLoaded;
+    }
+
+    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        // Re-apply for the freshly loaded scene's player.
+        _applied = false;
+    }
+
+    private void Update()
+    {
+        if (_applied || _layer < 0) return;
+
+        var player = GameObject.FindGameObjectWithTag("Player");
+        if (player == null) return;
+
+        var renderers = player.GetComponentsInChildren<Renderer>(true);
+        if (renderers.Length == 0) return; // visual not spawned yet; try again next frame
+
+        // 1) Player renderers -> PlayerModel layer.
+        foreach (var r in renderers)
+            r.gameObject.layer = _layer;
+
+        // 2) Brightest light = the world light. Exclude the player from it.
+        Light main = null;
+        foreach (var l in FindObjectsByType<Light>(FindObjectsSortMode.None))
+        {
+            if (l.gameObject.name == "PlayerFillLight") continue;
+            if (main == null || l.intensity > main.intensity) main = l;
+        }
+
+        if (main != null)
+        {
+            main.cullingMask &= ~(1 << _layer);
+
+            // 3) Clone it as a dimmer, player-only fill (keeps same type/unit/range).
+            var fill = Instantiate(main, main.transform.parent);
+            fill.name = "PlayerFillLight";
+            fill.cullingMask = 1 << _layer;
+            fill.intensity = main.intensity * FillFactor;
+            fill.shadows = LightShadows.None;
+        }
+
+        _applied = true;
+        Debug.Log($"[PlayerModelLighting] Applied: {renderers.Length} renderer(s) -> layer {_layer}, " +
+                  $"world light excludes player, fill light added.");
+    }
+}

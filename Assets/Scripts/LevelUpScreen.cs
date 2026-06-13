@@ -225,6 +225,12 @@ public class LevelUpScreen : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Autoplay/E2E hook: programmatically pick an upgrade (mirrors a button click)
+    /// so an unattended run never stalls on the paused level-up menu.
+    /// </summary>
+    public void AutoSelectUpgrade(int index) => SelectUpgrade(index);
+
     private void SelectUpgrade(int index)
     {
         if (index < 0 || index >= currentOptions.Length) return;

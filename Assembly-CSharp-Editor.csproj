@@ -49,6 +49,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Assets/Scripts/Editor/SanitizerSpraySetup.cs" />
+    <Compile Include="Assets/Scripts/Editor/AutoplayBuildScript.cs" />
     <Compile Include="Assets/Scripts/Editor/VirtualControllerSetup.cs" />
   </ItemGroup>
   <ItemGroup>

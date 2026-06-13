@@ -51,6 +51,7 @@
     <Compile Include="Assets/Scripts/Boost/SprayRangeBoost.cs" />
     <Compile Include="Assets/Scripts/GameStates.cs" />
     <Compile Include="Assets/Scripts/GamePreloader.cs" />
+    <Compile Include="Assets/Scripts/Autoplay/FrameCapture.cs" />
     <Compile Include="Assets/TextMesh Pro/Examples &amp; Extras/Scripts/TMP_TextEventHandler.cs" />
     <Compile Include="Assets/Scripts/gamejam-2022/ClueData.cs" />
     <Compile Include="Assets/Scripts/UI/ControllerUINavigator.cs" />
@@ -60,6 +61,7 @@
     <Compile Include="Assets/Scripts/ProceduralGunAudio.cs" />
     <Compile Include="Assets/Scripts/LevelUpScreen.cs" />
     <Compile Include="Assets/Scripts/Core/EnemySpatialHash.cs" />
+    <Compile Include="Assets/Scripts/PlayerModelLighting.cs" />
     <Compile Include="Assets/Scripts/Singleton.cs" />
     <Compile Include="Assets/Scripts/Spray/ProceduralSprayAudio.cs" />
     <Compile Include="Assets/Scripts/ProceduralEnemyWalkAudio.cs" />
@@ -86,6 +88,7 @@
     <Compile Include="Assets/Scripts/gamejam-2022/Dialog/Dialogue.cs" />
     <Compile Include="Assets/Scripts/gamejam-2022/Projectile.cs" />
     <Compile Include="Assets/Scripts/Boost/ProceduralBoostAudio.cs" />
+    <Compile Include="Assets/Scripts/Autoplay/LevelUpAutoResolver.cs" />
     <Compile Include="Assets/Scripts/FrameRateOptimizer.cs" />
     <Compile Include="Assets/TextMesh Pro/Examples &amp; Extras/Scripts/VertexJitter.cs" />
     <Compile Include="Assets/Scripts/Boost/AttackSpeedBoost.cs" />
@@ -106,6 +109,7 @@
     <Compile Include="Assets/Scripts/Enemy Spawner/Enemies/EnemyBase.cs" />
     <Compile Include="Assets/Scripts/gamejam-2022/CloseObject.cs" />
     <Compile Include="Assets/Scripts/InfiniteBackground.cs" />
+    <Compile Include="Assets/Scripts/Autoplay/BotDriver.cs" />
     <Compile Include="Assets/Scripts/IPrewarmable.cs" />
     <Compile Include="Assets/Scripts/Face2DMovementDirection.cs" />
     <Compile Include="Assets/Scripts/Boost/HealthBoost.cs" />
@@ -168,6 +172,7 @@
     <Compile Include="Assets/Scripts/GraphicRegistryCleaner.cs" />
     <Compile Include="Assets/Scripts/ProceduralEnemyMeleeAudio.cs" />
     <Compile Include="Assets/Scripts/Enemy Spawner/Waves/WaveConfig.cs" />
+    <Compile Include="Assets/Scripts/Autoplay/RunTelemetry.cs" />
     <Compile Include="Assets/Scripts/gamejam-2022/Clue.cs" />
     <Compile Include="Assets/Scripts/gamejam-2022/PlayerMovement.cs" />
     <Compile Include="Assets/Scripts/ShuffleWalkVisual.cs" />
@@ -197,6 +202,7 @@
     <Compile Include="Assets/Scripts/player_enemy_collition_event.cs" />
     <Compile Include="Assets/Scripts/Bar.cs" />
     <Compile Include="Assets/Scripts/Spray/SprayParticleLayers.cs" />
+    <Compile Include="Assets/Scripts/Autoplay/AutoplayController.cs" />
     <Compile Include="Assets/Scripts/Spray/SprayParticleController.cs" />
   </ItemGroup>
   <ItemGroup>

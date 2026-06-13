@@ -48,6 +48,19 @@ public class PlayerInputHandler : MonoBehaviour
     /// </summary>
     public void UpdateInput()
     {
+        // Autoplay/E2E: a bot may drive the player. Inert during normal play
+        // (BotDriver.Active is false). See plans/2026-06-13-autoplay-e2e-harness.md.
+        if (BotDriver.Active)
+        {
+            _rawInput = BotDriver.Move;
+            _smoothedInput = Vector2.Lerp(_smoothedInput, _rawInput, InputSmoothSpeed * Time.deltaTime);
+            if (_rawInput.sqrMagnitude > 0.01f)
+            {
+                _lastNonZeroInput = _rawInput.normalized;
+            }
+            return;
+        }
+
         // Get keyboard input
         Vector2 keyboardInput = new Vector2(
             Input.GetAxisRaw("Horizontal"),
