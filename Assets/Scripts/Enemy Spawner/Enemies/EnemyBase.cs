@@ -56,10 +56,20 @@ public abstract class EnemyBase : MonoBehaviour
     protected MeshRenderer cachedMeshRenderer;
     protected Color originalMeshColor;
     private bool _isPooled = false;
+    private Vector3 baseLocalScale;
+    private float baseHealth;
+    private float baseMaxHealth;
+    private float baseSpeed;
+    private int baseScoreValue;
 
     protected virtual void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
+        baseLocalScale = transform.localScale;
+        baseHealth = Health;
+        baseMaxHealth = MaxHealth;
+        baseSpeed = Speed;
+        baseScoreValue = ScoreValue;
         
         // Cache renderer for hit flash - enemies may use SpriteRenderer or MeshRenderer (FBX models)
         // First check for enabled SpriteRenderer
@@ -102,6 +112,8 @@ public abstract class EnemyBase : MonoBehaviour
     /// </summary>
     public void MakeElite()
     {
+        if (isElite) return;
+
         isElite = true;
         Health *= eliteHealthMultiplier;
         MaxHealth *= eliteHealthMultiplier;
@@ -109,7 +121,9 @@ public abstract class EnemyBase : MonoBehaviour
         transform.localScale *= eliteScaleMultiplier;
         
         // Add and apply elite visual effects
-        var effects = gameObject.AddComponent<EliteEnemyEffects>();
+        var effects = GetComponent<EliteEnemyEffects>();
+        if (effects == null)
+            effects = gameObject.AddComponent<EliteEnemyEffects>();
         effects.ApplyEliteVisuals();
         
         alwaysShowHealthBar = true;
@@ -345,7 +359,19 @@ public abstract class EnemyBase : MonoBehaviour
     /// </summary>
     public virtual void ResetForPool()
     {
-        Health = MaxHealth;
+        // Elite instances are pooled. Restore the prefab's baseline before the
+        // spawner applies wave scaling or rolls elite status for this spawn.
+        var eliteEffects = GetComponent<EliteEnemyEffects>();
+        if (eliteEffects != null)
+            eliteEffects.RemoveEliteVisuals();
+
+        isElite = false;
+        alwaysShowHealthBar = false;
+        transform.localScale = baseLocalScale;
+        Health = baseHealth;
+        MaxHealth = baseMaxHealth;
+        Speed = baseSpeed;
+        ScoreValue = baseScoreValue;
         healthBarVisable = false;
         isKnockedBack = false;
         knockbackTimer = 0f;
