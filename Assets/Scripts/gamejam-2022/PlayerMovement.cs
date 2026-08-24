@@ -8,8 +8,11 @@ using UnityEngine;
 [RequireComponent(typeof(Collider2D))]
 public class PlayerMovement : MonoBehaviour
 {
-    private const float DefaultKnockbackForce = 12f;
-    private const float KnockbackDecay = 8f; // How fast knockback velocity decays per second
+    private const float DefaultKnockbackForce = 3f;
+    private const float KnockbackDecay = 12f; // Short recoil that returns control quickly
+    private const float CollisionSkin = 0.02f;
+    private const float EnemyStandOffGap = 0.4f;
+    private const int MaxCollisionSlides = 2;
 
     private Rigidbody2D _body;
     private Animator _animator;
@@ -17,6 +20,9 @@ public class PlayerMovement : MonoBehaviour
     private ShuffleWalkVisual _hopVisual;
     private PlayerStats _playerStats;
     private PlayerInputHandler _inputHandler;
+    private int _enemyLayerMask;
+    private ContactFilter2D _enemyContactFilter;
+    private readonly RaycastHit2D[] _collisionHits = new RaycastHit2D[16];
 
     // Impulse-based knockback - additive velocity that decays naturally
     private Vector2 _knockbackVelocity;
@@ -49,6 +55,18 @@ public class PlayerMovement : MonoBehaviour
         _hopVisual = GetComponentInChildren<ShuffleWalkVisual>();
         _playerStats = GetComponentInChildren<PlayerStats>();  // May be on child prefab
         _inputHandler = GetComponent<PlayerInputHandler>();
+        _enemyLayerMask = LayerMask.GetMask("Enemy");
+        _enemyContactFilter = new ContactFilter2D
+        {
+            useLayerMask = true,
+            layerMask = _enemyLayerMask,
+            useTriggers = false
+        };
+
+        // This collider is the player's solid navigation body. Trigger-based
+        // pickups and projectiles still work because their own colliders are triggers.
+        if (_collider != null)
+            _collider.isTrigger = false;
 
         if (_body == null)
         {
@@ -97,10 +115,107 @@ public class PlayerMovement : MonoBehaviour
         Vector2 knockbackDelta = _knockbackVelocity * Time.fixedDeltaTime;
         Vector2 totalDelta = playerDelta + knockbackDelta;
         
-        _body.MovePosition(_body.position + totalDelta);
+        _body.MovePosition(_body.position + ResolveEnemyCollisions(totalDelta));
 
         // Update animator
         UpdateAnimator(moveDir);
+    }
+
+    /// <summary>
+    /// Cast the player's body before moving and slide along enemies on contact.
+    /// This prevents the kinematic player from transferring solver velocity to
+    /// dynamic enemies while still allowing smooth movement around them.
+    /// </summary>
+    private Vector2 ResolveEnemyCollisions(Vector2 desiredDelta)
+    {
+        if (_collider == null || _enemyLayerMask == 0 || desiredDelta.sqrMagnitude < 0.000001f)
+            return desiredDelta;
+
+        Bounds bounds = _collider.bounds;
+        Vector2 castCenter = bounds.center;
+        Vector2 castSize = bounds.size;
+        Vector2 resolvedDelta = Vector2.zero;
+        Vector2 remainingDelta = desiredDelta;
+
+        for (int i = 0; i < MaxCollisionSlides; i++)
+        {
+            float distance = remainingDelta.magnitude;
+            if (distance < 0.0001f) break;
+
+            Vector2 direction = remainingDelta / distance;
+            if (!TryGetBlockingHit(
+                    castCenter,
+                    castSize,
+                    direction,
+                    distance + CollisionSkin + EnemyStandOffGap,
+                    out RaycastHit2D hit))
+            {
+                resolvedDelta += remainingDelta;
+                break;
+            }
+
+            float travelDistance = Mathf.Clamp(
+                hit.distance - CollisionSkin - EnemyStandOffGap,
+                0f,
+                distance);
+            Vector2 travel = direction * travelDistance;
+            resolvedDelta += travel;
+            castCenter += travel;
+
+            Vector2 untraveled = direction * (distance - travelDistance);
+            float intoSurface = Vector2.Dot(untraveled, hit.normal);
+            if (intoSurface < 0f)
+                untraveled -= hit.normal * intoSurface;
+
+            remainingDelta = untraveled;
+        }
+
+        return resolvedDelta;
+    }
+
+    private bool TryGetBlockingHit(
+        Vector2 castCenter,
+        Vector2 castSize,
+        Vector2 direction,
+        float distance,
+        out RaycastHit2D closestHit)
+    {
+        int hitCount = Physics2D.BoxCast(
+            castCenter,
+            castSize,
+            _body.rotation,
+            direction,
+            _enemyContactFilter,
+            _collisionHits,
+            distance);
+
+        closestHit = default;
+        float closestDistance = float.MaxValue;
+
+        for (int i = 0; i < hitCount; i++)
+        {
+            RaycastHit2D candidate = _collisionHits[i];
+            if (candidate.collider == null || candidate.collider == _collider)
+                continue;
+
+            // Casts that begin in contact can report a zero-distance hit even
+            // while moving away or tangentially. Ignore that contact so the
+            // player can always disengage instead of becoming stuck.
+            if (candidate.distance <= CollisionSkin)
+            {
+                Vector2 awayFromEnemy = castCenter - (Vector2)candidate.collider.bounds.center;
+                if (Vector2.Dot(direction, awayFromEnemy) >= 0f)
+                    continue;
+            }
+
+            if (candidate.distance < closestDistance)
+            {
+                closestDistance = candidate.distance;
+                closestHit = candidate;
+            }
+        }
+
+        return closestHit.collider != null;
     }
 
     private void UpdateAnimator(Vector2 moveDir)
@@ -132,11 +247,10 @@ public class PlayerMovement : MonoBehaviour
     {
         if (_body == null || direction == Vector2.zero) return;
 
-        // Add to existing knockback - multiple hits push harder
+        // Add to existing knockback, but keep the result in the small-recoil range.
         _knockbackVelocity += direction.normalized * force;
         
-        // Cap max knockback velocity to prevent absurd speeds
-        float maxKnockback = 25f;
+        float maxKnockback = 4f;
         if (_knockbackVelocity.magnitude > maxKnockback)
         {
             _knockbackVelocity = _knockbackVelocity.normalized * maxKnockback;

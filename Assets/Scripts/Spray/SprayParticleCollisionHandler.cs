@@ -15,10 +15,15 @@ public class SprayParticleCollisionHandler : MonoBehaviour
     private float damagePerParticle = 0.5f;
     private float damageMultiplier = 1f;
     private Vector2 sprayDirection = Vector2.right;
+    private bool damageParamsExplicitlySet;
+    [SerializeField, Min(0f)] private float weaponKnockbackMultiplier = 0.45f;
     
     // Cooldown to prevent same enemy being hit too rapidly by multiple particles
     private Dictionary<EnemyBase, float> lastHitTime = new Dictionary<EnemyBase, float>();
+    private Dictionary<EnemyBase, float> coneDamageTotals = new Dictionary<EnemyBase, float>();
+    private HashSet<EnemyBase> coneKnockbackResolved = new HashSet<EnemyBase>();
     private const float HitCooldown = 0.05f; // 50ms between hits on same enemy
+    private float lastConeHitTime = -10f;
     
     // Reference to player stats for damage scaling
     private PlayerStats playerStats;
@@ -26,6 +31,9 @@ public class SprayParticleCollisionHandler : MonoBehaviour
     void Awake()
     {
         sprayParticles = GetComponent<ParticleSystem>();
+        playerStats = GetComponentInParent<PlayerStats>();
+        if (playerStats == null)
+            playerStats = FindFirstObjectByType<PlayerStats>();
         
         // Configure collision module if not already set up
         if (sprayParticles != null)
@@ -61,6 +69,7 @@ public class SprayParticleCollisionHandler : MonoBehaviour
         playerStats = stats;
         damagePerParticle = baseDamage;
         damageMultiplier = multiplier;
+        damageParamsExplicitlySet = true;
     }
     
     /// <summary>
@@ -87,6 +96,13 @@ public class SprayParticleCollisionHandler : MonoBehaviour
         
         // Check cooldown - prevent rapid multi-hit
         float currentTime = Time.time;
+        if (currentTime - lastConeHitTime > SpraySettings.BurstDuration)
+        {
+            coneDamageTotals.Clear();
+            coneKnockbackResolved.Clear();
+        }
+        lastConeHitTime = currentTime;
+
         if (lastHitTime.TryGetValue(enemy, out float lastTime))
         {
             if (currentTime - lastTime < HitCooldown)
@@ -100,11 +116,31 @@ public class SprayParticleCollisionHandler : MonoBehaviour
         // Scale damage with player stats if available
         if (playerStats != null)
         {
+            // The original 10 base damage maps to the original 0.5 damage per
+            // particle. Inspector debug tuning scales this legacy path too.
+            if (!damageParamsExplicitlySet)
+                totalDamage *= playerStats.CurrentDamage / PlayerStats.DefaultBaseDamage;
+
             totalDamage *= playerStats.CurrentSprayDamageMultiplier;
         }
         
-        // Apply damage immediately with knockback in spray direction
-        enemy.TakeDamage(totalDamage, sprayDirection);
+        // Legacy particle-collision mode follows the same cone aggregation rule:
+        // damage each collision, then make at most one knockback roll per cone.
+        enemy.TakeDamage(totalDamage);
+        if (enemy == null || !enemy.isActiveAndEnabled) return;
+
+        coneDamageTotals.TryGetValue(enemy, out float accumulatedDamage);
+        accumulatedDamage += totalDamage;
+        coneDamageTotals[enemy] = accumulatedDamage;
+
+        if (!coneKnockbackResolved.Contains(enemy) &&
+            enemy.TryApplyDamageKnockback(
+                accumulatedDamage,
+                sprayDirection,
+                weaponKnockbackMultiplier))
+        {
+            coneKnockbackResolved.Add(enemy);
+        }
     }
     
     /// <summary>
@@ -113,6 +149,9 @@ public class SprayParticleCollisionHandler : MonoBehaviour
     public void ClearCooldowns()
     {
         lastHitTime.Clear();
+        coneDamageTotals.Clear();
+        coneKnockbackResolved.Clear();
+        lastConeHitTime = -10f;
     }
     
     void OnDisable()

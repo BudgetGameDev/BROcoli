@@ -4,28 +4,36 @@ using UnityEngine;
 [RequireComponent(typeof(Collider2D))]
 public class EnemyScript : EnemyBase
 {
+    private const float MaxAttackLungeDistance = 0.42f;
+    private const float MaxAttackPullBackDistance = 0.22f;
+
     [Header("Melee Attack")]
     [SerializeField] private float meleeRange = 0.25f;       // Distance to trigger attack (very close range)
     [SerializeField] private float meleeAttackCooldown = 0.6f; // Time between attacks
     private float nextMeleeAttackTime = 0f;
     
     [Header("Attack Animation")]
-    [SerializeField] private float attackWindupDuration = 0.15f;  // Time to pull back before striking
-    [SerializeField] private float attackStrikeDuration = 0.1f;   // Time for the lunge forward
-    [SerializeField] private float attackRecoverDuration = 0.2f;  // Time to return to normal
-    [SerializeField] private float attackLungeDistance = 0.2f;    // How far to lunge toward player (reduced)
-    [SerializeField] private float attackScaleBoost = 1.3f;       // Scale up during attack
+    [SerializeField] private float attackWindupDuration = 0.28f;  // Longer anticipation before striking
+    [SerializeField] private float attackStrikeDuration = 0.14f;  // Fast release after the charge
+    [SerializeField] private float attackRecoverDuration = 0.26f;
+    [SerializeField] private float attackPullBackDistance = 0.18f;
+    [SerializeField] private float attackLungeDistance = 0.42f;
     [SerializeField] private Color attackFlashColor = Color.red;  // Color flash on attack
     private bool isAttacking = false;
     private bool hasDamagedThisAttack = false; // Prevents double-damage per attack
     private float attackTimer = 0f;
     private int attackPhase = 0; // 0=idle, 1=windup, 2=strike, 3=recover
     private Vector3 attackStartPos;
+    private Vector3 attackWindupPos;
     private Vector3 attackTargetPos;
+    private Quaternion attackStartRotation;
+    private Vector2 attackDirection;
+    private float activeAttackReach;
     private Vector3 baseLocalScale;
     private SpriteRenderer spriteRenderer;
     private Color originalColor;
     private Transform visualTransform;
+    private EnemyWalkAnimation walkAnimation;
     
     [Header("Melee Audio")]
     [SerializeField] private ProceduralEnemyMeleeAudio meleeAudio;
@@ -33,6 +41,7 @@ public class EnemyScript : EnemyBase
     protected override void Awake()
     {
         base.Awake();
+        walkAnimation = GetComponent<EnemyWalkAnimation>();
         
         // Try to get melee audio component if not assigned
         if (meleeAudio == null)
@@ -67,7 +76,7 @@ public class EnemyScript : EnemyBase
         }
         
         // Set up visual transform from the renderer we found
-        if (visualRenderer != null)
+        if (visualRenderer != null && visualRenderer.transform != transform)
         {
             visualTransform = visualRenderer.transform;
             baseLocalScale = visualTransform.localScale;
@@ -87,30 +96,17 @@ public class EnemyScript : EnemyBase
         }
         else
         {
-            visualTransform = transform;
-            baseLocalScale = transform.localScale;
-            
-            // Safety check for root transform too
-            if (baseLocalScale.sqrMagnitude < 0.0001f)
-            {
-                Debug.LogWarning($"[EnemyScript] {name}: root transform has zero scale! Using Vector3.one as fallback.");
-                baseLocalScale = Vector3.one;
-                transform.localScale = Vector3.one;
-            }
+            // Never animate the Rigidbody/collider root. Color feedback can
+            // still play, but moving or scaling this transform would move the
+            // solid body directly through the player.
+            visualTransform = null;
+            baseLocalScale = Vector3.one;
         }
     }
 
     protected override void FixedUpdate()
     {
         if (player == null) return;
-        
-        // Don't move toward player during knockback - skip separation too to prevent flying
-        if (isKnockedBack)
-        {
-            // Update spatial hash position but skip separation forces during knockback
-            EnemySpatialHash.Instance?.UpdatePosition(this);
-            return;
-        }
         
         // Stop movement during attack animation - only visual transform moves, not the collider
         // This prevents physics conflicts when lunge animation plays
@@ -123,6 +119,13 @@ public class EnemyScript : EnemyBase
             return;
         }
 
+        // Don't move toward player during the brief, rate-limited hit recoil.
+        if (isKnockedBack)
+        {
+            base.FixedUpdate();
+            return;
+        }
+
         Vector2 dir = (Vector2)player.position - rb.position;
         float distToPlayer = dir.magnitude;
         
@@ -130,8 +133,26 @@ public class EnemyScript : EnemyBase
 
         dir.Normalize();
 
-        // Move towards player at full speed - separation handles preventing overlap
-        Vector2 targetVel = dir * Speed;
+        float colliderGap = GetPlayerColliderGap();
+        float standOffGap = Mathf.Max(0f, playerStandOffGap);
+        const float standOffDeadZone = 0.025f;
+        Vector2 targetVel;
+
+        if (colliderGap > standOffGap + standOffDeadZone)
+        {
+            targetVel = dir * Speed;
+        }
+        else if (colliderGap < standOffGap - standOffDeadZone)
+        {
+            float retreatSpeed = Mathf.Min(
+                Speed,
+                Mathf.Max(0.35f, (standOffGap - colliderGap) * acceleration));
+            targetVel = -dir * retreatSpeed;
+        }
+        else
+        {
+            targetVel = Vector2.zero;
+        }
 
         // Smooth acceleration towards target velocity
         rb.linearVelocity = Vector2.MoveTowards(rb.linearVelocity, targetVel, acceleration * Time.fixedDeltaTime);
@@ -144,23 +165,52 @@ public class EnemyScript : EnemyBase
     {
         base.Update();
         
-        // Update attack animation only - attacks start via trigger collision
         UpdateAttackAnimation();
+
+        // A solid body collision never deals damage. It only puts the enemy in
+        // range to begin a complete, telegraphed attack animation.
+        if (player != null && CanStartAttack() && IsPlayerInAttackStartRange())
+        {
+            StartAttackAnimation();
+        }
     }
     
     private void StartAttackAnimation()
     {
         if (player == null) return;
+
+        LockBodyForAttack();
+        walkAnimation?.SetAttackOverride(true);
         
         isAttacking = true;
         hasDamagedThisAttack = false; // Reset damage flag for new attack
         attackPhase = 1; // Start with windup
         attackTimer = 0f;
-        attackStartPos = visualTransform.localPosition;
-        
+        nextMeleeAttackTime = Time.time + meleeAttackCooldown;
         // Calculate lunge direction toward player
-        Vector2 toPlayer = ((Vector2)player.position - (Vector2)transform.position).normalized;
-        attackTargetPos = attackStartPos + (Vector3)(toPlayer * attackLungeDistance);
+        attackDirection = ((Vector2)player.position - (Vector2)transform.position).normalized;
+        activeAttackReach = GetAttackReach();
+
+        if (visualTransform != null)
+        {
+            attackStartPos = visualTransform.localPosition;
+            attackStartRotation = visualTransform.localRotation;
+
+            // attackDirection and attackLungeDistance are world-space values.
+            // Convert them through the renderer's parent before changing its
+            // localPosition; imported FBX scales otherwise magnify the lunge.
+            Vector3 worldLunge = (Vector3)(attackDirection * activeAttackReach);
+            Vector3 worldPullBack = (Vector3)(-attackDirection *
+                Mathf.Clamp(attackPullBackDistance, 0f, MaxAttackPullBackDistance));
+            Vector3 localLunge = visualTransform.parent != null
+                ? visualTransform.parent.InverseTransformVector(worldLunge)
+                : worldLunge;
+            Vector3 localPullBack = visualTransform.parent != null
+                ? visualTransform.parent.InverseTransformVector(worldPullBack)
+                : worldPullBack;
+            attackWindupPos = attackStartPos + localPullBack;
+            attackTargetPos = attackStartPos + localLunge;
+        }
     }
     
     private void UpdateAttackAnimation()
@@ -175,19 +225,28 @@ public class EnemyScript : EnemyBase
                 float windupT = attackTimer / attackWindupDuration;
                 if (windupT >= 1f)
                 {
+                    if (visualTransform != null)
+                    {
+                        visualTransform.localPosition = attackWindupPos;
+                        visualTransform.localRotation = attackStartRotation;
+                        visualTransform.localScale = baseLocalScale;
+                    }
                     attackPhase = 2;
                     attackTimer = 0f;
                     // Damage is dealt during strike phase at 60% when lunge visually connects
                 }
                 else
                 {
-                    // Pull back slightly (opposite of lunge direction)
-                    Vector3 pullBack = attackStartPos - (attackTargetPos - attackStartPos) * 0.3f;
-                    visualTransform.localPosition = Vector3.Lerp(attackStartPos, pullBack, EaseOutQuad(windupT));
-                    
-                    // Scale up slightly during windup
-                    float scaleT = 1f + (attackScaleBoost - 1f) * 0.5f * windupT;
-                    visualTransform.localScale = baseLocalScale * scaleT;
+                    if (visualTransform != null)
+                    {
+                        float anticipationT = Mathf.SmoothStep(0f, 1f, windupT);
+                        visualTransform.localPosition = Vector3.Lerp(
+                            attackStartPos,
+                            attackWindupPos,
+                            anticipationT);
+                        visualTransform.localRotation = attackStartRotation;
+                        visualTransform.localScale = baseLocalScale;
+                    }
                     
                     // Start color flash
                     if (spriteRenderer != null)
@@ -195,29 +254,42 @@ public class EnemyScript : EnemyBase
                 }
                 break;
                 
-            case 2: // Strike - lunge forward, damage at midpoint
+            case 2: // Strike - damage only after the lunge reaches its contact pose
                 float strikeT = attackTimer / attackStrikeDuration;
-                
-                // Deal damage at 60% through strike when visual lunge connects
-                if (strikeT >= 0.6f && !hasDamagedThisAttack)
-                {
-                    hasDamagedThisAttack = true;
-                    PerformMeleeAttack();
-                }
-                
+
                 if (strikeT >= 1f)
                 {
+                    if (visualTransform != null)
+                    {
+                        visualTransform.localPosition = attackTargetPos;
+                        visualTransform.localRotation = attackStartRotation;
+                        visualTransform.localScale = baseLocalScale;
+                    }
+                    if (spriteRenderer != null)
+                        spriteRenderer.color = attackFlashColor;
+
+                    if (!hasDamagedThisAttack)
+                    {
+                        hasDamagedThisAttack = true;
+                        PerformMeleeAttack();
+                    }
+
                     attackPhase = 3;
                     attackTimer = 0f;
                 }
                 else
                 {
-                    // Lunge toward player
-                    Vector3 pullBack = attackStartPos - (attackTargetPos - attackStartPos) * 0.3f;
-                    visualTransform.localPosition = Vector3.Lerp(pullBack, attackTargetPos, EaseOutQuad(strikeT));
-                    
-                    // Full scale boost at peak
-                    visualTransform.localScale = baseLocalScale * attackScaleBoost;
+                    if (visualTransform != null)
+                    {
+                        // Release across the whole distance from the deep
+                        // windup pose to the forward contact pose.
+                        visualTransform.localPosition = Vector3.Lerp(
+                            attackWindupPos,
+                            attackTargetPos,
+                            EaseInCubic(strikeT));
+                        visualTransform.localRotation = attackStartRotation;
+                        visualTransform.localScale = baseLocalScale;
+                    }
                     
                     // Full color flash
                     if (spriteRenderer != null)
@@ -232,19 +304,27 @@ public class EnemyScript : EnemyBase
                     // Attack finished
                     isAttacking = false;
                     attackPhase = 0;
-                    visualTransform.localPosition = attackStartPos;
-                    visualTransform.localScale = baseLocalScale;
+                    if (visualTransform != null)
+                    {
+                        visualTransform.localPosition = attackStartPos;
+                        visualTransform.localRotation = attackStartRotation;
+                        visualTransform.localScale = baseLocalScale;
+                    }
                     if (spriteRenderer != null)
                         spriteRenderer.color = originalColor;
+
+                    walkAnimation?.SetAttackOverride(false);
+                    UnlockBodyAfterAttack();
                 }
                 else
                 {
-                    // Return to start position
-                    visualTransform.localPosition = Vector3.Lerp(attackTargetPos, attackStartPos, EaseOutQuad(recoverT));
-                    
-                    // Scale back down
-                    float scaleT = Mathf.Lerp(attackScaleBoost, 1f, recoverT);
-                    visualTransform.localScale = baseLocalScale * scaleT;
+                    if (visualTransform != null)
+                    {
+                        // Return to start position
+                        visualTransform.localPosition = Vector3.Lerp(attackTargetPos, attackStartPos, EaseOutQuad(recoverT));
+                        visualTransform.localRotation = attackStartRotation;
+                        visualTransform.localScale = baseLocalScale;
+                    }
                     
                     // Fade color back
                     if (spriteRenderer != null)
@@ -258,9 +338,19 @@ public class EnemyScript : EnemyBase
     {
         return 1f - (1f - t) * (1f - t);
     }
+
+    private float EaseInCubic(float t)
+    {
+        return t * t * t;
+    }
     
     private void PerformMeleeAttack()
     {
+        // The player may have moved away or around the enemy during windup.
+        // In that case the completed animation is a miss and causes no damage.
+        if (!IsPlayerWithinAttackContact(activeAttackReach, attackDirection))
+            return;
+
         // Deal damage to player - only proceed if damage was actually dealt
         var playerController = player.GetComponent<PlayerController>();
         if (playerController != null)
@@ -270,9 +360,6 @@ public class EnemyScript : EnemyBase
             
             if (playerController.TakeMeleeDamage(Damage, knockbackDir))
             {
-                // Only set cooldown and play sound if we actually hit
-                nextMeleeAttackTime = Time.time + meleeAttackCooldown;
-                
                 // Play melee sound
                 if (meleeAudio != null)
                 {
@@ -282,31 +369,50 @@ public class EnemyScript : EnemyBase
         }
     }
 
-    void OnTriggerEnter2D(Collider2D other)
-    {
-        // Trigger attack animation on contact (animation will deal damage)
-        if (other.CompareTag("Player") && CanStartAttack())
-        {
-            StartAttackAnimation();
-        }
-    }
-    
-    void OnTriggerStay2D(Collider2D other)
-    {
-        // Re-trigger attack if player stays inside and cooldown expired
-        // This handles cases where player walks into enemy center and stays there
-        if (other.CompareTag("Player") && CanStartAttack())
-        {
-            StartAttackAnimation();
-        }
-    }
-    
     /// <summary>
     /// Check if enemy can start a new attack (not attacking, cooldown expired)
     /// </summary>
     private bool CanStartAttack()
     {
-        return !isAttacking && Time.time >= nextMeleeAttackTime;
+        return !isAttacking && !isKnockedBack && Time.time >= nextMeleeAttackTime;
+    }
+
+    private bool IsPlayerInAttackStartRange()
+    {
+        // Collider gap works for every wave scale. A centre-distance check does
+        // not: a smaller enemy could begin an attack that cannot visually reach.
+        return IsPlayerWithinColliderGap(
+            GetAttackReach());
+    }
+
+    private float GetAttackReach()
+    {
+        float visualReach = Mathf.Clamp(attackLungeDistance, 0f, MaxAttackLungeDistance);
+        return Mathf.Min(Mathf.Max(0f, meleeRange), visualReach);
+    }
+
+    protected override void PrepareForIncomingKnockback()
+    {
+        if (!isAttacking) return;
+
+        // A real weapon hit interrupts the telegraphed attack. Restore the
+        // visual first, then release the pinned body so recoil is immediate.
+        isAttacking = false;
+        hasDamagedThisAttack = false;
+        attackPhase = 0;
+        attackTimer = 0f;
+
+        if (visualTransform != null)
+        {
+            visualTransform.localPosition = attackStartPos;
+            visualTransform.localRotation = attackStartRotation;
+            visualTransform.localScale = baseLocalScale;
+        }
+        if (spriteRenderer != null)
+            spriteRenderer.color = originalColor;
+
+        walkAnimation?.SetAttackOverride(false);
+        UnlockBodyAfterAttack(false);
     }
     
     /// <summary>
@@ -322,6 +428,9 @@ public class EnemyScript : EnemyBase
         attackPhase = 0;
         attackTimer = 0f;
         nextMeleeAttackTime = 0f;
+        attackDirection = Vector2.zero;
+        activeAttackReach = 0f;
+        walkAnimation?.SetAttackOverride(false);
         
         // Reset visual state - critical for fixing invisible enemies!
         if (visualTransform != null)

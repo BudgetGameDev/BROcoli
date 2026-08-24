@@ -29,6 +29,7 @@ public class EnemyWalkAnimation : MonoBehaviour
     private float timeOffset;
     private float currentSpin = 0f;
     private bool isInitialized = false;
+    private bool attackOverride = false;
     
     void Awake()
     {
@@ -100,7 +101,7 @@ public class EnemyWalkAnimation : MonoBehaviour
     
     void Update()
     {
-        if (visualTransform == null) return;
+        if (visualTransform == null || attackOverride) return;
         
         float time = Time.time + timeOffset;
         float speed = rb != null ? rb.linearVelocity.magnitude : 0f;
@@ -108,12 +109,15 @@ public class EnemyWalkAnimation : MonoBehaviour
         // Intensity scales with movement speed (0.5 to 1.5 range)
         float intensity = Mathf.Clamp(0.5f + speed * 0.15f, 0.5f, 1.5f);
         
-        // --- Pulsating Scale ---
-        // Creates a breathing/squash-stretch effect
+        // --- Contained squash ---
+        // Never expand past the prefab's base footprint. Expansion here would
+        // make the mesh poke outside its correctly scaled solid collider.
         float pulsatePhase = Mathf.Sin(time * pulsateSpeed) * intensity;
-        float scaleX = baseScale.x * (1f + pulsatePhase * pulsateAmountX);
-        float scaleY = baseScale.y * (1f - pulsatePhase * pulsateAmountY); // Inverse for squash/stretch
-        float scaleZ = baseScale.z * (1f + pulsatePhase * pulsateAmountZ);
+        float horizontalSquash = Mathf.InverseLerp(-1.5f, 1.5f, pulsatePhase);
+        float verticalSquash = 1f - horizontalSquash;
+        float scaleX = baseScale.x * (1f - horizontalSquash * pulsateAmountX);
+        float scaleY = baseScale.y * (1f - verticalSquash * pulsateAmountY);
+        float scaleZ = baseScale.z * (1f - Mathf.Abs(pulsatePhase) * pulsateAmountZ);
         
         visualTransform.localScale = new Vector3(scaleX, scaleY, scaleZ);
         
@@ -138,6 +142,24 @@ public class EnemyWalkAnimation : MonoBehaviour
         // --- Vertical Bounce ---
         float bounce = Mathf.Abs(Mathf.Sin(time * bounceSpeed)) * bounceAmount * intensity;
         visualTransform.localPosition = basePosition + new Vector3(0f, bounce, 0f);
+    }
+
+    /// <summary>
+    /// Gives the melee animation exclusive control of the visual transform.
+    /// Without this, walk bounce and attack lunge overwrite each other every
+    /// frame and can make the rendered enemy appear to shoot away from its body.
+    /// </summary>
+    public void SetAttackOverride(bool active)
+    {
+        if (!isInitialized)
+            InitializeVisualTransform();
+
+        attackOverride = active;
+        if (visualTransform == null) return;
+
+        visualTransform.localScale = baseScale;
+        visualTransform.localPosition = basePosition;
+        visualTransform.localRotation = Quaternion.identity;
     }
     
     void OnDisable()

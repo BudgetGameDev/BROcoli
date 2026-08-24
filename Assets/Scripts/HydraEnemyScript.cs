@@ -9,6 +9,9 @@ using Pooling;
 [RequireComponent(typeof(Collider2D))]
 public class HydraEnemyScript : EnemyBase
 {
+    private const float MaxAttackLungeDistance = 0.42f;
+    private const float MaxAttackPullBackDistance = 0.22f;
+
     [Header("Hydra Split Settings")]
     [SerializeField] private int splitCount = 2;           // How many children spawn on death
     [SerializeField] private int currentGeneration = 0;    // 0 = original, increases with each split
@@ -25,21 +28,27 @@ public class HydraEnemyScript : EnemyBase
     private float nextMeleeAttackTime = 0f;
     
     [Header("Attack Animation")]
-    [SerializeField] private float attackWindupDuration = 0.15f;
-    [SerializeField] private float attackStrikeDuration = 0.1f;
-    [SerializeField] private float attackRecoverDuration = 0.2f;
-    [SerializeField] private float attackLungeDistance = 0.4f;
-    [SerializeField] private float attackScaleBoost = 1.3f;
+    [SerializeField] private float attackWindupDuration = 0.28f;
+    [SerializeField] private float attackStrikeDuration = 0.14f;
+    [SerializeField] private float attackRecoverDuration = 0.26f;
+    [SerializeField] private float attackPullBackDistance = 0.18f;
+    [SerializeField] private float attackLungeDistance = 0.42f;
     [SerializeField] private Color attackFlashColor = Color.red;
     private bool isAttacking = false;
+    private bool hasDamagedThisAttack = false;
     private float attackTimer = 0f;
     private int attackPhase = 0;
     private Vector3 attackStartPos;
+    private Vector3 attackWindupPos;
     private Vector3 attackTargetPos;
+    private Quaternion attackStartRotation;
+    private Vector2 attackDirection;
+    private float activeAttackReach;
     private Vector3 baseLocalScale;
     private SpriteRenderer spriteRenderer;  // Local sprite renderer for attack animations
     private Color originalColor;
     private Transform visualTransform;
+    private EnemyWalkAnimation walkAnimation;
     
     [Header("Melee Audio")]
     [SerializeField] private ProceduralEnemyMeleeAudio meleeAudio;
@@ -50,6 +59,7 @@ public class HydraEnemyScript : EnemyBase
     protected override void Awake()
     {
         base.Awake();
+        walkAnimation = GetComponent<EnemyWalkAnimation>();
         
         if (meleeAudio == null)
             meleeAudio = GetComponent<ProceduralEnemyMeleeAudio>();
@@ -83,7 +93,7 @@ public class HydraEnemyScript : EnemyBase
         }
         
         // Set up visual transform from the renderer we found
-        if (visualRenderer != null)
+        if (visualRenderer != null && visualRenderer.transform != transform)
         {
             visualTransform = visualRenderer.transform;
             baseLocalScale = visualTransform.localScale;
@@ -103,16 +113,9 @@ public class HydraEnemyScript : EnemyBase
         }
         else
         {
-            visualTransform = transform;
-            baseLocalScale = transform.localScale;
-            
-            // Safety check for root transform too
-            if (baseLocalScale.sqrMagnitude < 0.0001f)
-            {
-                Debug.LogWarning($"[HydraEnemyScript] {name}: root transform has zero scale! Using Vector3.one as fallback.");
-                baseLocalScale = Vector3.one;
-                transform.localScale = Vector3.one;
-            }
+            // Never animate the Rigidbody/collider root.
+            visualTransform = null;
+            baseLocalScale = Vector3.one;
         }
     }
 
@@ -120,6 +123,13 @@ public class HydraEnemyScript : EnemyBase
     {
         if (player == null) return;
         
+        if (isAttacking)
+        {
+            rb.linearVelocity = Vector2.zero;
+            EnemySpatialHash.Instance?.UpdatePosition(this);
+            return;
+        }
+
         if (isKnockedBack)
         {
             base.FixedUpdate();
@@ -132,7 +142,26 @@ public class HydraEnemyScript : EnemyBase
         if (distToPlayer < 0.0001f) return;
 
         dir.Normalize();
-        Vector2 targetVel = dir * Speed;
+        float colliderGap = GetPlayerColliderGap();
+        float standOffGap = Mathf.Max(0f, playerStandOffGap);
+        const float standOffDeadZone = 0.025f;
+        Vector2 targetVel;
+
+        if (colliderGap > standOffGap + standOffDeadZone)
+        {
+            targetVel = dir * Speed;
+        }
+        else if (colliderGap < standOffGap - standOffDeadZone)
+        {
+            float retreatSpeed = Mathf.Min(
+                Speed,
+                Mathf.Max(0.35f, (standOffGap - colliderGap) * acceleration));
+            targetVel = -dir * retreatSpeed;
+        }
+        else
+        {
+            targetVel = Vector2.zero;
+        }
         rb.linearVelocity = Vector2.MoveTowards(rb.linearVelocity, targetVel, acceleration * Time.fixedDeltaTime);
         
         base.FixedUpdate();
@@ -144,10 +173,11 @@ public class HydraEnemyScript : EnemyBase
         
         UpdateAttackAnimation();
         
-        if (player != null && !isAttacking)
+        if (player != null && !isAttacking && !isKnockedBack)
         {
-            float distToPlayer = Vector2.Distance(transform.position, player.position);
-            if (distToPlayer <= meleeRange && Time.time >= nextMeleeAttackTime)
+            if (IsPlayerWithinColliderGap(
+                    GetAttackReach()) &&
+                Time.time >= nextMeleeAttackTime)
             {
                 StartAttackAnimation();
             }
@@ -270,9 +300,13 @@ public class HydraEnemyScript : EnemyBase
         hasSpawnedChildren = false;
         currentGeneration = 0;
         isAttacking = false;
+        hasDamagedThisAttack = false;
         attackPhase = 0;
         attackTimer = 0f;
         nextMeleeAttackTime = 0f;
+        attackDirection = Vector2.zero;
+        activeAttackReach = 0f;
+        walkAnimation?.SetAttackOverride(false);
         
         // Reset visual state
         if (visualTransform != null)
@@ -291,14 +325,34 @@ public class HydraEnemyScript : EnemyBase
     private void StartAttackAnimation()
     {
         if (player == null) return;
+
+        LockBodyForAttack();
+        walkAnimation?.SetAttackOverride(true);
         
         isAttacking = true;
+        hasDamagedThisAttack = false;
         attackPhase = 1;
         attackTimer = 0f;
-        attackStartPos = visualTransform.localPosition;
-        
-        Vector2 toPlayer = ((Vector2)player.position - (Vector2)transform.position).normalized;
-        attackTargetPos = attackStartPos + (Vector3)(toPlayer * attackLungeDistance);
+        nextMeleeAttackTime = Time.time + meleeAttackCooldown;
+        attackDirection = ((Vector2)player.position - (Vector2)transform.position).normalized;
+        activeAttackReach = GetAttackReach();
+
+        if (visualTransform != null)
+        {
+            attackStartPos = visualTransform.localPosition;
+            attackStartRotation = visualTransform.localRotation;
+            Vector3 worldLunge = (Vector3)(attackDirection * activeAttackReach);
+            Vector3 worldPullBack = (Vector3)(-attackDirection *
+                Mathf.Clamp(attackPullBackDistance, 0f, MaxAttackPullBackDistance));
+            Vector3 localLunge = visualTransform.parent != null
+                ? visualTransform.parent.InverseTransformVector(worldLunge)
+                : worldLunge;
+            Vector3 localPullBack = visualTransform.parent != null
+                ? visualTransform.parent.InverseTransformVector(worldPullBack)
+                : worldPullBack;
+            attackWindupPos = attackStartPos + localPullBack;
+            attackTargetPos = attackStartPos + localLunge;
+        }
     }
     
     private void UpdateAttackAnimation()
@@ -313,17 +367,27 @@ public class HydraEnemyScript : EnemyBase
                 float windupT = attackTimer / attackWindupDuration;
                 if (windupT >= 1f)
                 {
+                    if (visualTransform != null)
+                    {
+                        visualTransform.localPosition = attackWindupPos;
+                        visualTransform.localRotation = attackStartRotation;
+                        visualTransform.localScale = baseLocalScale;
+                    }
                     attackPhase = 2;
                     attackTimer = 0f;
-                    PerformMeleeAttack();
                 }
                 else
                 {
-                    Vector3 pullBack = attackStartPos - (attackTargetPos - attackStartPos) * 0.3f;
-                    visualTransform.localPosition = Vector3.Lerp(attackStartPos, pullBack, EaseOutQuad(windupT));
-                    
-                    float scaleT = 1f + (attackScaleBoost - 1f) * 0.5f * windupT;
-                    visualTransform.localScale = baseLocalScale * scaleT;
+                    if (visualTransform != null)
+                    {
+                        float anticipationT = Mathf.SmoothStep(0f, 1f, windupT);
+                        visualTransform.localPosition = Vector3.Lerp(
+                            attackStartPos,
+                            attackWindupPos,
+                            anticipationT);
+                        visualTransform.localRotation = attackStartRotation;
+                        visualTransform.localScale = baseLocalScale;
+                    }
                     
                     if (spriteRenderer != null)
                         spriteRenderer.color = Color.Lerp(originalColor, attackFlashColor, windupT * 0.5f);
@@ -334,15 +398,35 @@ public class HydraEnemyScript : EnemyBase
                 float strikeT = attackTimer / attackStrikeDuration;
                 if (strikeT >= 1f)
                 {
+                    if (visualTransform != null)
+                    {
+                        visualTransform.localPosition = attackTargetPos;
+                        visualTransform.localRotation = attackStartRotation;
+                        visualTransform.localScale = baseLocalScale;
+                    }
+                    if (spriteRenderer != null)
+                        spriteRenderer.color = attackFlashColor;
+
+                    if (!hasDamagedThisAttack)
+                    {
+                        hasDamagedThisAttack = true;
+                        PerformMeleeAttack();
+                    }
+
                     attackPhase = 3;
                     attackTimer = 0f;
                 }
                 else
                 {
-                    Vector3 pullBack = attackStartPos - (attackTargetPos - attackStartPos) * 0.3f;
-                    visualTransform.localPosition = Vector3.Lerp(pullBack, attackTargetPos, EaseOutQuad(strikeT));
-                    
-                    visualTransform.localScale = baseLocalScale * attackScaleBoost;
+                    if (visualTransform != null)
+                    {
+                        visualTransform.localPosition = Vector3.Lerp(
+                            attackWindupPos,
+                            attackTargetPos,
+                            EaseInCubic(strikeT));
+                        visualTransform.localRotation = attackStartRotation;
+                        visualTransform.localScale = baseLocalScale;
+                    }
                     
                     if (spriteRenderer != null)
                         spriteRenderer.color = attackFlashColor;
@@ -355,17 +439,26 @@ public class HydraEnemyScript : EnemyBase
                 {
                     isAttacking = false;
                     attackPhase = 0;
-                    visualTransform.localPosition = attackStartPos;
-                    visualTransform.localScale = baseLocalScale;
+                    if (visualTransform != null)
+                    {
+                        visualTransform.localPosition = attackStartPos;
+                        visualTransform.localRotation = attackStartRotation;
+                        visualTransform.localScale = baseLocalScale;
+                    }
                     if (spriteRenderer != null)
                         spriteRenderer.color = originalColor;
+
+                    walkAnimation?.SetAttackOverride(false);
+                    UnlockBodyAfterAttack();
                 }
                 else
                 {
-                    visualTransform.localPosition = Vector3.Lerp(attackTargetPos, attackStartPos, EaseOutQuad(recoverT));
-                    
-                    float scaleT = Mathf.Lerp(attackScaleBoost, 1f, recoverT);
-                    visualTransform.localScale = baseLocalScale * scaleT;
+                    if (visualTransform != null)
+                    {
+                        visualTransform.localPosition = Vector3.Lerp(attackTargetPos, attackStartPos, EaseOutQuad(recoverT));
+                        visualTransform.localRotation = attackStartRotation;
+                        visualTransform.localScale = baseLocalScale;
+                    }
                     
                     if (spriteRenderer != null)
                         spriteRenderer.color = Color.Lerp(attackFlashColor, originalColor, recoverT);
@@ -378,10 +471,44 @@ public class HydraEnemyScript : EnemyBase
     {
         return 1f - (1f - t) * (1f - t);
     }
+
+    private float EaseInCubic(float t)
+    {
+        return t * t * t;
+    }
+
+    private float GetAttackReach()
+    {
+        float visualReach = Mathf.Clamp(attackLungeDistance, 0f, MaxAttackLungeDistance);
+        return Mathf.Min(Mathf.Max(0f, meleeRange), visualReach);
+    }
+
+    protected override void PrepareForIncomingKnockback()
+    {
+        if (!isAttacking) return;
+
+        isAttacking = false;
+        hasDamagedThisAttack = false;
+        attackPhase = 0;
+        attackTimer = 0f;
+
+        if (visualTransform != null)
+        {
+            visualTransform.localPosition = attackStartPos;
+            visualTransform.localRotation = attackStartRotation;
+            visualTransform.localScale = baseLocalScale;
+        }
+        if (spriteRenderer != null)
+            spriteRenderer.color = originalColor;
+
+        walkAnimation?.SetAttackOverride(false);
+        UnlockBodyAfterAttack(false);
+    }
     
     private void PerformMeleeAttack()
     {
         if (player == null) return;
+        if (!IsPlayerWithinAttackContact(activeAttackReach, attackDirection)) return;
         
         var playerController = player.GetComponent<PlayerController>();
         if (playerController != null)
@@ -390,8 +517,6 @@ public class HydraEnemyScript : EnemyBase
             
             if (playerController.TakeMeleeDamage(Damage, knockbackDir))
             {
-                nextMeleeAttackTime = Time.time + meleeAttackCooldown;
-                
                 if (meleeAudio != null)
                 {
                     meleeAudio.PlayMeleeSound();
@@ -400,11 +525,4 @@ public class HydraEnemyScript : EnemyBase
         }
     }
 
-    void OnTriggerEnter2D(Collider2D other)
-    {
-        if (other.CompareTag("Player") && Time.time >= nextMeleeAttackTime && !isAttacking)
-        {
-            StartAttackAnimation();
-        }
-    }
 }

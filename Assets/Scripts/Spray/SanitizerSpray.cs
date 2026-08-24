@@ -19,6 +19,10 @@ public class SanitizerSpray : MonoBehaviour
     [SerializeField] private Transform handTransform;
     [SerializeField] private SpriteRenderer handSprite;
     [SerializeField] private SpriteRenderer sprayCanSprite;
+
+    [Header("Weapon Knockback")]
+    [Tooltip("Multiplies the shared damage-relative enemy knockback roll.")]
+    [SerializeField, Min(0f)] private float weaponKnockbackMultiplier = 1.2f;
     
     // Dynamic stats from PlayerStats
     private float currentRange;
@@ -106,7 +110,10 @@ public class SanitizerSpray : MonoBehaviour
         }
         
         // Initialize damage handler with references
-        damageHandler = new SprayDamageHandler(playerStats, playerTransform);
+        damageHandler = new SprayDamageHandler(
+            playerStats,
+            playerTransform,
+            weaponKnockbackMultiplier);
     }
 
     void Start()
@@ -136,6 +143,8 @@ public class SanitizerSpray : MonoBehaviour
         // Periodically refresh stats
         if (Time.frameCount % 30 == 0)
             UpdateStatsFromPlayer();
+
+        damageHandler?.SetWeaponKnockbackMultiplier(weaponKnockbackMultiplier);
         
         // Keep hand's range in sync
         handVisuals?.SetRange(currentRange);
@@ -152,6 +161,7 @@ public class SanitizerSpray : MonoBehaviour
         // Check if burst ended
         if (isInBurst && Time.time >= currentBurstEndTime)
         {
+            damageHandler?.ResolveConeKnockback();
             isInBurst = false;
             handVisuals?.ClearTarget();
         }
@@ -206,6 +216,7 @@ public class SanitizerSpray : MonoBehaviour
         if (!isSpraying)
         {
             isSpraying = true;
+            damageHandler?.ResetDamageTick();
             particleController?.Play();
             sprayAudio?.StartSpray();
             handVisuals?.SetVisible(true);
@@ -220,6 +231,8 @@ public class SanitizerSpray : MonoBehaviour
             isSpraying = false;
             particleController?.Stop();
             sprayAudio?.StopSpray();
+            damageHandler?.ResolveConeKnockback();
+            damageHandler?.ClearHits();
             Invoke(nameof(HideHand), 0.2f);
         }
     }

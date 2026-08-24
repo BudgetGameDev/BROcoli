@@ -277,7 +277,7 @@ BoxCollider2D:
   m_CallbackLayers:
     serializedVersion: 2
     m_Bits: 4294967295
-  m_IsTrigger: 1
+  m_IsTrigger: 0
   m_UsedByEffector: 0
   m_CompositeOperation: 0
   m_CompositeOrder: 0
@@ -528,6 +528,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   currentWeapon: 1
+  debugBaseDamage: 10
 --- !u!4 &44608742
 Transform:
   m_ObjectHideFlags: 0
@@ -2318,6 +2319,7 @@ MonoBehaviour:
   handTransform: {fileID: 0}
   handSprite: {fileID: 0}
   sprayCanSprite: {fileID: 0}
+  weaponKnockbackMultiplier: 1.2
 --- !u!114 &777000004
 MonoBehaviour:
   m_ObjectHideFlags: 0

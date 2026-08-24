@@ -10,14 +10,38 @@ public class Projectile : MonoBehaviour
     [SerializeField] private float _lifetime = 3f;
     [SerializeField] Rigidbody2D _body;
     [SerializeField] Collider2D _collider;
+    [Tooltip("Multiplies the shared damage-relative enemy knockback roll.")]
+    [SerializeField, Min(0f)] private float _baseKnockbackMultiplier = 1f;
 
     private float _damage = 1;
     private Vector2 direction;
+    private float _activeKnockbackMultiplier;
+
+    private void Awake()
+    {
+        // Player projectiles are hit sensors, not physical bodies. Keeping the
+        // collider as a trigger prevents them from imparting force to enemies.
+        if (_collider == null)
+            _collider = GetComponent<Collider2D>();
+        if (_collider != null)
+            _collider.isTrigger = true;
+
+        _activeKnockbackMultiplier = _baseKnockbackMultiplier;
+    }
 
     public void Init(Vector2 dir, float damage)
     {
+        Init(dir, damage, _baseKnockbackMultiplier);
+    }
+
+    /// <summary>
+    /// Allows a weapon to override the projectile prefab's base knockback.
+    /// </summary>
+    public void Init(Vector2 dir, float damage, float weaponKnockbackMultiplier)
+    {
         _damage = damage;
         direction = dir.normalized;
+        _activeKnockbackMultiplier = Mathf.Max(0f, weaponKnockbackMultiplier);
         Destroy(gameObject, _lifetime);
     }
 
@@ -37,7 +61,7 @@ public class Projectile : MonoBehaviour
         if (other.TryGetComponent(out EnemyBase enemy))
         {
             // Pass knockback direction (same as projectile direction)
-            enemy.TakeDamage(_damage, direction);
+            enemy.TakeDamage(_damage, direction, _activeKnockbackMultiplier);
             
             // Play hit sound
             ProceduralProjectileHitAudio.PlayHit(transform.position, ProceduralProjectileHitAudio.HitSoundType.Energy, 0.5f);

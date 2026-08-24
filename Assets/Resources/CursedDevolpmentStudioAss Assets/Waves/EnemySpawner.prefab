@@ -45,3 +45,20 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemySpawner
   player: {fileID: 0}
+  powerupPrefabs: []
+  powerupDropChance: 0.15
+  eliteChance: 0.05
+  minWaveForElites: 3
+  infiniteModeStartWave: 16
+  infiniteHpScalePerWave: 0.25
+  infiniteSpeedScalePerWave: 0.02
+  infiniteCountScalePerWave: 0.15
+  earlyWaveScale: 0.7
+  lateWaveScale: 0.92
+  lateScaleWave: 15
+  infiniteScalePerWave: 0.01
+  maximumWaveScale: 1.05
+  minSpawnDistance: 8
+  maxSpawnDistance: 14
+  spawnIntervalVariation: 0.5
+  segmentJitterDegrees: 15

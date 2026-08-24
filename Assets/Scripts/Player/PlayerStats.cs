@@ -20,7 +20,7 @@ public class PlayerStats : MonoBehaviour
     private const float DefaultHealth = 100f;
     private const float DefaultMaxHealth = 100f;
     private const float DefaultAttackSpeed = 0.6f;
-    private const float DefaultDamage = 10f;
+    public const float DefaultBaseDamage = 10f;
     private const float DefaultMovementSpeed = 4f;
     private const float DefaultMaxExperience = 30f;
     private const float DefaultDetectionRadius = 12f;
@@ -72,6 +72,7 @@ public class PlayerStats : MonoBehaviour
     private float _tempDamageBonus;
     private float _tempAttackSpeedMultiplier;
     private float _tempHealthRegenBonus;
+    private float _debugBaseDamage = DefaultBaseDamage;
 
 // UI references - discovered dynamically
     private Bar _healthBar;
@@ -83,7 +84,8 @@ public class PlayerStats : MonoBehaviour
     public float CurrentHealth => _currentHealth;
     public float CurrentMaxHealth => _currentMaxHealth;
     public float CurrentAttackSpeed => _currentAttackSpeed * (1f - _tempAttackSpeedMultiplier); // Lower = faster
-    public float CurrentDamage => _currentDamage + _tempDamageBonus;
+    public float CurrentDamage =>
+        _currentDamage + _tempDamageBonus + (_debugBaseDamage - DefaultBaseDamage);
     public float CurrentMovementSpeed => _currentMovementSpeed + _tempMovementSpeedBonus;
     public float CurrentExperience => _currentExperience;
     public float CurrentMaxExperience => _currentMaxExperience;
@@ -283,7 +285,7 @@ public class PlayerStats : MonoBehaviour
         _currentHealth = DefaultHealth;
         _currentMaxHealth = DefaultMaxHealth;
         _currentAttackSpeed = DefaultAttackSpeed;
-        _currentDamage = DefaultDamage;
+        _currentDamage = DefaultBaseDamage;
         _currentMovementSpeed = DefaultMovementSpeed;
         _currentExperience = 0f;
         _currentMaxExperience = DefaultMaxExperience;
@@ -467,6 +469,15 @@ public class PlayerStats : MonoBehaviour
     public void AddDamagePublic(float amount)
     {
         _currentDamage += amount;
+    }
+
+    /// <summary>
+    /// Overrides only the original base damage for editor/debug tuning. Earned
+    /// upgrades and temporary damage bonuses remain additive.
+    /// </summary>
+    public void SetDebugBaseDamage(float damage)
+    {
+        _debugBaseDamage = Mathf.Max(0f, damage);
     }
 
     public void AddSpeedPublic(float amount)

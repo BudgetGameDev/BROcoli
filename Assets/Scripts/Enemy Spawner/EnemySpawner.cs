@@ -23,6 +23,13 @@ public class EnemySpawner : MonoBehaviour
     [SerializeField] private float infiniteHpScalePerWave = 0.25f;
     [SerializeField] private float infiniteSpeedScalePerWave = 0.02f;
     [SerializeField] private float infiniteCountScalePerWave = 0.15f;
+
+    [Header("Wave Size Progression")]
+    [SerializeField, Range(0.5f, 1f)] private float earlyWaveScale = 0.7f;
+    [SerializeField, Range(0.7f, 1.1f)] private float lateWaveScale = 0.92f;
+    [SerializeField, Min(2)] private int lateScaleWave = 15;
+    [SerializeField, Range(0f, 0.03f)] private float infiniteScalePerWave = 0.01f;
+    [SerializeField, Range(0.8f, 1.1f)] private float maximumWaveScale = 1.05f;
     
     [Header("Spawn Distribution")]
     [SerializeField] private float minSpawnDistance = 8f;
@@ -155,6 +162,10 @@ public class EnemySpawner : MonoBehaviour
         if (enemy != null)
         {
             aliveEnemies++;
+
+            // Resize the complete body, not just the rendered child. This
+            // keeps its collider aligned while early waves use smaller enemies.
+            enemy.ApplyWaveScale(GetCurrentWaveScale());
             
             // Apply infinite mode scaling
             if (currentWaveNumber >= infiniteModeStartWave)
@@ -183,6 +194,20 @@ public class EnemySpawner : MonoBehaviour
                 }
             }
         }
+    }
+
+    private float GetCurrentWaveScale()
+    {
+        int wave = Mathf.Max(1, currentWaveNumber);
+        int progressionEnd = Mathf.Max(2, lateScaleWave);
+        float progression = Mathf.InverseLerp(1f, progressionEnd, wave);
+        float scale = Mathf.Lerp(earlyWaveScale, lateWaveScale, progression);
+
+        if (wave > progressionEnd)
+            scale += (wave - progressionEnd) * infiniteScalePerWave;
+
+        float upperLimit = Mathf.Max(earlyWaveScale, maximumWaveScale);
+        return Mathf.Clamp(scale, 0.5f, upperLimit);
     }
 
     private void HandleEnemyDeath(EnemyBase enemy)

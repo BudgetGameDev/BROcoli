@@ -8,9 +8,10 @@ using UnityEngine.SceneManagement;
 /// </summary>
 public class PlayerDamageHandler : MonoBehaviour
 {
-    // Scaled knockback parameters - moderate force for feel without losing control
-    private const float MinKnockbackForce = 5f;
-    private const float MaxKnockbackForce = 12f;
+    // Keep hit feedback as a short nudge. The previous 5-12 velocity range
+    // visibly launched the player and could compound with body contacts.
+    private const float MinKnockbackForce = 1.25f;
+    private const float MaxKnockbackForce = 3f;
     private const float DamageImmunityDuration = 0.3f; // Immunity frames after taking damage
 
     private PlayerStats _playerStats;

@@ -33,6 +33,12 @@ public class PlayerController : MonoBehaviour
     [Header("Weapon Selection")]
     [SerializeField] private WeaponType currentWeapon = WeaponType.SanitizerSpray;
 
+    [Header("Debug Tuning")]
+    [Tooltip("Overrides the player's original base damage. The default of 10 preserves existing balance; upgrades are still added on top.")]
+    [SerializeField, Min(0f)] private float debugBaseDamage = PlayerStats.DefaultBaseDamage;
+
+    public float DebugBaseDamage => debugBaseDamage;
+
     // Component references (discovered at runtime)
     private PlayerInputHandler _inputHandler;
     private PlayerMovement _movement;
@@ -68,6 +74,7 @@ public class PlayerController : MonoBehaviour
         _audioHandler = GetComponent<PlayerAudioHandler>();
         _playerStats = GetComponent<PlayerStats>();
         animator = GetComponent<Animator>();
+        ApplyDebugTuning();
 
         // Sync weapon type to combat component
         if (_combat != null)
@@ -86,11 +93,25 @@ public class PlayerController : MonoBehaviour
     {
         if (_damageHandler != null && _damageHandler.IsGameOver) return;
 
+        // Keep this live so the value can be edited in the Inspector while the
+        // game is running and take effect on the very next damage calculation.
+        ApplyDebugTuning();
+
         // Sync weapon type changes
         if (_combat != null)
         {
             _combat.CurrentWeapon = (PlayerCombat.WeaponType)(int)currentWeapon;
         }
+    }
+
+    private void OnValidate()
+    {
+        debugBaseDamage = Mathf.Max(0f, debugBaseDamage);
+    }
+
+    private void ApplyDebugTuning()
+    {
+        _playerStats?.SetDebugBaseDamage(debugBaseDamage);
     }
 
     private void FixedUpdate()

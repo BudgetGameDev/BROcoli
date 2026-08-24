@@ -130,7 +130,7 @@ CircleCollider2D:
   m_CallbackLayers:
     serializedVersion: 2
     m_Bits: 4294967295
-  m_IsTrigger: 1
+  m_IsTrigger: 0
   m_UsedByEffector: 0
   m_CompositeOperation: 0
   m_CompositeOrder: 0
@@ -187,15 +187,22 @@ MonoBehaviour:
   Health: 40
   MaxHealth: 40
   acceleration: 25
-  separationRadius: 2.5
-  separationForce: 50
+  separationRadius: 1.15
+  separationForce: 8
   playerSeparationRadius: 1.2
   playerSeparationForce: 8
+  playerStandOffGap: 0.4
   walkAudio: {fileID: 0}
   player: {fileID: 0}
   rb: {fileID: 2177051095443035704}
-  enemyKnockbackForce: 5
-  enemyKnockbackDuration: 0.12
+  minimumEnemyKnockbackForce: 0.35
+  enemyKnockbackForce: 3.5
+  minimumDamageFractionForKnockback: 0.1
+  damageFractionForMaxKnockback: 0.99
+  rareMaximumKnockbackChance: 0.02
+  knockbackRandomBias: 4
+  enemyKnockbackDuration: 0.18
+  enemyKnockbackCooldown: 0.18
   stopDistance: 6
   fireRate: 0.5
   projectileDamage: 10

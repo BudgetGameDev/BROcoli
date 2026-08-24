@@ -4,6 +4,14 @@ using Pooling;
 
 public abstract class EnemyBase : MonoBehaviour
 {
+    private const float MaxSafeSeparationRadius = 1.15f;
+    private const float MaxSafeSeparationForce = 8f;
+    private const float MaxSafeSeparationSpeed = 2f;
+    private const float MaxSafeKnockbackForce = 4f;
+    private const float MaxSafeKnockbackDuration = 0.2f;
+    private const float MinSafeKnockbackCooldown = 0.12f;
+    private static PhysicsMaterial2D sharedEnemyBodyMaterial;
+
     [SerializeField] Bar healthBar;
     [SerializeField] protected ExpGain expGainPrefab;
 
@@ -37,11 +45,13 @@ public abstract class EnemyBase : MonoBehaviour
     public float acceleration = 25f;
     
     [Header("Separation")]
-    [SerializeField] protected float separationRadius = 2.5f;   // How close before pushing away
-    [SerializeField] protected float separationForce = 50f;     // Strength of push (higher for stronger effect)
+    [SerializeField] protected float separationRadius = 1.15f;  // Roughly one enemy body diameter
+    [SerializeField] protected float separationForce = 8f;      // Gentle steering, never an impulse
     [SerializeField] protected float playerSeparationRadius = 0.4f; // Minimum distance from player (reduced for close melee)
     [SerializeField] protected float playerSeparationForce = 8f;  // How hard to avoid player overlap (gentle push)
-    [SerializeField] protected float maxSeparationSpeed = 6f;    // Cap on separation velocity to prevent enemies flying off
+    [SerializeField] protected float maxSeparationSpeed = 2f;    // Separation should never look like knockback
+    [Tooltip("Collider-to-collider gap melee enemies maintain from the player.")]
+    [SerializeField] protected float playerStandOffGap = 0.4f;
 
     [Header("Walk Audio (Optional)")]
     [SerializeField] protected ProceduralEnemyWalkAudio walkAudio;
@@ -49,6 +59,8 @@ public abstract class EnemyBase : MonoBehaviour
     public Transform player;
 
     public Rigidbody2D rb;
+    protected Collider2D bodyCollider;
+    private Collider2D playerCollider;
     
     // Cached references for performance
     protected SpriteRenderer cachedSpriteRenderer;
@@ -56,6 +68,11 @@ public abstract class EnemyBase : MonoBehaviour
     protected MeshRenderer cachedMeshRenderer;
     protected Color originalMeshColor;
     private bool _isPooled = false;
+    private bool attackBodyLocked = false;
+    private RigidbodyConstraints2D constraintsBeforeAttack;
+    private bool hasQueuedKnockback;
+    private Vector2 queuedKnockbackDirection;
+    private float queuedKnockbackForce;
     private Vector3 baseLocalScale;
     private float baseHealth;
     private float baseMaxHealth;
@@ -65,6 +82,11 @@ public abstract class EnemyBase : MonoBehaviour
     protected virtual void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
+        bodyCollider = GetComponent<Collider2D>();
+        EnforceSafePhysicsLimits();
+
+        ConfigureSolidBody();
+
         baseLocalScale = transform.localScale;
         baseHealth = Health;
         baseMaxHealth = MaxHealth;
@@ -128,15 +150,33 @@ public abstract class EnemyBase : MonoBehaviour
         
         alwaysShowHealthBar = true;
     }
+
+    /// <summary>
+    /// Applies a per-wave size without losing the prefab scale used by pooling.
+    /// Because the visual and solid collider live under this root, both resize
+    /// together and the rendered body cannot outgrow its collision footprint.
+    /// </summary>
+    public void ApplyWaveScale(float scaleMultiplier)
+    {
+        float safeScale = Mathf.Clamp(scaleMultiplier, 0.5f, 1.1f);
+        transform.localScale = baseLocalScale * safeScale;
+    }
     
     protected virtual void OnEnable()
     {
+        // OnEnable also runs after an editor script reload. Clamp live enemies
+        // that may still carry the old launch-prone serialized values.
+        EnforceSafePhysicsLimits();
+        ConfigureSolidBody();
+
         // Get cached references from GameContext (single lookup, not per-enemy)
         var context = GameContext.Instance;
         if (context != null)
         {
             player = context.PlayerTransform;
         }
+
+        playerCollider = FindSolidCollider(player);
         
         // Set linear damping to prevent velocity from persisting too long
         if (rb != null)
@@ -147,9 +187,101 @@ public abstract class EnemyBase : MonoBehaviour
         // Register with spatial hash for efficient neighbor queries
         EnemySpatialHash.Instance?.Register(this);
     }
+
+    private void EnforceSafePhysicsLimits()
+    {
+        separationRadius = Mathf.Clamp(separationRadius, 0f, MaxSafeSeparationRadius);
+        separationForce = Mathf.Clamp(separationForce, 0f, MaxSafeSeparationForce);
+        maxSeparationSpeed = Mathf.Clamp(maxSeparationSpeed, 0f, MaxSafeSeparationSpeed);
+        playerStandOffGap = Mathf.Clamp(playerStandOffGap, 0f, 0.6f);
+        enemyKnockbackForce = Mathf.Clamp(enemyKnockbackForce, 0f, MaxSafeKnockbackForce);
+        minimumEnemyKnockbackForce = Mathf.Clamp(
+            minimumEnemyKnockbackForce,
+            0f,
+            enemyKnockbackForce);
+        minimumDamageFractionForKnockback = Mathf.Clamp01(minimumDamageFractionForKnockback);
+        damageFractionForMaxKnockback = Mathf.Clamp(damageFractionForMaxKnockback, 0.01f, 1f);
+        rareMaximumKnockbackChance = Mathf.Clamp(rareMaximumKnockbackChance, 0f, 0.2f);
+        knockbackRandomBias = Mathf.Clamp(knockbackRandomBias, 1f, 8f);
+        enemyKnockbackDuration = Mathf.Clamp(enemyKnockbackDuration, 0f, MaxSafeKnockbackDuration);
+        enemyKnockbackCooldown = Mathf.Max(enemyKnockbackCooldown, MinSafeKnockbackCooldown);
+    }
+
+    private void ConfigureSolidBody()
+    {
+        if (bodyCollider == null)
+            bodyCollider = GetComponent<Collider2D>();
+
+        // Enemy body colliders are for navigation/blocking. Combat damage is
+        // validated separately by the attack animation at its impact frame.
+        if (bodyCollider != null)
+        {
+            bodyCollider.isTrigger = false;
+
+            // Solid crowd contacts should slide, never bounce or grip and
+            // convert tangential movement into a shove.
+            if (sharedEnemyBodyMaterial == null)
+            {
+                sharedEnemyBodyMaterial = new PhysicsMaterial2D("Enemy Body - No Bounce")
+                {
+                    friction = 0f,
+                    bounciness = 0f,
+                    hideFlags = HideFlags.HideAndDontSave
+                };
+            }
+            bodyCollider.sharedMaterial = sharedEnemyBodyMaterial;
+        }
+
+        // Enemy bodies must collide with one another so they cannot overlap.
+        // Explicitly restore this because older play sessions may still have
+        // the Enemy/Enemy layer pair disabled by the previous workaround.
+        int enemyLayer = LayerMask.NameToLayer("Enemy");
+        if (enemyLayer >= 0 && Physics2D.GetIgnoreLayerCollision(enemyLayer, enemyLayer))
+            Physics2D.IgnoreLayerCollision(enemyLayer, enemyLayer, false);
+    }
+
+    /// <summary>
+    /// Completely pins the physics body while a visual melee animation plays.
+    /// Zero velocity alone is insufficient because the contact solver can still
+    /// move a dynamic body that is touching the kinematic player.
+    /// </summary>
+    protected void LockBodyForAttack()
+    {
+        if (rb == null || attackBodyLocked) return;
+
+        constraintsBeforeAttack = rb.constraints;
+        attackBodyLocked = true;
+        rb.linearVelocity = Vector2.zero;
+        rb.angularVelocity = 0f;
+        rb.constraints = RigidbodyConstraints2D.FreezeAll;
+    }
+
+    protected void UnlockBodyAfterAttack(bool releaseQueuedKnockback = true)
+    {
+        if (rb == null || !attackBodyLocked) return;
+
+        rb.constraints = constraintsBeforeAttack;
+        rb.linearVelocity = Vector2.zero;
+        rb.angularVelocity = 0f;
+        attackBodyLocked = false;
+
+        if (releaseQueuedKnockback && hasQueuedKnockback && isActiveAndEnabled)
+        {
+            Vector2 direction = queuedKnockbackDirection;
+            float force = queuedKnockbackForce;
+            ClearQueuedKnockback();
+            StartKnockback(direction, force);
+        }
+        else
+        {
+            ClearQueuedKnockback();
+        }
+    }
     
     protected virtual void OnDisable()
     {
+        UnlockBodyAfterAttack(false);
+
         // Skip spatial hash cleanup during scene teardown to prevent creating new singleton
         if (!gameObject.scene.isLoaded) return;
         
@@ -158,10 +290,27 @@ public abstract class EnemyBase : MonoBehaviour
     }
 
     [Header("Knockback")]
-    [SerializeField] protected float enemyKnockbackForce = 5f;
-    [SerializeField] protected float enemyKnockbackDuration = 0.12f;
+    [Tooltip("Lowest force before the weapon-specific multiplier is applied.")]
+    [SerializeField] protected float minimumEnemyKnockbackForce = 0.35f;
+    [Tooltip("Force reached by a hit dealing this enemy's full knockback damage threshold.")]
+    [SerializeField] protected float enemyKnockbackForce = 3.5f;
+    [Tooltip("Hits below this fraction of Max Health deal damage but cannot cause knockback.")]
+    [SerializeField, Range(0f, 1f)] protected float minimumDamageFractionForKnockback = 0.1f;
+    [Tooltip("A hit dealing this fraction of Max Health always receives maximum knockback.")]
+    [SerializeField, Range(0.01f, 1f)] protected float damageFractionForMaxKnockback = 0.99f;
+    [Tooltip("Chance for any damaging hit to roll the maximum force, including very small hits.")]
+    [SerializeField, Range(0f, 0.2f)] protected float rareMaximumKnockbackChance = 0.02f;
+    [Tooltip("Higher values make lucky high-knockback rolls less common.")]
+    [SerializeField, Range(1f, 8f)] protected float knockbackRandomBias = 4f;
+    [SerializeField] protected float enemyKnockbackDuration = 0.18f;
+    [SerializeField] protected float enemyKnockbackCooldown = 0.18f;
     protected float knockbackTimer = 0f;
     protected bool isKnockedBack = false;
+    private float nextKnockbackTime = 0f;
+    private float activeKnockbackForce = 0f;
+    private Vector2 activeKnockbackDirection = Vector2.zero;
+    private float activeDamageKnockbackRoll = -1f;
+    private float activeDamageKnockbackMultiplier = 1f;
     
     public void TakeDamage(float damage)
     {
@@ -170,7 +319,20 @@ public abstract class EnemyBase : MonoBehaviour
     
     public void TakeDamage(float damage, Vector2 knockbackDirection)
     {
-        Health -= damage;
+        TakeDamage(damage, knockbackDirection, 1f);
+    }
+
+    /// <summary>
+    /// Applies damage and damage-relative knockback. weaponKnockbackMultiplier
+    /// lets individual weapons share this roll while having different impact.
+    /// </summary>
+    public void TakeDamage(
+        float damage,
+        Vector2 knockbackDirection,
+        float weaponKnockbackMultiplier)
+    {
+        float appliedDamage = Mathf.Max(0f, damage);
+        Health -= appliedDamage;
         if (Health <= 0f)
         {
             // Invoke elite death for guaranteed powerup drop
@@ -186,7 +348,10 @@ public abstract class EnemyBase : MonoBehaviour
         // Apply knockback
         if (knockbackDirection != Vector2.zero && rb != null)
         {
-            ApplyKnockback(knockbackDirection.normalized);
+            TryApplyDamageKnockback(
+                appliedDamage,
+                knockbackDirection,
+                weaponKnockbackMultiplier);
         }
         
         // Flash effect on hit
@@ -202,10 +367,153 @@ public abstract class EnemyBase : MonoBehaviour
     
     public void ApplyKnockback(Vector2 direction)
     {
-        if (rb == null) return;
+        ApplyKnockback(direction, enemyKnockbackForce);
+    }
+
+    /// <summary>
+    /// Evaluates knockback using a separately accumulated damage amount. Cone
+    /// weapons can apply damage in small ticks, then make one roll using the
+    /// total damage dealt by the complete cone.
+    /// </summary>
+    public bool TryApplyDamageKnockback(
+        float accumulatedDamage,
+        Vector2 knockbackDirection,
+        float weaponKnockbackMultiplier = 1f)
+    {
+        if (rb == null || knockbackDirection == Vector2.zero) return false;
+
+        float roll = UnityEngine.Random.value;
+        float safeMultiplier = Mathf.Max(0f, weaponKnockbackMultiplier);
+        float force = CalculateDamageKnockbackForce(
+                Mathf.Max(0f, accumulatedDamage),
+                roll) *
+            safeMultiplier;
+        if (force <= 0f) return false;
+
+        PrepareForIncomingKnockback();
+        if (!ApplyKnockbackInternal(knockbackDirection.normalized, force))
+            return false;
+
+        // Cone damage can continue arriving after recoil begins. Remember this
+        // one roll so later cone ticks strengthen the same motion without
+        // repeatedly rerolling luck or creating a second delayed knockback.
+        activeDamageKnockbackRoll = roll;
+        activeDamageKnockbackMultiplier = safeMultiplier;
+        return true;
+    }
+
+    /// <summary>
+    /// Strengthens an already-running damage knockback as more damage from the
+    /// same cone arrives. This never restarts or extends the recoil timer.
+    /// </summary>
+    public void StrengthenActiveDamageKnockback(
+        float accumulatedDamage,
+        Vector2 knockbackDirection,
+        float weaponKnockbackMultiplier = 1f)
+    {
+        if (!isKnockedBack || activeDamageKnockbackRoll < 0f || rb == null)
+            return;
+
+        float safeMultiplier = Mathf.Max(0f, weaponKnockbackMultiplier);
+        if (!Mathf.Approximately(safeMultiplier, activeDamageKnockbackMultiplier))
+            return;
+
+        float force = CalculateDamageKnockbackForce(
+                Mathf.Max(0f, accumulatedDamage),
+                activeDamageKnockbackRoll) *
+            safeMultiplier;
+        force = Mathf.Clamp(force, 0f, MaxSafeKnockbackForce);
+
+        if (force > activeKnockbackForce)
+            activeKnockbackForce = force;
+        if (knockbackDirection.sqrMagnitude > 0.0001f)
+            activeKnockbackDirection = knockbackDirection.normalized;
+    }
+
+    /// <summary>
+    /// Melee enemies use this to cancel a pinned attack before recoil begins.
+    /// Other enemy types can ignore it and receive knockback immediately.
+    /// </summary>
+    protected virtual void PrepareForIncomingKnockback()
+    {
+    }
+
+    public void ApplyKnockback(Vector2 direction, float force)
+    {
+        activeDamageKnockbackRoll = -1f;
+        activeDamageKnockbackMultiplier = 1f;
+        ApplyKnockbackInternal(direction, force);
+    }
+
+    private bool ApplyKnockbackInternal(Vector2 direction, float force)
+    {
+        if (rb == null || direction == Vector2.zero || force <= 0f) return false;
+        if (Time.time < nextKnockbackTime) return false;
+
+        nextKnockbackTime = Time.time + enemyKnockbackCooldown;
+        force = Mathf.Clamp(force, 0f, MaxSafeKnockbackForce);
+
+        // Melee attacks pin the body to keep collision contacts stable. Save
+        // the strongest hit and release it as soon as that animation unlocks.
+        if (attackBodyLocked)
+        {
+            if (!hasQueuedKnockback || force > queuedKnockbackForce)
+            {
+                hasQueuedKnockback = true;
+                queuedKnockbackDirection = direction.normalized;
+                queuedKnockbackForce = force;
+            }
+            return true;
+        }
+
+        StartKnockback(direction, force);
+        return true;
+    }
+
+    private void StartKnockback(Vector2 direction, float force)
+    {
+        activeKnockbackDirection = direction.normalized;
         isKnockedBack = true;
         knockbackTimer = enemyKnockbackDuration;
-        rb.linearVelocity = direction * enemyKnockbackForce;
+        activeKnockbackForce = force;
+        rb.linearVelocity = activeKnockbackDirection * force;
+    }
+
+    private float CalculateDamageKnockbackForce(float damage, float roll)
+    {
+        float maxHealth = Mathf.Max(0.0001f, MaxHealth);
+        float relativeDamage = damage / maxHealth;
+
+        // Damage below the threshold is still applied normally, but it never
+        // enters the random roll. In particular, zero damage cannot recoil.
+        if (relativeDamage < minimumDamageFractionForKnockback)
+            return 0f;
+
+        float damageScalar = Mathf.Clamp01(
+            relativeDamage / Mathf.Max(0.01f, damageFractionForMaxKnockback));
+
+        if (damageScalar >= 1f)
+            return enemyKnockbackForce;
+
+        if (roll >= 1f - rareMaximumKnockbackChance)
+            return enemyKnockbackForce;
+
+        float ordinaryRollRange = Mathf.Max(0.0001f, 1f - rareMaximumKnockbackChance);
+        float biasedLuck = Mathf.Pow(
+            Mathf.Clamp01(roll / ordinaryRollRange),
+            knockbackRandomBias);
+
+        // Relative damage raises the guaranteed floor. Luck then chooses a
+        // point between that floor and maximum, heavily biased toward the floor.
+        float forceScalar = Mathf.Lerp(damageScalar, 1f, biasedLuck);
+        return Mathf.Lerp(minimumEnemyKnockbackForce, enemyKnockbackForce, forceScalar);
+    }
+
+    private void ClearQueuedKnockback()
+    {
+        hasQueuedKnockback = false;
+        queuedKnockbackDirection = Vector2.zero;
+        queuedKnockbackForce = 0f;
     }
     
     private System.Collections.IEnumerator HitFlash()
@@ -265,6 +573,10 @@ public abstract class EnemyBase : MonoBehaviour
             if (knockbackTimer <= 0f)
             {
                 isKnockedBack = false;
+                activeKnockbackForce = 0f;
+                activeKnockbackDirection = Vector2.zero;
+                activeDamageKnockbackRoll = -1f;
+                activeDamageKnockbackMultiplier = 1f;
             }
         }
 
@@ -284,6 +596,15 @@ public abstract class EnemyBase : MonoBehaviour
     {
         // Update position in spatial hash for efficient neighbor queries
         EnemySpatialHash.Instance?.UpdatePosition(this);
+
+        // Contacts with the player or a packed crowd can consume a velocity
+        // assigned only once. Reassert the bounded recoil for its short active
+        // window so a qualifying hit produces real, visible displacement.
+        if (isKnockedBack && rb != null)
+        {
+            rb.linearVelocity = activeKnockbackDirection * activeKnockbackForce;
+            return;
+        }
         
         // Apply separation from other enemies and player in physics step
         ApplySeparation();
@@ -359,6 +680,9 @@ public abstract class EnemyBase : MonoBehaviour
     /// </summary>
     public virtual void ResetForPool()
     {
+        ClearQueuedKnockback();
+        UnlockBodyAfterAttack(false);
+
         // Elite instances are pooled. Restore the prefab's baseline before the
         // spawner applies wave scaling or rolls elite status for this spawn.
         var eliteEffects = GetComponent<EliteEnemyEffects>();
@@ -375,6 +699,11 @@ public abstract class EnemyBase : MonoBehaviour
         healthBarVisable = false;
         isKnockedBack = false;
         knockbackTimer = 0f;
+        nextKnockbackTime = 0f;
+        activeKnockbackForce = 0f;
+        activeKnockbackDirection = Vector2.zero;
+        activeDamageKnockbackRoll = -1f;
+        activeDamageKnockbackMultiplier = 1f;
         
         if (cachedSpriteRenderer != null)
         {
@@ -434,30 +763,86 @@ public abstract class EnemyBase : MonoBehaviour
             }
         }
         
-        // Gentle separation from player - just prevent complete overlap, allow melee attacks
-        if (player != null)
-        {
-            Vector2 toMe = myPos - (Vector2)player.position;
-            float dist = toMe.magnitude;
-            
-            // Only push if extremely close (inside player)
-            if (dist > 0.001f && dist < playerSeparationRadius)
-            {
-                float t = 1f - (dist / playerSeparationRadius);
-                float strength = t * t; // Quadratic - gentle push
-                separationVelocity += toMe.normalized * strength * playerSeparationForce;
-            }
-        }
-        
-        // Apply separation as velocity change (capped to prevent flying)
+        // Player/enemy separation is handled by solid colliders. Applying an
+        // additional repulsion velocity here was the source of launch spikes
+        // when the player pressed into an enemy.
+
+        // Apply enemy/enemy separation as a bounded steering velocity. This is
+        // deliberately a direct steering contribution rather than a tiny
+        // per-second impulse; otherwise chase acceleration immediately erases
+        // it and every enemy chooses the same line into the player.
         if (separationVelocity.sqrMagnitude > 0.01f)
         {
-            // Cap separation velocity to prevent enemies flying off
             if (separationVelocity.magnitude > maxSeparationSpeed)
             {
                 separationVelocity = separationVelocity.normalized * maxSeparationSpeed;
             }
-            rb.linearVelocity += separationVelocity * Time.fixedDeltaTime;
+            rb.linearVelocity += separationVelocity;
         }
+
+        // Never allow steering or a collision correction to accumulate into a
+        // launch velocity. Explicit attack knockback has its own bounded state.
+        float speedLimit = isKnockedBack
+            ? Mathf.Max(activeKnockbackForce, Speed)
+            : Mathf.Max(maxSeparationSpeed, Speed);
+        rb.linearVelocity = Vector2.ClampMagnitude(rb.linearVelocity, speedLimit);
+    }
+
+    /// <summary>
+    /// Returns true when the solid player and enemy colliders are no farther
+    /// apart than the supplied world-space gap.
+    /// </summary>
+    protected bool IsPlayerWithinColliderGap(float maxGap)
+    {
+        return GetPlayerColliderGap() <= Mathf.Max(0f, maxGap);
+    }
+
+    /// <summary>
+    /// Current edge-to-edge distance between the solid enemy and player bodies.
+    /// </summary>
+    protected float GetPlayerColliderGap()
+    {
+        if (bodyCollider == null || player == null) return float.PositiveInfinity;
+
+        if (playerCollider == null || !playerCollider.enabled)
+            playerCollider = FindSolidCollider(player);
+
+        if (playerCollider == null) return float.PositiveInfinity;
+
+        ColliderDistance2D distance = bodyCollider.Distance(playerCollider);
+        return distance.isOverlapped ? 0f : Mathf.Max(0f, distance.distance);
+    }
+
+    /// <summary>
+    /// Validates that the attack's visual lunge can physically reach the player
+    /// and that the player is still in front of the recorded strike direction.
+    /// </summary>
+    protected bool IsPlayerWithinAttackContact(
+        float attackReach,
+        Vector2 attackDirection,
+        float minimumFacingDot = 0.5f)
+    {
+        if (!IsPlayerWithinColliderGap(attackReach)) return false;
+
+        Vector2 toPlayer = (Vector2)playerCollider.bounds.center - (Vector2)bodyCollider.bounds.center;
+        if (toPlayer.sqrMagnitude < 0.0001f || attackDirection.sqrMagnitude < 0.0001f)
+            return true;
+
+        return Vector2.Dot(attackDirection.normalized, toPlayer.normalized) >= minimumFacingDot;
+    }
+
+    private static Collider2D FindSolidCollider(Transform target)
+    {
+        if (target == null) return null;
+
+        Collider2D[] colliders = target.GetComponentsInChildren<Collider2D>(true);
+        for (int i = 0; i < colliders.Length; i++)
+        {
+            Collider2D candidate = colliders[i];
+            if (candidate != null && candidate.enabled && !candidate.isTrigger)
+                return candidate;
+        }
+
+        return null;
     }
 }
