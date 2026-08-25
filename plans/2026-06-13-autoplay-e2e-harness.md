@@ -45,7 +45,8 @@ The key architectural decision that makes this work:
     `Show()`, `Hide()`, `IsShowing()` are public; `SelectUpgrade(int)` is private.
   - `ForceLandscapeAspect` sets `timeScale=0` while the window is portrait → we
     force a landscape resolution at boot.
-- **Scenes (build order):** `MainMenuScene`(0) → `Game`(1) → `EndGame`(2).
+- **Scenes (build order):** `MainMenuScene`(0) → `Game`(1). Run results are
+  presented by an overlay in the loaded `Game` scene.
   Autoplay jumps straight to `Game`.
 - **Determinism:** spawners use `Random.insideUnitCircle` → seed
   `UnityEngine.Random.InitState(seed)` at boot (best-effort in Phase 1).

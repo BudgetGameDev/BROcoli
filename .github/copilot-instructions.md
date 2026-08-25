@@ -3,10 +3,9 @@
 Unity 2D survival game (WebGL-first, PWA-enabled) where a broccoli with a corona mask survives enemy waves.
 
 ## Primary Scenes
-Work primarily in these three scenes (`Assets/Scenes/`):
+Work primarily in these two scenes (`Assets/Scenes/`):
 - **MainMenuScene** - Title screen, play buttons (desktop vs mobile), PWA install prompt
 - **Game** - Main gameplay with player, enemies, waves, pause menu
-- **EndGame** - Game over screen with restart/main menu buttons
 
 ## Responsive Design (CRITICAL)
 - **Landscape orientation only** - Game enforces horizontal layout via `ForceLandscapeAspect.cs`
@@ -46,7 +45,7 @@ Boosts auto-destroy after `_lifetime` seconds and trigger on player collision.
 - Use `TakeDamage(damage, knockbackDirection)` for hits with knockback
 
 ## Scene Structure
-- `MainMenuScene` → `Game` → `EndGame`
+- `MainMenuScene` → `Game`; run results use an in-scene `GameOverOverlay`
 - Scene loading: `SceneManager.LoadScene("SceneName")` or by build index
 - Pause uses `Time.timeScale = 0` (see `PauseMenu.cs`)
 
@@ -449,7 +448,6 @@ All changed `.cs` files MUST be maximum 300 lines of code. If a file exceeds 300
 Unity scene files (`.unity`) are YAML-based text files that can be edited directly:
 - `Assets/Scenes/Game.unity` - Main gameplay scene
 - `Assets/Scenes/MainMenuScene.unity` - Title/menu scene
-- `Assets/Scenes/EndGame.unity` - Game over scene
 
 **What the agent should do:**
 - Add/remove/modify GameObjects by editing the `.unity` file directly

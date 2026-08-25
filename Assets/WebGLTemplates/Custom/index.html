@@ -751,14 +751,14 @@
             });
         },
         
-        showEndGameCTA: function(score, minScore) {
+        showGameOverCTA: function(score, minScore) {
           minScore = minScore || 0;
           if (score < minScore) return;
           this.fetchStarCount();
           if (gameUIOverlay) gameUIOverlay.classList.add('visible');
         },
         
-        hideEndGameCTA: function() {
+        hideGameOverCTA: function() {
           if (gameUIOverlay) gameUIOverlay.classList.remove('visible');
         },
         

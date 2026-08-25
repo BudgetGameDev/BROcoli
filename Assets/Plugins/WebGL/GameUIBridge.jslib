@@ -2,19 +2,19 @@
 // JavaScript plugin for Unity WebGL to communicate with HTML UI overlay
 
 mergeInto(LibraryManager.library, {
-    ShowEndGameCTA: function(score, minScore) {
-        if (window.GameUI && window.GameUI.showEndGameCTA) {
-            window.GameUI.showEndGameCTA(score, minScore);
+    ShowGameOverCTA: function(score, minScore) {
+        if (window.GameUI && window.GameUI.showGameOverCTA) {
+            window.GameUI.showGameOverCTA(score, minScore);
         } else {
-            console.warn('[GameUIBridge] GameUI.showEndGameCTA not available');
+            console.warn('[GameUIBridge] GameUI.showGameOverCTA not available');
         }
     },
 
-    HideEndGameCTA: function() {
-        if (window.GameUI && window.GameUI.hideEndGameCTA) {
-            window.GameUI.hideEndGameCTA();
+    HideGameOverCTA: function() {
+        if (window.GameUI && window.GameUI.hideGameOverCTA) {
+            window.GameUI.hideGameOverCTA();
         } else {
-            console.warn('[GameUIBridge] GameUI.hideEndGameCTA not available');
+            console.warn('[GameUIBridge] GameUI.hideGameOverCTA not available');
         }
     },
 

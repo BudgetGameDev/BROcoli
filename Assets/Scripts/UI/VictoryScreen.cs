@@ -2,7 +2,6 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
-using UnityEngine.SceneManagement;
 using TMPro;
 using System;
 using System.Collections.Generic;
@@ -210,5 +209,22 @@ public class VictoryScreen : MonoBehaviour
     }
     
     private void OnContinueClicked() { Hide(); OnContinueToInfinite?.Invoke(); }
-    private void OnEndRunClicked() { Time.timeScale = 1f; OnEndRun?.Invoke(); SceneManager.LoadScene("EndGame"); }
+
+    private void OnEndRunClicked()
+    {
+        Hide();
+        OnEndRun?.Invoke();
+
+        GameStates gameStates = FindAnyObjectByType<GameStates>();
+        WaveGenerator waveGenerator = FindAnyObjectByType<WaveGenerator>();
+        int score = gameStates != null ? gameStates.score : 0;
+        int wave = waveGenerator != null ? waveGenerator.CurrentWaveNumber : 1;
+        bool infiniteMode = waveGenerator != null && waveGenerator.IsInfiniteMode;
+
+        PlayerPrefs.SetInt("LastScore", score);
+        PlayerPrefs.SetInt("LastWave", wave);
+        PlayerPrefs.SetInt("WasInfiniteMode", infiniteMode ? 1 : 0);
+        PlayerPrefs.Save();
+        GameOverOverlay.Show(score, wave, infiniteMode);
+    }
 }

@@ -10,9 +10,6 @@ EditorBuildSettings:
     guid: 732b5d6be8132d74ba6b7c50e4647e90
   - enabled: 1
     path: Assets/Scenes/Game.unity
-    guid: 278827ede80dd415ca3ac8ade73b3c72
-  - enabled: 1
-    path: Assets/Scenes/EndGame.unity
-    guid: 7afcf6e593a1f4449820662ee00a4a3b
+    guid: 934be44ec06e5754a8c76b23052ce237
   m_configObjects: {}
   m_UseUCBPForAssetBundles: 0
