@@ -44,6 +44,7 @@ public abstract class BoostBase : MonoBehaviour
         ActivePickups.Add(this);
         _currentSpeed = 0f;
         ConfigureMagnetBody();
+        PickupVisual3D.AttachBoost(this);
     }
 
     private void OnDisable()
