@@ -179,6 +179,49 @@
         border-radius: 2px;
         transition: width 0.3s ease;
       }
+
+      .startup-error {
+        box-sizing: border-box;
+        width: min(560px, calc(100vw - 40px));
+        padding: 28px;
+        border: 1px solid rgba(255, 107, 107, 0.55);
+        border-radius: 12px;
+        background: #151515;
+        color: #f3f3f3;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        text-align: left;
+        line-height: 1.5;
+      }
+
+      .startup-error h2 {
+        margin: 0 0 12px;
+        color: #ff8a8a;
+        font-size: 24px;
+      }
+
+      .startup-error p,
+      .startup-error ol {
+        margin: 10px 0;
+      }
+
+      .startup-error code {
+        padding: 2px 6px;
+        border-radius: 4px;
+        background: #2b2b2b;
+        color: #ffffff;
+      }
+
+      .startup-error button {
+        margin-top: 14px;
+        padding: 10px 18px;
+        border: 0;
+        border-radius: 6px;
+        background: #3b82f6;
+        color: #ffffff;
+        cursor: pointer;
+        font: inherit;
+        font-weight: 600;
+      }
       
       /* ==================== Game UI Overlay ==================== */
       #game-ui-overlay {
@@ -422,7 +465,9 @@
               attributes.powerPreference = 'high-performance';
               attributes.preserveDrawingBuffer = false;
               attributes.desynchronized = true;
-              attributes.failIfMajorPerformanceCaveat = true;
+              if (typeof attributes.failIfMajorPerformanceCaveat !== 'boolean') {
+                attributes.failIfMajorPerformanceCaveat = false;
+              }
             }
             return originalGetContext.call(this, type, attributes);
           };
@@ -582,6 +627,95 @@
       var loadingScreen = document.getElementById('loading-screen');
       var progressBar = document.getElementById('loading-progress-bar');
       var gameUIOverlay = document.getElementById('game-ui-overlay');
+
+      function showStartupError(title, message, steps) {
+        if (!loadingScreen) return;
+
+        loadingScreen.classList.remove('hidden');
+        loadingScreen.style.display = 'flex';
+        loadingScreen.replaceChildren();
+
+        var card = document.createElement('div');
+        card.className = 'startup-error';
+
+        var heading = document.createElement('h2');
+        heading.textContent = title;
+        card.appendChild(heading);
+
+        var detail = document.createElement('p');
+        detail.textContent = message;
+        card.appendChild(detail);
+
+        if (steps && steps.length) {
+          var list = document.createElement('ol');
+          steps.forEach(function(step) {
+            var item = document.createElement('li');
+            item.textContent = step;
+            list.appendChild(item);
+          });
+          card.appendChild(list);
+
+          var settingsHint = document.createElement('p');
+          settingsHint.appendChild(document.createTextNode('Chrome settings: '));
+          var settingsPath = document.createElement('code');
+          settingsPath.textContent = 'chrome://settings/system';
+          settingsHint.appendChild(settingsPath);
+          card.appendChild(settingsHint);
+        }
+
+        var retry = document.createElement('button');
+        retry.type = 'button';
+        retry.textContent = 'Retry';
+        retry.addEventListener('click', function() {
+          window.location.reload();
+        });
+        card.appendChild(retry);
+        loadingScreen.appendChild(card);
+      }
+
+      function checkGraphicsSupport() {
+        if (typeof WebAssembly !== 'object') {
+          return { ok: false, reason: 'This browser does not support WebAssembly.' };
+        }
+
+        try {
+          var probe = document.createElement('canvas');
+          var options = {
+            powerPreference: 'high-performance',
+            failIfMajorPerformanceCaveat: true
+          };
+          var context = probe.getContext('webgl2', options) ||
+                        probe.getContext('webgl', options) ||
+                        probe.getContext('experimental-webgl', options);
+          if (!context) {
+            return {
+              ok: false,
+              reason: 'WebGL could not access a hardware-accelerated graphics device.'
+            };
+          }
+
+          var loseContext = context.getExtension('WEBGL_lose_context');
+          if (loseContext) loseContext.loseContext();
+          return { ok: true };
+        } catch (error) {
+          return {
+            ok: false,
+            reason: 'The browser blocked WebGL graphics initialization.'
+          };
+        }
+      }
+
+      function showHardwareAccelerationError(reason) {
+        showStartupError(
+          'Hardware acceleration is required',
+          reason + ' Enable graphics acceleration, restart Chrome, and then retry.',
+          [
+            'Open Chrome Settings and select System.',
+            'Turn on “Use graphics acceleration when available”.',
+            'Select Relaunch to restart Chrome.'
+          ]
+        );
+      }
       
       // ==================== Game UI Bridge ====================
       // This allows Unity to control HTML UI elements
@@ -779,7 +913,7 @@
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', function() {
           try {
-            navigator.serviceWorker.register('sw.js')
+            navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' })
               .then(function(registration) {
                 try {
                   registration.update();
@@ -821,6 +955,12 @@
 
       // Function to start the Unity game
       function startUnityGame() {
+        var graphicsSupport = checkGraphicsSupport();
+        if (!graphicsSupport.ok) {
+          showHardwareAccelerationError(graphicsSupport.reason);
+          return;
+        }
+
         createUnityInstance(document.querySelector("#unity-canvas"), {
           dataUrl: "Build/{{{ DATA_FILENAME }}}",
           frameworkUrl: "Build/{{{ FRAMEWORK_FILENAME }}}",
@@ -928,9 +1068,18 @@
             return;
           }
           
-          // Second attempt also failed - check if we should show offline message
+          // Second attempt also failed - show a readable, actionable message.
           if (loadingScreen) {
             var errorMessage = (error && error.message) ? error.message : 'Could not load game files.';
+            var normalizedError = String(errorMessage).toLowerCase();
+
+            if (normalizedError.includes('webgl') ||
+                normalizedError.includes('graphics') ||
+                normalizedError.includes('gpu') ||
+                normalizedError.includes('context')) {
+              showHardwareAccelerationError('The browser could not create the WebGL graphics context.');
+              return;
+            }
             
             // Provide helpful message based on state
             if (!navigator.onLine) {
@@ -942,7 +1091,7 @@
               }
             }
             
-            loadingScreen.innerHTML = '<div style="color: #ff6b6b; font-family: sans-serif; text-align: center; padding: 20px;"><h2>Failed to load game</h2><p>' + errorMessage + '</p><button onclick="window._unityRetryAttempted=false;location.reload()" style="padding: 10px 20px; margin-top: 10px; cursor: pointer; background: #333; color: #fff; border: none; border-radius: 4px;">Retry</button></div>';
+            showStartupError('Failed to load game', errorMessage);
           }
         });
       }

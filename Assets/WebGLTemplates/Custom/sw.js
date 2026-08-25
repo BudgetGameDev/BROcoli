@@ -3,7 +3,7 @@
 // IMPORTANT: Change CACHE_VERSION to force ALL clients to get fresh content!
 // This is the nuclear option - change this string and deploy to bust all caches.
 // =============================================================================
-const CACHE_VERSION = 'v2';
+const CACHE_VERSION = 'v3';
 
 // Detect if we're on the staging build (BranchMain) or release build (root)
 function detectBuildPath() {
@@ -30,6 +30,12 @@ function detectBuildPath() {
 
 const BUILD_INFO = detectBuildPath();
 const CACHE_NAME = `unity-game-cache-${CACHE_VERSION}-${BUILD_INFO.cachePrefix}`;
+const GAME_CACHE_PREFIX = 'unity-game-cache-';
+
+function isCurrentBuildCache(cacheName) {
+  return cacheName.startsWith(GAME_CACHE_PREFIX) &&
+         cacheName.endsWith(`-${BUILD_INFO.cachePrefix}`);
+}
 
 // Remote URL to check for version updates - dynamically set based on build path
 const VERSION_CHECK_URL = BUILD_INFO.versionUrl;
@@ -117,15 +123,16 @@ async function storeVersion(version) {
   }
 }
 
-// Clear ALL caches
+// Clear this build channel's game caches without evicting unrelated apps or
+// the other BROcoli channel (release versus staging).
 async function clearAllCaches() {
-  console.log('[ServiceWorker] Clearing ALL caches...');
+  console.log('[ServiceWorker] Clearing game caches for:', BUILD_INFO.cachePrefix);
   const cacheNames = await caches.keys();
-  await Promise.all(cacheNames.map(name => {
+  await Promise.all(cacheNames.filter(isCurrentBuildCache).map(name => {
     console.log('[ServiceWorker] Deleting cache:', name);
     return caches.delete(name);
   }));
-  console.log('[ServiceWorker] All caches cleared');
+  console.log('[ServiceWorker] Build-channel caches cleared');
 }
 
 // Check for updates and clear caches if new version found
@@ -200,10 +207,11 @@ self.addEventListener('activate', (event) => {
   console.log('[ServiceWorker] Activating...');
   event.waitUntil(
     (async () => {
-      // Delete ALL old caches (different cache names)
+      // Delete only old caches for this build channel. Release and staging
+      // are separate PWAs and must not continuously evict one another.
       const cacheNames = await caches.keys();
       await Promise.all(
-        cacheNames.map((cacheName) => {
+        cacheNames.filter(isCurrentBuildCache).map((cacheName) => {
           if (cacheName !== CACHE_NAME) {
             console.log('[ServiceWorker] Deleting old cache:', cacheName);
             return caches.delete(cacheName);

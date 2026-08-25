@@ -64,7 +64,9 @@ const VersionChecker = (function() {
     // Local storage key for cached version - separate for release vs staging
     localVersionKey: `brocoli_cached_version_${BUILD_INFO.cachePrefix}`,
     // Cache name used by service worker (must match sw.js)
-    cacheName: `unity-game-cache-v1-${BUILD_INFO.cachePrefix}`,
+    cacheVersion: 'v3',
+    cacheName: `unity-game-cache-v3-${BUILD_INFO.cachePrefix}`,
+    cachePrefix: 'unity-game-cache-',
     // Timeout for version check (ms)
     checkTimeout: 5000,
     // Enable debug logging
@@ -172,7 +174,7 @@ const VersionChecker = (function() {
    * Always returns gracefully - never throws
    */
   async function clearAllCaches() {
-    log('Clearing all caches...');
+    log('Clearing game caches for this build channel...');
     
     try {
       if (typeof caches === 'undefined') {
@@ -181,9 +183,14 @@ const VersionChecker = (function() {
       }
       const cacheNames = await caches.keys();
       log('Found caches:', cacheNames);
+
+      const buildSuffix = `-${CONFIG.buildInfo.cachePrefix}`;
+      const matchingCaches = cacheNames.filter(name =>
+        name.startsWith(CONFIG.cachePrefix) && name.endsWith(buildSuffix)
+      );
       
       await Promise.all(
-        cacheNames.map(name => {
+        matchingCaches.map(name => {
           try {
             log('Deleting cache:', name);
             return caches.delete(name);
@@ -194,7 +201,7 @@ const VersionChecker = (function() {
         })
       );
       
-      log('All caches cleared');
+      log('Build-channel caches cleared');
       return true;
     } catch (err) {
       warn('Failed to clear caches (non-blocking):', err);
@@ -203,7 +210,7 @@ const VersionChecker = (function() {
   }
 
   /**
-   * Unregisters and re-registers the service worker
+   * Requests a fresh service worker without leaving the page uncontrolled.
    * Always returns gracefully - never throws
    */
   async function refreshServiceWorker() {
@@ -212,20 +219,24 @@ const VersionChecker = (function() {
         return false;
       }
       
-      log('Refreshing service worker...');
+      log('Checking service worker for updates...');
       
       const registrations = await navigator.serviceWorker.getRegistrations();
       
       for (const registration of registrations) {
         try {
-          log('Unregistering service worker:', registration.scope);
-          await registration.unregister();
+          if (!window.location.href.startsWith(registration.scope)) continue;
+          log('Updating service worker:', registration.scope);
+          await registration.update();
+          if (registration.waiting) {
+            registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+          }
         } catch (e) {
-          warn('Failed to unregister SW (non-blocking):', e);
+          warn('Failed to update SW (non-blocking):', e);
         }
       }
       
-      log('All service workers unregistered');
+      log('Service worker update check complete');
       return true;
     } catch (err) {
       warn('Failed to refresh service worker (non-blocking):', err);
