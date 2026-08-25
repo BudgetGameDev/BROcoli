@@ -88,6 +88,27 @@ public class EndGameCTAManager : MonoBehaviour
             }
         }
     }
+
+    /// <summary>
+    /// Shows the existing end-game CTA while the Game scene remains loaded.
+    /// </summary>
+    public static void ShowForGameOverOverlay()
+    {
+        if (instance == null)
+        {
+            GameObject managerObj = new GameObject("EndGameCTAManager");
+            instance = managerObj.AddComponent<EndGameCTAManager>();
+            DontDestroyOnLoad(managerObj);
+        }
+
+        instance.StartCoroutine(instance.DelayedShowCTA());
+    }
+
+    public static void HideForGameOverOverlay()
+    {
+        if (instance != null)
+            instance.HideCTA();
+    }
     
     private System.Collections.IEnumerator DelayedShowCTA()
     {

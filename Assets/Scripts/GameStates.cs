@@ -19,6 +19,8 @@ public class GameStates : MonoBehaviour
 
     void Update()
     {
+        if (IsGameOver) return;
+
         gameTime += Time.deltaTime;
 
         int currentSecond = Mathf.FloorToInt(gameTime);

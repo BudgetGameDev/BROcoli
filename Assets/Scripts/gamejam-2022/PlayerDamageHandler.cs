@@ -1,5 +1,5 @@
+using System.Collections;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 
 /// <summary>
 /// Handles damage reception, knockback triggering, and death/game-over logic.
@@ -14,18 +14,26 @@ public class PlayerDamageHandler : MonoBehaviour
     private const float MaxKnockbackForce = 2.25f;
     private const float DamageImmunityDuration = 0.3f; // Immunity frames after taking damage
 
+    [Header("Death Sequence")]
+    [SerializeField, Min(0.2f)] private float deathAnimationDuration = 0.9f;
+    [SerializeField] private float deathSpinDegrees = 220f;
+    [SerializeField, Range(0f, 0.25f)] private float finalDeathScale = 0.04f;
+
     private PlayerStats _playerStats;
     private PlayerMovement _playerMovement;
     private PlayerAudioHandler _audioHandler;
     private ShuffleWalkVisual _hopVisual;
 
     private bool _gameOver;
+    private bool _deathAnimationPlaying;
     private float _lastDamageTime = -999f; // Time of last damage taken
 
     /// <summary>
     /// Whether the game is over (player died).
     /// </summary>
     public bool IsGameOver => _gameOver;
+    public bool IsDeathAnimationPlaying => _deathAnimationPlaying;
+    public float DeathAnimationDuration => deathAnimationDuration;
 
     /// <summary>
     /// Event fired when game over occurs.
@@ -215,25 +223,70 @@ public class PlayerDamageHandler : MonoBehaviour
         _audioHandler?.StopAllAmbient();
         _audioHandler?.PlayGameOverSound();
 
-        // Save the final score
-        SaveFinalScore();
+        // Save and display the final run state without loading another scene.
+        SaveFinalRunStats(out int finalScore, out int finalWave, out bool wasInfiniteMode);
 
         // Notify listeners
         OnGameOver?.Invoke();
 
-        // Destroy player and load end game scene
-        Destroy(gameObject);
-        SceneManager.LoadScene("EndGame");
+        StopPlayerSimulation();
+        StartCoroutine(PlayDeathSequence(finalScore, finalWave, wasInfiniteMode));
     }
 
-    private void SaveFinalScore()
+    private void StopPlayerSimulation()
     {
-        var gameStates = FindAnyObjectByType<GameStates>();
-        if (gameStates != null)
+        foreach (Collider2D playerCollider in GetComponents<Collider2D>())
+            playerCollider.enabled = false;
+
+        Rigidbody2D body = GetComponent<Rigidbody2D>();
+        if (body != null)
         {
-            PlayerPrefs.SetInt("LastScore", gameStates.score);
-            PlayerPrefs.Save();
-            Debug.Log($"Saved final score: {gameStates.score}");
+            body.linearVelocity = Vector2.zero;
+            body.angularVelocity = 0f;
+            body.simulated = false;
         }
+    }
+
+    private IEnumerator PlayDeathSequence(int score, int wave, bool infiniteMode)
+    {
+        _deathAnimationPlaying = true;
+        Vector3 startScale = transform.localScale;
+        Quaternion startRotation = transform.localRotation;
+        float duration = Mathf.Max(0.2f, deathAnimationDuration);
+        float elapsed = 0f;
+
+        while (elapsed < duration)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            float t = Mathf.Clamp01(elapsed / duration);
+            float eased = 1f - Mathf.Pow(1f - t, 3f);
+            transform.localScale = Vector3.LerpUnclamped(
+                startScale,
+                startScale * finalDeathScale,
+                eased);
+            transform.localRotation = startRotation *
+                Quaternion.Euler(0f, 0f, deathSpinDegrees * eased);
+            yield return null;
+        }
+
+        transform.localScale = startScale * finalDeathScale;
+        transform.localRotation = startRotation * Quaternion.Euler(0f, 0f, deathSpinDegrees);
+        _deathAnimationPlaying = false;
+        GameOverOverlay.Show(score, wave, infiniteMode);
+    }
+
+    private void SaveFinalRunStats(out int score, out int wave, out bool infiniteMode)
+    {
+        GameStates gameStates = FindAnyObjectByType<GameStates>();
+        WaveGenerator waveGenerator = FindAnyObjectByType<WaveGenerator>();
+        score = gameStates != null ? gameStates.score : 0;
+        wave = waveGenerator != null ? waveGenerator.CurrentWaveNumber : 1;
+        infiniteMode = waveGenerator != null && waveGenerator.IsInfiniteMode;
+
+        PlayerPrefs.SetInt("LastScore", score);
+        PlayerPrefs.SetInt("LastWave", wave);
+        PlayerPrefs.SetInt("WasInfiniteMode", infiniteMode ? 1 : 0);
+        PlayerPrefs.Save();
+        Debug.Log($"Saved final run: score {score}, wave {wave}, infinite {infiniteMode}");
     }
 }
