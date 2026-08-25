@@ -29,6 +29,8 @@ public static class SpraySettings
     public const float HandRotationSpeed = 720f;       // Degrees per second
     public const float AimDelayBeforeSpray = 0.08f;
     public const bool ShowHandAlways = true;
+    public const float HandHoverAmplitude = 0.035f;
+    public const float HandHoverSpeed = 3.2f;
 
     // ==================== Particle Settings ====================
     public const float ParticleSpeedMultiplier = 2.5f;

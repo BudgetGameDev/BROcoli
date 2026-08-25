@@ -135,6 +135,12 @@ public class SprayHandVisuals
     {
         sprayTransform.localRotation = Quaternion.Euler(0, 0, currentHandAngle);
         sprayTransform.localPosition = new Vector3(0, 0, SpraySettings.VisualZOffset);
+
+        // The weapon is held by a detached, hovering hand. Keeping the float on
+        // the visual child preserves the exact 2D aim and damage direction.
+        float hover = Mathf.Sin(Time.time * SpraySettings.HandHoverSpeed) *
+            SpraySettings.HandHoverAmplitude;
+        handTransform.localPosition = new Vector3(SpraySettings.HandOffset, hover, 0f);
         
         bool left = CurrentDirection.x < -0.1f;
         weaponVisual?.SetFacingLeft(left);

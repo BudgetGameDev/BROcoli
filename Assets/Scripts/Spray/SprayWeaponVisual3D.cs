@@ -212,10 +212,10 @@ public sealed class SprayWeaponVisual3D : MonoBehaviour
         CreatePart(
             modelRoot,
             "Floating Faceted Palm",
-            GetBoxMesh(),
-            new Vector3(-0.067f, -0.088f, -0.04f),
-            Quaternion.Euler(-8f, 14f, -9f),
-            new Vector3(0.145f, 0.145f, 0.13f),
+            GetCylinderMesh(),
+            new Vector3(-0.058f, -0.09f, -0.045f),
+            Quaternion.Euler(-6f, 10f, -9f),
+            new Vector3(0.13f, 0.145f, 0.075f),
             skin);
 
         for (int i = 0; i < 3; i++)
