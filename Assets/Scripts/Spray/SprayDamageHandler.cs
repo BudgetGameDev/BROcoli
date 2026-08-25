@@ -80,7 +80,7 @@ public class SprayDamageHandler
         // Queue damage with travel time delay
         float damageMultiplier = playerStats != null ? playerStats.CurrentSprayDamageMultiplier : 1f;
         float baseDamage = playerStats != null 
-            ? playerStats.CurrentDamage * 0.35f 
+            ? playerStats.CurrentDamage * 0.14f
             : SpraySettings.BaseDamagePerParticle * 3f;
         
         foreach (var kvp in particleHitCounts)

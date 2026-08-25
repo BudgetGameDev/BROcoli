@@ -528,7 +528,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   currentWeapon: 1
-  debugBaseDamage: 10
+  debugBaseDamage: 5
 --- !u!4 &44608742
 Transform:
   m_ObjectHideFlags: 0

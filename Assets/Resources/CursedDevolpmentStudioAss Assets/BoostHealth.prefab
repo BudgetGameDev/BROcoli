@@ -108,15 +108,15 @@ MonoBehaviour:
   m_GameObject: {fileID: 1283658744970203081}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fbe75c7017baf614a97d9d17b6520e4f, type: 3}
+  m_Script: {fileID: 11500000, guid: 27c4c747c8513ff479a58aa4422b747d, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::AttackSpeedBoost
+  m_EditorClassIdentifier: Assembly-CSharp::HealthBoost
   _body: {fileID: 6421616807745494299}
   _collider: {fileID: 4322895420277670855}
   _lifetime: 30
   _audioSource: {fileID: 9086111368359350390}
   _audioClip: {fileID: 8300000, guid: 04cf3690e21d75e46ad88a108f66755e, type: 3}
-  _attackSpeedMultiplier: 0.9
+  _healthAmount: 25
 --- !u!212 &2904784604095676032
 SpriteRenderer:
   serializedVersion: 2

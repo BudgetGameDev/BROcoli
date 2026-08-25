@@ -16,7 +16,8 @@ public class ProceduralBoostAudio : MonoBehaviour
         DetectionRadius,// Radar ping/sonar
         SprayRange,     // Extending reach sound
         SprayWidth,     // Spreading expansion sound
-        Magnet          // Magnetic pull whoosh
+        Magnet,         // Magnetic pull whoosh
+        TimeSlow        // Descending clock-like chime
     }
 
     [Header("Volume")]
@@ -120,6 +121,8 @@ public class ProceduralBoostAudio : MonoBehaviour
                 return GenerateSprayWidthSound();
             case BoostSoundType.Magnet:
                 return GenerateMagnetSound();
+            case BoostSoundType.TimeSlow:
+                return GenerateTimeSlowSound();
             default:
                 return GenerateHealthSound();
         }
@@ -690,6 +693,25 @@ public class ProceduralBoostAudio : MonoBehaviour
         }
         
         return FinalizeClip("MagnetBoost", numSamples, duration);
+    }
+
+    private static AudioClip GenerateTimeSlowSound()
+    {
+        float duration = 0.5f;
+        int numSamples = Mathf.Min(Mathf.CeilToInt(duration * sampleRate), audioBuffer.Length);
+
+        for (int i = 0; i < numSamples; i++)
+        {
+            float t = (float)i / sampleRate;
+            float norm = t / duration;
+            float frequency = Mathf.Lerp(1100f, 220f, norm * norm);
+            float envelope = Mathf.Sin(norm * Mathf.PI) * Mathf.Exp(-norm * 0.8f);
+            float tick = Mathf.Sin(t * frequency * Mathf.PI * 2f);
+            float overtone = Mathf.Sin(t * frequency * 2.01f * Mathf.PI * 2f) * 0.25f;
+            audioBuffer[i] = SoftClip((tick + overtone) * envelope * 0.65f);
+        }
+
+        return FinalizeClip("TimeSlowBoost", numSamples, duration);
     }
 
     #endregion

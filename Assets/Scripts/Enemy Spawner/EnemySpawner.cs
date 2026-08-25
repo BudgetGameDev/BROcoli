@@ -12,7 +12,9 @@ public class EnemySpawner : MonoBehaviour
 
     [Header("Powerup Drops")]
     [SerializeField] private GameObject[] powerupPrefabs;
-    [SerializeField] private float powerupDropChance = 0.15f;
+    [SerializeField, Range(0f, 1f)] private float powerupDropChance = 0.04f;
+    [SerializeField, Min(0f)] private float minimumPowerupDropInterval = 15f;
+    [SerializeField, Min(1f)] private float fallbackPickupSpacing = 12f;
     
     [Header("Elite Settings")]
     [SerializeField] private float eliteChance = 0.05f;
@@ -39,7 +41,7 @@ public class EnemySpawner : MonoBehaviour
     
     private int aliveEnemies;
     private WaveConfig currentWave;
-    private bool hasPowerupDroppedThisWave = false;
+    private float nextPowerupDropTime;
     private int actualEnemyCount;
     private int currentWaveNumber = 1;
 
@@ -65,7 +67,6 @@ public class EnemySpawner : MonoBehaviour
         currentWaveNumber = waveNumber;
         IsWaveComplete = false;
         aliveEnemies = 0;
-        hasPowerupDroppedThisWave = false;
         
         actualEnemyCount = currentWave.GetRandomizedEnemyCount();
         
@@ -130,8 +131,9 @@ public class EnemySpawner : MonoBehaviour
         float jitter = UnityEngine.Random.Range(-segmentJitterDegrees, segmentJitterDegrees);
         float angle = (baseAngle + jitter) * Mathf.Deg2Rad;
         
-        // Randomized spawn distance
-        float distance = UnityEngine.Random.Range(minSpawnDistance, maxSpawnDistance);
+        float distance = currentWave.spawnDistance >= 4f
+            ? currentWave.spawnDistance
+            : UnityEngine.Random.Range(minSpawnDistance, maxSpawnDistance);
         
         // Calculate spawn position
         Vector2 offset = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * distance;
@@ -215,7 +217,7 @@ public class EnemySpawner : MonoBehaviour
         if (enemy is HydraEnemyScript hydra)
             hydra.OnChildSpawned -= HandleHydraChildSpawned;
         
-        // Try to drop a powerup (max 1 per wave for non-elites)
+        // Elites get their guaranteed attempt from HandleEliteDeath.
         if (!enemy.isElite)
         {
             TryDropPowerup(enemy.transform.position);
@@ -251,31 +253,46 @@ public class EnemySpawner : MonoBehaviour
     
     private void HandleEliteDeath(Vector3 position)
     {
-        // Elites ALWAYS drop a powerup (doesn't count toward regular wave drop)
-        if (powerupPrefabs == null || powerupPrefabs.Length == 0) return;
-        
-        GameObject prefab = powerupPrefabs[UnityEngine.Random.Range(0, powerupPrefabs.Length)];
-        Instantiate(prefab, position, Quaternion.identity);
-        Debug.Log($"Elite powerup dropped at {position}!");
+        TryDropPowerup(position, true);
     }
     
-    private void TryDropPowerup(Vector3 position)
+    private void TryDropPowerup(Vector3 position, bool guaranteedRoll = false)
     {
-        // Only one powerup can drop per wave
-        if (hasPowerupDroppedThisWave) return;
-        
-        // Check if we have any powerup prefabs
         if (powerupPrefabs == null || powerupPrefabs.Length == 0) return;
-        
-        // Roll for drop chance
-        if (UnityEngine.Random.value > powerupDropChance) return;
-        
-        // Drop a random powerup
-        GameObject prefab = powerupPrefabs[UnityEngine.Random.Range(0, powerupPrefabs.Length)];
+        if (Time.time < nextPowerupDropTime) return;
+        if (!guaranteedRoll && UnityEngine.Random.value > powerupDropChance) return;
+        if (BoostBase.IsScreenAreaOccupied(position, Camera.main, fallbackPickupSpacing)) return;
+
+        GameObject prefab = ChooseWeightedPowerup();
+        if (prefab == null) return;
+
         Instantiate(prefab, position, Quaternion.identity);
-        hasPowerupDroppedThisWave = true;
-        
-        Debug.Log($"Powerup dropped at {position}!");
+        nextPowerupDropTime = Time.time + minimumPowerupDropInterval;
+        Debug.Log($"Dropped {prefab.name} at {position}.");
+    }
+
+    private GameObject ChooseWeightedPowerup()
+    {
+        float totalWeight = 0f;
+        foreach (GameObject prefab in powerupPrefabs)
+        {
+            BoostBase boost = prefab != null ? prefab.GetComponent<BoostBase>() : null;
+            if (boost != null) totalWeight += Mathf.Max(0f, boost.DropWeight);
+        }
+
+        if (totalWeight <= 0f) return null;
+
+        float roll = UnityEngine.Random.value * totalWeight;
+        foreach (GameObject prefab in powerupPrefabs)
+        {
+            BoostBase boost = prefab != null ? prefab.GetComponent<BoostBase>() : null;
+            if (boost == null) continue;
+
+            roll -= Mathf.Max(0f, boost.DropWeight);
+            if (roll <= 0f) return prefab;
+        }
+
+        return powerupPrefabs[powerupPrefabs.Length - 1];
     }
     
     /// <summary>

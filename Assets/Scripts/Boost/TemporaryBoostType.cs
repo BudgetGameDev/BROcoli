@@ -10,5 +10,6 @@ public enum TemporaryBoostType
     DetectionRadius,
     SprayRange,
     SprayWidth,
-    Magnet  // Attracts pickups in a radius around the player
+    Magnet,
+    TimeSlow
 }

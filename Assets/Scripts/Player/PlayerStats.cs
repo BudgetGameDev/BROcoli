@@ -20,7 +20,7 @@ public class PlayerStats : MonoBehaviour
     private const float DefaultHealth = 100f;
     private const float DefaultMaxHealth = 100f;
     private const float DefaultAttackSpeed = 0.6f;
-    public const float DefaultBaseDamage = 10f;
+    public const float DefaultBaseDamage = 5f;
     private const float DefaultMovementSpeed = 4f;
     private const float DefaultMaxExperience = 30f;
     private const float DefaultDetectionRadius = 12f;
@@ -72,7 +72,10 @@ public class PlayerStats : MonoBehaviour
     private float _tempDamageBonus;
     private float _tempAttackSpeedMultiplier;
     private float _tempHealthRegenBonus;
+    private float _tempEnemyTimeScale = 1f;
     private float _debugBaseDamage = DefaultBaseDamage;
+
+    public static float ActiveEnemyTimeScale { get; private set; } = 1f;
 
 // UI references - discovered dynamically
     private Bar _healthBar;
@@ -83,7 +86,7 @@ public class PlayerStats : MonoBehaviour
     public bool IsAlive => _currentHealth > 0f;
     public float CurrentHealth => _currentHealth;
     public float CurrentMaxHealth => _currentMaxHealth;
-    public float CurrentAttackSpeed => _currentAttackSpeed * (1f - _tempAttackSpeedMultiplier); // Lower = faster
+    public float CurrentAttackSpeed => Mathf.Max(0.15f, _currentAttackSpeed * (1f - _tempAttackSpeedMultiplier)); // Lower = faster
     public float CurrentDamage =>
         _currentDamage + _tempDamageBonus + (_debugBaseDamage - DefaultBaseDamage);
     public float CurrentMovementSpeed => _currentMovementSpeed + _tempMovementSpeedBonus;
@@ -174,6 +177,7 @@ public class PlayerStats : MonoBehaviour
         _tempDamageBonus = 0f;
         _tempAttackSpeedMultiplier = 0f;
         _tempHealthRegenBonus = 0f;
+        _tempEnemyTimeScale = 1f;
         
         foreach (var boost in _activeBoosts)
         {
@@ -191,8 +195,15 @@ public class PlayerStats : MonoBehaviour
                 case TemporaryBoostType.HealthRegen:
                     _tempHealthRegenBonus += boost.amount;
                     break;
+                case TemporaryBoostType.TimeSlow:
+                    _tempEnemyTimeScale = Mathf.Min(
+                        _tempEnemyTimeScale,
+                        Mathf.Clamp(boost.amount, 0.1f, 1f));
+                    break;
             }
         }
+
+        ActiveEnemyTimeScale = _tempEnemyTimeScale;
     }
     
     /// <summary>
@@ -200,7 +211,21 @@ public class PlayerStats : MonoBehaviour
     /// </summary>
     public void ApplyTemporaryBoost(TemporaryBoostType type, float amount, float duration)
     {
-        // Add the boost
+        // Repeated pickups refresh their effect instead of stacking it.
+        for (int i = 0; i < _activeBoosts.Count; i++)
+        {
+            ActiveBoost active = _activeBoosts[i];
+            if (active.type != type) continue;
+
+            active.amount = type == TemporaryBoostType.TimeSlow
+                ? Mathf.Min(active.amount, amount)
+                : Mathf.Max(active.amount, amount);
+            active.remainingTime = Mathf.Max(active.remainingTime, duration);
+            _activeBoosts[i] = active;
+            RecalculateTemporaryBonuses();
+            return;
+        }
+
         _activeBoosts.Add(new ActiveBoost
         {
             type = type,
@@ -310,9 +335,16 @@ public class PlayerStats : MonoBehaviour
         _tempDamageBonus = 0f;
         _tempAttackSpeedMultiplier = 0f;
         _tempHealthRegenBonus = 0f;
+        _tempEnemyTimeScale = 1f;
+        ActiveEnemyTimeScale = 1f;
 
         _healthBar?.UpdateBar(_currentHealth, _currentMaxHealth);
         _experienceBar?.UpdateBar(_currentExperience, _currentMaxExperience);
+    }
+
+    private void OnDisable()
+    {
+        ActiveEnemyTimeScale = 1f;
     }
 
     /// <summary>

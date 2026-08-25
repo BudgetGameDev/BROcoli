@@ -13,7 +13,7 @@ public class PlayerStatsDisplay : MonoBehaviour
     
     // Track stat changes from base values
     private float baseMaxHealth = 100f;
-    private float baseDamage = 10f;
+    private float baseDamage = 5f;
     private float baseSpeed = 4f;
     private float baseAttackSpeed = 0.6f;
     private float baseDetection = 12f;

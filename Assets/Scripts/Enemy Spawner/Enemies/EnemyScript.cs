@@ -140,14 +140,14 @@ public class EnemyScript : EnemyBase
 
         if (colliderGap > standOffGap + standOffDeadZone)
         {
-            targetVel = dir * Speed;
+            targetVel = dir * Speed * EnemyTimeScale;
         }
         else if (colliderGap < standOffGap - standOffDeadZone)
         {
             float retreatSpeed = Mathf.Min(
                 Speed,
                 Mathf.Max(0.35f, (standOffGap - colliderGap) * acceleration));
-            targetVel = -dir * retreatSpeed;
+            targetVel = -dir * retreatSpeed * EnemyTimeScale;
         }
         else
         {
@@ -155,7 +155,10 @@ public class EnemyScript : EnemyBase
         }
 
         // Smooth acceleration towards target velocity
-        rb.linearVelocity = Vector2.MoveTowards(rb.linearVelocity, targetVel, acceleration * Time.fixedDeltaTime);
+        rb.linearVelocity = Vector2.MoveTowards(
+            rb.linearVelocity,
+            targetVel,
+            acceleration * EnemyTimeScale * Time.fixedDeltaTime);
         
         // Apply separation AFTER movement (so it can push away)
         base.FixedUpdate();
@@ -186,7 +189,7 @@ public class EnemyScript : EnemyBase
         hasDamagedThisAttack = false; // Reset damage flag for new attack
         attackPhase = 1; // Start with windup
         attackTimer = 0f;
-        nextMeleeAttackTime = Time.time + meleeAttackCooldown;
+        nextMeleeAttackTime = Time.time + meleeAttackCooldown / Mathf.Max(0.1f, EnemyTimeScale);
         // Calculate lunge direction toward player
         attackDirection = ((Vector2)player.position - (Vector2)transform.position).normalized;
         activeAttackReach = GetAttackReach();
@@ -217,7 +220,7 @@ public class EnemyScript : EnemyBase
     {
         if (!isAttacking) return;
         
-        attackTimer += Time.deltaTime;
+        attackTimer += Time.deltaTime * EnemyTimeScale;
         
         switch (attackPhase)
         {

@@ -1,16 +1,17 @@
 ﻿using UnityEngine;
 
 /// <summary>
-/// Temporary attack speed boost - gives significant attack speed for 20 seconds
+/// Temporary 20% attack-speed boost for 10 seconds.
 /// </summary>
 public class AttackSpeedBoost : BoostBase
 {
     public override float Amount => _attackSpeedMultiplier;
+    public override float DropWeight => 0.5f;
     public override float Duration => _duration;
     public override ProceduralBoostAudio.BoostSoundType BoostSoundType => ProceduralBoostAudio.BoostSoundType.AttackSpeed;
 
-    [SerializeField] private float _attackSpeedMultiplier = 0.5f;  // 50% faster attacks
-    [SerializeField] private float _duration = 20f;
+    [SerializeField] private float _attackSpeedMultiplier = 0.2f;
+    [SerializeField] private float _duration = 10f;
 
     public override void Apply(PlayerStats stats)
     {

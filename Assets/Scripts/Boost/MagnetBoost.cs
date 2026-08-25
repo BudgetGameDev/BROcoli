@@ -1,20 +1,20 @@
 using UnityEngine;
 
 /// <summary>
-/// Temporary magnet boost - attracts pickups (XP orbs) towards the player for 20 seconds.
-/// The Amount specifies the magnet radius.
+/// Temporary magnet boost that attracts every dropped pickup and XP orb,
+/// including objects beyond the current camera view.
 /// </summary>
 public class MagnetBoost : BoostBase
 {
-    public override float Amount => _magnetRadius;
+    public override float Amount => 1f;
+    public override float DropWeight => 0.8f;
     public override float Duration => _duration;
     public override ProceduralBoostAudio.BoostSoundType BoostSoundType => ProceduralBoostAudio.BoostSoundType.Magnet;
 
-    [SerializeField] private float _magnetRadius = 10f;  // Pickup attraction radius
-    [SerializeField] private float _duration = 20f;
+    [SerializeField] private float _duration = 10f;
 
     public override void Apply(PlayerStats stats)
     {
-        stats.ApplyTemporaryBoost(TemporaryBoostType.Magnet, _magnetRadius, _duration);
+        stats.ApplyTemporaryBoost(TemporaryBoostType.Magnet, Amount, _duration);
     }
 }

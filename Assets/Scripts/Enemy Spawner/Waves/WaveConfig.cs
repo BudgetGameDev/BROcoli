@@ -21,6 +21,11 @@ public class WaveConfig : ScriptableObject
     [Tooltip("Random variation applied to spawn interval (+/- this value in seconds)")]
     [Min(0f)]
     public float spawnIntervalVariation = 0f;
+
+    [Header("Spawn Position")]
+    [Tooltip("Distance from the player at which enemies enter this wave.")]
+    [Min(4f)]
+    public float spawnDistance = 10f;
     
     /// <summary>
     /// Returns a randomized enemy count based on enemyCount and enemyCountVariation.

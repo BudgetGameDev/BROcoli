@@ -5,7 +5,10 @@ using UnityEngine;
 
 public abstract class BoostBase : MonoBehaviour
 {
+    private static readonly HashSet<BoostBase> ActivePickups = new HashSet<BoostBase>();
+
     public abstract float Amount { get; }
+    public virtual float DropWeight => 1f;
     
     /// <summary>
     /// Duration of the boost effect in seconds. 0 = permanent/instant.
@@ -19,8 +22,8 @@ public abstract class BoostBase : MonoBehaviour
     // Magnet attraction
     private Transform _playerTransform;
     private PlayerStats _playerStats;
-    private const float MagnetSpeed = 12f;  // Speed to move towards player
-    private const float MagnetAcceleration = 25f;  // How fast to accelerate
+    private const float MagnetSpeed = 20f;
+    private const float MagnetAcceleration = 40f;
     private float _currentSpeed = 0f;
 
     /// <summary>
@@ -29,6 +32,54 @@ public abstract class BoostBase : MonoBehaviour
     public abstract ProceduralBoostAudio.BoostSoundType BoostSoundType { get; }
 
     public abstract void Apply(PlayerStats stats);
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetPickupRegistry()
+    {
+        ActivePickups.Clear();
+    }
+
+    private void OnEnable()
+    {
+        ActivePickups.Add(this);
+    }
+
+    private void OnDisable()
+    {
+        ActivePickups.Remove(this);
+    }
+
+    /// <summary>
+    /// Returns true when another pickup already occupies an area approximately
+    /// one camera viewport wide and tall around the proposed drop point.
+    /// </summary>
+    public static bool IsScreenAreaOccupied(Vector3 position, Camera camera, float fallbackWorldSize)
+    {
+        ActivePickups.RemoveWhere(pickup => pickup == null);
+
+        foreach (BoostBase pickup in ActivePickups)
+        {
+            if (camera == null)
+            {
+                if (((Vector2)pickup.transform.position - (Vector2)position).sqrMagnitude
+                    <= fallbackWorldSize * fallbackWorldSize)
+                {
+                    return true;
+                }
+                continue;
+            }
+
+            Vector3 candidateViewport = camera.WorldToViewportPoint(position);
+            Vector3 pickupViewport = camera.WorldToViewportPoint(pickup.transform.position);
+            if (Mathf.Abs(candidateViewport.x - pickupViewport.x) <= 1f
+                && Mathf.Abs(candidateViewport.y - pickupViewport.y) <= 1f)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     private void Start()
     {
@@ -45,22 +96,13 @@ public abstract class BoostBase : MonoBehaviour
     
     private void Update()
     {
-        // Check for magnet attraction (skip for magnet boost itself to avoid recursion)
-        if (this is MagnetBoost) return;
-        
+        // The magnet intentionally reaches beyond the visible screen and pulls
+        // every pickup type, including another magnet pickup.
         if (_playerStats != null && _playerStats.HasMagnetActive && _playerTransform != null && _body != null)
         {
-            float magnetRadius = _playerStats.MagnetRadius;
-            float distanceToPlayer = Vector2.Distance(transform.position, _playerTransform.position);
-            
-            if (distanceToPlayer <= magnetRadius)
-            {
-                // Accelerate towards player
-                _currentSpeed = Mathf.MoveTowards(_currentSpeed, MagnetSpeed, MagnetAcceleration * Time.deltaTime);
-                
-                Vector2 direction = ((Vector2)_playerTransform.position - (Vector2)transform.position).normalized;
-                _body.linearVelocity = direction * _currentSpeed;
-            }
+            _currentSpeed = Mathf.MoveTowards(_currentSpeed, MagnetSpeed, MagnetAcceleration * Time.deltaTime);
+            Vector2 direction = ((Vector2)_playerTransform.position - (Vector2)transform.position).normalized;
+            _body.linearVelocity = direction * _currentSpeed;
         }
         else if (_currentSpeed > 0f && _body != null)
         {

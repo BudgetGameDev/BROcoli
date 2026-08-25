@@ -550,7 +550,7 @@ public class PauseMenu : MonoBehaviour
         }
         
         // Base values for comparison
-        float baseMaxHealth = 100f, baseDamage = 10f, baseSpeed = 4f;
+        float baseMaxHealth = 100f, baseDamage = 5f, baseSpeed = 4f;
         float baseAttackSpeed = 0.6f, baseDetection = 12f;
         float baseCritChance = 5f, baseCritDamage = 150f;
         float baseDodge = 0f, baseArmor = 0f, baseRegen = 0f, baseLifeSteal = 0f;

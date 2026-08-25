@@ -116,7 +116,8 @@ MonoBehaviour:
   _lifetime: 30
   _audioSource: {fileID: 7495466551354166353}
   _audioClip: {fileID: 8300000, guid: 04cf3690e21d75e46ad88a108f66755e, type: 3}
-  _damage: 10
+  _damage: 2
+  _duration: 10
 --- !u!212 &2904784604095676032
 SpriteRenderer:
   serializedVersion: 2

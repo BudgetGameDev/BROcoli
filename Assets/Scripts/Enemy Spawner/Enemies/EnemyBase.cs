@@ -59,6 +59,7 @@ public abstract class EnemyBase : MonoBehaviour
     public Transform player;
 
     public Rigidbody2D rb;
+    protected float EnemyTimeScale => PlayerStats.ActiveEnemyTimeScale;
     protected Collider2D bodyCollider;
     private Collider2D playerCollider;
     
