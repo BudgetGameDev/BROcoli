@@ -76,6 +76,7 @@ public class PlayerStats : MonoBehaviour
     private float _debugBaseDamage = DefaultBaseDamage;
 
     public static float ActiveEnemyTimeScale { get; private set; } = 1f;
+    public static Transform ActiveMagnetTarget { get; private set; }
 
 // UI references - discovered dynamically
     private Bar _healthBar;
@@ -109,6 +110,13 @@ public class PlayerStats : MonoBehaviour
     private void Awake()
     {
         DiscoverUIComponents();
+    }
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetGlobalEffectState()
+    {
+        ActiveEnemyTimeScale = 1f;
+        ActiveMagnetTarget = null;
     }
 
     private void Start()
@@ -178,6 +186,7 @@ public class PlayerStats : MonoBehaviour
         _tempAttackSpeedMultiplier = 0f;
         _tempHealthRegenBonus = 0f;
         _tempEnemyTimeScale = 1f;
+        bool magnetActive = false;
         
         foreach (var boost in _activeBoosts)
         {
@@ -200,10 +209,14 @@ public class PlayerStats : MonoBehaviour
                         _tempEnemyTimeScale,
                         Mathf.Clamp(boost.amount, 0.1f, 1f));
                     break;
+                case TemporaryBoostType.Magnet:
+                    magnetActive = true;
+                    break;
             }
         }
 
         ActiveEnemyTimeScale = _tempEnemyTimeScale;
+        ActiveMagnetTarget = magnetActive ? transform : null;
     }
     
     /// <summary>
@@ -337,6 +350,7 @@ public class PlayerStats : MonoBehaviour
         _tempHealthRegenBonus = 0f;
         _tempEnemyTimeScale = 1f;
         ActiveEnemyTimeScale = 1f;
+        ActiveMagnetTarget = null;
 
         _healthBar?.UpdateBar(_currentHealth, _currentMaxHealth);
         _experienceBar?.UpdateBar(_currentExperience, _currentMaxExperience);
@@ -345,6 +359,8 @@ public class PlayerStats : MonoBehaviour
     private void OnDisable()
     {
         ActiveEnemyTimeScale = 1f;
+        if (ActiveMagnetTarget == transform)
+            ActiveMagnetTarget = null;
     }
 
     /// <summary>

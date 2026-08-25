@@ -19,11 +19,11 @@ public abstract class BoostBase : MonoBehaviour
     [SerializeField] private Collider2D _collider;
     [SerializeField] private float _lifetime = 30f;
     
-    // Magnet attraction
-    private Transform _playerTransform;
-    private PlayerStats _playerStats;
-    private const float MagnetSpeed = 20f;
-    private const float MagnetAcceleration = 40f;
+    // Global magnet attraction. Far-away drops move faster so even objects at
+    // the edge of the map can visibly reach the player before the effect ends.
+    private const float MinimumMagnetSpeed = 18f;
+    private const float MaximumMagnetSpeed = 60f;
+    private const float MagnetAcceleration = 120f;
     private float _currentSpeed = 0f;
 
     /// <summary>
@@ -42,6 +42,8 @@ public abstract class BoostBase : MonoBehaviour
     private void OnEnable()
     {
         ActivePickups.Add(this);
+        _currentSpeed = 0f;
+        ConfigureMagnetBody();
     }
 
     private void OnDisable()
@@ -84,30 +86,61 @@ public abstract class BoostBase : MonoBehaviour
     private void Start()
     {
         Destroy(gameObject, _lifetime);
-        
-        // Find player for magnet effect
-        GameObject player = GameObject.FindGameObjectWithTag("Player");
-        if (player != null)
+    }
+
+    private void ConfigureMagnetBody()
+    {
+        if (_body == null)
+            _body = GetComponent<Rigidbody2D>();
+        if (_collider == null)
+            _collider = GetComponent<Collider2D>();
+
+        if (_body != null)
         {
-            _playerTransform = player.transform;
-            _playerStats = player.GetComponent<PlayerStats>();
+            _body.gravityScale = 0f;
+            _body.constraints = RigidbodyConstraints2D.FreezeRotation;
+            _body.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
         }
+
+        if (_collider != null)
+            _collider.isTrigger = true;
     }
     
-    private void Update()
+    private void FixedUpdate()
     {
-        // The magnet intentionally reaches beyond the visible screen and pulls
-        // every pickup type, including another magnet pickup.
-        if (_playerStats != null && _playerStats.HasMagnetActive && _playerTransform != null && _body != null)
+        Transform target = PlayerStats.ActiveMagnetTarget;
+
+        // The target is global, so pickups already off-screen and pickups that
+        // spawn after collection join the same attraction immediately.
+        if (target != null && _body != null)
         {
-            _currentSpeed = Mathf.MoveTowards(_currentSpeed, MagnetSpeed, MagnetAcceleration * Time.deltaTime);
-            Vector2 direction = ((Vector2)_playerTransform.position - (Vector2)transform.position).normalized;
-            _body.linearVelocity = direction * _currentSpeed;
+            Vector2 toPlayer = (Vector2)target.position - _body.position;
+            float distance = toPlayer.magnitude;
+            if (distance <= 0.001f)
+            {
+                _body.linearVelocity = Vector2.zero;
+                return;
+            }
+
+            float targetSpeed = Mathf.Clamp(
+                distance * 4f,
+                MinimumMagnetSpeed,
+                MaximumMagnetSpeed);
+            _currentSpeed = Mathf.MoveTowards(
+                _currentSpeed,
+                targetSpeed,
+                MagnetAcceleration * Time.fixedDeltaTime);
+            Vector2 direction = toPlayer / distance;
+            float arrivalSpeed = distance * 0.75f / Mathf.Max(Time.fixedDeltaTime, 0.001f);
+            _body.WakeUp();
+            _body.linearVelocity = direction * Mathf.Min(_currentSpeed, arrivalSpeed);
         }
         else if (_currentSpeed > 0f && _body != null)
         {
-            // Magnet expired, slow down
-            _currentSpeed = Mathf.MoveTowards(_currentSpeed, 0f, MagnetAcceleration * Time.deltaTime);
+            _currentSpeed = Mathf.MoveTowards(
+                _currentSpeed,
+                0f,
+                MagnetAcceleration * Time.fixedDeltaTime);
             if (_currentSpeed <= 0.1f)
             {
                 _body.linearVelocity = Vector2.zero;
@@ -119,16 +152,9 @@ public abstract class BoostBase : MonoBehaviour
     private void OnTriggerEnter2D(Collider2D other)
     {
         Debug.Log($"BoostBase OnTriggerEnter2D with {other.name}");
-        if (other.CompareTag("Player") == false)
-        {
-            return;
-        }
-
-        PlayerStats stats = other.GetComponentInChildren<PlayerStats>();
-
+        PlayerStats stats = other.GetComponentInParent<PlayerStats>();
         if (stats == null)
         {
-            Debug.Log("PlayerStats component not found on player!");
             return;
         }
 

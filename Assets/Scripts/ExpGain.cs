@@ -10,11 +10,10 @@ public class ExpGain : MonoBehaviour
     private Rigidbody2D rb;
     private Collider2D col;
     
-    // Magnet attraction
-    private Transform _playerTransform;
-    private PlayerStats _playerStats;
-    private const float MagnetSpeed = 20f;
-    private const float MagnetAcceleration = 40f;
+    // Global magnet attraction
+    private const float MinimumMagnetSpeed = 18f;
+    private const float MaximumMagnetSpeed = 60f;
+    private const float MagnetAcceleration = 120f;
     private float _currentSpeed = 0f;
     
     // Pooling support
@@ -26,6 +25,7 @@ public class ExpGain : MonoBehaviour
         rb = GetComponent<Rigidbody2D>();
         col = GetComponent<Collider2D>();
         rb.gravityScale = 0f;
+        rb.constraints = RigidbodyConstraints2D.FreezeRotation;
         rb.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
 
         col.isTrigger = true;
@@ -33,14 +33,6 @@ public class ExpGain : MonoBehaviour
     
     void OnEnable()
     {
-        // Get cached references from GameContext (single lookup, not per-object)
-        var context = GameContext.Instance;
-        if (context != null)
-        {
-            _playerTransform = context.PlayerTransform;
-            _playerStats = context.PlayerStats;
-        }
-        
         _spawnTime = Time.time;
         _currentSpeed = 0f;
     }
@@ -81,17 +73,40 @@ public class ExpGain : MonoBehaviour
             return;
         }
         
-        // Check for magnet attraction
-        if (_playerStats != null && _playerStats.HasMagnetActive && _playerTransform != null)
+    }
+
+    void FixedUpdate()
+    {
+        Transform target = PlayerStats.ActiveMagnetTarget;
+        if (target != null && rb != null)
         {
-            _currentSpeed = Mathf.MoveTowards(_currentSpeed, MagnetSpeed, MagnetAcceleration * Time.deltaTime);
-            Vector2 direction = ((Vector2)_playerTransform.position - (Vector2)transform.position).normalized;
-            rb.linearVelocity = direction * _currentSpeed;
+            Vector2 toPlayer = (Vector2)target.position - rb.position;
+            float distance = toPlayer.magnitude;
+            if (distance <= 0.001f)
+            {
+                rb.linearVelocity = Vector2.zero;
+                return;
+            }
+
+            float targetSpeed = Mathf.Clamp(
+                distance * 4f,
+                MinimumMagnetSpeed,
+                MaximumMagnetSpeed);
+            _currentSpeed = Mathf.MoveTowards(
+                _currentSpeed,
+                targetSpeed,
+                MagnetAcceleration * Time.fixedDeltaTime);
+            Vector2 direction = toPlayer / distance;
+            float arrivalSpeed = distance * 0.75f / Mathf.Max(Time.fixedDeltaTime, 0.001f);
+            rb.WakeUp();
+            rb.linearVelocity = direction * Mathf.Min(_currentSpeed, arrivalSpeed);
         }
-        else if (_currentSpeed > 0f)
+        else if (_currentSpeed > 0f && rb != null)
         {
-            // Magnet expired, slow down
-            _currentSpeed = Mathf.MoveTowards(_currentSpeed, 0f, MagnetAcceleration * Time.deltaTime);
+            _currentSpeed = Mathf.MoveTowards(
+                _currentSpeed,
+                0f,
+                MagnetAcceleration * Time.fixedDeltaTime);
             if (_currentSpeed <= 0.1f)
             {
                 rb.linearVelocity = Vector2.zero;
