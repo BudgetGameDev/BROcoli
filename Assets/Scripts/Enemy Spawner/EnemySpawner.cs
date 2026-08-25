@@ -63,18 +63,35 @@ public class EnemySpawner : MonoBehaviour
         Vector2 spawnPos = (Vector2)player.position + UnityEngine.Random.insideUnitCircle.normalized * 10f;
 
         GameObject enemy = Instantiate(prefab, spawnPos, Quaternion.identity);
-        aliveEnemies++;
+        TrackEnemy(enemy.GetComponent<EnemyBase>());
+    }
 
-        EnemyBase e = enemy.GetComponent<EnemyBase>();
-        if (e != null)
+    private void TrackEnemy(EnemyBase enemy)
+    {
+        if (enemy == null) return;
+
+        aliveEnemies++;
+        enemy.OnDeath += HandleEnemyDeath;
+
+        if (enemy is HydraEnemyScript hydra)
         {
-            e.OnDeath += HandleEnemyDeath;
+            hydra.OnChildSpawned += HandleHydraChildSpawned;
         }
+    }
+
+    private void HandleHydraChildSpawned(HydraEnemyScript child)
+    {
+        TrackEnemy(child);
     }
 
     private void HandleEnemyDeath(EnemyBase enemy)
     {
         enemy.OnDeath -= HandleEnemyDeath;
+
+        if (enemy is HydraEnemyScript hydra)
+        {
+            hydra.OnChildSpawned -= HandleHydraChildSpawned;
+        }
         
         // Try to drop a powerup (max 1 per wave)
         TryDropPowerup(enemy.transform.position);
@@ -107,4 +124,3 @@ public class EnemySpawner : MonoBehaviour
         Debug.Log($"Powerup dropped at {position}!");
     }
 }
-

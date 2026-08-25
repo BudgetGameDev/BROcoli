@@ -1,4 +1,6 @@
+using System;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 /// <summary>
 /// Hydra enemy that splits into smaller copies when killed.
@@ -9,14 +11,17 @@ using UnityEngine;
 public class HydraEnemyScript : EnemyBase
 {
     [Header("Hydra Split Settings")]
-    [SerializeField] private int splitCount = 2;           // How many children spawn on death
-    [SerializeField] private int currentGeneration = 0;    // 0 = original, increases with each split
-    [SerializeField] private int maxGenerations = 2;       // Max splits (0->1->2, then dies for real)
-    [SerializeField] private float childScaleMultiplier = 0.7f;  // Each generation is 70% the size
-    [SerializeField] private float childHealthMultiplier = 0.5f; // Each generation has 50% health
-    [SerializeField] private float childDamageMultiplier = 0.7f; // Each generation does 70% damage
-    [SerializeField] private float childSpeedMultiplier = 1.1f;  // Each generation is 10% faster
-    [SerializeField] private float splitSpawnRadius = 0.5f;      // How far apart children spawn
+    [SerializeField, Min(2)] private int splitCount = 2;
+    [SerializeField, Min(0)] private int currentGeneration = 0;
+    [SerializeField, Min(0)] private int maxGenerations = 2;
+    [SerializeField, Range(0.25f, 0.9f)] private float childScaleMultiplier = 0.7f;
+    [SerializeField, Range(0.1f, 1f)] private float childHealthMultiplier = 0.5f;
+    [SerializeField, Range(0.1f, 1f)] private float childDamageMultiplier = 0.7f;
+    [SerializeField, Min(0.1f)] private float childSpeedMultiplier = 1.1f;
+    [SerializeField, Min(0f)] private float splitSpawnRadius = 0.5f;
+    [SerializeField, Min(0f)] private float splitImpulse = 3f;
+
+    public event Action<HydraEnemyScript> OnChildSpawned;
     
     [Header("Melee Attack")]
     [SerializeField] private float meleeRange = 0.9f;
@@ -31,6 +36,7 @@ public class HydraEnemyScript : EnemyBase
     [SerializeField] private float attackScaleBoost = 1.3f;
     [SerializeField] private Color attackFlashColor = Color.red;
     private bool isAttacking = false;
+    private bool hasDamagedThisAttack = false;
     private float attackTimer = 0f;
     private int attackPhase = 0;
     private Vector3 attackStartPos;
@@ -39,13 +45,12 @@ public class HydraEnemyScript : EnemyBase
     private SpriteRenderer spriteRenderer;
     private Color originalColor;
     private Transform visualTransform;
+    private EnemyWalkAnimation walkAnimation;
     
     [Header("Melee Audio")]
     [SerializeField] private ProceduralEnemyMeleeAudio meleeAudio;
     
-    private static bool isQuitting = false;
     private bool hasSpawnedChildren = false;
-    private GameStates gameStates;
 
     protected override void Awake()
     {
@@ -53,18 +58,36 @@ public class HydraEnemyScript : EnemyBase
         
         if (meleeAudio == null)
             meleeAudio = GetComponent<ProceduralEnemyMeleeAudio>();
+
+        walkAnimation = GetComponent<EnemyWalkAnimation>();
         
-        spriteRenderer = GetComponentInChildren<SpriteRenderer>();
-        if (spriteRenderer != null)
+        Renderer visualRenderer = null;
+
+        foreach (SpriteRenderer candidate in GetComponentsInChildren<SpriteRenderer>(true))
         {
-            originalColor = spriteRenderer.color;
-            visualTransform = spriteRenderer.transform;
-            baseLocalScale = visualTransform.localScale;
+            if (!candidate.enabled || candidate.sprite == null) continue;
+
+            spriteRenderer = candidate;
+            visualRenderer = candidate;
+            originalColor = candidate.color;
+            break;
         }
-        else
+
+        if (visualRenderer == null)
         {
-            visualTransform = transform;
-            baseLocalScale = transform.localScale;
+            foreach (MeshRenderer candidate in GetComponentsInChildren<MeshRenderer>(true))
+            {
+                if (!candidate.enabled) continue;
+
+                visualRenderer = candidate;
+                break;
+            }
+        }
+
+        if (visualRenderer != null && visualRenderer.transform != transform)
+        {
+            visualTransform = visualRenderer.transform;
+            baseLocalScale = visualTransform.localScale;
         }
     }
 
@@ -72,6 +95,13 @@ public class HydraEnemyScript : EnemyBase
     {
         if (player == null) return;
         
+        if (isAttacking)
+        {
+            rb.linearVelocity = Vector2.zero;
+            base.FixedUpdate();
+            return;
+        }
+
         if (isKnockedBack)
         {
             base.FixedUpdate();
@@ -96,7 +126,7 @@ public class HydraEnemyScript : EnemyBase
         
         UpdateAttackAnimation();
         
-        if (player != null && !isAttacking)
+        if (player != null && !isAttacking && !isKnockedBack)
         {
             float distToPlayer = Vector2.Distance(transform.position, player.position);
             if (distToPlayer <= meleeRange && Time.time >= nextMeleeAttackTime)
@@ -109,16 +139,14 @@ public class HydraEnemyScript : EnemyBase
     /// <summary>
     /// Initialize this hydra as a child of another hydra
     /// </summary>
-    public void InitAsChild(int generation, float parentHealth, float parentDamage, float parentSpeed, Vector3 parentScale)
+    private void InitAsChild(int generation, float parentHealth, float parentDamage, float parentSpeed, Vector3 parentScale)
     {
         currentGeneration = generation;
-        
-        // Scale down stats based on generation
-        float healthMult = Mathf.Pow(childHealthMultiplier, generation);
-        float damageMult = Mathf.Pow(childDamageMultiplier, generation);
-        float speedMult = Mathf.Pow(childSpeedMultiplier, generation);
-        float scaleMult = Mathf.Pow(childScaleMultiplier, generation);
-        
+
+        // Runtime delegates are not part of a child hydra's inherited state.
+        OnChildSpawned = null;
+        hasSpawnedChildren = false;
+
         MaxHealth = parentHealth * childHealthMultiplier;
         Health = MaxHealth;
         Damage = parentDamage * childDamageMultiplier;
@@ -134,32 +162,24 @@ public class HydraEnemyScript : EnemyBase
         meleeRange *= childScaleMultiplier;
     }
 
-    void OnDestroy()
+    protected override void OnKilled()
     {
-        if (isQuitting) return;
-        if (!gameObject.scene.isLoaded) return;
-        if (hasSpawnedChildren) return;
-        
-        // Spawn children if we haven't reached max generations
-        if (currentGeneration < maxGenerations)
+        if (!hasSpawnedChildren && currentGeneration < maxGenerations)
         {
             SpawnChildren();
         }
-    }
-    
-    void OnApplicationQuit()
-    {
-        isQuitting = true;
     }
     
     private void SpawnChildren()
     {
         hasSpawnedChildren = true;
         
-        for (int i = 0; i < splitCount; i++)
+        int childrenToSpawn = Mathf.Max(2, splitCount);
+
+        for (int i = 0; i < childrenToSpawn; i++)
         {
             // Calculate spawn position in a circle around death position
-            float angle = (360f / splitCount) * i + Random.Range(-15f, 15f);
+            float angle = (360f / childrenToSpawn) * i + Random.Range(-15f, 15f);
             Vector2 offset = new Vector2(
                 Mathf.Cos(angle * Mathf.Deg2Rad),
                 Mathf.Sin(angle * Mathf.Deg2Rad)
@@ -174,7 +194,6 @@ public class HydraEnemyScript : EnemyBase
             HydraEnemyScript childHydra = child.GetComponent<HydraEnemyScript>();
             if (childHydra != null)
             {
-                childHydra.hasSpawnedChildren = false; // Reset so it can spawn its own children
                 childHydra.InitAsChild(
                     currentGeneration + 1,
                     MaxHealth,
@@ -182,13 +201,15 @@ public class HydraEnemyScript : EnemyBase
                     Speed,
                     transform.localScale
                 );
+
+                OnChildSpawned?.Invoke(childHydra);
             }
             
             // Give child a small impulse away from spawn point
             Rigidbody2D childRb = child.GetComponent<Rigidbody2D>();
             if (childRb != null)
             {
-                childRb.linearVelocity = offset.normalized * 3f;
+                childRb.linearVelocity = offset.normalized * splitImpulse;
             }
         }
     }
@@ -198,12 +219,18 @@ public class HydraEnemyScript : EnemyBase
         if (player == null) return;
         
         isAttacking = true;
+        hasDamagedThisAttack = false;
+        walkAnimation?.SetAttackOverride(true);
         attackPhase = 1;
         attackTimer = 0f;
-        attackStartPos = visualTransform.localPosition;
+        nextMeleeAttackTime = Time.time + meleeAttackCooldown;
         
-        Vector2 toPlayer = ((Vector2)player.position - (Vector2)transform.position).normalized;
-        attackTargetPos = attackStartPos + (Vector3)(toPlayer * attackLungeDistance);
+        if (visualTransform != null)
+        {
+            attackStartPos = visualTransform.localPosition;
+            Vector2 toPlayer = ((Vector2)player.position - (Vector2)transform.position).normalized;
+            attackTargetPos = attackStartPos + (Vector3)(toPlayer * attackLungeDistance);
+        }
     }
     
     private void UpdateAttackAnimation()
@@ -220,9 +247,8 @@ public class HydraEnemyScript : EnemyBase
                 {
                     attackPhase = 2;
                     attackTimer = 0f;
-                    PerformMeleeAttack();
                 }
-                else
+                else if (visualTransform != null)
                 {
                     Vector3 pullBack = attackStartPos - (attackTargetPos - attackStartPos) * 0.3f;
                     visualTransform.localPosition = Vector3.Lerp(attackStartPos, pullBack, EaseOutQuad(windupT));
@@ -237,12 +263,19 @@ public class HydraEnemyScript : EnemyBase
                 
             case 2: // Strike
                 float strikeT = attackTimer / attackStrikeDuration;
+
+                if (strikeT >= 0.6f && !hasDamagedThisAttack)
+                {
+                    hasDamagedThisAttack = true;
+                    PerformMeleeAttack();
+                }
+
                 if (strikeT >= 1f)
                 {
                     attackPhase = 3;
                     attackTimer = 0f;
                 }
-                else
+                else if (visualTransform != null)
                 {
                     Vector3 pullBack = attackStartPos - (attackTargetPos - attackStartPos) * 0.3f;
                     visualTransform.localPosition = Vector3.Lerp(pullBack, attackTargetPos, EaseOutQuad(strikeT));
@@ -260,12 +293,17 @@ public class HydraEnemyScript : EnemyBase
                 {
                     isAttacking = false;
                     attackPhase = 0;
-                    visualTransform.localPosition = attackStartPos;
-                    visualTransform.localScale = baseLocalScale;
+                    if (visualTransform != null)
+                    {
+                        visualTransform.localPosition = attackStartPos;
+                        visualTransform.localScale = baseLocalScale;
+                    }
                     if (spriteRenderer != null)
                         spriteRenderer.color = originalColor;
+
+                    walkAnimation?.SetAttackOverride(false);
                 }
-                else
+                else if (visualTransform != null)
                 {
                     visualTransform.localPosition = Vector3.Lerp(attackTargetPos, attackStartPos, EaseOutQuad(recoverT));
                     
@@ -295,8 +333,6 @@ public class HydraEnemyScript : EnemyBase
             
             if (playerController.TakeMeleeDamage(Damage, knockbackDir))
             {
-                nextMeleeAttackTime = Time.time + meleeAttackCooldown;
-                
                 if (meleeAudio != null)
                 {
                     meleeAudio.PlayMeleeSound();

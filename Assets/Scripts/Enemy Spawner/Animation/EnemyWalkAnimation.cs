@@ -28,6 +28,7 @@ public class EnemyWalkAnimation : MonoBehaviour
     private Rigidbody2D rb;
     private float timeOffset;
     private float currentSpin = 0f;
+    private bool attackOverride = false;
     
     void Start()
     {
@@ -66,7 +67,7 @@ public class EnemyWalkAnimation : MonoBehaviour
     
     void Update()
     {
-        if (visualTransform == null) return;
+        if (visualTransform == null || attackOverride) return;
         
         float time = Time.time + timeOffset;
         float speed = rb != null ? rb.linearVelocity.magnitude : 0f;
@@ -104,6 +105,19 @@ public class EnemyWalkAnimation : MonoBehaviour
         // --- Vertical Bounce ---
         float bounce = Mathf.Abs(Mathf.Sin(time * bounceSpeed)) * bounceAmount * intensity;
         visualTransform.localPosition = basePosition + new Vector3(0f, bounce, 0f);
+    }
+
+    /// <summary>
+    /// Gives a melee animation temporary control of the visual transform.
+    /// </summary>
+    public void SetAttackOverride(bool active)
+    {
+        attackOverride = active;
+        if (visualTransform == null) return;
+
+        visualTransform.localScale = baseScale;
+        visualTransform.localPosition = basePosition;
+        visualTransform.localRotation = Quaternion.identity;
     }
     
     void OnDisable()

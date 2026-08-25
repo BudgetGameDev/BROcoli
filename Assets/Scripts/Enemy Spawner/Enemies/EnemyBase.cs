@@ -20,6 +20,7 @@ public abstract class EnemyBase : MonoBehaviour
     float healthBarDisplayDuration = 2f;
     
     private static bool isQuitting = false;
+    private bool isDead = false;
     
     [Header("Enemy Stats")]
     public float Speed = 2f;
@@ -68,11 +69,15 @@ public abstract class EnemyBase : MonoBehaviour
     
     public void TakeDamage(float damage, Vector2 knockbackDirection)
     {
+        if (isDead) return;
+
         Health -= damage;
         if (Health <= 0f)
         {
-            Destroy(gameObject);
+            isDead = true;
+            OnKilled();
             OnDeath?.Invoke(this);
+            Destroy(gameObject);
             return;
         }
         
@@ -91,6 +96,14 @@ public abstract class EnemyBase : MonoBehaviour
         healthBarVisable = true;
         healthBarTimer = healthBarDisplayDuration;
         healthBar.ShowBar();
+    }
+
+    /// <summary>
+    /// Allows specialized enemies to react to a real combat death before
+    /// listeners are notified and the GameObject is destroyed.
+    /// </summary>
+    protected virtual void OnKilled()
+    {
     }
     
     public void ApplyKnockback(Vector2 direction)
