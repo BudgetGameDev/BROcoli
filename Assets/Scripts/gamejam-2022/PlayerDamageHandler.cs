@@ -15,14 +15,14 @@ public class PlayerDamageHandler : MonoBehaviour
     private const float DamageImmunityDuration = 0.3f; // Immunity frames after taking damage
 
     [Header("Death Sequence")]
-    [SerializeField, Min(0.2f)] private float deathAnimationDuration = 0.9f;
-    [SerializeField] private float deathSpinDegrees = 220f;
-    [SerializeField, Range(0f, 0.25f)] private float finalDeathScale = 0.04f;
+    [SerializeField, Min(0.2f)] private float deathFallDuration = 0.7f;
+    [SerializeField, Min(0f)] private float deathSettleDuration = 0.35f;
 
     private PlayerStats _playerStats;
     private PlayerMovement _playerMovement;
     private PlayerAudioHandler _audioHandler;
     private ShuffleWalkVisual _hopVisual;
+    private PlayerDeathVisual _deathVisual;
 
     private bool _gameOver;
     private bool _deathAnimationPlaying;
@@ -33,7 +33,7 @@ public class PlayerDamageHandler : MonoBehaviour
     /// </summary>
     public bool IsGameOver => _gameOver;
     public bool IsDeathAnimationPlaying => _deathAnimationPlaying;
-    public float DeathAnimationDuration => deathAnimationDuration;
+    public float DeathAnimationDuration => deathFallDuration + deathSettleDuration;
 
     /// <summary>
     /// Event fired when game over occurs.
@@ -46,6 +46,9 @@ public class PlayerDamageHandler : MonoBehaviour
         _playerMovement = GetComponent<PlayerMovement>();
         _audioHandler = GetComponent<PlayerAudioHandler>();
         _hopVisual = GetComponentInChildren<ShuffleWalkVisual>();
+        _deathVisual = GetComponent<PlayerDeathVisual>();
+        if (_deathVisual == null)
+            _deathVisual = gameObject.AddComponent<PlayerDeathVisual>();
 
         if (_playerStats == null)
         {
@@ -136,8 +139,10 @@ public class PlayerDamageHandler : MonoBehaviour
         }
         _lastDamageTime = Time.time;
 
-        // Play damage sound
-        _audioHandler?.PlayDamageSound();
+        // A lethal hit gets only the dedicated defeat cue, not the inherited
+        // damage sound immediately before it.
+        if (!WillDamageBeFatal(damage))
+            _audioHandler?.PlayDamageSound();
 
         // Apply damage to stats
         _playerStats?.ApplyDamage(damage);
@@ -172,10 +177,11 @@ public class PlayerDamageHandler : MonoBehaviour
 
     private void HandleProjectileCollision(Collider2D other)
     {
-        _audioHandler?.PlayCollisionSound();
-
         EnemyBase enemy = other.GetComponent<EnemyBase>();
         float damage = enemy?.Damage ?? 0f;
+
+        if (!WillDamageBeFatal(damage))
+            _audioHandler?.PlayCollisionSound();
         
         // Apply damage and feedback for projectiles
         _playerStats?.ApplyDamage(damage);
@@ -197,6 +203,11 @@ public class PlayerDamageHandler : MonoBehaviour
         }
     }
 
+    private bool WillDamageBeFatal(float damage)
+    {
+        return _playerStats != null && damage >= _playerStats.CurrentHealth;
+    }
+
     /// <summary>
     /// Trigger game over state.
     /// </summary>
@@ -209,7 +220,7 @@ public class PlayerDamageHandler : MonoBehaviour
 
         // Stop ambient audio
         _audioHandler?.StopAllAmbient();
-        _audioHandler?.PlayGameOverSound();
+        _audioHandler?.PlayDeathSound();
 
         // Save and display the final run state without loading another scene.
         SaveFinalRunStats(out int finalScore, out int finalWave, out bool wasInfiniteMode);
@@ -233,32 +244,17 @@ public class PlayerDamageHandler : MonoBehaviour
             body.angularVelocity = 0f;
             body.simulated = false;
         }
+
+        _deathVisual?.Prepare();
     }
 
     private IEnumerator PlayDeathSequence(int score, int wave, bool infiniteMode)
     {
         _deathAnimationPlaying = true;
-        Vector3 startScale = transform.localScale;
-        Quaternion startRotation = transform.localRotation;
-        float duration = Mathf.Max(0.2f, deathAnimationDuration);
-        float elapsed = 0f;
-
-        while (elapsed < duration)
-        {
-            elapsed += Time.unscaledDeltaTime;
-            float t = Mathf.Clamp01(elapsed / duration);
-            float eased = 1f - Mathf.Pow(1f - t, 3f);
-            transform.localScale = Vector3.LerpUnclamped(
-                startScale,
-                startScale * finalDeathScale,
-                eased);
-            transform.localRotation = startRotation *
-                Quaternion.Euler(0f, 0f, deathSpinDegrees * eased);
-            yield return null;
-        }
-
-        transform.localScale = startScale * finalDeathScale;
-        transform.localRotation = startRotation * Quaternion.Euler(0f, 0f, deathSpinDegrees);
+        if (_deathVisual != null)
+            yield return _deathVisual.FallAndSettle(deathFallDuration, deathSettleDuration);
+        else
+            yield return new WaitForSecondsRealtime(DeathAnimationDuration);
         _deathAnimationPlaying = false;
         GameOverOverlay.Show(score, wave, infiniteMode);
     }

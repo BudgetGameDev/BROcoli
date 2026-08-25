@@ -2,7 +2,8 @@ using UnityEngine;
 
 /// <summary>
 /// Handles all player audio: SFX and ambient sounds.
-/// Loads AudioClips from Resources and creates AudioSources dynamically.
+/// Loads legacy ambient clips, creates current procedural SFX, and owns the
+/// player's AudioSources.
 /// </summary>
 public class PlayerAudioHandler : MonoBehaviour
 {
@@ -11,7 +12,6 @@ public class PlayerAudioHandler : MonoBehaviour
     private const string WalkSoundPath = "Audio/walk-0";  // Generic footstep from Audio folder
     private const string DamageSoundPath = "Sprites/ggj-2023/sfx/ohno-trædid-minkar2";  // Damage/shrink sound
     private const string CollisionSoundPath = "Sprites/ggj-2023/sfx/rakar-stein-ella-vegg";  // Collision with wall/stone
-    private const string GameOverSoundPath = "Sprites/ggj-2023/sfx/game over2";
     private const string GrowSoundPath = "Sprites/ggj-2023/sfx/trædid-veksur";  // Tree grows sound
     private const string ShrinkSoundPath = "Sprites/ggj-2023/sfx/ohno-trædid-minkar2";  // Tree shrinks sound
     private const string Ambient1Path = "Sprites/ggj-2023/sfx/umhvørvið/ambient-náttúra";  // Nature ambient
@@ -23,7 +23,7 @@ public class PlayerAudioHandler : MonoBehaviour
     private AudioClip _walkClip;
     private AudioClip _damageClip;
     private AudioClip _collisionClip;
-    private AudioClip _gameOverClip;
+    private AudioClip _deathClip;
     private AudioClip _growClip;
     private AudioClip _shrinkClip;
     private AudioClip _ambient1Clip;
@@ -38,7 +38,7 @@ public class PlayerAudioHandler : MonoBehaviour
     private AudioSource _ambientSource2;
     private AudioSource _windSource;
     private AudioSource _lavaSource;
-    private AudioSource _gameOverSource;
+    private AudioSource _deathSource;
 
     private void Awake()
     {
@@ -51,7 +51,7 @@ public class PlayerAudioHandler : MonoBehaviour
         _walkClip = LoadClip(WalkSoundPath);
         _damageClip = LoadClip(DamageSoundPath);
         _collisionClip = LoadClip(CollisionSoundPath);
-        _gameOverClip = LoadClip(GameOverSoundPath);
+        _deathClip = ProceduralPlayerDeathAudio.GetOrCreateClip();
         _growClip = LoadClip(GrowSoundPath);
         _shrinkClip = LoadClip(ShrinkSoundPath);
         _ambient1Clip = LoadClip(Ambient1Path);
@@ -91,7 +91,7 @@ public class PlayerAudioHandler : MonoBehaviour
         _ambientSource2 = CreateAmbientSource("AmbientSource2", _ambient2Clip, true, 0.3f);
         _windSource = CreateAmbientSource("WindSource", _windAmbientClip, true, 0.2f);
         _lavaSource = CreateAmbientSource("LavaSource", _lavaAmbientClip, true, 0f);
-        _gameOverSource = CreateAmbientSource("GameOverSource", _gameOverClip, false, 1f);
+        _deathSource = CreateAmbientSource("PlayerDeathSource", _deathClip, false, 1f);
     }
 
     private AudioSource GetOrAddAudioSource(int index)
@@ -150,13 +150,14 @@ public class PlayerAudioHandler : MonoBehaviour
     }
 
     /// <summary>
-    /// Play the game over sound.
+    /// Play the broccoli defeat sound.
     /// </summary>
-    public void PlayGameOverSound()
+    public void PlayDeathSound()
     {
-        if (_gameOverSource != null && _gameOverClip != null)
+        if (_deathSource != null && _deathClip != null)
         {
-            _gameOverSource.Play();
+            _deathSource.Stop();
+            _deathSource.Play();
         }
     }
 
@@ -231,6 +232,6 @@ public class PlayerAudioHandler : MonoBehaviour
         if (_ambientSource2 != null) Destroy(_ambientSource2.gameObject);
         if (_windSource != null) Destroy(_windSource.gameObject);
         if (_lavaSource != null) Destroy(_lavaSource.gameObject);
-        if (_gameOverSource != null) Destroy(_gameOverSource.gameObject);
+        if (_deathSource != null) Destroy(_deathSource.gameObject);
     }
 }
