@@ -75,22 +75,7 @@ public sealed class GameOverOverlay : MonoBehaviour
 
     private static Canvas FindMainCanvas()
     {
-        Canvas fallback = null;
-        Canvas[] canvases = FindObjectsByType<Canvas>(
-            FindObjectsInactive.Include,
-            FindObjectsSortMode.None);
-
-        foreach (Canvas canvas in canvases)
-        {
-            if (canvas == null || !canvas.gameObject.scene.isLoaded)
-                continue;
-            if (canvas.gameObject.name == "Canvas")
-                return canvas;
-            if (fallback == null && canvas.sortingOrder < 9000)
-                fallback = canvas;
-        }
-
-        return fallback;
+        return ScreenCanvasLocator.Find();
     }
 
     private static Canvas CreateCanvas()

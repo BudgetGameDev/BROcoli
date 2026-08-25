@@ -73,7 +73,7 @@ public class EndGameUI : MonoBehaviour
     
     private TextMeshProUGUI CreateStatsText(string name, Vector2 position)
     {
-        Canvas canvas = FindAnyObjectByType<Canvas>();
+        Canvas canvas = ScreenCanvasLocator.Find();
         if (canvas == null) return null;
         
         GameObject textObj = new GameObject(name);

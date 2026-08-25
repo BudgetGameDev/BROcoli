@@ -159,7 +159,7 @@ public class EndGameCTAManager : MonoBehaviour
         }
         
         // Find the canvas
-        Canvas canvas = FindAnyObjectByType<Canvas>();
+        Canvas canvas = ScreenCanvasLocator.Find();
         if (canvas == null)
         {
             Debug.LogError("[EndGameCTA] No Canvas found!");

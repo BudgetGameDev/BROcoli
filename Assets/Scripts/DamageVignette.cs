@@ -93,25 +93,7 @@ public class DamageVignette : MonoBehaviour
 
     private Canvas FindExistingGameCanvas()
     {
-        // Find all canvases and prefer ScreenSpaceOverlay
-        Canvas[] canvases = FindObjectsByType<Canvas>(FindObjectsSortMode.None);
-        foreach (var canvas in canvases)
-        {
-            if (canvas.renderMode == RenderMode.ScreenSpaceOverlay && 
-                canvas.gameObject.name == "Canvas")
-            {
-                return canvas;
-            }
-        }
-        // Fallback to any overlay canvas
-        foreach (var canvas in canvases)
-        {
-            if (canvas.renderMode == RenderMode.ScreenSpaceOverlay)
-            {
-                return canvas;
-            }
-        }
-        return canvases.Length > 0 ? canvases[0] : null;
+        return ScreenCanvasLocator.Find();
     }
 
     private Canvas CreateOverlayCanvas()

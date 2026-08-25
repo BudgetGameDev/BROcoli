@@ -66,7 +66,7 @@ public class PauseMenu : MonoBehaviour
         EnsureEventSystemActive();
         
         // Cache the main canvas
-        mainCanvas = FindAnyObjectByType<Canvas>();
+        mainCanvas = ScreenCanvasLocator.Find();
         
         // Find player stats
         playerStats = FindAnyObjectByType<PlayerStats>();
@@ -464,7 +464,7 @@ public class PauseMenu : MonoBehaviour
     {
         if (mainCanvas == null)
         {
-            mainCanvas = FindAnyObjectByType<Canvas>();
+            mainCanvas = ScreenCanvasLocator.Find();
         }
         
         if (mainCanvas != null)

@@ -47,7 +47,7 @@ public class VictoryScreen : MonoBehaviour
     
     private void CreateVictoryUI()
     {
-        Canvas canvas = FindAnyObjectByType<Canvas>();
+        Canvas canvas = ScreenCanvasLocator.Find();
         if (canvas == null) return;
         
         victoryPanel = new GameObject("VictoryPanel");
