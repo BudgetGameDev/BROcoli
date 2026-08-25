@@ -22,7 +22,7 @@ public class SanitizerSpray : MonoBehaviour
 
     [Header("Weapon Knockback")]
     [Tooltip("Multiplies the shared damage-relative enemy knockback roll.")]
-    [SerializeField, Min(0f)] private float weaponKnockbackMultiplier = 1.2f;
+    [SerializeField, Min(0f)] private float weaponKnockbackMultiplier = 0.9f;
     
     // Dynamic stats from PlayerStats
     private float currentRange;

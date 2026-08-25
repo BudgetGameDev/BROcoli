@@ -7,9 +7,9 @@ public abstract class EnemyBase : MonoBehaviour
     private const float MaxSafeSeparationRadius = 1.15f;
     private const float MaxSafeSeparationForce = 8f;
     private const float MaxSafeSeparationSpeed = 2f;
-    private const float MaxSafeKnockbackForce = 4f;
-    private const float MaxSafeKnockbackDuration = 0.2f;
-    private const float MinSafeKnockbackCooldown = 0.12f;
+    private const float MaxSafeKnockbackForce = 3f;
+    private const float MaxSafeKnockbackDuration = 0.16f;
+    private const float MinSafeKnockbackCooldown = 0.2f;
     private static PhysicsMaterial2D sharedEnemyBodyMaterial;
 
     [SerializeField] Bar healthBar;
@@ -292,19 +292,19 @@ public abstract class EnemyBase : MonoBehaviour
 
     [Header("Knockback")]
     [Tooltip("Lowest force before the weapon-specific multiplier is applied.")]
-    [SerializeField] protected float minimumEnemyKnockbackForce = 0.35f;
+    [SerializeField] protected float minimumEnemyKnockbackForce = 0.25f;
     [Tooltip("Force reached by a hit dealing this enemy's full knockback damage threshold.")]
-    [SerializeField] protected float enemyKnockbackForce = 3.5f;
+    [SerializeField] protected float enemyKnockbackForce = 2.75f;
     [Tooltip("Hits below this fraction of Max Health deal damage but cannot cause knockback.")]
     [SerializeField, Range(0f, 1f)] protected float minimumDamageFractionForKnockback = 0.1f;
     [Tooltip("A hit dealing this fraction of Max Health always receives maximum knockback.")]
     [SerializeField, Range(0.01f, 1f)] protected float damageFractionForMaxKnockback = 0.99f;
     [Tooltip("Chance for any damaging hit to roll the maximum force, including very small hits.")]
-    [SerializeField, Range(0f, 0.2f)] protected float rareMaximumKnockbackChance = 0.02f;
+    [SerializeField, Range(0f, 0.2f)] protected float rareMaximumKnockbackChance = 0.005f;
     [Tooltip("Higher values make lucky high-knockback rolls less common.")]
     [SerializeField, Range(1f, 8f)] protected float knockbackRandomBias = 4f;
-    [SerializeField] protected float enemyKnockbackDuration = 0.18f;
-    [SerializeField] protected float enemyKnockbackCooldown = 0.18f;
+    [SerializeField] protected float enemyKnockbackDuration = 0.14f;
+    [SerializeField] protected float enemyKnockbackCooldown = 0.24f;
     protected float knockbackTimer = 0f;
     protected bool isKnockedBack = false;
     private float nextKnockbackTime = 0f;

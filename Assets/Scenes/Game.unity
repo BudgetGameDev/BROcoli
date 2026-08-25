@@ -2319,7 +2319,7 @@ MonoBehaviour:
   handTransform: {fileID: 0}
   handSprite: {fileID: 0}
   sprayCanSprite: {fileID: 0}
-  weaponKnockbackMultiplier: 1.2
+  weaponKnockbackMultiplier: 0.9
 --- !u!114 &777000004
 MonoBehaviour:
   m_ObjectHideFlags: 0

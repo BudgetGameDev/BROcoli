@@ -8,8 +8,9 @@ using UnityEngine;
 [RequireComponent(typeof(Collider2D))]
 public class PlayerMovement : MonoBehaviour
 {
-    private const float DefaultKnockbackForce = 3f;
-    private const float KnockbackDecay = 12f; // Short recoil that returns control quickly
+    private const float DefaultKnockbackForce = 2.25f;
+    private const float KnockbackDecay = 15f; // Softer recoil that returns control quickly
+    private const float MaxKnockbackForce = 2.75f;
     private const float CollisionSkin = 0.02f;
     private const float EnemyStandOffGap = 0.4f;
     private const int MaxCollisionSlides = 2;
@@ -250,10 +251,9 @@ public class PlayerMovement : MonoBehaviour
         // Add to existing knockback, but keep the result in the small-recoil range.
         _knockbackVelocity += direction.normalized * force;
         
-        float maxKnockback = 4f;
-        if (_knockbackVelocity.magnitude > maxKnockback)
+        if (_knockbackVelocity.magnitude > MaxKnockbackForce)
         {
-            _knockbackVelocity = _knockbackVelocity.normalized * maxKnockback;
+            _knockbackVelocity = _knockbackVelocity.normalized * MaxKnockbackForce;
         }
     }
 

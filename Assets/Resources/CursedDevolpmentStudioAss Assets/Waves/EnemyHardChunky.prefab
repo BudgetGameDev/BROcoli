@@ -408,7 +408,7 @@ MonoBehaviour:
   TimeToEndSpawning: 250
   ScoreValue: 1000
   Damage: 40
-  Speed: 3
+  Speed: 2.4
   Health: 600
   MaxHealth: 600
   acceleration: 25
@@ -420,14 +420,14 @@ MonoBehaviour:
   walkAudio: {fileID: 0}
   player: {fileID: 0}
   rb: {fileID: 1958570327876636667}
-  minimumEnemyKnockbackForce: 0.35
-  enemyKnockbackForce: 3.5
+  minimumEnemyKnockbackForce: 0.25
+  enemyKnockbackForce: 2.75
   minimumDamageFractionForKnockback: 0.1
   damageFractionForMaxKnockback: 0.99
-  rareMaximumKnockbackChance: 0.02
+  rareMaximumKnockbackChance: 0.005
   knockbackRandomBias: 4
-  enemyKnockbackDuration: 0.18
-  enemyKnockbackCooldown: 0.18
+  enemyKnockbackDuration: 0.14
+  enemyKnockbackCooldown: 0.24
   meleeRange: 0.9
   meleeAttackCooldown: 0.5
   attackWindupDuration: 0.28
