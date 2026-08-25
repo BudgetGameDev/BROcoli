@@ -27,6 +27,10 @@ public sealed class PickupVisual3D : MonoBehaviour
 
     private const string ModelRootName = "PickupModel3D";
     private const int RadialSegments = 16;
+    private const float ExperienceVisualScale = 0.3f;
+    private const float BoostVisualScale = 0.8f;
+    private const float ExperienceBaseDepth = -0.28f;
+    private const float BoostBaseDepth = -0.62f;
 
     private static readonly Dictionary<Color32, Material> Materials =
         new Dictionary<Color32, Material>();
@@ -39,6 +43,7 @@ public sealed class PickupVisual3D : MonoBehaviour
     private Transform modelRoot;
     private Transform spinTarget;
     private Vector3 modelBasePosition;
+    private Vector3 modelBaseScale;
     private Quaternion modelBaseRotation;
     private Quaternion spinBaseRotation;
     private Vector3 rotationAxis = Vector3.forward;
@@ -106,6 +111,12 @@ public sealed class PickupVisual3D : MonoBehaviour
         rotationAxis = kind == ModelKind.Experience
             ? new Vector3(0.25f, 0.5f, 1f).normalized
             : Vector3.forward;
+        modelBasePosition = new Vector3(
+            0f,
+            0f,
+            kind == ModelKind.Experience ? ExperienceBaseDepth : BoostBaseDepth);
+        modelBaseScale = Vector3.one *
+            (kind == ModelKind.Experience ? ExperienceVisualScale : BoostVisualScale);
 
         foreach (SpriteRenderer spriteRenderer in GetComponentsInChildren<SpriteRenderer>(true))
             spriteRenderer.enabled = false;
@@ -114,14 +125,18 @@ public sealed class PickupVisual3D : MonoBehaviour
         if (existingRoot != null)
         {
             modelRoot = existingRoot;
-            modelBasePosition = modelRoot.localPosition;
-            modelBaseRotation = modelRoot.localRotation;
+            modelRoot.localPosition = modelBasePosition;
+            modelRoot.localScale = modelBaseScale;
+            modelBaseRotation = Quaternion.identity;
+            modelRoot.localRotation = modelBaseRotation;
             spinTarget = kind == ModelKind.Experience
                 ? modelRoot
                 : modelRoot.Find("Token Face");
-            spinBaseRotation = spinTarget != null
-                ? spinTarget.localRotation
-                : Quaternion.identity;
+            spinBaseRotation = kind == ModelKind.Experience
+                ? Quaternion.identity
+                : Quaternion.Euler(-60f, 0f, 0f);
+            if (spinTarget != null)
+                spinTarget.localRotation = spinBaseRotation;
             return;
         }
 
@@ -129,10 +144,10 @@ public sealed class PickupVisual3D : MonoBehaviour
         rootObject.layer = gameObject.layer;
         modelRoot = rootObject.transform;
         modelRoot.SetParent(transform, false);
-        modelBasePosition = new Vector3(0f, 0f, -0.24f);
         modelBaseRotation = Quaternion.identity;
         modelRoot.localPosition = modelBasePosition;
         modelRoot.localRotation = modelBaseRotation;
+        modelRoot.localScale = modelBaseScale;
 
         if (kind == ModelKind.Experience)
             BuildExperienceCrystal();
@@ -159,7 +174,7 @@ public sealed class PickupVisual3D : MonoBehaviour
 
         modelRoot.localPosition = modelBasePosition + Vector3.back * bob;
         modelRoot.localRotation = modelBaseRotation;
-        modelRoot.localScale = Vector3.one * pulse;
+        modelRoot.localScale = modelBaseScale * pulse;
         if (spinTarget != null)
             spinTarget.localRotation = spinBaseRotation * Quaternion.AngleAxis(angle, rotationAxis);
     }

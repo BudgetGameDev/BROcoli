@@ -6,6 +6,8 @@ using Pooling;
 
 public class EnemySpawner : MonoBehaviour
 {
+    private const float PairedPowerupHorizontalOffset = 0.72f;
+
     public Transform player;
 
     public bool IsWaveComplete { get; private set; }
@@ -261,14 +263,18 @@ public class EnemySpawner : MonoBehaviour
         if (powerupPrefabs == null || powerupPrefabs.Length == 0) return;
         if (Time.time < nextPowerupDropTime) return;
         if (!guaranteedRoll && UnityEngine.Random.value > powerupDropChance) return;
-        if (BoostBase.IsScreenAreaOccupied(position, Camera.main, fallbackPickupSpacing)) return;
+
+        // Every enemy also drops XP at its death position. Place the rarer
+        // powerup beside it so the two models stay readable and collectible.
+        Vector3 powerupPosition = position + Vector3.right * PairedPowerupHorizontalOffset;
+        if (BoostBase.IsScreenAreaOccupied(powerupPosition, Camera.main, fallbackPickupSpacing)) return;
 
         GameObject prefab = ChooseWeightedPowerup();
         if (prefab == null) return;
 
-        Instantiate(prefab, position, Quaternion.identity);
+        Instantiate(prefab, powerupPosition, Quaternion.identity);
         nextPowerupDropTime = Time.time + minimumPowerupDropInterval;
-        Debug.Log($"Dropped {prefab.name} at {position}.");
+        Debug.Log($"Dropped {prefab.name} at {powerupPosition} beside XP at {position}.");
     }
 
     private GameObject ChooseWeightedPowerup()
