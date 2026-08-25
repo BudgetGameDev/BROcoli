@@ -167,9 +167,6 @@ public class PlayerDamageHandler : MonoBehaviour
             case "Projectile":
                 HandleProjectileCollision(other);
                 break;
-            case "Experience":
-                HandleExperiencePickup(other);
-                break;
         }
     }
 
@@ -184,13 +181,6 @@ public class PlayerDamageHandler : MonoBehaviour
         _playerStats?.ApplyDamage(damage);
         TriggerDamageFeedback(damage, Vector2.zero);
         CheckForDeath();
-    }
-
-    private void HandleExperiencePickup(Collider2D other)
-    {
-        ExpGain expGain = other.GetComponent<ExpGain>();
-        float exp = expGain?.expAmountGain ?? 0f;
-        _playerStats?.ApplyExperience(exp);
     }
 
     /// <summary>

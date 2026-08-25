@@ -12,6 +12,7 @@ public class ExpGain : MonoBehaviour
     private PickupVisual3D _pickupVisual;
     private float _currentSpeed = 0f;
     private bool _localAttractionLocked;
+    private bool _isCollected;
     
     // Pooling support
     private bool _isPooled = false;
@@ -31,6 +32,7 @@ public class ExpGain : MonoBehaviour
     
     void OnEnable()
     {
+        _isCollected = false;
         _spawnTime = Time.time;
         PickupAttraction.Reset(
             rb,
@@ -86,21 +88,26 @@ public class ExpGain : MonoBehaviour
 
     void OnTriggerEnter2D(Collider2D other)
     {
-        if (other.CompareTag("Player"))
-        {
-            // Play satisfying pickup sound
-            ProceduralXPPickupAudio.PlayPickup();
-            
-            // Return to pool or destroy
-            if (_isPooled)
-            {
-                ReturnToPool();
-            }
-            else
-            {
-                Destroy(gameObject);
-            }
-        }
+        if (_isCollected)
+            return;
+
+        PlayerStats stats = other.GetComponentInParent<PlayerStats>();
+        if (stats == null)
+            return;
+
+        _isCollected = true;
+        int experience = expAmountGain;
+
+        // Hide/recycle before applying XP. Applying XP can pause the game for
+        // a level-up choice, so the orb must already be gone at that point.
+        gameObject.SetActive(false);
+        if (_isPooled)
+            ReturnToPool();
+        else
+            Destroy(gameObject);
+
+        ProceduralXPPickupAudio.PlayPickup();
+        stats.ApplyExperience(experience);
     }
     
     private void ReturnToPool()

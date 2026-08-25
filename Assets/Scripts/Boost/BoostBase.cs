@@ -21,6 +21,7 @@ public abstract class BoostBase : MonoBehaviour
     private PickupVisual3D _pickupVisual;
     private float _currentSpeed = 0f;
     private bool _localAttractionLocked;
+    private bool _isCollected;
 
     /// <summary>
     /// Override this to specify which procedural sound to play for this boost.
@@ -37,6 +38,7 @@ public abstract class BoostBase : MonoBehaviour
 
     private void OnEnable()
     {
+        _isCollected = false;
         ActivePickups.Add(this);
         ConfigureMagnetBody();
         _pickupVisual = PickupVisual3D.AttachBoost(this);
@@ -118,18 +120,21 @@ public abstract class BoostBase : MonoBehaviour
 
     private void OnTriggerEnter2D(Collider2D other)
     {
-        Debug.Log($"BoostBase OnTriggerEnter2D with {other.name}");
+        if (_isCollected)
+            return;
+
         PlayerStats stats = other.GetComponentInParent<PlayerStats>();
         if (stats == null)
-        {
             return;
-        }
 
-        Debug.Log($"Applying boost: {GetType().Name} with amount {Amount} for {Duration}s");
+        _isCollected = true;
 
-        // Play procedural audio for this boost type
+        // Disable the pickup before activating its effect. Instant XP boosts
+        // can open the level-up screen and pause time, so deferred destruction
+        // alone would leave the model visibly suspended over the player.
+        gameObject.SetActive(false);
+
         ProceduralBoostAudio.PlaySound(BoostSoundType);
-
         Apply(stats);
         Destroy(gameObject);
     }
