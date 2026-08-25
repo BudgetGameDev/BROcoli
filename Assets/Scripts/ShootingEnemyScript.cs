@@ -53,23 +53,35 @@ public class ShootingEnemyScript : EnemyBase
             if (dist < 0.0001f) return;
 
             Vector2 dir = toPlayer / dist; // normalized
-            Vector2 targetVel = dir * Speed;
+            Vector2 targetVel = dir * Speed * EnemyTimeScale;
 
             // Smooth acceleration towards target velocity
-            rb.linearVelocity = Vector2.MoveTowards(rb.linearVelocity, targetVel, acceleration * Time.fixedDeltaTime);
+            rb.linearVelocity = Vector2.MoveTowards(
+                rb.linearVelocity,
+                targetVel,
+                acceleration * EnemyTimeScale * Time.fixedDeltaTime
+            );
         }
         else if (dist < playerSeparationRadius)
         {
             // Too close to player - move away
             Vector2 dir = -toPlayer / dist; // away from player
             float urgency = 1f - (dist / playerSeparationRadius);
-            Vector2 targetVel = dir * Speed * urgency;
-            rb.linearVelocity = Vector2.MoveTowards(rb.linearVelocity, targetVel, acceleration * Time.fixedDeltaTime);
+            Vector2 targetVel = dir * Speed * urgency * EnemyTimeScale;
+            rb.linearVelocity = Vector2.MoveTowards(
+                rb.linearVelocity,
+                targetVel,
+                acceleration * EnemyTimeScale * Time.fixedDeltaTime
+            );
         }
         else
         {
             // Within stop range but not too close -> stop moving
-            rb.linearVelocity = Vector2.MoveTowards(rb.linearVelocity, Vector2.zero, acceleration * Time.fixedDeltaTime);
+            rb.linearVelocity = Vector2.MoveTowards(
+                rb.linearVelocity,
+                Vector2.zero,
+                acceleration * EnemyTimeScale * Time.fixedDeltaTime
+            );
         }
         
         // Apply separation AFTER movement
@@ -95,7 +107,7 @@ public class ShootingEnemyScript : EnemyBase
         if (player == null) return;
         if (fireRate <= 0f) return;
         if (Time.time < nextShootTime) return;
-        nextShootTime = Time.time + (1f / fireRate);
+        nextShootTime = Time.time + (1f / fireRate) / Mathf.Max(0.1f, EnemyTimeScale);
         
         // Calculate direction to player
         Vector2 direction = ((Vector2)player.position - (Vector2)shootPoint.position).normalized;

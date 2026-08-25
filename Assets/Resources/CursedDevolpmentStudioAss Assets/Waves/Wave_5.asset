@@ -20,3 +20,4 @@ MonoBehaviour:
   - {fileID: 5305235475111336575, guid: a1b1ad73dad81da40bc8ee4f28847395, type: 3}
   enemyCount: 30
   spawnInterval: 0.5
+  spawnDistance: 8.5

@@ -10,11 +10,13 @@ public class EnemySpawner : MonoBehaviour
 
     [Header("Powerup Drops")]
     [SerializeField] private GameObject[] powerupPrefabs;
-    [SerializeField] private float powerupDropChance = 0.15f; // 15% chance per enemy kill
+    [SerializeField, Range(0f, 1f)] private float powerupDropChance = 0.04f;
+    [SerializeField, Min(0f)] private float minimumPowerupDropInterval = 15f;
+    [SerializeField, Min(1f)] private float fallbackPickupSpacing = 12f;
     
     private int aliveEnemies;
     private WaveConfig currentWave;
-    private bool hasPowerupDroppedThisWave = false;
+    private float nextPowerupDropTime;
 
     public event Action OnWaveCompleted;
 
@@ -37,7 +39,6 @@ public class EnemySpawner : MonoBehaviour
         currentWave = config;
         IsWaveComplete = false;
         aliveEnemies = 0;
-        hasPowerupDroppedThisWave = false; // Reset powerup drop for new wave
 
         Debug.Log($"EnemySpawner: Starting wave with {currentWave.enemyCount} enemies.");
 
@@ -60,7 +61,10 @@ public class EnemySpawner : MonoBehaviour
             UnityEngine.Random.Range(0, currentWave.enemyPrefabs.Length)
         ];
 
-        Vector2 spawnPos = (Vector2)player.position + UnityEngine.Random.insideUnitCircle.normalized * 10f;
+        float spawnDistance = Mathf.Max(4f, currentWave.spawnDistance);
+        Vector2 spawnDirection = UnityEngine.Random.insideUnitCircle.normalized;
+        if (spawnDirection == Vector2.zero) spawnDirection = Vector2.up;
+        Vector2 spawnPos = (Vector2)player.position + spawnDirection * spawnDistance;
 
         GameObject enemy = Instantiate(prefab, spawnPos, Quaternion.identity);
         TrackEnemy(enemy.GetComponent<EnemyBase>());
@@ -93,7 +97,7 @@ public class EnemySpawner : MonoBehaviour
             hydra.OnChildSpawned -= HandleHydraChildSpawned;
         }
         
-        // Try to drop a powerup (max 1 per wave)
+        // Try a weighted, cooldown- and spacing-limited powerup drop.
         TryDropPowerup(enemy.transform.position);
         
         aliveEnemies--;
@@ -107,20 +111,44 @@ public class EnemySpawner : MonoBehaviour
     
     private void TryDropPowerup(Vector3 position)
     {
-        // Only one powerup can drop per wave
-        if (hasPowerupDroppedThisWave) return;
-        
-        // Check if we have any powerup prefabs
         if (powerupPrefabs == null || powerupPrefabs.Length == 0) return;
-        
-        // Roll for drop chance
+        if (Time.time < nextPowerupDropTime) return;
         if (UnityEngine.Random.value > powerupDropChance) return;
-        
-        // Drop a random powerup
-        GameObject prefab = powerupPrefabs[UnityEngine.Random.Range(0, powerupPrefabs.Length)];
+
+        // Never allow pickups to cluster within roughly one visible screen.
+        if (BoostBase.IsScreenAreaOccupied(position, Camera.main, fallbackPickupSpacing)) return;
+
+        GameObject prefab = ChooseWeightedPowerup();
+        if (prefab == null) return;
+
         Instantiate(prefab, position, Quaternion.identity);
-        hasPowerupDroppedThisWave = true;
+        nextPowerupDropTime = Time.time + minimumPowerupDropInterval;
         
-        Debug.Log($"Powerup dropped at {position}!");
+        Debug.Log($"Dropped {prefab.name} at {position}.");
+    }
+
+    private GameObject ChooseWeightedPowerup()
+    {
+        float totalWeight = 0f;
+
+        foreach (GameObject prefab in powerupPrefabs)
+        {
+            BoostBase boost = prefab != null ? prefab.GetComponent<BoostBase>() : null;
+            if (boost != null) totalWeight += Mathf.Max(0f, boost.DropWeight);
+        }
+
+        if (totalWeight <= 0f) return null;
+
+        float roll = UnityEngine.Random.value * totalWeight;
+        foreach (GameObject prefab in powerupPrefabs)
+        {
+            BoostBase boost = prefab != null ? prefab.GetComponent<BoostBase>() : null;
+            if (boost == null) continue;
+
+            roll -= Mathf.Max(0f, boost.DropWeight);
+            if (roll <= 0f) return prefab;
+        }
+
+        return powerupPrefabs[powerupPrefabs.Length - 1];
     }
 }

@@ -73,10 +73,14 @@ public class EnemyScript : EnemyBase
         dir.Normalize();
 
         // Move towards player at full speed - separation handles preventing overlap
-        Vector2 targetVel = dir * Speed;
+        Vector2 targetVel = dir * Speed * EnemyTimeScale;
 
         // Smooth acceleration towards target velocity
-        rb.linearVelocity = Vector2.MoveTowards(rb.linearVelocity, targetVel, acceleration * Time.fixedDeltaTime);
+        rb.linearVelocity = Vector2.MoveTowards(
+            rb.linearVelocity,
+            targetVel,
+            acceleration * EnemyTimeScale * Time.fixedDeltaTime
+        );
         
         // Apply separation AFTER movement (so it can push away)
         base.FixedUpdate();
@@ -109,7 +113,7 @@ public class EnemyScript : EnemyBase
     {
         if (!isAttacking) return;
         
-        attackTimer += Time.deltaTime;
+        attackTimer += Time.deltaTime * EnemyTimeScale;
         
         switch (attackPhase)
         {
@@ -213,7 +217,7 @@ public class EnemyScript : EnemyBase
             if (playerController.TakeMeleeDamage(Damage, knockbackDir))
             {
                 // Only set cooldown and play sound if we actually hit
-                nextMeleeAttackTime = Time.time + meleeAttackCooldown;
+                nextMeleeAttackTime = Time.time + meleeAttackCooldown / Mathf.Max(0.1f, EnemyTimeScale);
                 
                 // Play melee sound
                 if (meleeAudio != null)

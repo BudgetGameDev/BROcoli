@@ -6,4 +6,5 @@ public class WaveConfig : ScriptableObject
     public GameObject[] enemyPrefabs;
     public int enemyCount = 10;
     public float spawnInterval = 0.5f;
+    [Min(4f)] public float spawnDistance = 10f;
 }

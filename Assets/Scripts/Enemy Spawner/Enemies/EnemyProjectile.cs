@@ -18,6 +18,7 @@ public class EnemyProjectile : MonoBehaviour
     private float spawnTime;
     private Vector3 initialScale;
     private bool isFizzling;
+    private Vector2 travelDirection;
 
     void Awake()
     {
@@ -34,7 +35,8 @@ public class EnemyProjectile : MonoBehaviour
 
     public void Init(Vector2 direction)
     {
-        rb.linearVelocity = direction.normalized * speed;
+        travelDirection = direction.normalized;
+        rb.linearVelocity = travelDirection * speed * PlayerStats.ActiveEnemyTimeScale;
         spawnTime = Time.time;
         
         // Capture initial scale if not already done
@@ -46,10 +48,20 @@ public class EnemyProjectile : MonoBehaviour
     
     void Update()
     {
+        if (rb != null && travelDirection != Vector2.zero)
+        {
+            rb.linearVelocity = travelDirection * speed * PlayerStats.ActiveEnemyTimeScale;
+        }
+
         // Spin the visual
         if (visualTransform != null)
         {
-            visualTransform.Rotate(0f, spinSpeed * Time.deltaTime, 0f, Space.Self);
+            visualTransform.Rotate(
+                0f,
+                spinSpeed * PlayerStats.ActiveEnemyTimeScale * Time.deltaTime,
+                0f,
+                Space.Self
+            );
         }
         
         // Fizzle out effect - shrink towards end of life

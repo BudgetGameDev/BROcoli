@@ -6,6 +6,7 @@
 public class ExperienceBoost : BoostBase
 {
     public override float Amount => _experience;
+    public override float DropWeight => 2f;
     public override float Duration => 0f; // Instant effect
     public override ProceduralBoostAudio.BoostSoundType BoostSoundType => ProceduralBoostAudio.BoostSoundType.Experience;
 

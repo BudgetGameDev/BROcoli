@@ -45,3 +45,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemySpawner
   player: {fileID: 0}
+  powerupPrefabs: []
+  powerupDropChance: 0.04
+  minimumPowerupDropInterval: 15
+  fallbackPickupSpacing: 12

@@ -44,6 +44,7 @@ public abstract class EnemyBase : MonoBehaviour
     private GameStates gameStates;
 
     public Rigidbody2D rb;
+    protected float EnemyTimeScale => PlayerStats.ActiveEnemyTimeScale;
 
     protected virtual void Awake()
     {
@@ -271,7 +272,7 @@ public abstract class EnemyBase : MonoBehaviour
         // Apply separation as velocity change
         if (separationVelocity.sqrMagnitude > 0.01f)
         {
-            rb.linearVelocity += separationVelocity * Time.fixedDeltaTime;
+            rb.linearVelocity += separationVelocity * EnemyTimeScale * Time.fixedDeltaTime;
         }
     }
 }

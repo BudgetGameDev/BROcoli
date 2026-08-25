@@ -10,8 +10,8 @@ public static class SpraySettings
     public const float BaseSprayRange = 4.7f;          // Balanced range (+25% from 3.75)
     public const float BaseSprayAngle = 28f;           // Wider cone angle (+25%)
     public const float SpreadDelayPercent = 0.33f;     // Start spreading after 33% of lifetime
-    public const float BaseDamagePerParticle = 0.8f;   // Higher damage to compensate for fewer particles
-    public const float DamageTickRate = 0.016f;        // Every frame (~60fps) for responsive hit registration
+    public const float BaseDamagePerParticle = 0.55f;
+    public const float DamageTickRate = 0.08f;         // Five damage ticks during a standard burst
 
     // ==================== Burst Settings ====================
     public const float BurstDuration = 0.4f;           // How long each spray burst lasts

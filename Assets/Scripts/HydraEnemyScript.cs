@@ -114,8 +114,12 @@ public class HydraEnemyScript : EnemyBase
         if (distToPlayer < 0.0001f) return;
 
         dir.Normalize();
-        Vector2 targetVel = dir * Speed;
-        rb.linearVelocity = Vector2.MoveTowards(rb.linearVelocity, targetVel, acceleration * Time.fixedDeltaTime);
+        Vector2 targetVel = dir * Speed * EnemyTimeScale;
+        rb.linearVelocity = Vector2.MoveTowards(
+            rb.linearVelocity,
+            targetVel,
+            acceleration * EnemyTimeScale * Time.fixedDeltaTime
+        );
         
         base.FixedUpdate();
     }
@@ -223,7 +227,7 @@ public class HydraEnemyScript : EnemyBase
         walkAnimation?.SetAttackOverride(true);
         attackPhase = 1;
         attackTimer = 0f;
-        nextMeleeAttackTime = Time.time + meleeAttackCooldown;
+        nextMeleeAttackTime = Time.time + meleeAttackCooldown / Mathf.Max(0.1f, EnemyTimeScale);
         
         if (visualTransform != null)
         {
@@ -237,7 +241,7 @@ public class HydraEnemyScript : EnemyBase
     {
         if (!isAttacking) return;
         
-        attackTimer += Time.deltaTime;
+        attackTimer += Time.deltaTime * EnemyTimeScale;
         
         switch (attackPhase)
         {

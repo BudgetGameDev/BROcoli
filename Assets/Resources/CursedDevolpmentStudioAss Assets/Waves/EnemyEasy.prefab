@@ -408,10 +408,10 @@ MonoBehaviour:
   TimeToStartSpawning: 0
   TimeToEndSpawning: 60
   ScoreValue: 10
-  Damage: 5
-  Speed: 2
-  Health: 30
-  MaxHealth: 30
+  Damage: 7
+  Speed: 3.2
+  Health: 45
+  MaxHealth: 45
   acceleration: 25
   separationRadius: 2.5
   separationForce: 50

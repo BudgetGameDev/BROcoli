@@ -12,8 +12,8 @@ public class ExpGain : MonoBehaviour
     // Magnet attraction
     private Transform _playerTransform;
     private PlayerStats _playerStats;
-    private const float MagnetSpeed = 12f;  // Speed to move towards player
-    private const float MagnetAcceleration = 25f;  // How fast to accelerate
+    private const float MagnetSpeed = 20f;
+    private const float MagnetAcceleration = 40f;
     private float _currentSpeed = 0f;
     
     void Awake()
@@ -45,17 +45,9 @@ public class ExpGain : MonoBehaviour
         // Check for magnet attraction
         if (_playerStats != null && _playerStats.HasMagnetActive && _playerTransform != null)
         {
-            float magnetRadius = _playerStats.MagnetRadius;
-            float distanceToPlayer = Vector2.Distance(transform.position, _playerTransform.position);
-            
-            if (distanceToPlayer <= magnetRadius)
-            {
-                // Accelerate towards player
-                _currentSpeed = Mathf.MoveTowards(_currentSpeed, MagnetSpeed, MagnetAcceleration * Time.deltaTime);
-                
-                Vector2 direction = ((Vector2)_playerTransform.position - (Vector2)transform.position).normalized;
-                rb.linearVelocity = direction * _currentSpeed;
-            }
+            _currentSpeed = Mathf.MoveTowards(_currentSpeed, MagnetSpeed, MagnetAcceleration * Time.deltaTime);
+            Vector2 direction = ((Vector2)_playerTransform.position - (Vector2)transform.position).normalized;
+            rb.linearVelocity = direction * _currentSpeed;
         }
         else if (_currentSpeed > 0f)
         {
