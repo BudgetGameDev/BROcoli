@@ -31,6 +31,14 @@ public static class SpraySettings
     public const bool ShowHandAlways = true;
     public const float HandHoverAmplitude = 0.035f;
     public const float HandHoverSpeed = 3.2f;
+    public const float HandWalkWobbleDegrees = 3.5f;
+    public const float HandWalkBobDistance = 0.018f;
+    public const float HandWalkWobbleSpeed = 7.5f;
+    public const float HandSprayPushDistance = 0.11f;
+    public const float HandSprayPushInTime = 0.055f;
+    public const float HandSprayReturnTime = 0.22f;
+    public const float HandSprayForwardTiltDegrees = 4f;
+    public const float HandSprayHoldAfterEmission = 0.08f;
 
     // ==================== Particle Settings ====================
     public const float ParticleSpeedMultiplier = 2.5f;

@@ -12,6 +12,8 @@ public class SprayHandVisuals
     private SprayWeaponVisual3D weaponVisual;
     private Transform sprayTransform;
     private Transform playerTransform;
+    private PlayerController playerController;
+    private ParticleSystem[] sprayParticles;
     
     // Target tracking
     private Transform targetTransform;
@@ -21,6 +23,9 @@ public class SprayHandVisuals
     // Animation state
     private float currentHandAngle = 0f;
     private float targetHandAngle = 0f;
+    private float sprayPushBlend;
+    private float sprayPushVelocity;
+    private float sprayHoldUntil;
 
     public Transform HandTransform => handTransform;
 
@@ -28,6 +33,9 @@ public class SprayHandVisuals
     {
         sprayTransform = parent;
         playerTransform = parent.parent;
+        playerController = playerTransform != null
+            ? playerTransform.GetComponent<PlayerController>()
+            : null;
     }
 
     public void CreateHandVisuals()
@@ -46,6 +54,7 @@ public class SprayHandVisuals
         handTransform.localPosition = new Vector3(SpraySettings.HandOffset, 0f, 0f);
         handTransform.localRotation = Quaternion.identity;
         weaponVisual = SprayWeaponVisual3D.Attach(handTransform.gameObject);
+        sprayParticles = sprayTransform.GetComponentsInChildren<ParticleSystem>(true);
     }
 
     // ==================== TARGET TRACKING ====================
@@ -96,7 +105,8 @@ public class SprayHandVisuals
     {
         Vector3 playerPos = playerTransform != null ? playerTransform.position : sprayTransform.position;
         Vector2 dir = CurrentDirection;
-        float offset = SpraySettings.HandOffset + SpraySettings.NozzleLocalPos.x;
+        float offset = SpraySettings.HandOffset + SpraySettings.NozzleLocalPos.x +
+            sprayPushBlend * SpraySettings.HandSprayPushDistance;
         return new Vector3(playerPos.x + dir.x * offset, playerPos.y + dir.y * offset, playerPos.z + SpraySettings.VisualZOffset);
     }
 
@@ -136,14 +146,57 @@ public class SprayHandVisuals
         sprayTransform.localRotation = Quaternion.Euler(0, 0, currentHandAngle);
         sprayTransform.localPosition = new Vector3(0, 0, SpraySettings.VisualZOffset);
 
-        // The weapon is held by a detached, hovering hand. Keeping the float on
-        // the visual child preserves the exact 2D aim and damage direction.
+        UpdateSprayPush();
+        float movement = playerController != null
+            ? Mathf.Clamp01(playerController.RawInput.magnitude)
+            : 0f;
+        float walkPhase = Time.time * SpraySettings.HandWalkWobbleSpeed;
         float hover = Mathf.Sin(Time.time * SpraySettings.HandHoverSpeed) *
             SpraySettings.HandHoverAmplitude;
-        handTransform.localPosition = new Vector3(SpraySettings.HandOffset, hover, 0f);
-        
+        float walkBob = Mathf.Abs(Mathf.Sin(walkPhase)) *
+            SpraySettings.HandWalkBobDistance * movement;
+        float push = sprayPushBlend * SpraySettings.HandSprayPushDistance;
+        handTransform.localPosition = new Vector3(
+            SpraySettings.HandOffset + push,
+            hover + walkBob,
+            0f);
+
         bool left = CurrentDirection.x < -0.1f;
-        weaponVisual?.SetFacingLeft(left);
+        float walkTilt = Mathf.Sin(walkPhase) *
+            SpraySettings.HandWalkWobbleDegrees * movement;
+        float sprayTilt = -SpraySettings.HandSprayForwardTiltDegrees * sprayPushBlend *
+            (left ? -1f : 1f);
+        weaponVisual?.SetPresentation(currentHandAngle, left, walkTilt + sprayTilt);
+    }
+
+    private void UpdateSprayPush()
+    {
+        bool particlesActive = false;
+        if (sprayParticles != null)
+        {
+            foreach (ParticleSystem particles in sprayParticles)
+            {
+                if (particles != null && particles.gameObject.activeInHierarchy &&
+                    (particles.isEmitting || particles.particleCount > 0))
+                {
+                    particlesActive = true;
+                    break;
+                }
+            }
+        }
+
+        if (particlesActive)
+            sprayHoldUntil = Time.time + SpraySettings.HandSprayHoldAfterEmission;
+
+        bool pushForward = particlesActive || Time.time < sprayHoldUntil;
+        float smoothTime = pushForward
+            ? SpraySettings.HandSprayPushInTime
+            : SpraySettings.HandSprayReturnTime;
+        sprayPushBlend = Mathf.SmoothDamp(
+            sprayPushBlend,
+            pushForward ? 1f : 0f,
+            ref sprayPushVelocity,
+            smoothTime);
     }
 
     public void SetVisible(bool visible)

@@ -71,3 +71,7 @@ out/*
 *.dwlt
 UserSettings/Layouts/default-6000.dwlt
 .DS_Store
+
+# Licensed asset pipeline: local secret and decrypted Unity imports.
+.env
+Assets/Resources/Generated/Licensed/
