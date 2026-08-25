@@ -11,7 +11,6 @@ public class PlayerAudioHandler : MonoBehaviour
     private const string WalkSoundPath = "Audio/walk-0";  // Generic footstep from Audio folder
     private const string DamageSoundPath = "Sprites/ggj-2023/sfx/ohno-trædid-minkar2";  // Damage/shrink sound
     private const string CollisionSoundPath = "Sprites/ggj-2023/sfx/rakar-stein-ella-vegg";  // Collision with wall/stone
-    private const string PickupSoundPath = "Sprites/ggj-2023/sfx/drekkur-vatn2";  // Pickup/drink water sound
     private const string GameOverSoundPath = "Sprites/ggj-2023/sfx/game over2";
     private const string GrowSoundPath = "Sprites/ggj-2023/sfx/trædid-veksur";  // Tree grows sound
     private const string ShrinkSoundPath = "Sprites/ggj-2023/sfx/ohno-trædid-minkar2";  // Tree shrinks sound
@@ -24,7 +23,6 @@ public class PlayerAudioHandler : MonoBehaviour
     private AudioClip _walkClip;
     private AudioClip _damageClip;
     private AudioClip _collisionClip;
-    private AudioClip _pickupClip;
     private AudioClip _gameOverClip;
     private AudioClip _growClip;
     private AudioClip _shrinkClip;
@@ -53,7 +51,6 @@ public class PlayerAudioHandler : MonoBehaviour
         _walkClip = LoadClip(WalkSoundPath);
         _damageClip = LoadClip(DamageSoundPath);
         _collisionClip = LoadClip(CollisionSoundPath);
-        _pickupClip = LoadClip(PickupSoundPath);
         _gameOverClip = LoadClip(GameOverSoundPath);
         _growClip = LoadClip(GrowSoundPath);
         _shrinkClip = LoadClip(ShrinkSoundPath);
@@ -150,14 +147,6 @@ public class PlayerAudioHandler : MonoBehaviour
     public void PlayCollisionSound()
     {
         PlayClip(_sfxSource2, _collisionClip);
-    }
-
-    /// <summary>
-    /// Play the pickup/experience sound.
-    /// </summary>
-    public void PlayPickupSound()
-    {
-        PlayClip(_sfxSource2, _pickupClip);
     }
 
     /// <summary>

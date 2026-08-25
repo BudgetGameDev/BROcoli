@@ -188,8 +188,6 @@ public class PlayerDamageHandler : MonoBehaviour
 
     private void HandleExperiencePickup(Collider2D other)
     {
-        _audioHandler?.PlayPickupSound();
-
         ExpGain expGain = other.GetComponent<ExpGain>();
         float exp = expGain?.expAmountGain ?? 0f;
         _playerStats?.ApplyExperience(exp);
