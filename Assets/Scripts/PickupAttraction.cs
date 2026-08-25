@@ -9,9 +9,9 @@ public static class PickupAttraction
 {
     public const float LocalRadius = 1.6f;
 
-    private const float LocalMinimumSpeed = 3.5f;
-    private const float LocalMaximumSpeed = 10f;
-    private const float LocalAcceleration = 24f;
+    private const float LocalMinimumSpeed = 4.5f;
+    private const float LocalMaximumSpeed = 15f;
+    private const float LocalAcceleration = 38f;
     private const float GlobalMinimumSpeed = 18f;
     private const float GlobalMaximumSpeed = 60f;
     private const float GlobalAcceleration = 120f;
