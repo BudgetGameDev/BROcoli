@@ -281,7 +281,7 @@ BoxCollider2D:
   m_UsedByEffector: 0
   m_CompositeOperation: 0
   m_CompositeOrder: 0
-  m_Offset: {x: 0, y: 0}
+  m_Offset: {x: 0, y: -0.08}
   m_SpriteTilingProperty:
     border: {x: 0, y: 0, z: 0, w: 0}
     pivot: {x: 0.5, y: 0.5}
@@ -291,8 +291,8 @@ BoxCollider2D:
     drawMode: 0
     adaptiveTiling: 0
   m_AutoTiling: 0
-  m_Size: {x: 0.5, y: 0.5}
-  m_EdgeRadius: 0
+  m_Size: {x: 0.46, y: 0.34}
+  m_EdgeRadius: 0.16
 --- !u!114 &44608734
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -886,12 +886,12 @@ MonoBehaviour:
   fillColor: {r: 0.55, g: 0.55, b: 0.6, a: 0.35}
   handleColor: {r: 0.2, g: 0.2, b: 0.25, a: 0.8}
   handleBorderColor: {r: 0.5, g: 0.5, b: 0.55, a: 1}
-  portraitJoystickAnchor: {x: 0.5, y: 0.35}
+  portraitJoystickAnchor: {x: 0.82, y: 0.78}
   portraitButtonAnchor: {x: 0.85, y: 0.35}
-  portraitPauseButtonAnchor: {x: 0.92, y: 0.92}
-  landscapeJoystickAnchor: {x: 0.25, y: 0.5}
+  portraitPauseButtonAnchor: {x: 0.08, y: 0.92}
+  landscapeJoystickAnchor: {x: 0.86, y: 0.76}
   landscapeButtonAnchor: {x: 0.85, y: 0.5}
-  landscapePauseButtonAnchor: {x: 0.95, y: 0.9}
+  landscapePauseButtonAnchor: {x: 0.06, y: 0.9}
   pauseButtonColor: {r: 0.2, g: 0.2, b: 0.25, a: 0.85}
   pauseIconColor: {r: 1, g: 1, b: 1, a: 0.95}
 --- !u!1 &204281155

@@ -46,15 +46,15 @@ public class VirtualController : MonoBehaviour
     [SerializeField] private Color handleColor = new Color(0.15f, 0.15f, 0.2f, 1.0f); // Dark, fully opaque for maximum visibility
     [SerializeField] private Color handleBorderColor = new Color(0.5f, 0.5f, 0.55f, 1.0f); // Lighter border for contrast
 
-    [Header("Portrait Position (centered but 25% lower for ergonomics)")]
-    [SerializeField] private Vector2 portraitJoystickAnchor = new Vector2(0.5f, 0.25f);
+    [Header("Portrait Position")]
+    [SerializeField] private Vector2 portraitJoystickAnchor = new Vector2(0.82f, 0.78f);
     [SerializeField] private Vector2 portraitButtonAnchor = new Vector2(0.85f, 0.25f);
-    [SerializeField] private Vector2 portraitPauseButtonAnchor = new Vector2(0.92f, 0.92f);
+    [SerializeField] private Vector2 portraitPauseButtonAnchor = new Vector2(0.08f, 0.92f);
 
-    [Header("Landscape Position (left side for thumb)")]
-    [SerializeField] private Vector2 landscapeJoystickAnchor = new Vector2(0.25f, 0.5f);
+    [Header("Landscape Position (top right)")]
+    [SerializeField] private Vector2 landscapeJoystickAnchor = new Vector2(0.86f, 0.76f);
     [SerializeField] private Vector2 landscapeButtonAnchor = new Vector2(0.85f, 0.5f);
-    [SerializeField] private Vector2 landscapePauseButtonAnchor = new Vector2(0.95f, 0.9f);
+    [SerializeField] private Vector2 landscapePauseButtonAnchor = new Vector2(0.06f, 0.9f);
 
     [Header("Pause Button Visual")]
     [SerializeField] private Color pauseButtonColor = new Color(0.2f, 0.2f, 0.25f, 0.85f);
@@ -70,6 +70,7 @@ public class VirtualController : MonoBehaviour
     private static Texture2D cachedPauseButtonTexture;
     private bool isMobileCached;
     private bool isMobileCacheSet;
+    private Rect lastSafeArea;
 
     public Vector2 JoystickInput => joystickInput;
     public static VirtualController Instance { get; private set; }
@@ -281,6 +282,7 @@ public class VirtualController : MonoBehaviour
             SetupActionButton();
             SetupJoystickVisuals();
             wasPortrait = Screen.height > Screen.width;
+            lastSafeArea = Screen.safeArea;
             UpdateLayoutForOrientation();
         }
     }
@@ -575,9 +577,11 @@ public class VirtualController : MonoBehaviour
             lastOrientationCheck = Time.unscaledTime;
             bool isPortrait = Screen.height > Screen.width;
             
-            if (isPortrait != wasPortrait)
+            bool safeAreaChanged = Screen.safeArea != lastSafeArea;
+            if (isPortrait != wasPortrait || safeAreaChanged)
             {
                 wasPortrait = isPortrait;
+                lastSafeArea = Screen.safeArea;
                 Debug.Log($"[VirtualController] Orientation changed - isPortrait: {isPortrait}, screen: {Screen.width}x{Screen.height}");
                 UpdateLayoutForOrientation();
             }
@@ -626,6 +630,7 @@ public class VirtualController : MonoBehaviour
                 {
                     isDragging = true;
                     dragFingerId = touch.finger.index;
+                    UpdateJoystickPosition(touch.screenPosition);
                     Debug.Log($"[VirtualController] Touch began on joystick, finger: {dragFingerId}");
                 }
             }
@@ -683,10 +688,17 @@ public class VirtualController : MonoBehaviour
         // Calculate normalized input
         joystickInput = clampedPoint / joystickRange;
         
-        // Apply dead zone
-        if (joystickInput.magnitude < deadZone)
+        // Apply a radial dead zone and remap the remaining range back to 0..1.
+        // This avoids the delayed-feeling jump at the edge of the dead zone.
+        float magnitude = joystickInput.magnitude;
+        if (magnitude <= deadZone)
         {
             joystickInput = Vector2.zero;
+        }
+        else
+        {
+            float remappedMagnitude = Mathf.InverseLerp(deadZone, 1f, magnitude);
+            joystickInput = joystickInput.normalized * remappedMagnitude;
         }
     }
 
@@ -711,6 +723,7 @@ public class VirtualController : MonoBehaviour
 
         if (joystickBackground != null)
         {
+            joystickAnchor = ClampAnchorToSafeArea(joystickBackground, joystickAnchor);
             joystickBackground.anchorMin = joystickAnchor;
             joystickBackground.anchorMax = joystickAnchor;
             joystickBackground.anchoredPosition = Vector2.zero;
@@ -731,6 +744,7 @@ public class VirtualController : MonoBehaviour
         if (pauseButton != null)
         {
             RectTransform pauseRect = pauseButton.GetComponent<RectTransform>();
+            pauseAnchor = ClampAnchorToSafeArea(pauseRect, pauseAnchor);
             pauseRect.anchorMin = pauseAnchor;
             pauseRect.anchorMax = pauseAnchor;
             pauseRect.anchoredPosition = Vector2.zero;
@@ -740,6 +754,38 @@ public class VirtualController : MonoBehaviour
         
         // Force canvas update
         Canvas.ForceUpdateCanvases();
+    }
+
+    private Vector2 ClampAnchorToSafeArea(RectTransform control, Vector2 desiredAnchor)
+    {
+        if (control == null || canvas == null || Screen.width <= 0 || Screen.height <= 0)
+            return desiredAnchor;
+
+        RectTransform canvasRect = canvas.transform as RectTransform;
+        if (canvasRect == null || canvasRect.rect.width <= 0f || canvasRect.rect.height <= 0f)
+            return desiredAnchor;
+
+        Rect safeArea = Screen.safeArea;
+        Vector2 safeMin = new Vector2(
+            safeArea.xMin / Screen.width,
+            safeArea.yMin / Screen.height);
+        Vector2 safeMax = new Vector2(
+            safeArea.xMax / Screen.width,
+            safeArea.yMax / Screen.height);
+        Vector2 halfExtent = new Vector2(
+            control.rect.width / (canvasRect.rect.width * 2f),
+            control.rect.height / (canvasRect.rect.height * 2f));
+        const float normalizedPadding = 0.015f;
+
+        return new Vector2(
+            Mathf.Clamp(
+                desiredAnchor.x,
+                safeMin.x + halfExtent.x + normalizedPadding,
+                safeMax.x - halfExtent.x - normalizedPadding),
+            Mathf.Clamp(
+                desiredAnchor.y,
+                safeMin.y + halfExtent.y + normalizedPadding,
+                safeMax.y - halfExtent.y - normalizedPadding));
     }
 
     private void OnDestroy()
