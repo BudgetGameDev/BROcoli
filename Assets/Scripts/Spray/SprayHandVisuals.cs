@@ -9,8 +9,7 @@ using UnityEngine;
 public class SprayHandVisuals
 {
     private Transform handTransform;
-    private SpriteRenderer handSprite;
-    private SpriteRenderer sprayCanSprite;
+    private SprayWeaponVisual3D weaponVisual;
     private Transform sprayTransform;
     private Transform playerTransform;
     
@@ -24,8 +23,6 @@ public class SprayHandVisuals
     private float targetHandAngle = 0f;
 
     public Transform HandTransform => handTransform;
-    public SpriteRenderer HandSprite => handSprite;
-    public SpriteRenderer SprayCanSprite => sprayCanSprite;
 
     public SprayHandVisuals(Transform parent)
     {
@@ -33,71 +30,22 @@ public class SprayHandVisuals
         playerTransform = parent.parent;
     }
 
-    public void SetReferences(Transform hand, SpriteRenderer handSpr, SpriteRenderer canSpr)
-    {
-        handTransform = hand;
-        handSprite = handSpr;
-        sprayCanSprite = canSpr;
-    }
-
     public void CreateHandVisuals()
     {
-        GameObject handObj = new GameObject("SprayHand");
-        handObj.transform.SetParent(sprayTransform);
-        handObj.transform.localPosition = new Vector3(SpraySettings.HandOffset, 0, 0);
-        handObj.transform.localRotation = Quaternion.identity;
-        handTransform = handObj.transform;
-        
-        CreateHandSprite();
-        CreateSprayCanSprite();
-        CreateNozzleSprite();
-    }
+        foreach (SpriteRenderer sprite in sprayTransform.GetComponentsInChildren<SpriteRenderer>(true))
+            sprite.enabled = false;
 
-    private void CreateHandSprite()
-    {
-        GameObject obj = new GameObject("HandSprite");
-        obj.transform.SetParent(handTransform);
-        obj.transform.localPosition = SpraySettings.HandSpriteLocalPos;
-        obj.transform.localScale = SpraySettings.HandSpriteScale;
-        handSprite = obj.AddComponent<SpriteRenderer>();
-        handSprite.sprite = CreateSimpleSprite();
-        handSprite.color = SpraySettings.SkinToneColor;
-        handSprite.sortingOrder = SpraySettings.HandSpriteSortingOrder;
-    }
+        handTransform = sprayTransform.Find("SprayHand");
+        if (handTransform == null)
+        {
+            GameObject handObject = new GameObject("SprayHand");
+            handTransform = handObject.transform;
+            handTransform.SetParent(sprayTransform, false);
+        }
 
-    private void CreateSprayCanSprite()
-    {
-        GameObject obj = new GameObject("SprayCanSprite");
-        obj.transform.SetParent(handTransform);
-        obj.transform.localPosition = SpraySettings.SprayCanLocalPos;
-        obj.transform.localScale = SpraySettings.SprayCanScale;
-        sprayCanSprite = obj.AddComponent<SpriteRenderer>();
-        sprayCanSprite.sprite = CreateSimpleSprite();
-        sprayCanSprite.color = SpraySettings.SprayCanColor;
-        sprayCanSprite.sortingOrder = SpraySettings.SprayCanSortingOrder;
-    }
-
-    private void CreateNozzleSprite()
-    {
-        GameObject obj = new GameObject("Nozzle");
-        obj.transform.SetParent(handTransform);
-        obj.transform.localPosition = SpraySettings.NozzleLocalPos;
-        obj.transform.localScale = SpraySettings.NozzleScale;
-        var sr = obj.AddComponent<SpriteRenderer>();
-        sr.sprite = CreateSimpleSprite();
-        sr.color = SpraySettings.NozzleColor;
-        sr.sortingOrder = SpraySettings.NozzleSortingOrder;
-    }
-
-    private Sprite CreateSimpleSprite()
-    {
-        Texture2D tex = new Texture2D(4, 4);
-        Color[] pixels = new Color[16];
-        for (int i = 0; i < 16; i++) pixels[i] = Color.white;
-        tex.SetPixels(pixels);
-        tex.Apply();
-        tex.filterMode = FilterMode.Point;
-        return Sprite.Create(tex, new Rect(0, 0, 4, 4), new Vector2(0.5f, 0.5f), 4f);
+        handTransform.localPosition = new Vector3(SpraySettings.HandOffset, 0f, 0f);
+        handTransform.localRotation = Quaternion.identity;
+        weaponVisual = SprayWeaponVisual3D.Attach(handTransform.gameObject);
     }
 
     // ==================== TARGET TRACKING ====================
@@ -189,14 +137,12 @@ public class SprayHandVisuals
         sprayTransform.localPosition = new Vector3(0, 0, SpraySettings.VisualZOffset);
         
         bool left = CurrentDirection.x < -0.1f;
-        if (handSprite != null) handSprite.flipY = left;
-        if (sprayCanSprite != null) sprayCanSprite.flipY = left;
+        weaponVisual?.SetFacingLeft(left);
     }
 
     public void SetVisible(bool visible)
     {
-        if (handSprite != null) handSprite.enabled = visible;
-        if (sprayCanSprite != null) sprayCanSprite.enabled = visible;
+        weaponVisual?.SetVisible(visible);
     }
 
     public bool HasHand => handTransform != null;

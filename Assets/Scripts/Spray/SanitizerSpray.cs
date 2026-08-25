@@ -16,9 +16,6 @@ public class SanitizerSpray : MonoBehaviour
     // References - can be assigned in scene
     [SerializeField] private ParticleSystem sprayParticles;
     [SerializeField] private ProceduralSprayAudio sprayAudio;
-    [SerializeField] private Transform handTransform;
-    [SerializeField] private SpriteRenderer handSprite;
-    [SerializeField] private SpriteRenderer sprayCanSprite;
 
     [Header("Weapon Knockback")]
     [Tooltip("Multiplies the shared damage-relative enemy knockback roll.")]
@@ -83,10 +80,7 @@ public class SanitizerSpray : MonoBehaviour
         
         // Initialize hand visuals
         handVisuals = new SprayHandVisuals(transform);
-        if (handTransform != null)
-            handVisuals.SetReferences(handTransform, handSprite, sprayCanSprite);
-        else
-            handVisuals.CreateHandVisuals();
+        handVisuals.CreateHandVisuals();
     }
 
     private void FindReferences()
