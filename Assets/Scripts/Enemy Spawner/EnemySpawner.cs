@@ -161,7 +161,7 @@ public class EnemySpawner : MonoBehaviour
         
         if (enemy != null)
         {
-            aliveEnemies++;
+            RegisterEnemy(enemy);
 
             // Resize the complete body, not just the rendered child. This
             // keeps its collider aligned while early waves use smaller enemies.
@@ -178,8 +178,6 @@ public class EnemySpawner : MonoBehaviour
                 enemy.MaxHealth *= hpMultiplier;
                 enemy.Speed *= speedMultiplier;
             }
-            
-            enemy.OnDeath += HandleEnemyDeath;
             
             // Roll for elite status (only after minWaveForElites)
             if (currentWaveNumber >= minWaveForElites)
@@ -214,6 +212,8 @@ public class EnemySpawner : MonoBehaviour
     {
         enemy.OnDeath -= HandleEnemyDeath;
         enemy.OnEliteDeath -= HandleEliteDeath;
+        if (enemy is HydraEnemyScript hydra)
+            hydra.OnChildSpawned -= HandleHydraChildSpawned;
         
         // Try to drop a powerup (max 1 per wave for non-elites)
         if (!enemy.isElite)
@@ -228,6 +228,25 @@ public class EnemySpawner : MonoBehaviour
             IsWaveComplete = true;
             OnWaveCompleted?.Invoke();
         }
+    }
+
+    private void RegisterEnemy(EnemyBase enemy)
+    {
+        aliveEnemies++;
+        enemy.OnDeath -= HandleEnemyDeath;
+        enemy.OnDeath += HandleEnemyDeath;
+
+        if (enemy is HydraEnemyScript hydra)
+        {
+            hydra.OnChildSpawned -= HandleHydraChildSpawned;
+            hydra.OnChildSpawned += HandleHydraChildSpawned;
+        }
+    }
+
+    private void HandleHydraChildSpawned(HydraEnemyScript child)
+    {
+        if (child != null)
+            RegisterEnemy(child);
     }
     
     private void HandleEliteDeath(Vector3 position)

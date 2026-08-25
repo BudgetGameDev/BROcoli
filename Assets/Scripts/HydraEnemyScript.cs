@@ -1,5 +1,7 @@
+using System;
 using UnityEngine;
 using Pooling;
+using Random = UnityEngine.Random;
 
 /// <summary>
 /// Hydra enemy that splits into smaller copies when killed.
@@ -13,7 +15,6 @@ public class HydraEnemyScript : EnemyBase
     private const float MaxAttackPullBackDistance = 0.22f;
 
     [Header("Hydra Split Settings")]
-    [SerializeField] private int splitCount = 2;           // How many children spawn on death
     [SerializeField] private int currentGeneration = 0;    // 0 = original, increases with each split
     [SerializeField] private int maxGenerations = 2;       // Max splits (0->1->2, then dies for real)
     [SerializeField] private float childScaleMultiplier = 0.7f;  // Each generation is 70% the size
@@ -21,6 +22,9 @@ public class HydraEnemyScript : EnemyBase
     [SerializeField] private float childDamageMultiplier = 0.7f; // Each generation does 70% damage
     [SerializeField] private float childSpeedMultiplier = 1.1f;  // Each generation is 10% faster
     [SerializeField] private float splitSpawnRadius = 0.5f;      // How far apart children spawn
+    [SerializeField] private float splitImpulse = 3f;
+
+    public event Action<HydraEnemyScript> OnChildSpawned;
     
     [Header("Melee Attack")]
     [SerializeField] private float meleeRange = 0.9f;
@@ -190,12 +194,10 @@ public class HydraEnemyScript : EnemyBase
     public void InitAsChild(int generation, float parentHealth, float parentDamage, float parentSpeed, Vector3 parentScale)
     {
         currentGeneration = generation;
-        
-        // Scale down stats based on generation
-        float healthMult = Mathf.Pow(childHealthMultiplier, generation);
-        float damageMult = Mathf.Pow(childDamageMultiplier, generation);
-        float speedMult = Mathf.Pow(childSpeedMultiplier, generation);
-        float scaleMult = Mathf.Pow(childScaleMultiplier, generation);
+
+        // A pooled child must never retain listeners from a previous life.
+        OnChildSpawned = null;
+        hasSpawnedChildren = false;
         
         MaxHealth = parentHealth * childHealthMultiplier;
         Health = MaxHealth;
@@ -238,11 +240,12 @@ public class HydraEnemyScript : EnemyBase
     private void SpawnChildren()
     {
         hasSpawnedChildren = true;
-        
-        for (int i = 0; i < splitCount; i++)
+
+        const int childrenToSpawn = 2;
+        for (int i = 0; i < childrenToSpawn; i++)
         {
             // Calculate spawn position in a circle around death position
-            float angle = (360f / splitCount) * i + Random.Range(-15f, 15f);
+            float angle = (360f / childrenToSpawn) * i + Random.Range(-15f, 15f);
             Vector2 offset = new Vector2(
                 Mathf.Cos(angle * Mathf.Deg2Rad),
                 Mathf.Sin(angle * Mathf.Deg2Rad)
@@ -280,11 +283,13 @@ public class HydraEnemyScript : EnemyBase
                     Speed,
                     transform.localScale
                 );
+
+                OnChildSpawned?.Invoke(childHydra);
                 
                 // Give child a small impulse away from spawn point
                 if (childHydra.rb != null)
                 {
-                    childHydra.rb.linearVelocity = offset.normalized * 3f;
+                    childHydra.rb.linearVelocity = offset.normalized * splitImpulse;
                 }
             }
         }
@@ -298,6 +303,7 @@ public class HydraEnemyScript : EnemyBase
         base.ResetForPool();
         
         hasSpawnedChildren = false;
+        OnChildSpawned = null;
         currentGeneration = 0;
         isAttacking = false;
         hasDamagedThisAttack = false;
