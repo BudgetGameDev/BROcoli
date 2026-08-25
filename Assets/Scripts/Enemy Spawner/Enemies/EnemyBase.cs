@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using UnityEngine;
 using Pooling;
 
@@ -79,6 +80,17 @@ public abstract class EnemyBase : MonoBehaviour
     private float baseMaxHealth;
     private float baseSpeed;
     private int baseScoreValue;
+    private Quaternion baseLocalRotation;
+
+    [Header("Death Animation")]
+    [Tooltip("Randomized implosion duration keeps groups from disappearing in lockstep.")]
+    [SerializeField] private Vector2 deathAnimationDurationRange = new Vector2(0.24f, 0.36f);
+    [Tooltip("Fraction of deaths that add a small randomized spin while shrinking.")]
+    [SerializeField, Range(0f, 1f)] private float deathSpinChance = 0.6f;
+    [SerializeField] private Vector2 deathSpinDegreesRange = new Vector2(35f, 110f);
+    private bool isDying;
+
+    public bool IsDying => isDying;
 
     protected virtual void Awake()
     {
@@ -89,6 +101,7 @@ public abstract class EnemyBase : MonoBehaviour
         ConfigureSolidBody();
 
         baseLocalScale = transform.localScale;
+        baseLocalRotation = transform.localRotation;
         baseHealth = Health;
         baseMaxHealth = MaxHealth;
         baseSpeed = Speed;
@@ -332,6 +345,8 @@ public abstract class EnemyBase : MonoBehaviour
         Vector2 knockbackDirection,
         float weaponKnockbackMultiplier)
     {
+        if (isDying) return;
+
         float appliedDamage = Mathf.Max(0f, damage);
         Health -= appliedDamage;
         if (Health <= 0f)
@@ -618,6 +633,28 @@ public abstract class EnemyBase : MonoBehaviour
     {
         if (isQuitting) return;
         if (!gameObject.scene.isLoaded) return;
+        if (isDying) return;
+
+        isDying = true;
+        Health = 0f;
+        PrepareForIncomingKnockback();
+        ClearQueuedKnockback();
+        UnlockBodyAfterAttack(false);
+
+        // The enemy stops participating in combat immediately, while its
+        // rendered body remains briefly to play the implosion.
+        player = null;
+        EnemySpatialHash.Instance?.Unregister(this);
+        if (bodyCollider != null)
+            bodyCollider.enabled = false;
+        if (rb != null)
+        {
+            rb.linearVelocity = Vector2.zero;
+            rb.angularVelocity = 0f;
+            rb.simulated = false;
+        }
+        if (healthBar != null)
+            healthBar.HideBar();
         
         // Add score via GameContext
         var context = GameContext.Instance;
@@ -632,10 +669,50 @@ public abstract class EnemyBase : MonoBehaviour
         // Invoke death event before returning to pool
         OnDeath?.Invoke(this);
         
-        // Return to pool or destroy
+        StartCoroutine(PlayDeathAnimation());
+    }
+
+    private IEnumerator PlayDeathAnimation()
+    {
+        Vector3 startScale = transform.localScale;
+        Quaternion startRotation = transform.localRotation;
+        float minDuration = Mathf.Max(0.05f, deathAnimationDurationRange.x);
+        float maxDuration = Mathf.Max(minDuration, deathAnimationDurationRange.y);
+        float duration = UnityEngine.Random.Range(minDuration, maxDuration);
+        float spin = 0f;
+
+        if (UnityEngine.Random.value < deathSpinChance)
+        {
+            float minSpin = Mathf.Min(deathSpinDegreesRange.x, deathSpinDegreesRange.y);
+            float maxSpin = Mathf.Max(deathSpinDegreesRange.x, deathSpinDegreesRange.y);
+            spin = UnityEngine.Random.Range(minSpin, maxSpin) *
+                   (UnityEngine.Random.value < 0.5f ? -1f : 1f);
+        }
+
+        float elapsed = 0f;
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            float t = Mathf.Clamp01(elapsed / duration);
+            float eased = 1f - Mathf.Pow(1f - t, 3f);
+            transform.localScale = Vector3.LerpUnclamped(startScale, Vector3.zero, eased);
+            transform.localRotation = startRotation * Quaternion.Euler(0f, 0f, spin * eased);
+            yield return null;
+        }
+
+        CompleteDeath();
+    }
+
+    private void CompleteDeath()
+    {
+        // Return to pool or destroy only after the visible death finishes.
         if (_isPooled)
         {
-            PoolManager.Instance?.ReturnEnemy(this);
+            PoolManager poolManager = PoolManager.Instance;
+            if (poolManager != null)
+                poolManager.ReturnEnemy(this);
+            else
+                Destroy(gameObject);
         }
         else
         {
@@ -681,6 +758,7 @@ public abstract class EnemyBase : MonoBehaviour
     /// </summary>
     public virtual void ResetForPool()
     {
+        StopAllCoroutines();
         ClearQueuedKnockback();
         UnlockBodyAfterAttack(false);
 
@@ -692,7 +770,9 @@ public abstract class EnemyBase : MonoBehaviour
 
         isElite = false;
         alwaysShowHealthBar = false;
+        isDying = false;
         transform.localScale = baseLocalScale;
+        transform.localRotation = baseLocalRotation;
         Health = baseHealth;
         MaxHealth = baseMaxHealth;
         Speed = baseSpeed;
