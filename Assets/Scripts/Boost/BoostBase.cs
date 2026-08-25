@@ -18,13 +18,9 @@ public abstract class BoostBase : MonoBehaviour
     [SerializeField] private Rigidbody2D _body;
     [SerializeField] private Collider2D _collider;
     [SerializeField] private float _lifetime = 30f;
-    
-    // Global magnet attraction. Far-away drops move faster so even objects at
-    // the edge of the map can visibly reach the player before the effect ends.
-    private const float MinimumMagnetSpeed = 18f;
-    private const float MaximumMagnetSpeed = 60f;
-    private const float MagnetAcceleration = 120f;
+    private PickupVisual3D _pickupVisual;
     private float _currentSpeed = 0f;
+    private bool _localAttractionLocked;
 
     /// <summary>
     /// Override this to specify which procedural sound to play for this boost.
@@ -42,9 +38,13 @@ public abstract class BoostBase : MonoBehaviour
     private void OnEnable()
     {
         ActivePickups.Add(this);
-        _currentSpeed = 0f;
         ConfigureMagnetBody();
-        PickupVisual3D.AttachBoost(this);
+        _pickupVisual = PickupVisual3D.AttachBoost(this);
+        PickupAttraction.Reset(
+            _body,
+            ref _currentSpeed,
+            ref _localAttractionLocked,
+            _pickupVisual);
     }
 
     private void OnDisable()
@@ -109,45 +109,11 @@ public abstract class BoostBase : MonoBehaviour
     
     private void FixedUpdate()
     {
-        Transform target = PlayerStats.ActiveMagnetTarget;
-
-        // The target is global, so pickups already off-screen and pickups that
-        // spawn after collection join the same attraction immediately.
-        if (target != null && _body != null)
-        {
-            Vector2 toPlayer = (Vector2)target.position - _body.position;
-            float distance = toPlayer.magnitude;
-            if (distance <= 0.001f)
-            {
-                _body.linearVelocity = Vector2.zero;
-                return;
-            }
-
-            float targetSpeed = Mathf.Clamp(
-                distance * 4f,
-                MinimumMagnetSpeed,
-                MaximumMagnetSpeed);
-            _currentSpeed = Mathf.MoveTowards(
-                _currentSpeed,
-                targetSpeed,
-                MagnetAcceleration * Time.fixedDeltaTime);
-            Vector2 direction = toPlayer / distance;
-            float arrivalSpeed = distance * 0.75f / Mathf.Max(Time.fixedDeltaTime, 0.001f);
-            _body.WakeUp();
-            _body.linearVelocity = direction * Mathf.Min(_currentSpeed, arrivalSpeed);
-        }
-        else if (_currentSpeed > 0f && _body != null)
-        {
-            _currentSpeed = Mathf.MoveTowards(
-                _currentSpeed,
-                0f,
-                MagnetAcceleration * Time.fixedDeltaTime);
-            if (_currentSpeed <= 0.1f)
-            {
-                _body.linearVelocity = Vector2.zero;
-                _currentSpeed = 0f;
-            }
-        }
+        PickupAttraction.UpdateMotion(
+            _body,
+            ref _currentSpeed,
+            ref _localAttractionLocked,
+            _pickupVisual);
     }
 
     private void OnTriggerEnter2D(Collider2D other)

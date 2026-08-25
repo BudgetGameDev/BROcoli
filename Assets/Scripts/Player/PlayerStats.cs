@@ -77,6 +77,7 @@ public class PlayerStats : MonoBehaviour
 
     public static float ActiveEnemyTimeScale { get; private set; } = 1f;
     public static Transform ActiveMagnetTarget { get; private set; }
+    public static Transform ActivePlayerTarget { get; private set; }
 
 // UI references - discovered dynamically
     private Bar _healthBar;
@@ -109,7 +110,20 @@ public class PlayerStats : MonoBehaviour
 
     private void Awake()
     {
+        RegisterPickupTarget();
         DiscoverUIComponents();
+    }
+
+    private void OnEnable()
+    {
+        RegisterPickupTarget();
+    }
+
+    private void RegisterPickupTarget()
+    {
+        Transform root = transform.root;
+        if (root != null && root.CompareTag("Player"))
+            ActivePlayerTarget = root;
     }
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
@@ -117,6 +131,7 @@ public class PlayerStats : MonoBehaviour
     {
         ActiveEnemyTimeScale = 1f;
         ActiveMagnetTarget = null;
+        ActivePlayerTarget = null;
     }
 
     private void Start()
@@ -361,6 +376,8 @@ public class PlayerStats : MonoBehaviour
         ActiveEnemyTimeScale = 1f;
         if (ActiveMagnetTarget == transform)
             ActiveMagnetTarget = null;
+        if (gameObject.CompareTag("Player") && ActivePlayerTarget == transform)
+            ActivePlayerTarget = null;
     }
 
     /// <summary>

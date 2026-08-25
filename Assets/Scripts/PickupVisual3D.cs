@@ -49,10 +49,25 @@ public sealed class PickupVisual3D : MonoBehaviour
     private Vector3 rotationAxis = Vector3.forward;
     private float animationPhase;
     private float spinSpeed;
+    private float attractionBlend;
+    private bool attractionRequested;
     private bool initialized;
 
     public ModelKind Kind { get; private set; }
     public Transform ModelRoot => modelRoot;
+    public bool IsAttracted => attractionRequested;
+    public float AttractionBlend => attractionBlend;
+
+    public void SetAttracted(bool attracted)
+    {
+        attractionRequested = attracted;
+    }
+
+    public void ResetAttraction()
+    {
+        attractionRequested = false;
+        attractionBlend = 0f;
+    }
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     private static void ResetSharedResources()
@@ -168,13 +183,20 @@ public sealed class PickupVisual3D : MonoBehaviour
             return;
 
         float time = Time.time + animationPhase;
-        float bob = Mathf.Sin(time * 3.2f) * 0.055f;
+        attractionBlend = Mathf.MoveTowards(
+            attractionBlend,
+            attractionRequested ? 1f : 0f,
+            Time.deltaTime * 7f);
+        float bobAmplitude = Mathf.Lerp(0.055f, 0.012f, attractionBlend);
+        float bob = Mathf.Sin(time * 3.2f) * bobAmplitude;
         float pulse = 1f + Mathf.Sin(time * 4.1f) * 0.035f;
-        float angle = Mathf.Repeat(time * spinSpeed, 360f);
+        float magneticWobble = Mathf.Sin(time * 16f) * 24f * attractionBlend;
+        float angle = Mathf.Repeat(time * spinSpeed + magneticWobble, 360f);
+        float pullScale = Mathf.Lerp(1f, 0.72f, attractionBlend);
 
         modelRoot.localPosition = modelBasePosition + Vector3.back * bob;
         modelRoot.localRotation = modelBaseRotation;
-        modelRoot.localScale = modelBaseScale * pulse;
+        modelRoot.localScale = modelBaseScale * pulse * pullScale;
         if (spinTarget != null)
             spinTarget.localRotation = spinBaseRotation * Quaternion.AngleAxis(angle, rotationAxis);
     }
