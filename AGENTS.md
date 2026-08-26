@@ -40,6 +40,37 @@ Follow this acquisition order before creating a 3D model yourself:
    create or update the appropriate prefab, place it in the requested Unity scene, and
    verify its scale, orientation, lighting, collisions, and runtime appearance.
 
+#### Lighting and material verification
+
+An imported model is not complete until it is lit consistently with the existing game.
+Before choosing shader or renderer settings, inspect the Broccoli player and coronavirus
+enemy in the target gameplay scene and use their runtime appearance as the reference.
+Do not switch an asset to an Unlit shader merely to preserve its source colors or make it
+more visible.
+
+- Use the shader family for the project's active render pipeline. In this project, prefer
+  `Universal Render Pipeline/Lit` (or the same Lit variant used by the nearby reference
+  model) for opaque 3D meshes.
+- Preserve and validate normals and tangents during Blender cleanup and Unity import.
+  Recalculate them only when the source data is missing or visibly incorrect; check for
+  inverted faces, faceted gradients, and broken normal-map response.
+- Match material response to the object and the established scene style. As a baseline,
+  non-metal objects should use metallic `0`, and smoothness should match the Broccoli and
+  coronavirus materials (currently approximately `0.5`) unless the object's surface
+  clearly requires a different value.
+- Enable shadow casting and shadow receiving when comparable scene models use them.
+  Confirm that the renderer's layer is included in the relevant light and camera culling
+  masks, and do not add an asset-specific light to compensate for incorrect materials,
+  normals, layers, or exposure.
+- Verify the result in Play Mode through the actual gameplay camera and scene lights, not
+  only in Blender, the model importer, or Unity's Scene view. Inspect all gameplay-facing
+  orientations and relevant animation poses for readable volume, grounded shadows, and
+  consistent brightness beside the player and enemies.
+
+If the imported model still looks flat, overly dark, or self-illuminated, diagnose its
+shader, normals, material values, renderer shadow settings, layer, and scene-light setup
+before changing its geometry or accepting the asset.
+
 Only fall back to procedural model generation after both the Sketchfab search and the
 Openverse-to-SAM-3D workflow fail to produce a suitable, legally compatible result.
 

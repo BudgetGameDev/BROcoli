@@ -182,6 +182,9 @@ public class SprayHandVisuals
 
     private void ApplyTransform()
     {
+        // Rotating this parent moves the hand anchor around the player and yaws
+        // the complete 3D hand/bottle assembly continuously. The model child must
+        // inherit this rotation instead of cancelling it or flipping at screen left.
         sprayTransform.localRotation = Quaternion.Euler(0, 0, currentHandAngle);
         sprayTransform.localPosition = new Vector3(0, 0, SpraySettings.VisualZOffset);
 
@@ -200,11 +203,9 @@ public class SprayHandVisuals
             0f
         );
 
-        bool left = CurrentDirection.x < -0.1f;
         float walkTilt = Mathf.Sin(walkPhase) * SpraySettings.HandWalkWobbleDegrees * movement;
-        float sprayTilt =
-            -SpraySettings.HandSprayForwardTiltDegrees * sprayPushBlend * (left ? -1f : 1f);
-        weaponVisual?.SetPresentation(currentHandAngle, left, walkTilt + sprayTilt);
+        float sprayTilt = -SpraySettings.HandSprayForwardTiltDegrees * sprayPushBlend;
+        weaponVisual?.SetPresentation(walkTilt + sprayTilt);
     }
 
     private void UpdateSprayPush()

@@ -23,7 +23,6 @@ public static class SpraySettings
     public const float IsometricYOffset = 0.3f;
     public const float CameraAngle = 60f;
     public static readonly Color SprayColor = new Color(0.7f, 0.9f, 1f, 0.6f);
-    public const bool FlipHandWithDirection = true;
 
     // ==================== Hand Animation ====================
     public const float HandRotationSpeed = 720f; // Degrees per second

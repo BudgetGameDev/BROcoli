@@ -3,8 +3,9 @@ using UnityEngine;
 using UnityEngine.Rendering;
 
 /// <summary>
-/// Loads the floating hand and upright spray bottle used by the 2D sanitizer weapon.
-/// The imported models are presentation-only; aiming, particles, and damage remain 2D.
+/// Loads the floating hand and spray bottle used by the sanitizer weapon.
+/// The imported models inherit the animated weapon orbit as a continuous 3D assembly;
+/// particles and damage remain constrained to the gameplay plane.
 /// </summary>
 [DisallowMultipleComponent]
 public sealed class SprayWeaponVisual3D : MonoBehaviour
@@ -16,12 +17,10 @@ public sealed class SprayWeaponVisual3D : MonoBehaviour
     private const float PresentationScale = 1.3f;
 
     private static readonly Vector3 BottleScale = Vector3.one * 0.42f;
+    private static readonly Quaternion BottleRotation = Quaternion.Euler(-90f, 0f, 0f);
     private static readonly Vector3 HandScale = Vector3.one * 0.26f;
-    private static readonly Vector3 HandPosition = new Vector3(-0.06f, -0.06f, 0.03f);
-
-    // Both imported models use Unity's XZ ground plane. Rotate them into the
-    // current XY gameplay plane; the opposite sign turns the grip upside down.
-    private static readonly Quaternion GameplayPlaneRotation = Quaternion.Euler(-90f, 0f, 0f);
+    private static readonly Vector3 HandPosition = new Vector3(-0.027f, -0.042f, -0.145f);
+    private static readonly Quaternion HandRotation = Quaternion.Euler(24.061f, 0f, 180f);
     private static readonly Dictionary<Color32, Material> Materials = new();
 
     private Transform modelRoot;
@@ -52,17 +51,17 @@ public sealed class SprayWeaponVisual3D : MonoBehaviour
     }
 
     /// <summary>
-    /// Cancels the parent's aim rotation so the bottle remains upright, then adds
-    /// a small presentation tilt. Mirroring on X keeps the same grip on either side.
+    /// Adds only the local animated tilt. The parent weapon transform supplies the
+    /// continuous orbit and yaw around the player; no counter-rotation or flip is
+    /// applied to the 3D model.
     /// </summary>
-    public void SetPresentation(float aimAngleDegrees, bool facingLeft, float tiltDegrees)
+    public void SetPresentation(float tiltDegrees)
     {
         if (modelRoot == null)
             return;
 
-        float horizontalScale = (facingLeft ? -1f : 1f) * PresentationScale;
-        modelRoot.localScale = new Vector3(horizontalScale, PresentationScale, PresentationScale);
-        modelRoot.localRotation = Quaternion.Euler(0f, 0f, -aimAngleDegrees + tiltDegrees);
+        modelRoot.localScale = Vector3.one * PresentationScale;
+        modelRoot.localRotation = Quaternion.Euler(0f, 0f, tiltDegrees);
     }
 
     private void Initialize()
@@ -98,7 +97,7 @@ public sealed class SprayWeaponVisual3D : MonoBehaviour
         GameObject bottle = Object.Instantiate(bottlePrefab, modelRoot, false);
         bottle.name = "Upright Sanitizer Bottle";
         bottle.transform.localPosition = Vector3.zero;
-        bottle.transform.localRotation = GameplayPlaneRotation;
+        bottle.transform.localRotation = BottleRotation;
         bottle.transform.localScale = BottleScale;
         PrepareImportedModel(bottle);
 
@@ -124,7 +123,7 @@ public sealed class SprayWeaponVisual3D : MonoBehaviour
         GameObject hand = Object.Instantiate(handPrefab, modelRoot, false);
         hand.name = "Floating Cartoon Hand";
         hand.transform.localPosition = HandPosition;
-        hand.transform.localRotation = GameplayPlaneRotation;
+        hand.transform.localRotation = HandRotation;
         hand.transform.localScale = HandScale;
         PrepareImportedModel(hand);
 
@@ -156,8 +155,8 @@ public sealed class SprayWeaponVisual3D : MonoBehaviour
         SetLayerRecursively(instance.transform, instance.transform.parent.gameObject.layer);
         foreach (Renderer renderer in instance.GetComponentsInChildren<Renderer>(true))
         {
-            renderer.shadowCastingMode = ShadowCastingMode.Off;
-            renderer.receiveShadows = false;
+            renderer.shadowCastingMode = ShadowCastingMode.On;
+            renderer.receiveShadows = true;
         }
     }
 
@@ -187,9 +186,10 @@ public sealed class SprayWeaponVisual3D : MonoBehaviour
             return material;
 
         Shader shader =
-            Shader.Find("Universal Render Pipeline/Unlit")
-            ?? Shader.Find("Universal Render Pipeline/Lit")
+            Shader.Find("Universal Render Pipeline/Lit")
+            ?? Shader.Find("Universal Render Pipeline/Simple Lit")
             ?? Shader.Find("Standard")
+            ?? Shader.Find("Universal Render Pipeline/Unlit")
             ?? Shader.Find("Sprites/Default");
         material = new Material(shader)
         {
@@ -199,8 +199,10 @@ public sealed class SprayWeaponVisual3D : MonoBehaviour
         };
         if (material.HasProperty("_BaseColor"))
             material.SetColor("_BaseColor", color);
+        if (material.HasProperty("_Metallic"))
+            material.SetFloat("_Metallic", 0f);
         if (material.HasProperty("_Smoothness"))
-            material.SetFloat("_Smoothness", 0.25f);
+            material.SetFloat("_Smoothness", 0.5f);
         Materials[key] = material;
         return material;
     }
