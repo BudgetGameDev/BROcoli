@@ -1,8 +1,9 @@
 """Run inside Blender to create the Unity-ready sanitizer bottle FBX."""
 
-import bpy
-from pathlib import Path
 import sys
+from pathlib import Path
+
+import bpy
 
 
 def output_path() -> Path:

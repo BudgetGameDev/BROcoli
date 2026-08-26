@@ -7,7 +7,7 @@ using UnityEngine;
 public class Clue : MonoBehaviour
 {
     public GameObject go { get; set; }
-    
+
     public ClueData clueData { get; set; }
 
     public Clue(ClueData clueData)

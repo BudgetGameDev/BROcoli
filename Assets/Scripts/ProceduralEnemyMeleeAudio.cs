@@ -9,11 +9,11 @@ public class ProceduralEnemyMeleeAudio : MonoBehaviour
 {
     public enum MeleeSoundType
     {
-        Slash,          // Quick slashing attack
-        Bite,           // Biting/chomping attack
-        Slam,           // Heavy impact slam
-        Swipe,          // Wide sweeping attack
-        Stinger         // Piercing/stabbing attack
+        Slash, // Quick slashing attack
+        Bite, // Biting/chomping attack
+        Slam, // Heavy impact slam
+        Swipe, // Wide sweeping attack
+        Stinger, // Piercing/stabbing attack
     }
 
     // Static caching for prewarmed clips
@@ -25,42 +25,45 @@ public class ProceduralEnemyMeleeAudio : MonoBehaviour
     private static float[] staticHpState;
 
     [Header("Sound Type")]
-    [SerializeField] private MeleeSoundType soundType = MeleeSoundType.Slash;
+    [SerializeField]
+    private MeleeSoundType soundType = MeleeSoundType.Slash;
 
     [Header("Volume")]
     [Range(0f, 1f)]
-    [SerializeField] private float volume = 0.7f;
+    [SerializeField]
+    private float volume = 0.7f;
 
     [Header("Variation")]
     [Range(0f, 0.25f)]
-    [SerializeField] private float randomization = 0.12f;
+    [SerializeField]
+    private float randomization = 0.12f;
 
     private struct MeleePreset
     {
         public float duration;
-        
+
         // Whoosh/movement
         public float whooshFreqStart;
         public float whooshFreqEnd;
         public float whooshAmount;
         public float whooshDecay;
-        
+
         // Impact
         public float impactDelay;
         public float impactFreq;
         public float impactAmount;
         public float impactDecay;
-        
+
         // Body resonance
         public float bodyFreq;
         public float bodyAmount;
         public float bodyDecay;
-        
+
         // Noise characteristics
         public float noiseBurst;
         public float noiseDecay;
         public float noiseCutoff;
-        
+
         // Character
         public bool hasMetallic;
         public float metallicFreq;
@@ -74,7 +77,7 @@ public class ProceduralEnemyMeleeAudio : MonoBehaviour
 
     private float[] lpState = new float[4];
     private float[] hpState = new float[2];
-    
+
     // Distance-based volume attenuation
     private static Transform playerTransform;
     private const float MAX_AUDIBLE_DISTANCE = 25f;
@@ -89,11 +92,12 @@ public class ProceduralEnemyMeleeAudio : MonoBehaviour
         sampleRate = AudioSettings.outputSampleRate;
         int maxSamples = Mathf.CeilToInt(0.8f * sampleRate);
         audioBuffer = new float[maxSamples];
-        
+
         if (playerTransform == null)
         {
             GameObject player = GameObject.FindGameObjectWithTag("Player");
-            if (player != null) playerTransform = player.transform;
+            if (player != null)
+                playerTransform = player.transform;
         }
     }
 
@@ -219,11 +223,13 @@ public class ProceduralEnemyMeleeAudio : MonoBehaviour
 
     private float GetDistanceAttenuation()
     {
-        if (playerTransform == null) return 1f;
-        
+        if (playerTransform == null)
+            return 1f;
+
         float dist = Vector2.Distance(transform.position, playerTransform.position);
-        if (dist > MAX_AUDIBLE_DISTANCE) return 0f;
-        
+        if (dist > MAX_AUDIBLE_DISTANCE)
+            return 0f;
+
         float attenuation = Mathf.InverseLerp(MAX_AUDIBLE_DISTANCE, MIN_AUDIBLE_DISTANCE, dist);
         return Mathf.Sqrt(attenuation); // Smoother falloff
     }
@@ -234,7 +240,8 @@ public class ProceduralEnemyMeleeAudio : MonoBehaviour
     /// </summary>
     public static void PrewarmAll()
     {
-        if (isPrewarmed) return;
+        if (isPrewarmed)
+            return;
 
         staticSampleRate = AudioSettings.outputSampleRate;
         int maxSamples = Mathf.CeilToInt(0.8f * staticSampleRate);
@@ -260,53 +267,103 @@ public class ProceduralEnemyMeleeAudio : MonoBehaviour
         {
             case MeleeSoundType.Slash:
                 p.duration = 0.18f;
-                p.whooshFreqStart = 1800f; p.whooshFreqEnd = 400f;
-                p.whooshAmount = 0.5f; p.whooshDecay = 10f;
-                p.impactDelay = 0.08f; p.impactFreq = 180f;
-                p.impactAmount = 0.3f; p.impactDecay = 12f;
-                p.bodyFreq = 120f; p.bodyAmount = 0.25f; p.bodyDecay = 8f;
-                p.noiseBurst = 0.6f; p.noiseDecay = 15f; p.noiseCutoff = 3500f;
-                p.hasMetallic = true; p.metallicFreq = 2800f; p.metallicAmount = 0.15f;
+                p.whooshFreqStart = 1800f;
+                p.whooshFreqEnd = 400f;
+                p.whooshAmount = 0.5f;
+                p.whooshDecay = 10f;
+                p.impactDelay = 0.08f;
+                p.impactFreq = 180f;
+                p.impactAmount = 0.3f;
+                p.impactDecay = 12f;
+                p.bodyFreq = 120f;
+                p.bodyAmount = 0.25f;
+                p.bodyDecay = 8f;
+                p.noiseBurst = 0.6f;
+                p.noiseDecay = 15f;
+                p.noiseCutoff = 3500f;
+                p.hasMetallic = true;
+                p.metallicFreq = 2800f;
+                p.metallicAmount = 0.15f;
                 break;
             case MeleeSoundType.Bite:
                 p.duration = 0.15f;
-                p.whooshFreqStart = 600f; p.whooshFreqEnd = 200f;
-                p.whooshAmount = 0.2f; p.whooshDecay = 12f;
-                p.impactDelay = 0.02f; p.impactFreq = 250f;
-                p.impactAmount = 0.6f; p.impactDecay = 18f;
-                p.bodyFreq = 90f; p.bodyAmount = 0.5f; p.bodyDecay = 10f;
-                p.noiseBurst = 0.7f; p.noiseDecay = 20f; p.noiseCutoff = 1200f;
-                p.hasMetallic = false; p.metallicFreq = 0f; p.metallicAmount = 0f;
+                p.whooshFreqStart = 600f;
+                p.whooshFreqEnd = 200f;
+                p.whooshAmount = 0.2f;
+                p.whooshDecay = 12f;
+                p.impactDelay = 0.02f;
+                p.impactFreq = 250f;
+                p.impactAmount = 0.6f;
+                p.impactDecay = 18f;
+                p.bodyFreq = 90f;
+                p.bodyAmount = 0.5f;
+                p.bodyDecay = 10f;
+                p.noiseBurst = 0.7f;
+                p.noiseDecay = 20f;
+                p.noiseCutoff = 1200f;
+                p.hasMetallic = false;
+                p.metallicFreq = 0f;
+                p.metallicAmount = 0f;
                 break;
             case MeleeSoundType.Slam:
                 p.duration = 0.3f;
-                p.whooshFreqStart = 500f; p.whooshFreqEnd = 100f;
-                p.whooshAmount = 0.35f; p.whooshDecay = 6f;
-                p.impactDelay = 0.05f; p.impactFreq = 60f;
-                p.impactAmount = 0.9f; p.impactDecay = 5f;
-                p.bodyFreq = 45f; p.bodyAmount = 0.8f; p.bodyDecay = 4f;
-                p.noiseBurst = 0.5f; p.noiseDecay = 8f; p.noiseCutoff = 800f;
-                p.hasMetallic = false; p.metallicFreq = 0f; p.metallicAmount = 0f;
+                p.whooshFreqStart = 500f;
+                p.whooshFreqEnd = 100f;
+                p.whooshAmount = 0.35f;
+                p.whooshDecay = 6f;
+                p.impactDelay = 0.05f;
+                p.impactFreq = 60f;
+                p.impactAmount = 0.9f;
+                p.impactDecay = 5f;
+                p.bodyFreq = 45f;
+                p.bodyAmount = 0.8f;
+                p.bodyDecay = 4f;
+                p.noiseBurst = 0.5f;
+                p.noiseDecay = 8f;
+                p.noiseCutoff = 800f;
+                p.hasMetallic = false;
+                p.metallicFreq = 0f;
+                p.metallicAmount = 0f;
                 break;
             case MeleeSoundType.Swipe:
                 p.duration = 0.22f;
-                p.whooshFreqStart = 2200f; p.whooshFreqEnd = 300f;
-                p.whooshAmount = 0.65f; p.whooshDecay = 8f;
-                p.impactDelay = 0.12f; p.impactFreq = 150f;
-                p.impactAmount = 0.25f; p.impactDecay = 10f;
-                p.bodyFreq = 100f; p.bodyAmount = 0.2f; p.bodyDecay = 7f;
-                p.noiseBurst = 0.75f; p.noiseDecay = 12f; p.noiseCutoff = 4500f;
-                p.hasMetallic = true; p.metallicFreq = 3200f; p.metallicAmount = 0.12f;
+                p.whooshFreqStart = 2200f;
+                p.whooshFreqEnd = 300f;
+                p.whooshAmount = 0.65f;
+                p.whooshDecay = 8f;
+                p.impactDelay = 0.12f;
+                p.impactFreq = 150f;
+                p.impactAmount = 0.25f;
+                p.impactDecay = 10f;
+                p.bodyFreq = 100f;
+                p.bodyAmount = 0.2f;
+                p.bodyDecay = 7f;
+                p.noiseBurst = 0.75f;
+                p.noiseDecay = 12f;
+                p.noiseCutoff = 4500f;
+                p.hasMetallic = true;
+                p.metallicFreq = 3200f;
+                p.metallicAmount = 0.12f;
                 break;
             case MeleeSoundType.Stinger:
                 p.duration = 0.12f;
-                p.whooshFreqStart = 3500f; p.whooshFreqEnd = 1200f;
-                p.whooshAmount = 0.4f; p.whooshDecay = 18f;
-                p.impactDelay = 0.04f; p.impactFreq = 320f;
-                p.impactAmount = 0.5f; p.impactDecay = 15f;
-                p.bodyFreq = 200f; p.bodyAmount = 0.3f; p.bodyDecay = 12f;
-                p.noiseBurst = 0.45f; p.noiseDecay = 18f; p.noiseCutoff = 5000f;
-                p.hasMetallic = true; p.metallicFreq = 4200f; p.metallicAmount = 0.25f;
+                p.whooshFreqStart = 3500f;
+                p.whooshFreqEnd = 1200f;
+                p.whooshAmount = 0.4f;
+                p.whooshDecay = 18f;
+                p.impactDelay = 0.04f;
+                p.impactFreq = 320f;
+                p.impactAmount = 0.5f;
+                p.impactDecay = 15f;
+                p.bodyFreq = 200f;
+                p.bodyAmount = 0.3f;
+                p.bodyDecay = 12f;
+                p.noiseBurst = 0.45f;
+                p.noiseDecay = 18f;
+                p.noiseCutoff = 5000f;
+                p.hasMetallic = true;
+                p.metallicFreq = 4200f;
+                p.metallicAmount = 0.25f;
                 break;
         }
         return p;
@@ -322,7 +379,9 @@ public class ProceduralEnemyMeleeAudio : MonoBehaviour
         System.Array.Clear(staticLpState, 0, staticLpState.Length);
         System.Array.Clear(staticHpState, 0, staticHpState.Length);
 
-        float phaseImpact = 0f, phaseBody = 0f, phaseMetallic = 0f;
+        float phaseImpact = 0f,
+            phaseBody = 0f,
+            phaseMetallic = 0f;
         float noiseState = 0f;
         uint rngState = (uint)(type + 12345);
 
@@ -365,7 +424,11 @@ public class ProceduralEnemyMeleeAudio : MonoBehaviour
             rngState = rngState * 1103515245 + 12345;
             float whiteNoise = ((rngState >> 16) & 0x7FFF) / 16383.5f - 1f;
             noiseState = noiseState * 0.85f + whiteNoise * 0.15f;
-            float noiseBurst = LowpassFilterStatic(noiseState + whiteNoise * 0.5f, p.noiseCutoff * (1f - normalizedT * 0.5f), 1);
+            float noiseBurst = LowpassFilterStatic(
+                noiseState + whiteNoise * 0.5f,
+                p.noiseCutoff * (1f - normalizedT * 0.5f),
+                1
+            );
             noiseBurst *= noiseEnv * p.noiseBurst;
 
             // Metallic
@@ -403,7 +466,13 @@ public class ProceduralEnemyMeleeAudio : MonoBehaviour
                 staticAudioBuffer[i] *= normalize;
         }
 
-        AudioClip clip = AudioClip.Create("EnemyMelee_" + type, totalSamples, 1, staticSampleRate, false);
+        AudioClip clip = AudioClip.Create(
+            "EnemyMelee_" + type,
+            totalSamples,
+            1,
+            staticSampleRate,
+            false
+        );
         float[] clipData = new float[totalSamples];
         System.Array.Copy(staticAudioBuffer, clipData, totalSamples);
         clip.SetData(clipData, 0);
@@ -413,7 +482,8 @@ public class ProceduralEnemyMeleeAudio : MonoBehaviour
     private static float GetWhooshEnvelopeStatic(float t, float duration, float decayRate)
     {
         float attack = 0.008f;
-        if (t < attack) return Mathf.Sqrt(t / attack);
+        if (t < attack)
+            return Mathf.Sqrt(t / attack);
         float dt = (t - attack) / (duration * 0.9f);
         return Mathf.Exp(-dt * decayRate);
     }
@@ -421,7 +491,8 @@ public class ProceduralEnemyMeleeAudio : MonoBehaviour
     private static float GetImpactEnvelopeStatic(float t, float decayRate)
     {
         float attack = 0.001f;
-        if (t < attack) return t / attack;
+        if (t < attack)
+            return t / attack;
         return Mathf.Exp(-(t - attack) * decayRate);
     }
 
@@ -429,8 +500,10 @@ public class ProceduralEnemyMeleeAudio : MonoBehaviour
     {
         float attack = 0.003f;
         float sustain = duration * 0.1f;
-        if (t < attack) return t / attack;
-        if (t < attack + sustain) return 1f;
+        if (t < attack)
+            return t / attack;
+        if (t < attack + sustain)
+            return 1f;
         float dt = (t - attack - sustain) / (duration * 0.8f);
         return Mathf.Exp(-dt * decayRate);
     }
@@ -438,7 +511,8 @@ public class ProceduralEnemyMeleeAudio : MonoBehaviour
     private static float GetNoiseBurstEnvelopeStatic(float t, float duration, float decayRate)
     {
         float attack = 0.002f;
-        if (t < attack) return t / attack;
+        if (t < attack)
+            return t / attack;
         return Mathf.Exp(-(t - attack) * decayRate);
     }
 
@@ -464,15 +538,18 @@ public class ProceduralEnemyMeleeAudio : MonoBehaviour
 
     private static float SoftClipStatic(float x)
     {
-        if (Mathf.Abs(x) < 0.7f) return x;
-        if (x > 0) return 0.7f + (1f - 0.7f) * (float)System.Math.Tanh((x - 0.7f) * 3f);
+        if (Mathf.Abs(x) < 0.7f)
+            return x;
+        if (x > 0)
+            return 0.7f + (1f - 0.7f) * (float)System.Math.Tanh((x - 0.7f) * 3f);
         return -0.7f + (-1f + 0.7f) * (float)System.Math.Tanh((x + 0.7f) * 3f);
     }
 
     public void PlayMeleeSound()
     {
         float distAtten = GetDistanceAttenuation();
-        if (distAtten < 0.01f) return;
+        if (distAtten < 0.01f)
+            return;
 
         AudioClip clip;
         if (cachedClips != null && cachedClips.TryGetValue(soundType, out clip))
@@ -490,7 +567,8 @@ public class ProceduralEnemyMeleeAudio : MonoBehaviour
     public void PlayMeleeSound(float volumeMultiplier)
     {
         float distAtten = GetDistanceAttenuation();
-        if (distAtten < 0.01f) return;
+        if (distAtten < 0.01f)
+            return;
 
         AudioClip clip;
         if (cachedClips != null && cachedClips.TryGetValue(soundType, out clip))
@@ -534,8 +612,9 @@ public class ProceduralEnemyMeleeAudio : MonoBehaviour
 
             // ===== WHOOSH (filtered noise sweep) =====
             float whooshEnv = GetWhooshEnvelope(t, dur, p.whooshDecay);
-            float whooshFreq = Mathf.Lerp(p.whooshFreqStart, p.whooshFreqEnd, normalizedT) * freqOffset;
-            
+            float whooshFreq =
+                Mathf.Lerp(p.whooshFreqStart, p.whooshFreqEnd, normalizedT) * freqOffset;
+
             float whooshNoise = Random.Range(-1f, 1f);
             float whoosh = LowpassFilter(whooshNoise, whooshFreq, 0);
             whoosh = HighpassFilter(whoosh, whooshFreq * 0.3f, 0);
@@ -547,7 +626,7 @@ public class ProceduralEnemyMeleeAudio : MonoBehaviour
             {
                 float impactT = t - impactDelayRnd;
                 float impactEnv = GetImpactEnvelope(impactT, p.impactDecay);
-                
+
                 float impactF = p.impactFreq * freqOffset;
                 phaseImpact += impactF / sampleRate;
                 impactSample = Mathf.Sin(phaseImpact * Mathf.PI * 2f);
@@ -567,7 +646,11 @@ public class ProceduralEnemyMeleeAudio : MonoBehaviour
             float noiseEnv = GetNoiseBurstEnvelope(t, dur, p.noiseDecay);
             float whiteNoise = Random.Range(-1f, 1f);
             noiseState = noiseState * 0.85f + whiteNoise * 0.15f;
-            float noiseBurst = LowpassFilter(noiseState + whiteNoise * 0.5f, p.noiseCutoff * (1f - normalizedT * 0.5f), 1);
+            float noiseBurst = LowpassFilter(
+                noiseState + whiteNoise * 0.5f,
+                p.noiseCutoff * (1f - normalizedT * 0.5f),
+                1
+            );
             noiseBurst *= noiseEnv * p.noiseBurst;
 
             // ===== METALLIC (optional) =====

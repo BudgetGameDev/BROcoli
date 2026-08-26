@@ -8,12 +8,23 @@
 /// </summary>
 public class BoostHandler : MonoBehaviour
 {
-    [SerializeField] GameStates _gameState;
-    [SerializeField] private Transform _player;
-    [SerializeField] private GameObject[] _boosters;
-    [SerializeField] private float _spawnDistance = 2f;
-    [SerializeField] private Camera _mainCamera;
-    [SerializeField] private Transform _spawnerParent;
+    [SerializeField]
+    GameStates _gameState;
+
+    [SerializeField]
+    private Transform _player;
+
+    [SerializeField]
+    private GameObject[] _boosters;
+
+    [SerializeField]
+    private float _spawnDistance = 2f;
+
+    [SerializeField]
+    private Camera _mainCamera;
+
+    [SerializeField]
+    private Transform _spawnerParent;
 
     /// <summary>
     /// Get the array of boost prefabs for use by other systems (e.g., enemy drops)
@@ -47,13 +58,14 @@ public class BoostHandler : MonoBehaviour
     /// </summary>
     public void SpawnBoosterAt(Vector2 position)
     {
-        if (_boosters.Length == 0) return;
+        if (_boosters.Length == 0)
+            return;
 
         GameObject prefab = _boosters[Random.Range(0, _boosters.Length)];
         Instantiate(
-            prefab, 
-            position, 
-            Quaternion.identity, 
+            prefab,
+            position,
+            Quaternion.identity,
             _spawnerParent != null ? _spawnerParent : transform
         );
     }

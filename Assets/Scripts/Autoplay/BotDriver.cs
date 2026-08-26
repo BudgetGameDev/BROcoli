@@ -17,19 +17,39 @@ public class BotDriver : MonoBehaviour
     public static Vector2 Move { get; private set; }
 
     // Spray reaches ~4.7 (SpraySettings.BaseSprayRange); fight near that edge.
-    [SerializeField] private float senseRadius = 12f;
-    [SerializeField] private float engageRadius = 4.2f;
-    [SerializeField] private float dangerRadius = 2.5f;
-    [SerializeField] private float strafeWeight = 0.35f;
-    [SerializeField] private int crowdCount = 5;          // this many close enemies => retreat
-    [SerializeField] private float lowHpFraction = 0.4f;  // retreat below this HP fraction
-    [SerializeField] private float centerPull = 0.5f;     // stay central (don't camp the edge)
-    [SerializeField] private float maxCenterDistance = 5f;
+    [SerializeField]
+    private float senseRadius = 12f;
+
+    [SerializeField]
+    private float engageRadius = 4.2f;
+
+    [SerializeField]
+    private float dangerRadius = 2.5f;
+
+    [SerializeField]
+    private float strafeWeight = 0.35f;
+
+    [SerializeField]
+    private int crowdCount = 5; // this many close enemies => retreat
+
+    [SerializeField]
+    private float lowHpFraction = 0.4f; // retreat below this HP fraction
+
+    [SerializeField]
+    private float centerPull = 0.5f; // stay central (don't camp the edge)
+
+    [SerializeField]
+    private float maxCenterDistance = 5f;
 
     [Header("Projectile dodging")]
-    [SerializeField] private float projSenseRadius = 8f;
-    [SerializeField] private float dodgeRadius = 1.4f;    // evade shots that will pass within this
-    [SerializeField] private float dodgeWeight = 3f;      // dodging dominates the move when active
+    [SerializeField]
+    private float projSenseRadius = 8f;
+
+    [SerializeField]
+    private float dodgeRadius = 1.4f; // evade shots that will pass within this
+
+    [SerializeField]
+    private float dodgeWeight = 3f; // dodging dominates the move when active
 
     private Transform _player;
     private PlayerStats _stats;
@@ -40,7 +60,12 @@ public class BotDriver : MonoBehaviour
 
     private void Awake()
     {
-        _projFilter = new ContactFilter2D { useTriggers = true, useLayerMask = false, useDepth = false };
+        _projFilter = new ContactFilter2D
+        {
+            useTriggers = true,
+            useLayerMask = false,
+            useDepth = false,
+        };
     }
 
     private void OnEnable() => Active = true;
@@ -56,7 +81,11 @@ public class BotDriver : MonoBehaviour
         if (_player == null)
         {
             var go = GameObject.FindGameObjectWithTag("Player");
-            if (go == null) { Move = Vector2.zero; return; }
+            if (go == null)
+            {
+                Move = Vector2.zero;
+                return;
+            }
             _player = go.transform;
             _stats = go.GetComponent<PlayerStats>();
         }
@@ -64,23 +93,30 @@ public class BotDriver : MonoBehaviour
         Vector2 pos = _player.position;
 
         // --- enemy cluster sensing ---
-        Vector2 centroid = Vector2.zero, repulsion = Vector2.zero;
+        Vector2 centroid = Vector2.zero,
+            repulsion = Vector2.zero;
         float nearest = float.MaxValue;
-        int count = 0, closeCount = 0;
+        int count = 0,
+            closeCount = 0;
 
         var hash = EnemySpatialHash.Instance;
         if (hash != null)
         {
             foreach (var e in hash.GetNearbyEnemies(pos, senseRadius))
             {
-                if (e == null) continue;
+                if (e == null)
+                    continue;
                 Vector2 ep = e.transform.position;
                 Vector2 away = pos - ep;
                 float d = away.magnitude;
-                if (d < 0.0001f) continue;
-                centroid += ep; count++;
-                if (d < nearest) nearest = d;
-                if (d < engageRadius + 1f) closeCount++;
+                if (d < 0.0001f)
+                    continue;
+                centroid += ep;
+                count++;
+                if (d < nearest)
+                    nearest = d;
+                if (d < engageRadius + 1f)
+                    closeCount++;
                 if (d < dangerRadius * 1.5f)
                     repulsion += (away / d) * ((dangerRadius * 1.5f - d) / (dangerRadius * 1.5f));
             }
@@ -99,9 +135,12 @@ public class BotDriver : MonoBehaviour
             Vector2 radial = clusterDist > 0.0001f ? fromCluster / clusterDist : Vector2.up;
             Vector2 strafe = Vector2.Perpendicular(radial) * strafeWeight;
 
-            float hpFrac = _stats != null && _stats.CurrentMaxHealth > 0f
-                ? _stats.CurrentHealth / _stats.CurrentMaxHealth : 1f;
-            bool retreat = nearest < dangerRadius || closeCount >= crowdCount || hpFrac < lowHpFraction;
+            float hpFrac =
+                _stats != null && _stats.CurrentMaxHealth > 0f
+                    ? _stats.CurrentHealth / _stats.CurrentMaxHealth
+                    : 1f;
+            bool retreat =
+                nearest < dangerRadius || closeCount >= crowdCount || hpFrac < lowHpFraction;
 
             if (retreat)
             {
@@ -109,7 +148,7 @@ public class BotDriver : MonoBehaviour
             }
             else
             {
-                float distError = clusterDist - engageRadius;          // >0 far, <0 close
+                float distError = clusterDist - engageRadius; // >0 far, <0 close
                 Vector2 approach = radial * -Mathf.Clamp(distError, -1f, 1f);
                 move = approach + strafe + repulsion * 0.5f;
             }
@@ -137,22 +176,28 @@ public class BotDriver : MonoBehaviour
         for (int i = 0; i < n; i++)
         {
             var col = _projBuf[i];
-            if (col == null || col.GetComponent<EnemyProjectile>() == null) continue;
+            if (col == null || col.GetComponent<EnemyProjectile>() == null)
+                continue;
             var rb = col.attachedRigidbody;
-            if (rb == null) continue;
+            if (rb == null)
+                continue;
             Vector2 v = rb.linearVelocity;
-            if (v.sqrMagnitude < 0.04f) continue;
+            if (v.sqrMagnitude < 0.04f)
+                continue;
 
             Vector2 pp = col.transform.position;
             Vector2 toMe = pos - pp;
             Vector2 vn = v.normalized;
             float along = Vector2.Dot(toMe, vn);
-            if (along <= 0f) continue;                 // shot is heading away from us
-            Vector2 perp = toMe - vn * along;          // how far its path misses us by
+            if (along <= 0f)
+                continue; // shot is heading away from us
+            Vector2 perp = toMe - vn * along; // how far its path misses us by
             float miss = perp.magnitude;
-            if (miss >= dodgeRadius || along >= projSenseRadius) continue;
+            if (miss >= dodgeRadius || along >= projSenseRadius)
+                continue;
 
-            Vector2 side = perp.sqrMagnitude > 0.0001f ? perp.normalized : (Vector2)Vector2.Perpendicular(vn);
+            Vector2 side =
+                perp.sqrMagnitude > 0.0001f ? perp.normalized : (Vector2)Vector2.Perpendicular(vn);
             float urgency = (1f - miss / dodgeRadius) * (1f - along / projSenseRadius);
             dodge += side * Mathf.Max(0f, urgency);
         }

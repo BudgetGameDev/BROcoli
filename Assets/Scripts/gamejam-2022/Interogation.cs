@@ -18,8 +18,7 @@ public class Interogation : MonoBehaviour
     public Button button2;
     public Button button3;
     public int amountOfQuestions = 2;
-    private bool clickyclick = false;
-    
+
     private void Start()
     {
         //if (ClueSystem.cluesPlaced.Count() < 1 || Statics.answeredQuestions < amountOfQuestions)
@@ -66,19 +65,19 @@ public class Interogation : MonoBehaviour
         cd.adjectives.RemoveAt(0);
         cds.Add((false, cd.adjectives.First()));
         cds = cds.OrderBy(answer => Guid.NewGuid()).ToList();
-        
+
         adj1.SetText(cds.First().Item2);
         setupButton(cds.First(), button1);
         cds.RemoveAt(0);
-        
+
         adj2.SetText(cds.First().Item2);
         setupButton(cds.First(), button2);
         cds.RemoveAt(0);
-        
+
         adj3.SetText(cds.First().Item2);
         setupButton(cds.First(), button3);
         cds.RemoveAt(0);
-        
+
         question.SetText(cd.question);
     }
 
@@ -102,17 +101,16 @@ public class Interogation : MonoBehaviour
                 //clickyclick = true;
                 return;
                 //SceneManager.LoadScene("cancelled");
-                
+
                 //SceneManager.LoadScene("Scenes/end_scenes/prison");
             });
             return;
         }
-        
+
         button.onClick.AddListener(() =>
         {
             Debug.Log($"The answer was incorrect");
             SceneManager.LoadScene("Scenes/end_scenes/prison");
-            clickyclick = true;
         });
     }
 }
@@ -138,7 +136,7 @@ public class Interogation : MonoBehaviour
 //    public Button button3;
 //    public int amountOfQuestions = 2;
 //    private bool clickyclick = false;
-//    
+//
 //    private void Start()
 //    {
 //        ClueData cd = ClueSystem.cluesPlaced.First();
@@ -171,19 +169,19 @@ public class Interogation : MonoBehaviour
 //        cd.adjectives.RemoveAt(0);
 //        cds.Add((false, cd.adjectives.First()));
 //        cds = cds.OrderBy(answer => Guid.NewGuid()).ToList();
-//        
+//
 //        adj1.SetText(cds.First().Item2);
 //        setupButton(cds.First(), button1);
 //        cds.RemoveAt(0);
-//        
+//
 //        adj2.SetText(cds.First().Item2);
 //        setupButton(cds.First(), button2);
 //        cds.RemoveAt(0);
-//        
+//
 //        adj3.SetText(cds.First().Item2);
 //        setupButton(cds.First(), button3);
 //        cds.RemoveAt(0);
-//        
+//
 //        question.SetText(cd.question);
 //    }
 //
@@ -202,7 +200,7 @@ public class Interogation : MonoBehaviour
 //                    Debug.Log("Cancelled president!");
 //                    SceneManager.LoadScene("cancelled");
 //                }
-//                
+//
 //                if (Statics.answeredQuestions >= amountOfQuestions)
 //                {
 //                    Debug.Log("Cancelled president!");
@@ -213,12 +211,12 @@ public class Interogation : MonoBehaviour
 //                //clickyclick = true;
 //                return;
 //                //SceneManager.LoadScene("cancelled");
-//                
+//
 //                //SceneManager.LoadScene("Scenes/end_scenes/prison");
 //            });
 //            return;
 //        }
-//        
+//
 //        button.onClick.AddListener(() =>
 //        {
 //            Debug.Log($"The answer was incorrect");

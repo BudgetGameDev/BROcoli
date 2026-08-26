@@ -1,8 +1,7 @@
+using System.Runtime.InteropServices;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
-using System.Runtime.InteropServices;
-
 // Alias to resolve ambiguity
 using UnityShadowQuality = UnityEngine.ShadowQuality;
 using UnityShadowResolution = UnityEngine.ShadowResolution;
@@ -10,13 +9,13 @@ using UnityShadowResolution = UnityEngine.ShadowResolution;
 /// <summary>
 /// Applies aggressive performance optimizations for iOS Safari WebGL builds only.
 /// Does NOT affect native iOS builds or other platforms.
-/// 
+///
 /// Settings applied:
 /// - Lowest quality level
 /// - Native resolution (no scaling)
 /// - MSAA disabled
 /// - Minimal shadows for lighting
-/// 
+///
 /// Note: Frame rate settings are handled by FrameRateOptimizer (all platforms).
 /// </summary>
 [DefaultExecutionOrder(-1000)] // Run very early
@@ -25,7 +24,7 @@ public class iOSSafariWebGLOptimizer : MonoBehaviour
 #if UNITY_WEBGL && !UNITY_EDITOR
     [DllImport("__Internal")]
     private static extern int IsiOSMobile();
-    
+
     [DllImport("__Internal")]
     private static extern int IsSafariBrowser();
 #endif
@@ -39,7 +38,7 @@ public class iOSSafariWebGLOptimizer : MonoBehaviour
             Destroy(gameObject);
             return;
         }
-        
+
         ApplyOptimizationsIfNeeded();
     }
 
@@ -53,7 +52,7 @@ public class iOSSafariWebGLOptimizer : MonoBehaviour
             bool isiOS = IsiOSMobile() == 1;
             bool isSafari = IsSafariBrowser() == 1;
             isiOSSafariWebGL = isiOS || isSafari; // Safari on any device or iOS
-            
+
             Debug.Log($"[iOSSafariOptimizer] Detection - iOS: {isiOS}, Safari: {isSafari}");
         }
         catch (System.Exception e)
@@ -75,7 +74,7 @@ public class iOSSafariWebGLOptimizer : MonoBehaviour
         ApplyQualitySettings();
         ApplyURPSettings();
         WarmupShadersForWebGL();
-        
+
         Debug.Log("[iOSSafariOptimizer] All optimizations applied");
     }
 
@@ -84,7 +83,7 @@ public class iOSSafariWebGLOptimizer : MonoBehaviour
         // Shader warmup is critical on iOS Safari WebGL to prevent runtime compilation stutters
         Shader.WarmupAllShaders();
         Debug.Log("[iOSSafariOptimizer] Shaders warmed up");
-        
+
         // Also prewarm spray materials which use runtime material creation
         SprayMaterialCreator.PrewarmAll();
         Debug.Log("[iOSSafariOptimizer] Spray materials prewarmed");

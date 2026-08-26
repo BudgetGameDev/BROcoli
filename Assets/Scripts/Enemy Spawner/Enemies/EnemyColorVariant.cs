@@ -11,29 +11,39 @@ public class EnemyColorVariant : MonoBehaviour
     public struct Variant
     {
         public Color tint;
-        
-        public Variant(Color c) { tint = c; }
+
+        public Variant(Color c)
+        {
+            tint = c;
+        }
     }
 
     [Header("Renderers (auto-populated if empty)")]
-    [SerializeField] private Renderer[] renderers;
+    [SerializeField]
+    private Renderer[] renderers;
 
     [Header("Color Variants - Tints that multiply with base texture")]
-    [SerializeField] private Variant[] variants = new Variant[]
+    [SerializeField]
+    private Variant[] variants = new Variant[]
     {
-        new Variant(new Color(1.0f, 1.0f, 1.0f, 1.0f)),    // Original (white = no change)
-        new Variant(new Color(1.4f, 0.7f, 0.5f, 1.0f)),    // Strong warm/orange tint
-        new Variant(new Color(0.5f, 0.7f, 1.4f, 1.0f)),    // Strong cool/blue tint
-        new Variant(new Color(1.3f, 1.3f, 0.5f, 1.0f)),    // Strong yellow tint
-        new Variant(new Color(1.2f, 0.5f, 1.3f, 1.0f)),    // Strong purple tint
-        new Variant(new Color(0.5f, 1.3f, 0.6f, 1.0f)),    // Strong green tint
-        new Variant(new Color(1.4f, 0.6f, 0.7f, 1.0f)),    // Strong pink/red tint
+        new Variant(new Color(1.0f, 1.0f, 1.0f, 1.0f)), // Original (white = no change)
+        new Variant(new Color(1.4f, 0.7f, 0.5f, 1.0f)), // Strong warm/orange tint
+        new Variant(new Color(0.5f, 0.7f, 1.4f, 1.0f)), // Strong cool/blue tint
+        new Variant(new Color(1.3f, 1.3f, 0.5f, 1.0f)), // Strong yellow tint
+        new Variant(new Color(1.2f, 0.5f, 1.3f, 1.0f)), // Strong purple tint
+        new Variant(new Color(0.5f, 1.3f, 0.6f, 1.0f)), // Strong green tint
+        new Variant(new Color(1.4f, 0.6f, 0.7f, 1.0f)), // Strong pink/red tint
     };
 
     [Header("Selection")]
-    [SerializeField] private int variantIndex = 0;
-    [SerializeField] private bool randomizeOnEnable = true;
-    [SerializeField] private int randomSeed = 0;
+    [SerializeField]
+    private int variantIndex = 0;
+
+    [SerializeField]
+    private bool randomizeOnEnable = true;
+
+    [SerializeField]
+    private int randomSeed = 0;
 
     // URP Lit shader uses _BaseColor for the albedo tint
     private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
@@ -51,7 +61,8 @@ public class EnemyColorVariant : MonoBehaviour
 
     void OnEnable()
     {
-        if (variants == null || variants.Length == 0) return;
+        if (variants == null || variants.Length == 0)
+            return;
 
         int i = variantIndex;
 
@@ -73,7 +84,8 @@ public class EnemyColorVariant : MonoBehaviour
     {
         foreach (var r in renderers)
         {
-            if (r == null) continue;
+            if (r == null)
+                continue;
 
             r.GetPropertyBlock(mpb);
             mpb.SetColor(BaseColorId, v.tint);
@@ -87,7 +99,8 @@ public class EnemyColorVariant : MonoBehaviour
     /// </summary>
     public void ApplyVariant(int index)
     {
-        if (variants == null || index < 0 || index >= variants.Length) return;
+        if (variants == null || index < 0 || index >= variants.Length)
+            return;
         Apply(variants[index]);
     }
 
@@ -96,7 +109,8 @@ public class EnemyColorVariant : MonoBehaviour
     /// </summary>
     public void ApplyRandomVariant()
     {
-        if (variants == null || variants.Length == 0) return;
+        if (variants == null || variants.Length == 0)
+            return;
         int i = Random.Range(0, variants.Length);
         Apply(variants[i]);
     }

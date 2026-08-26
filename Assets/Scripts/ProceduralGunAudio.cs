@@ -14,7 +14,7 @@ public class ProceduralGunAudio : MonoBehaviour
         Shotgun,
         HandCannon,
         EnergyBlaster,
-        HeavyMachineGun
+        HeavyMachineGun,
     }
 
     // Static cache for prewarmed clips
@@ -31,7 +31,9 @@ public class ProceduralGunAudio : MonoBehaviour
         cachedClips[GunSoundType.Shotgun] = GenerateGunClipStatic(GunSoundType.Shotgun);
         cachedClips[GunSoundType.HandCannon] = GenerateGunClipStatic(GunSoundType.HandCannon);
         cachedClips[GunSoundType.EnergyBlaster] = GenerateGunClipStatic(GunSoundType.EnergyBlaster);
-        cachedClips[GunSoundType.HeavyMachineGun] = GenerateGunClipStatic(GunSoundType.HeavyMachineGun);
+        cachedClips[GunSoundType.HeavyMachineGun] = GenerateGunClipStatic(
+            GunSoundType.HeavyMachineGun
+        );
     }
 
     /// <summary>
@@ -47,8 +49,11 @@ public class ProceduralGunAudio : MonoBehaviour
         float[] buffer = new float[totalSamples];
 
         // Phase accumulators
-        float phase1 = 0f, phase2 = 0f;
-        float phaseSub = 0f, phaseMid = 0f, phaseMech = 0f;
+        float phase1 = 0f,
+            phase2 = 0f;
+        float phaseSub = 0f,
+            phaseMid = 0f,
+            phaseMech = 0f;
         float noiseState = 0f;
         float lpState = 0f;
 
@@ -135,96 +140,165 @@ public class ProceduralGunAudio : MonoBehaviour
         switch (type)
         {
             case GunSoundType.AssaultRifle:
-                p.duration = 0.18f; p.roomSize = 0.2f;
-                p.transientFreq1 = 4500f; p.transientFreq2 = 6500f; p.transientDecay = 12f; p.transientAmount = 0.5f;
-                p.subFreq = 55f; p.subAmount = 0.4f; p.midFreq = 180f; p.midAmount = 0.6f; p.bodyDecay = 8f;
-                p.mechFreq = 320f; p.mechResonance = 6f; p.mechAmount = 0.3f;
-                p.noiseAmount = 0.35f; p.noiseDecay = 10f; p.punch = 0.8f; p.saturation = 1.2f;
+                p.duration = 0.18f;
+                p.roomSize = 0.2f;
+                p.transientFreq1 = 4500f;
+                p.transientFreq2 = 6500f;
+                p.transientDecay = 12f;
+                p.transientAmount = 0.5f;
+                p.subFreq = 55f;
+                p.subAmount = 0.4f;
+                p.midFreq = 180f;
+                p.midAmount = 0.6f;
+                p.bodyDecay = 8f;
+                p.mechFreq = 320f;
+                p.mechResonance = 6f;
+                p.mechAmount = 0.3f;
+                p.noiseAmount = 0.35f;
+                p.noiseDecay = 10f;
+                p.punch = 0.8f;
+                p.saturation = 1.2f;
                 break;
             case GunSoundType.Shotgun:
-                p.duration = 0.4f; p.roomSize = 0.5f;
-                p.transientFreq1 = 2200f; p.transientFreq2 = 3800f; p.transientDecay = 6f; p.transientAmount = 0.7f;
-                p.subFreq = 35f; p.subAmount = 0.9f; p.midFreq = 90f; p.midAmount = 0.8f; p.bodyDecay = 4f;
-                p.mechFreq = 180f; p.mechResonance = 3f; p.mechAmount = 0.5f;
-                p.noiseAmount = 0.6f; p.noiseDecay = 5f; p.punch = 1f; p.saturation = 2f;
+                p.duration = 0.4f;
+                p.roomSize = 0.5f;
+                p.transientFreq1 = 2200f;
+                p.transientFreq2 = 3800f;
+                p.transientDecay = 6f;
+                p.transientAmount = 0.7f;
+                p.subFreq = 35f;
+                p.subAmount = 0.9f;
+                p.midFreq = 90f;
+                p.midAmount = 0.8f;
+                p.bodyDecay = 4f;
+                p.mechFreq = 180f;
+                p.mechResonance = 3f;
+                p.mechAmount = 0.5f;
+                p.noiseAmount = 0.6f;
+                p.noiseDecay = 5f;
+                p.punch = 1f;
+                p.saturation = 2f;
                 p.hasDoubleClick = true;
                 break;
             case GunSoundType.HandCannon:
-                p.duration = 0.32f; p.roomSize = 0.4f;
-                p.transientFreq1 = 3200f; p.transientFreq2 = 5000f; p.transientDecay = 8f; p.transientAmount = 0.65f;
-                p.subFreq = 40f; p.subAmount = 0.75f; p.midFreq = 130f; p.midAmount = 0.7f; p.bodyDecay = 5f;
-                p.mechFreq = 250f; p.mechResonance = 5f; p.mechAmount = 0.4f;
-                p.noiseAmount = 0.45f; p.noiseDecay = 6f; p.punch = 0.95f; p.saturation = 1.6f;
+                p.duration = 0.32f;
+                p.roomSize = 0.4f;
+                p.transientFreq1 = 3200f;
+                p.transientFreq2 = 5000f;
+                p.transientDecay = 8f;
+                p.transientAmount = 0.65f;
+                p.subFreq = 40f;
+                p.subAmount = 0.75f;
+                p.midFreq = 130f;
+                p.midAmount = 0.7f;
+                p.bodyDecay = 5f;
+                p.mechFreq = 250f;
+                p.mechResonance = 5f;
+                p.mechAmount = 0.4f;
+                p.noiseAmount = 0.45f;
+                p.noiseDecay = 6f;
+                p.punch = 0.95f;
+                p.saturation = 1.6f;
                 break;
             case GunSoundType.EnergyBlaster:
-                p.duration = 0.22f; p.roomSize = 0.15f;
-                p.transientFreq1 = 1800f; p.transientFreq2 = 2800f; p.transientDecay = 15f; p.transientAmount = 0.4f;
-                p.subFreq = 70f; p.subAmount = 0.3f; p.midFreq = 280f; p.midAmount = 0.5f; p.bodyDecay = 10f;
-                p.mechFreq = 450f; p.mechResonance = 12f; p.mechAmount = 0.6f;
-                p.noiseAmount = 0.2f; p.noiseDecay = 12f; p.punch = 0.6f; p.saturation = 0.8f;
-                p.hasPitchSweep = true; p.pitchSweepAmount = -0.5f;
+                p.duration = 0.22f;
+                p.roomSize = 0.15f;
+                p.transientFreq1 = 1800f;
+                p.transientFreq2 = 2800f;
+                p.transientDecay = 15f;
+                p.transientAmount = 0.4f;
+                p.subFreq = 70f;
+                p.subAmount = 0.3f;
+                p.midFreq = 280f;
+                p.midAmount = 0.5f;
+                p.bodyDecay = 10f;
+                p.mechFreq = 450f;
+                p.mechResonance = 12f;
+                p.mechAmount = 0.6f;
+                p.noiseAmount = 0.2f;
+                p.noiseDecay = 12f;
+                p.punch = 0.6f;
+                p.saturation = 0.8f;
+                p.hasPitchSweep = true;
+                p.pitchSweepAmount = -0.5f;
                 break;
             case GunSoundType.HeavyMachineGun:
-                p.duration = 0.25f; p.roomSize = 0.35f;
-                p.transientFreq1 = 3000f; p.transientFreq2 = 4200f; p.transientDecay = 10f; p.transientAmount = 0.55f;
-                p.subFreq = 45f; p.subAmount = 0.85f; p.midFreq = 110f; p.midAmount = 0.75f; p.bodyDecay = 6f;
-                p.mechFreq = 200f; p.mechResonance = 4f; p.mechAmount = 0.55f;
-                p.noiseAmount = 0.5f; p.noiseDecay = 7f; p.punch = 0.9f; p.saturation = 1.8f;
+                p.duration = 0.25f;
+                p.roomSize = 0.35f;
+                p.transientFreq1 = 3000f;
+                p.transientFreq2 = 4200f;
+                p.transientDecay = 10f;
+                p.transientAmount = 0.55f;
+                p.subFreq = 45f;
+                p.subAmount = 0.85f;
+                p.midFreq = 110f;
+                p.midAmount = 0.75f;
+                p.bodyDecay = 6f;
+                p.mechFreq = 200f;
+                p.mechResonance = 4f;
+                p.mechAmount = 0.55f;
+                p.noiseAmount = 0.5f;
+                p.noiseDecay = 7f;
+                p.punch = 0.9f;
+                p.saturation = 1.8f;
                 break;
         }
         return p;
     }
 
     [Header("Sound Type")]
-    [SerializeField] private GunSoundType soundType = GunSoundType.AssaultRifle;
+    [SerializeField]
+    private GunSoundType soundType = GunSoundType.AssaultRifle;
 
     [Header("Volume")]
     [Range(0f, 1f)]
-    [SerializeField] private float volume = 1.0f;
+    [SerializeField]
+    private float volume = 1.0f;
 
     [Header("Variation")]
     [Range(0f, 0.2f)]
-    [SerializeField] private float randomization = 0.1f;
+    [SerializeField]
+    private float randomization = 0.1f;
 
     // Internal preset parameters - set per gun type
     private struct GunPreset
     {
         public float duration;
         public float roomSize;
-        
+
         // Transient layer
         public float transientFreq1;
         public float transientFreq2;
         public float transientDecay;
         public float transientAmount;
-        
+
         // Body layer
         public float subFreq;
         public float subAmount;
         public float midFreq;
         public float midAmount;
         public float bodyDecay;
-        
+
         // Mechanical layer
         public float mechFreq;
         public float mechResonance;
         public float mechAmount;
-        
+
         // Noise layer
         public float noiseLowCutoff;
         public float noiseMidCutoff;
         public float noiseHighCutoff;
         public float noiseAmount;
         public float noiseDecay;
-        
+
         // Character
         public float punch;
         public float brightness;
         public float saturation;
-        
+
         // Special
-        public bool hasDoubleClick;  // For shotgun pump action
-        public bool hasPitchSweep;   // For energy weapons
+        public bool hasDoubleClick; // For shotgun pump action
+        public bool hasPitchSweep; // For energy weapons
         public float pitchSweepAmount;
     }
 
@@ -295,7 +369,7 @@ public class ProceduralGunAudio : MonoBehaviour
     private GunPreset GetPreset(GunSoundType type)
     {
         GunPreset p = new GunPreset();
-        
+
         switch (type)
         {
             case GunSoundType.AssaultRifle:
@@ -443,7 +517,7 @@ public class ProceduralGunAudio : MonoBehaviour
                 p.pitchSweepAmount = 0f;
                 break;
         }
-        
+
         return p;
     }
 
@@ -485,11 +559,11 @@ public class ProceduralGunAudio : MonoBehaviour
     {
         GunPreset p = currentPreset;
         float rnd = randomization;
-        
+
         // Apply randomization to key parameters
         float dur = p.duration * (1f + Random.Range(-rnd * 0.3f, rnd * 0.3f));
         float roomR = p.roomSize * (1f + Random.Range(-rnd, rnd));
-        
+
         int numSamples = Mathf.CeilToInt(dur * sampleRate);
         int totalSamples = Mathf.CeilToInt((dur + roomR * 0.5f) * sampleRate);
         totalSamples = Mathf.Min(totalSamples, audioBuffer.Length);
@@ -503,15 +577,18 @@ public class ProceduralGunAudio : MonoBehaviour
         compEnvelope = 0f;
 
         // Phase accumulators
-        float phase1 = 0f, phase2 = 0f, phase3 = 0f;
-        float phaseSub = 0f, phaseMid = 0f, phaseMech = 0f;
+        float phase1 = 0f,
+            phase2 = 0f;
+        float phaseSub = 0f,
+            phaseMid = 0f,
+            phaseMech = 0f;
         float noiseState = 0f;
 
         // Randomized offsets for this shot
         float freqOffset1 = Random.Range(0.92f, 1.08f);
         float freqOffset2 = Random.Range(0.90f, 1.10f);
         float mechOffset = Random.Range(0.95f, 1.05f);
-        
+
         // Shotgun double-click timing
         float clickTime = 0.025f + Random.Range(0f, 0.01f);
 
@@ -533,55 +610,57 @@ public class ProceduralGunAudio : MonoBehaviour
 
                 // ========== LAYER 1: TRANSIENT ==========
                 float transientEnv = GetTransientEnvelope(t, p.transientDecay);
-                
+
                 // Add second click for shotgun
                 if (p.hasDoubleClick && t > clickTime)
                 {
-                    transientEnv += GetTransientEnvelope(t - clickTime, p.transientDecay * 1.5f) * 0.6f;
+                    transientEnv +=
+                        GetTransientEnvelope(t - clickTime, p.transientDecay * 1.5f) * 0.6f;
                 }
-                
+
                 float tf1 = p.transientFreq1 * freqOffset1 * pitchMod * (1f - normalizedT * 0.3f);
                 float tf2 = p.transientFreq2 * freqOffset2 * pitchMod * (1f - normalizedT * 0.4f);
-                
+
                 phase1 += tf1 / sampleRate;
                 phase2 += tf2 / sampleRate;
-                
+
                 float trans1 = Mathf.Sin(phase1 * Mathf.PI * 2f);
                 float trans2 = Mathf.Sin(phase2 * Mathf.PI * 2f);
-                
+
                 // Ring mod for metallic character (less for energy weapons)
                 float ringAmount = p.hasPitchSweep ? 0.15f : 0.4f;
                 float transRing = trans1 * trans2 * ringAmount;
-                
-                float transient = (trans1 + trans2 * 0.7f + transRing) * transientEnv * p.transientAmount;
+
+                float transient =
+                    (trans1 + trans2 * 0.7f + transRing) * transientEnv * p.transientAmount;
 
                 // ========== LAYER 2: BODY ==========
                 float bodyEnv = GetBodyEnvelope(t, dur, p.bodyDecay);
-                
+
                 // Second thump for shotgun
                 if (p.hasDoubleClick && t > clickTime)
                 {
                     bodyEnv += GetBodyEnvelope(t - clickTime, dur, p.bodyDecay * 1.2f) * 0.5f;
                 }
-                
+
                 float subF = p.subFreq * pitchMod * (1f - normalizedT * 0.15f);
                 phaseSub += subF / sampleRate;
                 float sub = Mathf.Sin(phaseSub * Mathf.PI * 2f);
-                
+
                 float midF = p.midFreq * pitchMod * (1f - normalizedT * 0.25f);
                 phaseMid += midF / sampleRate;
                 float mid = Mathf.Sin(phaseMid * Mathf.PI * 2f);
                 mid += Mathf.Sin(phaseMid * Mathf.PI * 4f) * 0.35f;
                 mid += Mathf.Sin(phaseMid * Mathf.PI * 6f) * 0.15f;
-                
+
                 mid = WarmSaturate(mid * p.saturation);
                 sub = WarmSaturate(sub * p.saturation * 0.8f);
-                
+
                 float body = (sub * p.subAmount + mid * p.midAmount) * bodyEnv;
 
                 // ========== LAYER 3: MECHANICAL ==========
                 float mechEnv = GetMechEnvelope(t, dur);
-                
+
                 float mechF = p.mechFreq * mechOffset * pitchMod;
                 phaseMech += mechF * (1f + normalizedT * 0.3f) / sampleRate;
                 float mech = Mathf.Sin(phaseMech * Mathf.PI * 2f);
@@ -591,25 +670,44 @@ public class ProceduralGunAudio : MonoBehaviour
 
                 // ========== LAYER 4: NOISE ==========
                 float noiseEnv = GetNoiseEnvelope(t, dur, p.noiseDecay);
-                
+
                 float whiteNoise = Random.Range(-1f, 1f);
                 noiseState = noiseState * 0.97f + whiteNoise * 0.03f;
                 float pinkish = noiseState + whiteNoise * 0.4f;
-                
-                float noiseLow = LowpassFilter(pinkish, p.noiseLowCutoff * (1f - normalizedT * 0.5f), 0);
-                float noiseMid = BandpassFilter(whiteNoise, p.noiseMidCutoff * (1f - normalizedT * 0.3f), 2.5f, 2);
-                float noiseHigh = HighpassFilter(whiteNoise, p.noiseHighCutoff, 0) * (1f - normalizedT * 0.7f) * p.brightness;
-                
-                float noise = (noiseLow * 0.5f + noiseMid * 0.35f + noiseHigh * 0.25f) * noiseEnv * p.noiseAmount;
+
+                float noiseLow = LowpassFilter(
+                    pinkish,
+                    p.noiseLowCutoff * (1f - normalizedT * 0.5f),
+                    0
+                );
+                float noiseMid = BandpassFilter(
+                    whiteNoise,
+                    p.noiseMidCutoff * (1f - normalizedT * 0.3f),
+                    2.5f,
+                    2
+                );
+                float noiseHigh =
+                    HighpassFilter(whiteNoise, p.noiseHighCutoff, 0)
+                    * (1f - normalizedT * 0.7f)
+                    * p.brightness;
+
+                float noise =
+                    (noiseLow * 0.5f + noiseMid * 0.35f + noiseHigh * 0.25f)
+                    * noiseEnv
+                    * p.noiseAmount;
 
                 // ========== LAYER 5: AIR ==========
                 float airEnv = GetAirEnvelope(t, dur);
-                float airNoise = LowpassFilter(Random.Range(-1f, 1f), 350f + 150f * (1f - normalizedT), 1);
+                float airNoise = LowpassFilter(
+                    Random.Range(-1f, 1f),
+                    350f + 150f * (1f - normalizedT),
+                    1
+                );
                 float air = airNoise * airEnv * p.subAmount * 0.15f;
 
                 // ========== COMBINE ==========
                 sample = transient + body + mech + noise + air;
-                
+
                 // ========== COMPRESSION ==========
                 sample = PunchCompress(sample, p.punch);
             }
@@ -638,7 +736,7 @@ public class ProceduralGunAudio : MonoBehaviour
         float maxAmp = 0f;
         for (int i = 0; i < totalSamples; i++)
             maxAmp = Mathf.Max(maxAmp, Mathf.Abs(audioBuffer[i]));
-        
+
         if (maxAmp > 0.01f)
         {
             float normalize = 0.92f / maxAmp;
@@ -660,7 +758,7 @@ public class ProceduralGunAudio : MonoBehaviour
     {
         float attack = 0.0006f;
         float decay = 0.02f;
-        
+
         if (t < attack)
             return Mathf.Sqrt(t / attack);
         else if (t < attack + decay)
@@ -676,7 +774,7 @@ public class ProceduralGunAudio : MonoBehaviour
         float attack = 0.002f;
         float sustain = duration * 0.1f;
         float decay = duration * 0.9f;
-        
+
         if (t < attack)
             return t / attack;
         else if (t < attack + sustain)
@@ -693,10 +791,11 @@ public class ProceduralGunAudio : MonoBehaviour
         float delay = 0.003f;
         float attack = 0.004f;
         float decay = duration * 0.6f;
-        
-        if (t < delay) return 0f;
+
+        if (t < delay)
+            return 0f;
         t -= delay;
-        
+
         if (t < attack)
             return t / attack;
         else
@@ -711,7 +810,7 @@ public class ProceduralGunAudio : MonoBehaviour
         float attack = 0.0008f;
         float hold = 0.008f;
         float decay = duration * 0.8f;
-        
+
         if (t < attack)
             return t / attack;
         else if (t < attack + hold)
@@ -727,7 +826,7 @@ public class ProceduralGunAudio : MonoBehaviour
     {
         float attack = 0.008f;
         float decay = duration * 0.95f;
-        
+
         if (t < attack)
             return Mathf.Sqrt(t / attack);
         else
@@ -745,7 +844,7 @@ public class ProceduralGunAudio : MonoBehaviour
         float dt = 1f / sampleRate;
         float alpha = dt / (rc + dt);
         alpha = Mathf.Clamp01(alpha);
-        
+
         lpState[stateIndex] += alpha * (input - lpState[stateIndex]);
         return lpState[stateIndex];
     }
@@ -755,7 +854,7 @@ public class ProceduralGunAudio : MonoBehaviour
         float rc = 1f / (2f * Mathf.PI * cutoff);
         float dt = 1f / sampleRate;
         float alpha = rc / (rc + dt);
-        
+
         float output = alpha * (hpState[stateIndex] + input - lpState[stateIndex + 2]);
         lpState[stateIndex + 2] = input;
         hpState[stateIndex] = output;
@@ -766,20 +865,20 @@ public class ProceduralGunAudio : MonoBehaviour
     {
         float w0 = 2f * Mathf.PI * centerFreq / sampleRate;
         float alpha = Mathf.Sin(w0) / (2f * q);
-        
+
         float b0 = alpha;
         float a1 = -2f * Mathf.Cos(w0);
         float a2 = 1f - alpha;
         float norm = 1f + alpha;
-        
+
         b0 /= norm;
         a1 /= norm;
         a2 /= norm;
-        
+
         float output = b0 * input - a1 * bpState[stateIndex] - a2 * bpState[stateIndex + 1];
         bpState[stateIndex + 1] = bpState[stateIndex];
         bpState[stateIndex] = output;
-        
+
         return output;
     }
 
@@ -804,16 +903,17 @@ public class ProceduralGunAudio : MonoBehaviour
         float threshold = 0.4f;
         float ratio = 4f + punchAmount * 4f;
         float makeupGain = 1f + punchAmount * 0.5f;
-        
+
         float inputLevel = Mathf.Abs(input);
-        
+
         float targetEnv = inputLevel;
-        float coeff = inputLevel > compEnvelope ? 
-            1f - Mathf.Exp(-1f / (attackTime * sampleRate)) :
-            1f - Mathf.Exp(-1f / (releaseTime * sampleRate));
-        
+        float coeff =
+            inputLevel > compEnvelope
+                ? 1f - Mathf.Exp(-1f / (attackTime * sampleRate))
+                : 1f - Mathf.Exp(-1f / (releaseTime * sampleRate));
+
         compEnvelope += coeff * (targetEnv - compEnvelope);
-        
+
         float gainReduction = 1f;
         if (compEnvelope > threshold)
         {
@@ -821,7 +921,7 @@ public class ProceduralGunAudio : MonoBehaviour
             float reducedDb = overDb / ratio;
             gainReduction = threshold * Mathf.Pow(10f, reducedDb / 20f) / compEnvelope;
         }
-        
+
         return input * gainReduction * makeupGain;
     }
 
@@ -832,7 +932,7 @@ public class ProceduralGunAudio : MonoBehaviour
         // Comb filters in parallel
         float combOut = 0f;
         float[] combFeedback = { 0.84f, 0.82f, 0.81f, 0.79f, 0.78f, 0.77f };
-        
+
         for (int i = 0; i < combBuffers.Length; i++)
         {
             int idx = combIndices[i];
@@ -842,11 +942,11 @@ public class ProceduralGunAudio : MonoBehaviour
             combOut += delayed;
         }
         combOut /= combBuffers.Length;
-        
+
         // Allpass filters in series
         float allpassOut = combOut;
         float allpassFeedback = 0.5f;
-        
+
         for (int i = 0; i < allpassBuffers.Length; i++)
         {
             int idx = allpassIndices[i];
@@ -856,7 +956,7 @@ public class ProceduralGunAudio : MonoBehaviour
             allpassIndices[i] = (idx + 1) % allpassBuffers[i].Length;
             allpassOut = temp;
         }
-        
+
         return allpassOut;
     }
 
@@ -867,7 +967,7 @@ public class ProceduralGunAudio : MonoBehaviour
         // Soft knee limiter
         float threshold = 0.8f;
         float knee = 0.2f;
-        
+
         float absX = Mathf.Abs(x);
         if (absX < threshold - knee)
             return x;

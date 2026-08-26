@@ -17,8 +17,9 @@ public class GameContext : MonoBehaviour
     {
         get
         {
-            if (_isQuitting) return null;
-            
+            if (_isQuitting)
+                return null;
+
             if (_instance == null)
             {
                 _instance = FindFirstObjectByType<GameContext>();

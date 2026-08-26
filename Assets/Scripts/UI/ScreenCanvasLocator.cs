@@ -12,14 +12,17 @@ public static class ScreenCanvasLocator
         int bestScore = int.MinValue;
         Canvas[] canvases = Object.FindObjectsByType<Canvas>(
             FindObjectsInactive.Include,
-            FindObjectsSortMode.None);
+            FindObjectsSortMode.None
+        );
 
         foreach (Canvas canvas in canvases)
         {
-            if (canvas == null
+            if (
+                canvas == null
                 || !canvas.gameObject.scene.isLoaded
                 || !canvas.gameObject.activeInHierarchy
-                || canvas.renderMode == RenderMode.WorldSpace)
+                || canvas.renderMode == RenderMode.WorldSpace
+            )
             {
                 continue;
             }

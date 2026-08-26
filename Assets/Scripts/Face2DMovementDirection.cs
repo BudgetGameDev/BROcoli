@@ -27,12 +27,14 @@ public class Face2DMovementDirection : MonoBehaviour
 
     void LateUpdate()
     {
-        if (!controller) return;
+        if (!controller)
+            return;
 
         // Get direction from raw input for responsive facing
         Vector2 dir = controller.RawInput;
-        
-        if (dir.sqrMagnitude > 1f) dir.Normalize();
+
+        if (dir.sqrMagnitude > 1f)
+            dir.Normalize();
 
         if (dir.sqrMagnitude >= deadZone * deadZone)
             lastDir = dir.normalized;
@@ -41,7 +43,7 @@ public class Face2DMovementDirection : MonoBehaviour
         float targetAngle = Mathf.Atan2(lastDir.x, -lastDir.y) * Mathf.Rad2Deg + angleOffsetDegrees;
 
         float currentAngle = transform.localEulerAngles.z;
-        
+
         // Get idle sway from hop visual
         float idleSway = 0f;
         float bhopTwist = 0f;
@@ -51,18 +53,25 @@ public class Face2DMovementDirection : MonoBehaviour
             {
                 idleSway = hopVisual.IdleLeanAngle;
             }
-            else if (hopVisual.State == ShuffleWalkVisual.HopState.Airborne || 
-                     hopVisual.State == ShuffleWalkVisual.HopState.BhopBounce)
+            else if (
+                hopVisual.State == ShuffleWalkVisual.HopState.Airborne
+                || hopVisual.State == ShuffleWalkVisual.HopState.BhopBounce
+            )
             {
                 bhopTwist = hopVisual.BhopTwistAngle;
             }
         }
-        
+
         // Smooth the idle sway separately
         currentIdleSway = Mathf.SmoothDamp(currentIdleSway, idleSway, ref idleSwayVel, 0.15f);
         currentBhopTwist = Mathf.SmoothDamp(currentBhopTwist, bhopTwist, ref bhopTwistVel, 0.1f);
-        
-        float newAngle = Mathf.SmoothDampAngle(currentAngle, targetAngle + currentIdleSway + currentBhopTwist, ref angularVel, smoothTime);
+
+        float newAngle = Mathf.SmoothDampAngle(
+            currentAngle,
+            targetAngle + currentIdleSway + currentBhopTwist,
+            ref angularVel,
+            smoothTime
+        );
 
         // Rotate around Z-axis for 2D facing direction + idle sway + bhop twist
         transform.localRotation = Quaternion.Euler(0f, 0f, newAngle);

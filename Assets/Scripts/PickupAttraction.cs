@@ -20,7 +20,8 @@ public static class PickupAttraction
         Rigidbody2D body,
         ref float currentSpeed,
         ref bool localAttractionLocked,
-        PickupVisual3D visual)
+        PickupVisual3D visual
+    )
     {
         currentSpeed = 0f;
         localAttractionLocked = false;
@@ -33,7 +34,8 @@ public static class PickupAttraction
         Rigidbody2D body,
         ref float currentSpeed,
         ref bool localAttractionLocked,
-        PickupVisual3D visual)
+        PickupVisual3D visual
+    )
     {
         if (body == null)
             return;
@@ -74,10 +76,7 @@ public static class PickupAttraction
         float acceleration;
         if (globalAttraction)
         {
-            targetSpeed = Mathf.Clamp(
-                distance * 4f,
-                GlobalMinimumSpeed,
-                GlobalMaximumSpeed);
+            targetSpeed = Mathf.Clamp(distance * 4f, GlobalMinimumSpeed, GlobalMaximumSpeed);
             acceleration = GlobalAcceleration;
         }
         else
@@ -90,9 +89,9 @@ public static class PickupAttraction
         currentSpeed = Mathf.MoveTowards(
             currentSpeed,
             targetSpeed,
-            acceleration * Time.fixedDeltaTime);
-        float arrivalSpeed = distance * 0.75f /
-            Mathf.Max(Time.fixedDeltaTime, 0.001f);
+            acceleration * Time.fixedDeltaTime
+        );
+        float arrivalSpeed = distance * 0.75f / Mathf.Max(Time.fixedDeltaTime, 0.001f);
         body.WakeUp();
         body.linearVelocity = offset / distance * Mathf.Min(currentSpeed, arrivalSpeed);
     }
@@ -105,7 +104,8 @@ public static class PickupAttraction
         currentSpeed = Mathf.MoveTowards(
             currentSpeed,
             0f,
-            GlobalAcceleration * Time.fixedDeltaTime);
+            GlobalAcceleration * Time.fixedDeltaTime
+        );
         if (currentSpeed <= 0.1f)
         {
             body.linearVelocity = Vector2.zero;

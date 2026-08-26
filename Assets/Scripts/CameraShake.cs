@@ -43,15 +43,21 @@ public class CameraShake : MonoBehaviour
             float time = Time.time * ShakeFrequency;
 
             float offsetX = (Mathf.PerlinNoise(_seed, time) - 0.5f) * 2f * MaxShakeOffset * shake;
-            float offsetY = (Mathf.PerlinNoise(_seed + 100f, time) - 0.5f) * 2f * MaxShakeOffset * shake;
-            float rotation = (Mathf.PerlinNoise(_seed + 200f, time) - 0.5f) * 2f * MaxShakeRotation * shake;
+            float offsetY =
+                (Mathf.PerlinNoise(_seed + 100f, time) - 0.5f) * 2f * MaxShakeOffset * shake;
+            float rotation =
+                (Mathf.PerlinNoise(_seed + 200f, time) - 0.5f) * 2f * MaxShakeRotation * shake;
 
             _currentShakeOffset = new Vector3(offsetX, offsetY, 0f);
             _currentShakeRotation = rotation;
         }
         else
         {
-            _currentShakeOffset = Vector3.Lerp(_currentShakeOffset, Vector3.zero, 15f * Time.deltaTime);
+            _currentShakeOffset = Vector3.Lerp(
+                _currentShakeOffset,
+                Vector3.zero,
+                15f * Time.deltaTime
+            );
             _currentShakeRotation = Mathf.Lerp(_currentShakeRotation, 0f, 15f * Time.deltaTime);
         }
 

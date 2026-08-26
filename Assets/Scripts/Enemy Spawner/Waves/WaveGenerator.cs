@@ -5,19 +5,34 @@ public class WaveGenerator : MonoBehaviour
 {
     private static WaitForSeconds _waitForSeconds1 = new(1f);
 
-    [SerializeField] private float preWaveCountdownSeconds = 5f;
-    [SerializeField] private EnemySpawner enemySpawnerPrefab;
-    [SerializeField] private Transform spawnerParent;
-    [SerializeField] private Transform player;
-    [SerializeField] private GameStates gameStates;
-    [SerializeField] private WaveConfig[] waves;
-    
+    [SerializeField]
+    private float preWaveCountdownSeconds = 5f;
+
+    [SerializeField]
+    private EnemySpawner enemySpawnerPrefab;
+
+    [SerializeField]
+    private Transform spawnerParent;
+
+    [SerializeField]
+    private Transform player;
+
+    [SerializeField]
+    private GameStates gameStates;
+
+    [SerializeField]
+    private WaveConfig[] waves;
+
     [Header("Powerup Drops")]
-    [SerializeField] private GameObject[] powerupPrefabs;
-    
+    [SerializeField]
+    private GameObject[] powerupPrefabs;
+
     [Header("Victory Settings")]
-    [SerializeField] private int victoryWave = 15;
-    [SerializeField] private VictoryScreen victoryScreenPrefab;
+    [SerializeField]
+    private int victoryWave = 15;
+
+    [SerializeField]
+    private VictoryScreen victoryScreenPrefab;
 
     private EnemySpawner spawner;
     private int currentWave = 1;
@@ -34,7 +49,7 @@ public class WaveGenerator : MonoBehaviour
             spawnerParent != null ? spawnerParent : transform
         );
         spawner.player = player;
-        
+
         if (powerupPrefabs != null && powerupPrefabs.Length > 0)
         {
             spawner.SetPowerupPrefabs(powerupPrefabs);
@@ -83,20 +98,22 @@ public class WaveGenerator : MonoBehaviour
                 victoryScreen = vsObj.AddComponent<VictoryScreen>();
             }
         }
-        
+
         bool decided = false;
-        
-        victoryScreen.OnContinueToInfinite += () => {
+
+        victoryScreen.OnContinueToInfinite += () =>
+        {
             isInfiniteMode = true;
             decided = true;
         };
-        
-        victoryScreen.OnEndRun += () => {
+
+        victoryScreen.OnEndRun += () =>
+        {
             decided = true;
         };
-        
+
         victoryScreen.Show();
-        
+
         // Wait for player decision
         yield return new WaitUntil(() => decided);
     }

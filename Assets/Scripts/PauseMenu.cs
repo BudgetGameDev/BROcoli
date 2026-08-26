@@ -1,10 +1,10 @@
-using UnityEngine;
-using UnityEngine.SceneManagement;
-using UnityEngine.UI;
-using UnityEngine.EventSystems;
-using UnityEngine.InputSystem;
 using System.Runtime.InteropServices;
 using TMPro;
+using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.InputSystem;
+using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 /// <summary>
 /// Handles pause menu functionality.
@@ -17,16 +17,16 @@ public class PauseMenu : MonoBehaviour
     public GameObject pauseButton;
     public Button resumeButton;
     public Button mainMenuButton;
-    
+
     [Header("Stats Display")]
     public TextMeshProUGUI statsText;
-    
+
     private bool isPaused = false;
     private bool isMobilePlatform = false;
     private EventSystem eventSystem;
     private Canvas mainCanvas;
     private PlayerStats playerStats;
-    
+
     // Controller navigation
     private Button[] menuButtons;
     private int selectedButtonIndex = 0;
@@ -45,32 +45,33 @@ public class PauseMenu : MonoBehaviour
         // Reset state on awake
         isPaused = false;
         Time.timeScale = 1f;
-        
+
         // Hide pause menu
         if (pauseMenuUI != null)
         {
             pauseMenuUI.SetActive(false);
         }
-        
+
         // CRITICAL: Ensure EventSystem is active immediately
-        EnsureEventSystemActive();        
+        EnsureEventSystemActive();
         // Add GraphicRegistryCleaner if it doesn't exist
         if (FindAnyObjectByType<GraphicRegistryCleaner>() == null)
         {
             gameObject.AddComponent<GraphicRegistryCleaner>();
-        }    }
+        }
+    }
 
     void Start()
     {
         // Double-check EventSystem
         EnsureEventSystemActive();
-        
+
         // Cache the main canvas
         mainCanvas = ScreenCanvasLocator.Find();
-        
+
         // Find player stats
         playerStats = FindAnyObjectByType<PlayerStats>();
-        
+
         // Detect mobile
 #if UNITY_WEBGL && !UNITY_EDITOR
         isMobilePlatform = IsMobileBrowser() == 1;
@@ -85,17 +86,18 @@ public class PauseMenu : MonoBehaviour
         {
             isMobilePlatform = true;
         }
-        
+
 #if UNITY_EDITOR
         // Check Device Simulator in editor
-        if (UnityEngine.Device.SystemInfo.deviceType == DeviceType.Handheld ||
-            UnityEngine.Device.Application.isMobilePlatform)
+        if (
+            UnityEngine.Device.SystemInfo.deviceType == DeviceType.Handheld
+            || UnityEngine.Device.Application.isMobilePlatform
+        )
         {
             isMobilePlatform = true;
             Debug.Log("[PauseMenu] Device Simulator detected as mobile");
         }
 #endif
-        
         // Pause button visibility is now managed by VirtualController
         // Just ensure the button has a click handler if it exists
         if (pauseButton != null)
@@ -108,11 +110,13 @@ public class PauseMenu : MonoBehaviour
                 Debug.Log("[PauseMenu] Pause button click handler connected");
             }
         }
-        
+
         // Setup buttons
         SetupButtons();
-        
-        Debug.Log($"[PauseMenu] Initialized - EventSystem active: {eventSystem != null && eventSystem.gameObject.activeInHierarchy}, isMobile: {isMobilePlatform}");
+
+        Debug.Log(
+            $"[PauseMenu] Initialized - EventSystem active: {eventSystem != null && eventSystem.gameObject.activeInHierarchy}, isMobile: {isMobilePlatform}"
+        );
     }
 
     /// <summary>
@@ -126,18 +130,21 @@ public class PauseMenu : MonoBehaviour
         {
             // First try active ones
             eventSystem = FindAnyObjectByType<EventSystem>();
-            
+
             // If not found, search including inactive
             if (eventSystem == null)
             {
-                EventSystem[] allES = FindObjectsByType<EventSystem>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+                EventSystem[] allES = FindObjectsByType<EventSystem>(
+                    FindObjectsInactive.Include,
+                    FindObjectsSortMode.None
+                );
                 if (allES.Length > 0)
                 {
                     eventSystem = allES[0];
                 }
             }
         }
-        
+
         if (eventSystem == null)
         {
             // Create new EventSystem if none exists
@@ -154,7 +161,7 @@ public class PauseMenu : MonoBehaviour
                 Debug.LogWarning("[PauseMenu] EventSystem was DISABLED! Enabling it now.");
                 eventSystem.gameObject.SetActive(true);
             }
-            
+
             // Ensure it has SOME input module - prefer StandaloneInputModule for reliability
             BaseInputModule inputModule = eventSystem.GetComponent<BaseInputModule>();
             if (inputModule == null)
@@ -168,7 +175,7 @@ public class PauseMenu : MonoBehaviour
                 inputModule.enabled = true;
             }
         }
-        
+
         // Force EventSystem to update its current reference
         if (EventSystem.current == null && eventSystem != null)
         {
@@ -185,24 +192,28 @@ public class PauseMenu : MonoBehaviour
         if (pauseMenuUI != null)
         {
             Button[] allButtons = pauseMenuUI.GetComponentsInChildren<Button>(true);
-            
+
             foreach (var btn in allButtons)
             {
-                if (btn == null) continue;
-                
+                if (btn == null)
+                    continue;
+
                 string name = btn.gameObject.name.ToLower();
-                
+
                 if (resumeButton == null && name.Contains("resume"))
                 {
                     resumeButton = btn;
                 }
-                if (mainMenuButton == null && (name.Contains("mainmenu") || name.Contains("main menu")))
+                if (
+                    mainMenuButton == null
+                    && (name.Contains("mainmenu") || name.Contains("main menu"))
+                )
                 {
                     mainMenuButton = btn;
                 }
             }
         }
-        
+
         // Connect Resume button
         if (resumeButton != null)
         {
@@ -214,7 +225,7 @@ public class PauseMenu : MonoBehaviour
         {
             Debug.LogError("[PauseMenu] Resume button not found!");
         }
-        
+
         // Connect MainMenu button
         if (mainMenuButton != null)
         {
@@ -235,13 +246,13 @@ public class PauseMenu : MonoBehaviour
         {
             TogglePause();
         }
-        
+
         // Gamepad Start/Menu button to toggle pause
         if (Gamepad.current != null && Gamepad.current.startButton.wasPressedThisFrame)
         {
             TogglePause();
         }
-        
+
         // Handle controller navigation when paused
         if (isPaused)
         {
@@ -249,49 +260,55 @@ public class PauseMenu : MonoBehaviour
             UpdateSelectionVisuals();
         }
     }
-    
+
     private void HandleControllerNavigation()
     {
-        if (menuButtons == null || menuButtons.Length == 0) return;
-        
+        if (menuButtons == null || menuButtons.Length == 0)
+            return;
+
         // Rate limit
-        if (Time.unscaledTime - lastNavTime < NavRepeatDelay) return;
-        
+        if (Time.unscaledTime - lastNavTime < NavRepeatDelay)
+            return;
+
         float vertical = 0f;
-        
+
         // Keyboard
-        if (Input.GetKey(KeyCode.UpArrow) || Input.GetKey(KeyCode.W)) vertical = 1f;
-        else if (Input.GetKey(KeyCode.DownArrow) || Input.GetKey(KeyCode.S)) vertical = -1f;
-        
+        if (Input.GetKey(KeyCode.UpArrow) || Input.GetKey(KeyCode.W))
+            vertical = 1f;
+        else if (Input.GetKey(KeyCode.DownArrow) || Input.GetKey(KeyCode.S))
+            vertical = -1f;
+
         // Gamepad
         if (Gamepad.current != null)
         {
             Vector2 dpad = Gamepad.current.dpad.ReadValue();
             Vector2 stick = Gamepad.current.leftStick.ReadValue();
-            
-            if (Mathf.Abs(dpad.y) > 0.5f) vertical = Mathf.Sign(dpad.y);
-            else if (Mathf.Abs(stick.y) > 0.5f) vertical = Mathf.Sign(stick.y);
+
+            if (Mathf.Abs(dpad.y) > 0.5f)
+                vertical = Mathf.Sign(dpad.y);
+            else if (Mathf.Abs(stick.y) > 0.5f)
+                vertical = Mathf.Sign(stick.y);
         }
-        
+
         // Navigate (up = previous, down = next)
         if (Mathf.Abs(vertical) > 0.1f)
         {
             lastNavTime = Time.unscaledTime;
-            int direction = vertical > 0 ? -1 : 1;  // Up goes to previous (lower index)
+            int direction = vertical > 0 ? -1 : 1; // Up goes to previous (lower index)
             int newIndex = Mathf.Clamp(selectedButtonIndex + direction, 0, menuButtons.Length - 1);
             if (newIndex != selectedButtonIndex)
             {
                 SelectMenuButton(newIndex);
             }
         }
-        
+
         // Submit with Enter/Space/Gamepad A
         bool submit = Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.Space);
         if (Gamepad.current != null && Gamepad.current.buttonSouth.wasPressedThisFrame)
         {
             submit = true;
         }
-        
+
         if (submit && selectedButtonIndex >= 0 && selectedButtonIndex < menuButtons.Length)
         {
             Button btn = menuButtons[selectedButtonIndex];
@@ -300,48 +317,51 @@ public class PauseMenu : MonoBehaviour
                 btn.onClick.Invoke();
             }
         }
-        
+
         // B button to resume (back)
         if (Gamepad.current != null && Gamepad.current.buttonEast.wasPressedThisFrame)
         {
             Resume();
         }
     }
-    
+
     private void SelectMenuButton(int index)
     {
-        if (menuButtons == null || index < 0 || index >= menuButtons.Length) return;
-        
+        if (menuButtons == null || index < 0 || index >= menuButtons.Length)
+            return;
+
         // Play hover sound if index changed
         if (index != selectedButtonIndex)
         {
             ProceduralUIAudio.PlayHover();
         }
-        
+
         selectedButtonIndex = index;
-        
+
         if (EventSystem.current != null && menuButtons[index] != null)
         {
             EventSystem.current.SetSelectedGameObject(menuButtons[index].gameObject);
         }
     }
-    
+
     private void UpdateSelectionVisuals()
     {
-        if (menuButtons == null || buttonOutlines == null) return;
-        
+        if (menuButtons == null || buttonOutlines == null)
+            return;
+
         for (int i = 0; i < menuButtons.Length; i++)
         {
-            if (menuButtons[i] == null) continue;
-            
+            if (menuButtons[i] == null)
+                continue;
+
             bool isSelected = (i == selectedButtonIndex);
-            
+
             // Update outline
             if (buttonOutlines != null && i < buttonOutlines.Length && buttonOutlines[i] != null)
             {
                 buttonOutlines[i].enabled = isSelected;
             }
-            
+
             // Animate scale
             if (originalScales != null && i < originalScales.Length)
             {
@@ -350,20 +370,25 @@ public class PauseMenu : MonoBehaviour
                 {
                     float targetScale = isSelected ? 1.1f : 1f;
                     Vector3 target = originalScales[i] * targetScale;
-                    rt.localScale = Vector3.Lerp(rt.localScale, target, Time.unscaledDeltaTime * 12f);
+                    rt.localScale = Vector3.Lerp(
+                        rt.localScale,
+                        target,
+                        Time.unscaledDeltaTime * 12f
+                    );
                 }
             }
         }
     }
-    
+
     private void SetupMenuNavigation()
     {
-        if (pauseMenuUI == null) return;
-        
+        if (pauseMenuUI == null)
+            return;
+
         // Get all buttons in pause menu
         Button[] allButtons = pauseMenuUI.GetComponentsInChildren<Button>(true);
         var buttonList = new System.Collections.Generic.List<Button>();
-        
+
         foreach (var btn in allButtons)
         {
             if (btn != null && btn.interactable)
@@ -371,21 +396,22 @@ public class PauseMenu : MonoBehaviour
                 buttonList.Add(btn);
             }
         }
-        
+
         menuButtons = buttonList.ToArray();
         buttonOutlines = new Outline[menuButtons.Length];
         originalScales = new Vector3[menuButtons.Length];
-        
+
         for (int i = 0; i < menuButtons.Length; i++)
         {
-            if (menuButtons[i] == null) continue;
-            
+            if (menuButtons[i] == null)
+                continue;
+
             RectTransform rt = menuButtons[i].GetComponent<RectTransform>();
             if (rt != null)
             {
                 originalScales[i] = rt.localScale;
             }
-            
+
             // Add outline
             Outline outline = menuButtons[i].GetComponent<Outline>();
             if (outline == null)
@@ -396,7 +422,7 @@ public class PauseMenu : MonoBehaviour
             outline.effectDistance = new Vector2(6f, 6f);
             outline.enabled = false;
             buttonOutlines[i] = outline;
-            
+
             // Setup hover
             int index = i;
             EventTrigger trigger = menuButtons[i].GetComponent<EventTrigger>();
@@ -404,7 +430,7 @@ public class PauseMenu : MonoBehaviour
             {
                 trigger = menuButtons[i].gameObject.AddComponent<EventTrigger>();
             }
-            
+
             var enterEntry = new EventTrigger.Entry { eventID = EventTriggerType.PointerEnter };
             enterEntry.callback.AddListener((data) => SelectMenuButton(index));
             trigger.triggers.Add(enterEntry);
@@ -426,36 +452,36 @@ public class PauseMenu : MonoBehaviour
             Debug.LogError("[PauseMenu] pauseMenuUI is null!");
             return;
         }
-        
+
         // Ensure EventSystem is active before showing menu
         EnsureEventSystemActive();
-        
+
         // Force canvas to rebuild its graphic registry (fixes MissingReferenceException)
         RefreshCanvasGraphics();
-        
+
         // Bring to front (last sibling = on top)
         pauseMenuUI.transform.SetAsLastSibling();
-        
+
         // Show menu
         pauseMenuUI.SetActive(true);
-        
+
         // Setup controller navigation
         SetupMenuNavigation();
         selectedButtonIndex = 0;
         SelectMenuButton(0);
-        
+
         // Update stats display
         UpdateStatsDisplay();
-        
+
         // Pause button visibility is managed by VirtualController
-        
+
         // Pause game
         Time.timeScale = 0f;
         isPaused = true;
-        
+
         Debug.Log("[PauseMenu] Game PAUSED");
     }
-    
+
     /// <summary>
     /// Forces Canvas to rebuild its internal graphic list, removing any destroyed references.
     /// This fixes MissingReferenceException in GraphicRaycaster.
@@ -466,7 +492,7 @@ public class PauseMenu : MonoBehaviour
         {
             mainCanvas = ScreenCanvasLocator.Find();
         }
-        
+
         if (mainCanvas != null)
         {
             // Get the GraphicRaycaster and force it to rebuild
@@ -477,7 +503,7 @@ public class PauseMenu : MonoBehaviour
                 raycaster.enabled = false;
                 raycaster.enabled = true;
             }
-            
+
             // Force canvas update
             Canvas.ForceUpdateCanvases();
         }
@@ -490,34 +516,34 @@ public class PauseMenu : MonoBehaviour
             Debug.LogError("[PauseMenu] pauseMenuUI is null!");
             return;
         }
-        
+
         ProceduralUIAudio.PlaySelect();
-        
+
         // Hide menu
         pauseMenuUI.SetActive(false);
-        
+
         // Pause button visibility is managed by VirtualController
-        
+
         // Resume game
         Time.timeScale = 1f;
         isPaused = false;
-        
+
         Debug.Log("[PauseMenu] Game RESUMED");
     }
 
     public void GoToMainMenu()
     {
         Debug.Log("[PauseMenu] Going to MainMenuScene");
-        
+
         // Reset time before loading
         Time.timeScale = 1f;
         isPaused = false;
-        
+
         SceneManager.LoadScene("MainMenuScene");
     }
 
     public bool IsPaused() => isPaused;
-    
+
     /// <summary>
     /// Updates the stats display text with current player stats.
     /// Colors: White = base, Green = positive, Red = negative
@@ -540,7 +566,7 @@ public class PauseMenu : MonoBehaviour
                 }
             }
         }
-        
+
         if (statsText == null || playerStats == null)
         {
             if (playerStats == null)
@@ -548,52 +574,85 @@ public class PauseMenu : MonoBehaviour
             if (statsText == null || playerStats == null)
                 return;
         }
-        
+
         // Base values for comparison
-        float baseMaxHealth = 100f, baseDamage = 5f, baseSpeed = 4f;
-        float baseAttackSpeed = 0.6f, baseDetection = 12f;
-        float baseCritChance = 5f, baseCritDamage = 150f;
-        float baseDodge = 0f, baseArmor = 0f, baseRegen = 0f, baseLifeSteal = 0f;
-        
+        float baseMaxHealth = 100f,
+            baseDamage = 5f,
+            baseSpeed = 4f;
+        float baseAttackSpeed = 0.6f,
+            baseDetection = 12f;
+        float baseCritChance = 5f,
+            baseCritDamage = 150f;
+        float baseDodge = 0f,
+            baseArmor = 0f,
+            baseRegen = 0f,
+            baseLifeSteal = 0f;
+
         var sb = new System.Text.StringBuilder();
         sb.AppendLine("<size=28><b>STATS</b></size>");
         sb.AppendLine();
-        
+
         sb.AppendLine(FormatStat("Level", playerStats.CurrentLevel, 1f, true));
-        sb.AppendLine(FormatStat("HP", playerStats.CurrentHealth, baseMaxHealth, true, $"/{playerStats.CurrentMaxHealth:F0}"));
+        sb.AppendLine(
+            FormatStat(
+                "HP",
+                playerStats.CurrentHealth,
+                baseMaxHealth,
+                true,
+                $"/{playerStats.CurrentMaxHealth:F0}"
+            )
+        );
         sb.AppendLine(FormatStat("Max HP", playerStats.CurrentMaxHealth, baseMaxHealth));
         sb.AppendLine(FormatStat("Damage", playerStats.CurrentDamage, baseDamage));
         sb.AppendLine(FormatStat("Speed", playerStats.CurrentMovementSpeed, baseSpeed));
-        sb.AppendLine(FormatStat("Atk Spd", playerStats.CurrentAttackSpeed, baseAttackSpeed, false, "", true));
+        sb.AppendLine(
+            FormatStat("Atk Spd", playerStats.CurrentAttackSpeed, baseAttackSpeed, false, "", true)
+        );
         sb.AppendLine(FormatStat("Detect", playerStats.CurrentDetectionRadius, baseDetection));
         sb.AppendLine();
-        sb.AppendLine(FormatStat("Crit %", playerStats.CurrentCritChance, baseCritChance, false, "%"));
-        sb.AppendLine(FormatStat("Crit DMG", playerStats.CurrentCritDamage * 100f, baseCritDamage, false, "%"));
+        sb.AppendLine(
+            FormatStat("Crit %", playerStats.CurrentCritChance, baseCritChance, false, "%")
+        );
+        sb.AppendLine(
+            FormatStat("Crit DMG", playerStats.CurrentCritDamage * 100f, baseCritDamage, false, "%")
+        );
         sb.AppendLine(FormatStat("Dodge", playerStats.CurrentDodgeChance, baseDodge, false, "%"));
         sb.AppendLine(FormatStat("Armor", playerStats.CurrentArmor, baseArmor));
         sb.AppendLine(FormatStat("Regen", playerStats.CurrentHealthRegen, baseRegen, false, "/s"));
-        sb.AppendLine(FormatStat("Lifesteal", playerStats.CurrentLifeSteal, baseLifeSteal, false, "%"));
-        
+        sb.AppendLine(
+            FormatStat("Lifesteal", playerStats.CurrentLifeSteal, baseLifeSteal, false, "%")
+        );
+
         statsText.text = sb.ToString();
     }
-    
-    private string FormatStat(string name, float value, float baseValue, bool noColor = false, string suffix = "", bool lowerIsBetter = false)
+
+    private string FormatStat(
+        string name,
+        float value,
+        float baseValue,
+        bool noColor = false,
+        string suffix = "",
+        bool lowerIsBetter = false
+    )
     {
         string valueStr = value.ToString("F1") + suffix;
-        
+
         if (noColor)
             return $"{name}: <color=white>{valueStr}</color>";
-        
+
         float diff = value - baseValue;
-        if (lowerIsBetter) diff = -diff;
-        
+        if (lowerIsBetter)
+            diff = -diff;
+
         string color = "white";
-        if (diff > 0.01f) color = "#4CFF4C";
-        else if (diff < -0.01f) color = "#FF4C4C";
-        
+        if (diff > 0.01f)
+            color = "#4CFF4C";
+        else if (diff < -0.01f)
+            color = "#FF4C4C";
+
         return $"{name}: <color={color}>{valueStr}</color>";
     }
-    
+
     // Re-check EventSystem when this component is enabled
     void OnEnable()
     {

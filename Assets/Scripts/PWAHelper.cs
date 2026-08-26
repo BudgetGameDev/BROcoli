@@ -1,5 +1,5 @@
-using UnityEngine;
 using System.Runtime.InteropServices;
+using UnityEngine;
 
 /// <summary>
 /// Helper class for Progressive Web App (PWA) functionality.
@@ -10,22 +10,22 @@ public static class PWAHelper
 #if UNITY_WEBGL && !UNITY_EDITOR
     [DllImport("__Internal")]
     private static extern int IsPWAInstalled();
-    
+
     [DllImport("__Internal")]
     private static extern void ShowPWAInstallPrompt();
-    
+
     [DllImport("__Internal")]
     private static extern void RequestFullscreen();
-    
+
     [DllImport("__Internal")]
     private static extern void ExitFullscreen();
-    
+
     [DllImport("__Internal")]
     private static extern int IsFullscreen();
-    
+
     [DllImport("__Internal")]
     private static extern string GetPWADisplayMode();
-    
+
     [DllImport("__Internal")]
     private static extern void QuitApplication();
 #endif
@@ -138,27 +138,29 @@ public static class PWAHelper
     /// </summary>
     public static void LogStatus()
     {
-        Debug.Log($"[PWAHelper] Status - Installed: {IsInstalledAsPWA}, Fullscreen: {IsInFullscreen}, Mode: {DisplayMode}");
+        Debug.Log(
+            $"[PWAHelper] Status - Installed: {IsInstalledAsPWA}, Fullscreen: {IsInFullscreen}, Mode: {DisplayMode}"
+        );
     }
-    
+
     /// <summary>
     /// Quit/Close the application. Works on WebGL (browser/PWA), desktop, and mobile.
     /// </summary>
     public static void Quit()
     {
         Debug.Log("[PWAHelper] Quit requested");
-        
+
 #if UNITY_WEBGL && !UNITY_EDITOR
         // For WebGL, use JavaScript to close the tab/PWA
         QuitApplication();
 #else
         // For standalone builds, use Application.Quit
         Application.Quit();
-        
+
         // In editor, stop play mode
-        #if UNITY_EDITOR
+#if UNITY_EDITOR
         UnityEditor.EditorApplication.isPlaying = false;
-        #endif
+#endif
 #endif
     }
 }

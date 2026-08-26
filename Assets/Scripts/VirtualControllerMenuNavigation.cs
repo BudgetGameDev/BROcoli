@@ -1,7 +1,7 @@
-using UnityEngine;
-using UnityEngine.UI;
-using UnityEngine.EventSystems;
 using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.UI;
 
 /// <summary>
 /// Handles menu navigation using virtual controller joystick.
@@ -9,9 +9,14 @@ using System.Collections.Generic;
 /// </summary>
 public class VirtualControllerMenuNavigation : MonoBehaviour
 {
-    [SerializeField] private float navigationDelay = 0.3f;
-    [SerializeField] private float joystickThreshold = 0.5f;
-    [SerializeField] private Selectable firstSelected;
+    [SerializeField]
+    private float navigationDelay = 0.3f;
+
+    [SerializeField]
+    private float joystickThreshold = 0.5f;
+
+    [SerializeField]
+    private Selectable firstSelected;
 
     private float lastNavigationTime;
     private Vector2 lastJoystickDirection;
@@ -21,10 +26,10 @@ public class VirtualControllerMenuNavigation : MonoBehaviour
     private void Start()
     {
         eventSystem = EventSystem.current;
-        
+
         // Find all selectables in scene
         RefreshSelectables();
-        
+
         // Select first item if nothing selected
         if (firstSelected != null && eventSystem.currentSelectedGameObject == null)
         {
@@ -39,18 +44,19 @@ public class VirtualControllerMenuNavigation : MonoBehaviour
     private void RefreshSelectables()
     {
         selectables.Clear();
-        selectables.AddRange(FindObjectsOfType<Selectable>());
-        
+        selectables.AddRange(FindObjectsByType<Selectable>(FindObjectsSortMode.None));
+
         // Filter to only interactable ones
         selectables.RemoveAll(s => !s.interactable || !s.gameObject.activeInHierarchy);
     }
 
     private void Update()
     {
-        if (VirtualController.Instance == null) return;
+        if (VirtualController.Instance == null)
+            return;
 
         Vector2 input = VirtualController.Instance.JoystickInput;
-        
+
         // Check if joystick moved past threshold
         if (input.magnitude > joystickThreshold && Time.time - lastNavigationTime > navigationDelay)
         {
@@ -84,7 +90,7 @@ public class VirtualControllerMenuNavigation : MonoBehaviour
                 }
             }
         }
-        
+
         // Reset navigation delay when joystick returns to center
         if (input.magnitude < 0.2f)
         {
@@ -114,7 +120,8 @@ public class VirtualControllerMenuNavigation : MonoBehaviour
 
     private void Navigate(MoveDirection direction)
     {
-        if (eventSystem == null) return;
+        if (eventSystem == null)
+            return;
 
         GameObject current = eventSystem.currentSelectedGameObject;
         if (current == null)
@@ -128,7 +135,8 @@ public class VirtualControllerMenuNavigation : MonoBehaviour
         }
 
         Selectable currentSelectable = current.GetComponent<Selectable>();
-        if (currentSelectable == null) return;
+        if (currentSelectable == null)
+            return;
 
         Selectable next = null;
         switch (direction)

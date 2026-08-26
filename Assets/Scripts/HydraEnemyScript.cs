@@ -1,6 +1,6 @@
 using System;
-using UnityEngine;
 using Pooling;
+using UnityEngine;
 using Random = UnityEngine.Random;
 
 /// <summary>
@@ -15,29 +15,58 @@ public class HydraEnemyScript : EnemyBase
     private const float MaxAttackPullBackDistance = 0.22f;
 
     [Header("Hydra Split Settings")]
-    [SerializeField] private int currentGeneration = 0;    // 0 = original, increases with each split
-    [SerializeField] private int maxGenerations = 2;       // Max splits (0->1->2, then dies for real)
-    [SerializeField] private float childScaleMultiplier = 0.7f;  // Each generation is 70% the size
-    [SerializeField] private float childHealthMultiplier = 0.5f; // Each generation has 50% health
-    [SerializeField] private float childDamageMultiplier = 0.7f; // Each generation does 70% damage
-    [SerializeField] private float childSpeedMultiplier = 1.1f;  // Each generation is 10% faster
-    [SerializeField] private float splitSpawnRadius = 0.5f;      // How far apart children spawn
-    [SerializeField] private float splitImpulse = 3f;
+    [SerializeField]
+    private int currentGeneration = 0; // 0 = original, increases with each split
+
+    [SerializeField]
+    private int maxGenerations = 2; // Max splits (0->1->2, then dies for real)
+
+    [SerializeField]
+    private float childScaleMultiplier = 0.7f; // Each generation is 70% the size
+
+    [SerializeField]
+    private float childHealthMultiplier = 0.5f; // Each generation has 50% health
+
+    [SerializeField]
+    private float childDamageMultiplier = 0.7f; // Each generation does 70% damage
+
+    [SerializeField]
+    private float childSpeedMultiplier = 1.1f; // Each generation is 10% faster
+
+    [SerializeField]
+    private float splitSpawnRadius = 0.5f; // How far apart children spawn
+
+    [SerializeField]
+    private float splitImpulse = 3f;
 
     public event Action<HydraEnemyScript> OnChildSpawned;
-    
+
     [Header("Melee Attack")]
-    [SerializeField] private float meleeRange = 0.9f;
-    [SerializeField] private float meleeAttackCooldown = 0.5f;
+    [SerializeField]
+    private float meleeRange = 0.9f;
+
+    [SerializeField]
+    private float meleeAttackCooldown = 0.5f;
     private float nextMeleeAttackTime = 0f;
-    
+
     [Header("Attack Animation")]
-    [SerializeField] private float attackWindupDuration = 0.28f;
-    [SerializeField] private float attackStrikeDuration = 0.14f;
-    [SerializeField] private float attackRecoverDuration = 0.26f;
-    [SerializeField] private float attackPullBackDistance = 0.18f;
-    [SerializeField] private float attackLungeDistance = 0.42f;
-    [SerializeField] private Color attackFlashColor = Color.red;
+    [SerializeField]
+    private float attackWindupDuration = 0.28f;
+
+    [SerializeField]
+    private float attackStrikeDuration = 0.14f;
+
+    [SerializeField]
+    private float attackRecoverDuration = 0.26f;
+
+    [SerializeField]
+    private float attackPullBackDistance = 0.18f;
+
+    [SerializeField]
+    private float attackLungeDistance = 0.42f;
+
+    [SerializeField]
+    private Color attackFlashColor = Color.red;
     private bool isAttacking = false;
     private bool hasDamagedThisAttack = false;
     private float attackTimer = 0f;
@@ -49,14 +78,15 @@ public class HydraEnemyScript : EnemyBase
     private Vector2 attackDirection;
     private float activeAttackReach;
     private Vector3 baseLocalScale;
-    private SpriteRenderer spriteRenderer;  // Local sprite renderer for attack animations
+    private SpriteRenderer spriteRenderer; // Local sprite renderer for attack animations
     private Color originalColor;
     private Transform visualTransform;
     private EnemyWalkAnimation walkAnimation;
-    
+
     [Header("Melee Audio")]
-    [SerializeField] private ProceduralEnemyMeleeAudio meleeAudio;
-    
+    [SerializeField]
+    private ProceduralEnemyMeleeAudio meleeAudio;
+
     private static bool isQuitting = false;
     private bool hasSpawnedChildren = false;
 
@@ -64,14 +94,14 @@ public class HydraEnemyScript : EnemyBase
     {
         base.Awake();
         walkAnimation = GetComponent<EnemyWalkAnimation>();
-        
+
         if (meleeAudio == null)
             meleeAudio = GetComponent<ProceduralEnemyMeleeAudio>();
-        
+
         // Find visual transform for attack animation
         // Enemy prefabs use FBX models with MeshRenderer, not SpriteRenderer
         Renderer visualRenderer = null;
-        
+
         // First check for enabled SpriteRenderer
         foreach (var sr in GetComponentsInChildren<SpriteRenderer>(true))
         {
@@ -82,7 +112,7 @@ public class HydraEnemyScript : EnemyBase
                 break;
             }
         }
-        
+
         // If no enabled SpriteRenderer, find MeshRenderer (FBX models)
         if (visualRenderer == null)
         {
@@ -95,21 +125,23 @@ public class HydraEnemyScript : EnemyBase
                 }
             }
         }
-        
+
         // Set up visual transform from the renderer we found
         if (visualRenderer != null && visualRenderer.transform != transform)
         {
             visualTransform = visualRenderer.transform;
             baseLocalScale = visualTransform.localScale;
-            
+
             // Safety check: if scale is zero (shouldn't happen), use a reasonable default
             if (baseLocalScale.sqrMagnitude < 0.0001f)
             {
-                Debug.LogWarning($"[HydraEnemyScript] {name}: visualTransform '{visualTransform.name}' has zero scale! Using Vector3.one as fallback.");
+                Debug.LogWarning(
+                    $"[HydraEnemyScript] {name}: visualTransform '{visualTransform.name}' has zero scale! Using Vector3.one as fallback."
+                );
                 baseLocalScale = Vector3.one;
                 visualTransform.localScale = Vector3.one;
             }
-            
+
             if (spriteRenderer != null)
             {
                 originalColor = spriteRenderer.color;
@@ -125,8 +157,9 @@ public class HydraEnemyScript : EnemyBase
 
     protected override void FixedUpdate()
     {
-        if (player == null) return;
-        
+        if (player == null)
+            return;
+
         if (isAttacking)
         {
             rb.linearVelocity = Vector2.zero;
@@ -142,8 +175,9 @@ public class HydraEnemyScript : EnemyBase
 
         Vector2 dir = (Vector2)player.position - rb.position;
         float distToPlayer = dir.magnitude;
-        
-        if (distToPlayer < 0.0001f) return;
+
+        if (distToPlayer < 0.0001f)
+            return;
 
         dir.Normalize();
         float colliderGap = GetPlayerColliderGap();
@@ -159,7 +193,8 @@ public class HydraEnemyScript : EnemyBase
         {
             float retreatSpeed = Mathf.Min(
                 Speed,
-                Mathf.Max(0.35f, (standOffGap - colliderGap) * acceleration));
+                Mathf.Max(0.35f, (standOffGap - colliderGap) * acceleration)
+            );
             targetVel = -dir * retreatSpeed * EnemyTimeScale;
         }
         else
@@ -169,50 +204,55 @@ public class HydraEnemyScript : EnemyBase
         rb.linearVelocity = Vector2.MoveTowards(
             rb.linearVelocity,
             targetVel,
-            acceleration * EnemyTimeScale * Time.fixedDeltaTime);
-        
+            acceleration * EnemyTimeScale * Time.fixedDeltaTime
+        );
+
         base.FixedUpdate();
     }
 
     public override void Update()
     {
         base.Update();
-        
+
         UpdateAttackAnimation();
-        
+
         if (player != null && !isAttacking && !isKnockedBack)
         {
-            if (IsPlayerWithinColliderGap(
-                    GetAttackReach()) &&
-                Time.time >= nextMeleeAttackTime)
+            if (IsPlayerWithinColliderGap(GetAttackReach()) && Time.time >= nextMeleeAttackTime)
             {
                 StartAttackAnimation();
             }
         }
     }
-    
+
     /// <summary>
     /// Initialize this hydra as a child of another hydra
     /// </summary>
-    public void InitAsChild(int generation, float parentHealth, float parentDamage, float parentSpeed, Vector3 parentScale)
+    public void InitAsChild(
+        int generation,
+        float parentHealth,
+        float parentDamage,
+        float parentSpeed,
+        Vector3 parentScale
+    )
     {
         currentGeneration = generation;
 
         // A pooled child must never retain listeners from a previous life.
         OnChildSpawned = null;
         hasSpawnedChildren = false;
-        
+
         MaxHealth = parentHealth * childHealthMultiplier;
         Health = MaxHealth;
         Damage = parentDamage * childDamageMultiplier;
         Speed = parentSpeed * childSpeedMultiplier;
-        
+
         // Scale down visually
         transform.localScale = parentScale * childScaleMultiplier;
-        
+
         // Reduce score value for smaller enemies
         ScoreValue = Mathf.Max(10, ScoreValue / 2);
-        
+
         // Update melee range based on scale
         meleeRange *= childScaleMultiplier;
     }
@@ -222,24 +262,26 @@ public class HydraEnemyScript : EnemyBase
     /// </summary>
     public override void Die()
     {
-        if (isQuitting) return;
-        if (!gameObject.scene.isLoaded) return;
-        
+        if (isQuitting)
+            return;
+        if (!gameObject.scene.isLoaded)
+            return;
+
         // Spawn children if we haven't reached max generations
         if (!hasSpawnedChildren && currentGeneration < maxGenerations)
         {
             SpawnChildren();
         }
-        
+
         // Call base Die (handles score, XP, and pooling/destroy)
         base.Die();
     }
-    
+
     void OnApplicationQuit()
     {
         isQuitting = true;
     }
-    
+
     private void SpawnChildren()
     {
         hasSpawnedChildren = true;
@@ -249,17 +291,20 @@ public class HydraEnemyScript : EnemyBase
         {
             // Calculate spawn position in a circle around death position
             float angle = (360f / childrenToSpawn) * i + Random.Range(-15f, 15f);
-            Vector2 offset = new Vector2(
-                Mathf.Cos(angle * Mathf.Deg2Rad),
-                Mathf.Sin(angle * Mathf.Deg2Rad)
-            ) * splitSpawnRadius;
-            
+            Vector2 offset =
+                new Vector2(Mathf.Cos(angle * Mathf.Deg2Rad), Mathf.Sin(angle * Mathf.Deg2Rad))
+                * splitSpawnRadius;
+
             Vector3 spawnPos = transform.position + (Vector3)offset;
-            
+
             // Try to get from pool first (use this as prefab template)
             HydraEnemyScript childHydra = null;
-            EnemyBase pooledEnemy = PoolManager.Instance?.GetEnemy(this, spawnPos, Quaternion.identity);
-            
+            EnemyBase pooledEnemy = PoolManager.Instance?.GetEnemy(
+                this,
+                spawnPos,
+                Quaternion.identity
+            );
+
             if (pooledEnemy != null)
             {
                 childHydra = pooledEnemy as HydraEnemyScript;
@@ -268,14 +313,14 @@ public class HydraEnemyScript : EnemyBase
                     childHydra.SetPooled(true);
                 }
             }
-            
+
             // Fallback to instantiate if pool not available
             if (childHydra == null)
             {
                 GameObject child = Instantiate(gameObject, spawnPos, Quaternion.identity);
                 childHydra = child.GetComponent<HydraEnemyScript>();
             }
-            
+
             if (childHydra != null)
             {
                 childHydra.hasSpawnedChildren = false; // Reset so it can spawn its own children
@@ -288,7 +333,7 @@ public class HydraEnemyScript : EnemyBase
                 );
 
                 OnChildSpawned?.Invoke(childHydra);
-                
+
                 // Give child a small impulse away from spawn point
                 if (childHydra.rb != null)
                 {
@@ -297,14 +342,14 @@ public class HydraEnemyScript : EnemyBase
             }
         }
     }
-    
+
     /// <summary>
     /// Reset hydra-specific state for pool reuse.
     /// </summary>
     public override void ResetForPool()
     {
         base.ResetForPool();
-        
+
         hasSpawnedChildren = false;
         OnChildSpawned = null;
         currentGeneration = 0;
@@ -316,28 +361,29 @@ public class HydraEnemyScript : EnemyBase
         attackDirection = Vector2.zero;
         activeAttackReach = 0f;
         walkAnimation?.SetAttackOverride(false);
-        
+
         // Reset visual state
         if (visualTransform != null)
         {
             // Don't reset localPosition - preserve prefab's Z offset for 3D models
             visualTransform.localScale = baseLocalScale;
         }
-        
+
         if (spriteRenderer != null)
         {
-            spriteRenderer.enabled = true;  // Ensure sprite is enabled
+            spriteRenderer.enabled = true; // Ensure sprite is enabled
             spriteRenderer.color = originalColor;
         }
     }
 
     private void StartAttackAnimation()
     {
-        if (player == null) return;
+        if (player == null)
+            return;
 
         LockBodyForAttack();
         walkAnimation?.SetAttackOverride(true);
-        
+
         isAttacking = true;
         hasDamagedThisAttack = false;
         attackPhase = 1;
@@ -351,25 +397,30 @@ public class HydraEnemyScript : EnemyBase
             attackStartPos = visualTransform.localPosition;
             attackStartRotation = visualTransform.localRotation;
             Vector3 worldLunge = (Vector3)(attackDirection * activeAttackReach);
-            Vector3 worldPullBack = (Vector3)(-attackDirection *
-                Mathf.Clamp(attackPullBackDistance, 0f, MaxAttackPullBackDistance));
-            Vector3 localLunge = visualTransform.parent != null
-                ? visualTransform.parent.InverseTransformVector(worldLunge)
-                : worldLunge;
-            Vector3 localPullBack = visualTransform.parent != null
-                ? visualTransform.parent.InverseTransformVector(worldPullBack)
-                : worldPullBack;
+            Vector3 worldPullBack = (Vector3)(
+                -attackDirection
+                * Mathf.Clamp(attackPullBackDistance, 0f, MaxAttackPullBackDistance)
+            );
+            Vector3 localLunge =
+                visualTransform.parent != null
+                    ? visualTransform.parent.InverseTransformVector(worldLunge)
+                    : worldLunge;
+            Vector3 localPullBack =
+                visualTransform.parent != null
+                    ? visualTransform.parent.InverseTransformVector(worldPullBack)
+                    : worldPullBack;
             attackWindupPos = attackStartPos + localPullBack;
             attackTargetPos = attackStartPos + localLunge;
         }
     }
-    
+
     private void UpdateAttackAnimation()
     {
-        if (!isAttacking) return;
-        
+        if (!isAttacking)
+            return;
+
         attackTimer += Time.deltaTime * EnemyTimeScale;
-        
+
         switch (attackPhase)
         {
             case 1: // Windup
@@ -393,16 +444,21 @@ public class HydraEnemyScript : EnemyBase
                         visualTransform.localPosition = Vector3.Lerp(
                             attackStartPos,
                             attackWindupPos,
-                            anticipationT);
+                            anticipationT
+                        );
                         visualTransform.localRotation = attackStartRotation;
                         visualTransform.localScale = baseLocalScale;
                     }
-                    
+
                     if (spriteRenderer != null)
-                        spriteRenderer.color = Color.Lerp(originalColor, attackFlashColor, windupT * 0.5f);
+                        spriteRenderer.color = Color.Lerp(
+                            originalColor,
+                            attackFlashColor,
+                            windupT * 0.5f
+                        );
                 }
                 break;
-                
+
             case 2: // Strike
                 float strikeT = attackTimer / attackStrikeDuration;
                 if (strikeT >= 1f)
@@ -432,16 +488,17 @@ public class HydraEnemyScript : EnemyBase
                         visualTransform.localPosition = Vector3.Lerp(
                             attackWindupPos,
                             attackTargetPos,
-                            EaseInCubic(strikeT));
+                            EaseInCubic(strikeT)
+                        );
                         visualTransform.localRotation = attackStartRotation;
                         visualTransform.localScale = baseLocalScale;
                     }
-                    
+
                     if (spriteRenderer != null)
                         spriteRenderer.color = attackFlashColor;
                 }
                 break;
-                
+
             case 3: // Recover
                 float recoverT = attackTimer / attackRecoverDuration;
                 if (recoverT >= 1f)
@@ -464,18 +521,26 @@ public class HydraEnemyScript : EnemyBase
                 {
                     if (visualTransform != null)
                     {
-                        visualTransform.localPosition = Vector3.Lerp(attackTargetPos, attackStartPos, EaseOutQuad(recoverT));
+                        visualTransform.localPosition = Vector3.Lerp(
+                            attackTargetPos,
+                            attackStartPos,
+                            EaseOutQuad(recoverT)
+                        );
                         visualTransform.localRotation = attackStartRotation;
                         visualTransform.localScale = baseLocalScale;
                     }
-                    
+
                     if (spriteRenderer != null)
-                        spriteRenderer.color = Color.Lerp(attackFlashColor, originalColor, recoverT);
+                        spriteRenderer.color = Color.Lerp(
+                            attackFlashColor,
+                            originalColor,
+                            recoverT
+                        );
                 }
                 break;
         }
     }
-    
+
     private float EaseOutQuad(float t)
     {
         return 1f - (1f - t) * (1f - t);
@@ -494,7 +559,8 @@ public class HydraEnemyScript : EnemyBase
 
     protected override void PrepareForIncomingKnockback()
     {
-        if (!isAttacking) return;
+        if (!isAttacking)
+            return;
 
         isAttacking = false;
         hasDamagedThisAttack = false;
@@ -513,17 +579,21 @@ public class HydraEnemyScript : EnemyBase
         walkAnimation?.SetAttackOverride(false);
         UnlockBodyAfterAttack(false);
     }
-    
+
     private void PerformMeleeAttack()
     {
-        if (player == null) return;
-        if (!IsPlayerWithinAttackContact(activeAttackReach, attackDirection)) return;
-        
+        if (player == null)
+            return;
+        if (!IsPlayerWithinAttackContact(activeAttackReach, attackDirection))
+            return;
+
         var playerController = player.GetComponent<PlayerController>();
         if (playerController != null)
         {
-            Vector2 knockbackDir = ((Vector2)player.position - (Vector2)transform.position).normalized;
-            
+            Vector2 knockbackDir = (
+                (Vector2)player.position - (Vector2)transform.position
+            ).normalized;
+
             if (playerController.TakeMeleeDamage(Damage, knockbackDir))
             {
                 if (meleeAudio != null)
@@ -533,5 +603,4 @@ public class HydraEnemyScript : EnemyBase
             }
         }
     }
-
 }

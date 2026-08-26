@@ -8,49 +8,52 @@ public class ProceduralEnemyProjectileHitAudio : MonoBehaviour
 {
     public enum EnemyHitSoundType
     {
-        PlasmaImpact,       // Acidic plasma splatter
-        VoidBurst,          // Dark energy dissipation
-        SwarmImpact,        // Multiple small impacts
-        CorruptedHit,       // Glitchy, corrupted impact
-        AcidSplash          // Wet, caustic splash
+        PlasmaImpact, // Acidic plasma splatter
+        VoidBurst, // Dark energy dissipation
+        SwarmImpact, // Multiple small impacts
+        CorruptedHit, // Glitchy, corrupted impact
+        AcidSplash, // Wet, caustic splash
     }
 
     [Header("Sound Type")]
-    [SerializeField] private EnemyHitSoundType soundType = EnemyHitSoundType.PlasmaImpact;
+    [SerializeField]
+    private EnemyHitSoundType soundType = EnemyHitSoundType.PlasmaImpact;
 
     [Header("Volume")]
     [Range(0f, 1f)]
-    [SerializeField] private float volume = 0.45f;
+    [SerializeField]
+    private float volume = 0.45f;
 
     [Header("Variation")]
     [Range(0f, 0.3f)]
-    [SerializeField] private float randomization = 0.18f;
+    [SerializeField]
+    private float randomization = 0.18f;
 
     private struct EnemyHitPreset
     {
         public float duration;
-        
+
         // Impact
         public float impactFreq;
         public float impactAmount;
         public float impactDecay;
-        
+
         // Body
         public float bodyFreq;
         public float bodyAmount;
         public float bodyDecay;
-        
+
         // High frequency component
         public float highFreq;
         public float highAmount;
         public float highDecay;
-        
+
         // Noise
         public float noiseAmount;
         public float noiseDecay;
         public float noiseCutoff;
         public float noiseColor; // 0 = white, 1 = brown
-        
+
         // Special effects
         public bool hasWet;
         public float wetAmount;
@@ -78,7 +81,7 @@ public class ProceduralEnemyProjectileHitAudio : MonoBehaviour
         audioSource = GetComponent<AudioSource>();
         if (audioSource == null)
             audioSource = gameObject.AddComponent<AudioSource>();
-            
+
         audioSource.playOnAwake = false;
         audioSource.loop = false;
         audioSource.spatialBlend = 0f;
@@ -106,7 +109,8 @@ public class ProceduralEnemyProjectileHitAudio : MonoBehaviour
     public static void PrewarmAll()
     {
         EnsureStaticInitialized();
-        if (isPrewarmed) return;
+        if (isPrewarmed)
+            return;
 
         foreach (EnemyHitSoundType type in System.Enum.GetValues(typeof(EnemyHitSoundType)))
         {
@@ -265,7 +269,7 @@ public class ProceduralEnemyProjectileHitAudio : MonoBehaviour
 
         // Fallback: generate with randomization
         EnemyHitPreset preset = GetPreset(type);
-        
+
         // Apply randomization
         float randMult = 1f + Random.Range(-randomization, randomization);
         preset.impactFreq *= randMult;
@@ -282,10 +286,14 @@ public class ProceduralEnemyProjectileHitAudio : MonoBehaviour
         samples = Mathf.Min(samples, audioBuffer.Length);
 
         // Reset filter states
-        for (int i = 0; i < lpState.Length; i++) lpState[i] = 0;
-        for (int i = 0; i < hpState.Length; i++) hpState[i] = 0;
+        for (int i = 0; i < lpState.Length; i++)
+            lpState[i] = 0;
+        for (int i = 0; i < hpState.Length; i++)
+            hpState[i] = 0;
 
-        float phase1 = 0f, phase2 = 0f, phase3 = 0f;
+        float phase1 = 0f,
+            phase2 = 0f,
+            phase3 = 0f;
         float wetPhase = Random.Range(0f, Mathf.PI * 2f);
 
         for (int i = 0; i < samples; i++)
@@ -319,7 +327,7 @@ public class ProceduralEnemyProjectileHitAudio : MonoBehaviour
             // Noise (colored)
             float noiseEnv = Mathf.Exp(-t * p.noiseDecay);
             float noise = Random.Range(-1f, 1f);
-            
+
             // Apply color (brown noise = low pass filtered)
             if (p.noiseColor > 0)
             {
@@ -375,15 +383,19 @@ public class ProceduralEnemyProjectileHitAudio : MonoBehaviour
 
     private float SoftClip(float x)
     {
-        if (x > 1f) return 1f - Mathf.Exp(-(x - 1f));
-        if (x < -1f) return -1f + Mathf.Exp(-(-x - 1f));
+        if (x > 1f)
+            return 1f - Mathf.Exp(-(x - 1f));
+        if (x < -1f)
+            return -1f + Mathf.Exp(-(-x - 1f));
         return x;
     }
 
     private static float StaticSoftClip(float x)
     {
-        if (x > 1f) return 1f - Mathf.Exp(-(x - 1f));
-        if (x < -1f) return -1f + Mathf.Exp(-(-x - 1f));
+        if (x > 1f)
+            return 1f - Mathf.Exp(-(x - 1f));
+        if (x < -1f)
+            return -1f + Mathf.Exp(-(-x - 1f));
         return x;
     }
 
@@ -392,7 +404,8 @@ public class ProceduralEnemyProjectileHitAudio : MonoBehaviour
         float rc = 1f / (2f * Mathf.PI * cutoff);
         float dt = 1f / staticSampleRate;
         float alpha = dt / (rc + dt);
-        staticLpState[stateIndex] = staticLpState[stateIndex] + alpha * (input - staticLpState[stateIndex]);
+        staticLpState[stateIndex] =
+            staticLpState[stateIndex] + alpha * (input - staticLpState[stateIndex]);
         return staticLpState[stateIndex];
     }
 
@@ -408,9 +421,12 @@ public class ProceduralEnemyProjectileHitAudio : MonoBehaviour
         samples = Mathf.Min(samples, staticAudioBuffer.Length);
 
         // Reset filter states
-        for (int i = 0; i < staticLpState.Length; i++) staticLpState[i] = 0;
+        for (int i = 0; i < staticLpState.Length; i++)
+            staticLpState[i] = 0;
 
-        float phase1 = 0f, phase2 = 0f, phase3 = 0f;
+        float phase1 = 0f,
+            phase2 = 0f,
+            phase3 = 0f;
         float wetPhase = 0f;
 
         for (int i = 0; i < samples; i++)
@@ -444,7 +460,7 @@ public class ProceduralEnemyProjectileHitAudio : MonoBehaviour
             // Noise (colored)
             float noiseEnv = Mathf.Exp(-t * p.noiseDecay);
             float noise = Random.Range(-1f, 1f);
-            
+
             // Apply color (brown noise = low pass filtered)
             if (p.noiseColor > 0)
             {
@@ -475,7 +491,13 @@ public class ProceduralEnemyProjectileHitAudio : MonoBehaviour
             staticAudioBuffer[i] = sample;
         }
 
-        AudioClip clip = AudioClip.Create("EnemyProjectileHitCached", samples, 1, staticSampleRate, false);
+        AudioClip clip = AudioClip.Create(
+            "EnemyProjectileHitCached",
+            samples,
+            1,
+            staticSampleRate,
+            false
+        );
         float[] finalBuffer = new float[samples];
         System.Array.Copy(staticAudioBuffer, finalBuffer, samples);
         clip.SetData(finalBuffer, 0);
@@ -483,10 +505,14 @@ public class ProceduralEnemyProjectileHitAudio : MonoBehaviour
     }
 
     // Static helper to play hit sound at position
-    public static void PlayHit(Vector3 position, EnemyHitSoundType type = EnemyHitSoundType.PlasmaImpact, float vol = 0.45f)
+    public static void PlayHit(
+        Vector3 position,
+        EnemyHitSoundType type = EnemyHitSoundType.PlasmaImpact,
+        float vol = 0.45f
+    )
     {
         EnsureStaticInitialized();
-        
+
         // Use cached clip directly if available (avoids GameObject/Component overhead)
         AudioClip clip;
         if (cachedClips.TryGetValue(type, out clip) && clip != null)
@@ -495,21 +521,22 @@ public class ProceduralEnemyProjectileHitAudio : MonoBehaviour
             AudioSource.PlayClipAtPoint(clip, position, vol);
             return;
         }
-        
+
         // Fallback: Create temporary audio source (shouldn't happen after prewarming)
         GameObject temp = new GameObject("EnemyProjectileHitSound");
         temp.transform.position = position;
-        
+
         AudioSource source = temp.AddComponent<AudioSource>();
         source.spatialBlend = 0.5f;
         source.rolloffMode = AudioRolloffMode.Linear;
         source.maxDistance = 30f;
-        
-        ProceduralEnemyProjectileHitAudio hitAudio = temp.AddComponent<ProceduralEnemyProjectileHitAudio>();
+
+        ProceduralEnemyProjectileHitAudio hitAudio =
+            temp.AddComponent<ProceduralEnemyProjectileHitAudio>();
         hitAudio.volume = vol;
         hitAudio.soundType = type;
         hitAudio.PlayHitSound();
-        
+
         Destroy(temp, 0.5f);
     }
 }

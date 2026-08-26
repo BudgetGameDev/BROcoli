@@ -7,7 +7,7 @@ public class Statics
     {
         ("IMG_2562", "IMG_2561"),
         ("IMG_2564", "IMG_2559"),
-        ("IMG_2566", "IMG_2558")
+        ("IMG_2566", "IMG_2558"),
     };
 
     public static (string, string) randomClueGraphics()

@@ -31,7 +31,8 @@ public class RuntimeTuning : MonoBehaviour
     private static void Bootstrap()
     {
         string path = ResolvePath();
-        if (string.IsNullOrEmpty(path)) return;
+        if (string.IsNullOrEmpty(path))
+            return;
 
         var go = new GameObject("[RuntimeTuning]");
         DontDestroyOnLoad(go);
@@ -42,7 +43,8 @@ public class RuntimeTuning : MonoBehaviour
     private static string ResolvePath()
     {
         foreach (var a in Environment.GetCommandLineArgs())
-            if (a.StartsWith("--tuning=")) return a.Substring(9);
+            if (a.StartsWith("--tuning="))
+                return a.Substring(9);
         return Environment.GetEnvironmentVariable("BROCOLI_TUNING");
     }
 
@@ -54,18 +56,28 @@ public class RuntimeTuning : MonoBehaviour
     private void Update()
     {
         _pollAcc += Time.unscaledDeltaTime;
-        if (_pollAcc < 0.5f) return;
+        if (_pollAcc < 0.5f)
+            return;
         _pollAcc = 0f;
 
-        if (string.IsNullOrEmpty(_path) || !File.Exists(_path)) return;
+        if (string.IsNullOrEmpty(_path) || !File.Exists(_path))
+            return;
 
         long ticks = File.GetLastWriteTimeUtc(_path).Ticks;
-        if (ticks == _lastTicks) return;
+        if (ticks == _lastTicks)
+            return;
         _lastTicks = ticks;
 
         var data = new TuningData();
-        try { JsonUtility.FromJsonOverwrite(File.ReadAllText(_path), data); }
-        catch (Exception e) { Debug.LogWarning($"[RuntimeTuning] parse failed: {e.Message}"); return; }
+        try
+        {
+            JsonUtility.FromJsonOverwrite(File.ReadAllText(_path), data);
+        }
+        catch (Exception e)
+        {
+            Debug.LogWarning($"[RuntimeTuning] parse failed: {e.Message}");
+            return;
+        }
 
         Apply(data);
     }
@@ -75,15 +87,18 @@ public class RuntimeTuning : MonoBehaviour
         var world = PlayerModelLighting.WorldLight;
         var fill = PlayerModelLighting.FillLight;
 
-        if (Set(d.fillFactor)) _fillFactor = d.fillFactor;
+        if (Set(d.fillFactor))
+            _fillFactor = d.fillFactor;
 
         if (world != null && Set(d.worldLightIntensity))
             world.intensity = d.worldLightIntensity;
 
         if (Set(d.lightHeightZ))
         {
-            if (world != null) SetLocalZ(world.transform, d.lightHeightZ);
-            if (fill != null) SetLocalZ(fill.transform, d.lightHeightZ);
+            if (world != null)
+                SetLocalZ(world.transform, d.lightHeightZ);
+            if (fill != null)
+                SetLocalZ(fill.transform, d.lightHeightZ);
         }
 
         if (world != null && fill != null)
@@ -92,15 +107,19 @@ public class RuntimeTuning : MonoBehaviour
         if (Set(d.ambientIntensity))
             RenderSettings.ambientIntensity = d.ambientIntensity;
 
-        Debug.Log($"[RuntimeTuning] applied worldI={(world != null ? world.intensity : 0f)} " +
-                  $"fillFactor={_fillFactor} z={(world != null ? world.transform.localPosition.z : 0f)} " +
-                  $"ambient={RenderSettings.ambientIntensity}");
+        Debug.Log(
+            $"[RuntimeTuning] applied worldI={(world != null ? world.intensity : 0f)} "
+                + $"fillFactor={_fillFactor} z={(world != null ? world.transform.localPosition.z : 0f)} "
+                + $"ambient={RenderSettings.ambientIntensity}"
+        );
     }
 
     private static bool Set(float v) => v > Unset + 1f;
 
     private static void SetLocalZ(Transform t, float z)
     {
-        var p = t.localPosition; p.z = z; t.localPosition = p;
+        var p = t.localPosition;
+        p.z = z;
+        t.localPosition = p;
     }
 }

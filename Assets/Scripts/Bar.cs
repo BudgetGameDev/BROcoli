@@ -3,7 +3,8 @@ using UnityEngine.UI;
 
 public class Bar : MonoBehaviour
 {
-    [SerializeField] private Slider slider;
+    [SerializeField]
+    private Slider slider;
 
     public void UpdateBar(float current, float total)
     {

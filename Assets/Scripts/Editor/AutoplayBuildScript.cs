@@ -20,15 +20,16 @@ public static class AutoplayBuildScript
     [MenuItem("Tools/Autoplay/Build Player")]
     public static void BuildAutoplayPlayer()
     {
-        string[] scenes = EditorBuildSettings.scenes
-            .Where(s => s.enabled)
+        string[] scenes = EditorBuildSettings
+            .scenes.Where(s => s.enabled)
             .Select(s => s.path)
             .ToArray();
 
         if (scenes.Length == 0)
         {
             Debug.LogError("[Autoplay] No enabled scenes in Build Settings; cannot build.");
-            if (Application.isBatchMode) EditorApplication.Exit(1);
+            if (Application.isBatchMode)
+                EditorApplication.Exit(1);
             return;
         }
 
@@ -47,12 +48,16 @@ public static class AutoplayBuildScript
         if (summary.result == BuildResult.Succeeded)
         {
             Debug.Log($"[Autoplay] Build succeeded ({summary.totalSize} bytes) -> {OutputPath}");
-            if (Application.isBatchMode) EditorApplication.Exit(0);
+            if (Application.isBatchMode)
+                EditorApplication.Exit(0);
         }
         else
         {
-            Debug.LogError($"[Autoplay] Build {summary.result} with {summary.totalErrors} error(s).");
-            if (Application.isBatchMode) EditorApplication.Exit(1);
+            Debug.LogError(
+                $"[Autoplay] Build {summary.result} with {summary.totalErrors} error(s)."
+            );
+            if (Application.isBatchMode)
+                EditorApplication.Exit(1);
         }
     }
 }

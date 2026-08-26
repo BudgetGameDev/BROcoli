@@ -1,0 +1,57 @@
+rules:
+  - id: csharp-insecure-binary-formatter
+    languages: [csharp]
+    message: BinaryFormatter is unsafe for deserializing data; use a safe serializer.
+    severity: ERROR
+    pattern-either:
+      - pattern: new BinaryFormatter(...)
+      - pattern: new System.Runtime.Serialization.Formatters.Binary.BinaryFormatter(...)
+    paths:
+      include:
+        - /Assets/Scripts/**
+        - /Assets/Editor/**
+
+  - id: csharp-weak-cryptographic-hash
+    languages: [csharp]
+    message: MD5 and SHA-1 are unsuitable for security-sensitive hashing.
+    severity: ERROR
+    pattern-either:
+      - pattern: MD5.Create(...)
+      - pattern: SHA1.Create(...)
+      - pattern: System.Security.Cryptography.MD5.Create(...)
+      - pattern: System.Security.Cryptography.SHA1.Create(...)
+    paths:
+      include:
+        - /Assets/Scripts/**
+        - /Assets/Editor/**
+
+  - id: python-shell-true
+    languages: [python]
+    message: subprocess with shell=True can enable command injection; pass an argument list instead.
+    severity: ERROR
+    pattern: subprocess.$FUNC(..., shell=True, ...)
+    paths:
+      include:
+        - /scripts/**
+
+  - id: python-unsafe-pickle-load
+    languages: [python]
+    message: Loading pickle data can execute arbitrary code; use a safe serialization format.
+    severity: ERROR
+    pattern-either:
+      - pattern: pickle.load(...)
+      - pattern: pickle.loads(...)
+    paths:
+      include:
+        - /scripts/**
+
+  - id: bash-eval
+    languages: [bash]
+    message: Avoid eval in shell scripts because constructed input can become executable code.
+    severity: ERROR
+    pattern: eval $COMMAND
+    paths:
+      include:
+        - /ci.sh
+        - /scripts/**
+        - /.githooks/**

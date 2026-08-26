@@ -1,10 +1,10 @@
-using UnityEngine;
 using System.Collections.Generic;
+using UnityEngine;
 
 /// <summary>
 /// Player stats management with fully programmatic initialization.
 /// All fields are private and discovered/set at runtime - no serialized scene references.
-/// 
+///
 /// STAT EXPLANATIONS:
 /// - Detection Radius: Range at which player auto-targets enemies for combat
 /// - Crit Chance: % chance to deal critical hit damage (0-100)
@@ -24,14 +24,14 @@ public class PlayerStats : MonoBehaviour
     private const float DefaultMovementSpeed = 4f;
     private const float DefaultMaxExperience = 30f;
     private const float DefaultDetectionRadius = 12f;
-    
+
     // Roguelike stat defaults
-    private const float DefaultCritChance = 5f;        // 5% base crit chance
-    private const float DefaultCritDamage = 1.5f;      // 150% crit damage
-    private const float DefaultDodgeChance = 0f;       // 0% dodge
-    private const float DefaultArmor = 0f;             // 0 flat damage reduction
-    private const float DefaultHealthRegen = 0f;       // 0 HP/sec
-    private const float DefaultLifeSteal = 0f;         // 0% life steal
+    private const float DefaultCritChance = 5f; // 5% base crit chance
+    private const float DefaultCritDamage = 1.5f; // 150% crit damage
+    private const float DefaultDodgeChance = 0f; // 0% dodge
+    private const float DefaultArmor = 0f; // 0 flat damage reduction
+    private const float DefaultHealthRegen = 0f; // 0 HP/sec
+    private const float DefaultLifeSteal = 0f; // 0% life steal
 
     // Current stat values - private backing fields
     private float _currentHealth;
@@ -46,7 +46,7 @@ public class PlayerStats : MonoBehaviour
     private float _currentSprayRange;
     private float _currentSprayWidth;
     private float _currentSprayDamageMultiplier;
-    
+
     // Roguelike stats
     private float _currentCritChance;
     private float _currentCritDamage;
@@ -54,10 +54,10 @@ public class PlayerStats : MonoBehaviour
     private float _currentArmor;
     private float _currentHealthRegen;
     private float _currentLifeSteal;
-    
+
     // Health regen timer
     private float _regenTimer;
-    
+
     // Temporary boost tracking
     private struct ActiveBoost
     {
@@ -65,8 +65,9 @@ public class PlayerStats : MonoBehaviour
         public float amount;
         public float remainingTime;
     }
+
     private List<ActiveBoost> _activeBoosts = new List<ActiveBoost>();
-    
+
     // Temporary boost bonuses (added on top of base stats)
     private float _tempMovementSpeedBonus;
     private float _tempDamageBonus;
@@ -79,7 +80,7 @@ public class PlayerStats : MonoBehaviour
     public static Transform ActiveMagnetTarget { get; private set; }
     public static Transform ActivePlayerTarget { get; private set; }
 
-// UI references - discovered dynamically
+    // UI references - discovered dynamically
     private Bar _healthBar;
     private Bar _experienceBar;
     private LevelUpScreen _levelUpScreen;
@@ -88,7 +89,8 @@ public class PlayerStats : MonoBehaviour
     public bool IsAlive => _currentHealth > 0f;
     public float CurrentHealth => _currentHealth;
     public float CurrentMaxHealth => _currentMaxHealth;
-    public float CurrentAttackSpeed => Mathf.Max(0.15f, _currentAttackSpeed * (1f - _tempAttackSpeedMultiplier)); // Lower = faster
+    public float CurrentAttackSpeed =>
+        Mathf.Max(0.15f, _currentAttackSpeed * (1f - _tempAttackSpeedMultiplier)); // Lower = faster
     public float CurrentDamage =>
         _currentDamage + _tempDamageBonus + (_debugBaseDamage - DefaultBaseDamage);
     public float CurrentMovementSpeed => _currentMovementSpeed + _tempMovementSpeedBonus;
@@ -99,7 +101,7 @@ public class PlayerStats : MonoBehaviour
     public float CurrentSprayRange => _currentSprayRange;
     public float CurrentSprayWidth => _currentSprayWidth;
     public float CurrentSprayDamageMultiplier => _currentSprayDamageMultiplier;
-    
+
     // Roguelike stat properties
     public float CurrentCritChance => _currentCritChance;
     public float CurrentCritDamage => _currentCritDamage;
@@ -138,7 +140,7 @@ public class PlayerStats : MonoBehaviour
     {
         ResetStats();
     }
-    
+
     private void Update()
     {
         // Health regeneration (base + temporary bonus)
@@ -154,25 +156,26 @@ public class PlayerStats : MonoBehaviour
                 _healthBar?.UpdateBar(_currentHealth, _currentMaxHealth);
             }
         }
-        
+
         // Update temporary boosts
         UpdateTemporaryBoosts();
     }
-    
+
     /// <summary>
     /// Update and expire temporary boosts
     /// </summary>
     private void UpdateTemporaryBoosts()
     {
-        if (_activeBoosts.Count == 0) return;
-        
+        if (_activeBoosts.Count == 0)
+            return;
+
         bool needsRecalculate = false;
-        
+
         for (int i = _activeBoosts.Count - 1; i >= 0; i--)
         {
             var boost = _activeBoosts[i];
             boost.remainingTime -= Time.deltaTime;
-            
+
             if (boost.remainingTime <= 0f)
             {
                 _activeBoosts.RemoveAt(i);
@@ -184,13 +187,13 @@ public class PlayerStats : MonoBehaviour
                 _activeBoosts[i] = boost;
             }
         }
-        
+
         if (needsRecalculate)
         {
             RecalculateTemporaryBonuses();
         }
     }
-    
+
     /// <summary>
     /// Recalculate all temporary bonuses from active boosts
     /// </summary>
@@ -202,7 +205,7 @@ public class PlayerStats : MonoBehaviour
         _tempHealthRegenBonus = 0f;
         _tempEnemyTimeScale = 1f;
         bool magnetActive = false;
-        
+
         foreach (var boost in _activeBoosts)
         {
             switch (boost.type)
@@ -222,7 +225,8 @@ public class PlayerStats : MonoBehaviour
                 case TemporaryBoostType.TimeSlow:
                     _tempEnemyTimeScale = Mathf.Min(
                         _tempEnemyTimeScale,
-                        Mathf.Clamp(boost.amount, 0.1f, 1f));
+                        Mathf.Clamp(boost.amount, 0.1f, 1f)
+                    );
                     break;
                 case TemporaryBoostType.Magnet:
                     magnetActive = true;
@@ -233,7 +237,7 @@ public class PlayerStats : MonoBehaviour
         ActiveEnemyTimeScale = _tempEnemyTimeScale;
         ActiveMagnetTarget = magnetActive ? transform : null;
     }
-    
+
     /// <summary>
     /// Apply a temporary boost that expires after duration seconds
     /// </summary>
@@ -243,30 +247,34 @@ public class PlayerStats : MonoBehaviour
         for (int i = 0; i < _activeBoosts.Count; i++)
         {
             ActiveBoost active = _activeBoosts[i];
-            if (active.type != type) continue;
+            if (active.type != type)
+                continue;
 
-            active.amount = type == TemporaryBoostType.TimeSlow
-                ? Mathf.Min(active.amount, amount)
-                : Mathf.Max(active.amount, amount);
+            active.amount =
+                type == TemporaryBoostType.TimeSlow
+                    ? Mathf.Min(active.amount, amount)
+                    : Mathf.Max(active.amount, amount);
             active.remainingTime = Mathf.Max(active.remainingTime, duration);
             _activeBoosts[i] = active;
             RecalculateTemporaryBonuses();
             return;
         }
 
-        _activeBoosts.Add(new ActiveBoost
-        {
-            type = type,
-            amount = amount,
-            remainingTime = duration
-        });
-        
+        _activeBoosts.Add(
+            new ActiveBoost
+            {
+                type = type,
+                amount = amount,
+                remainingTime = duration,
+            }
+        );
+
         // Immediately recalculate bonuses
         RecalculateTemporaryBonuses();
-        
+
         Debug.Log($"Applied temporary boost: {type} +{amount} for {duration}s");
     }
-    
+
     /// <summary>
     /// Check if player has an active boost of the given type
     /// </summary>
@@ -274,16 +282,17 @@ public class PlayerStats : MonoBehaviour
     {
         foreach (var boost in _activeBoosts)
         {
-            if (boost.type == type) return true;
+            if (boost.type == type)
+                return true;
         }
         return false;
     }
-    
+
     /// <summary>
     /// True if player currently has magnet effect active
     /// </summary>
     public bool HasMagnetActive => HasActiveBoost(TemporaryBoostType.Magnet);
-    
+
     /// <summary>
     /// Get the magnet radius (amount stored in boost)
     /// </summary>
@@ -307,7 +316,7 @@ public class PlayerStats : MonoBehaviour
     {
         // Find bars by name in scene
         var allBars = FindObjectsByType<Bar>(FindObjectsSortMode.None);
-        
+
         foreach (var bar in allBars)
         {
             if (bar.gameObject.name == "HealthBar")
@@ -347,7 +356,7 @@ public class PlayerStats : MonoBehaviour
         _currentSprayRange = SpraySettings.BaseSprayRange;
         _currentSprayWidth = SpraySettings.BaseSprayAngle;
         _currentSprayDamageMultiplier = 1f;
-        
+
         // Reset roguelike stats
         _currentCritChance = DefaultCritChance;
         _currentCritDamage = DefaultCritDamage;
@@ -356,7 +365,7 @@ public class PlayerStats : MonoBehaviour
         _currentHealthRegen = DefaultHealthRegen;
         _currentLifeSteal = DefaultLifeSteal;
         _regenTimer = 0f;
-        
+
         // Clear temporary boosts
         _activeBoosts.Clear();
         _tempMovementSpeedBonus = 0f;
@@ -428,7 +437,7 @@ public class PlayerStats : MonoBehaviour
             // Dodged! No damage taken
             return;
         }
-        
+
         // Apply armor reduction
         float reducedDamage = Mathf.Max(0f, damage - _currentArmor);
         AddHealth(-reducedDamage);
@@ -450,10 +459,10 @@ public class PlayerStats : MonoBehaviour
         float healthGain = 10f;
         _currentHealth += healthGain;
         _currentMaxHealth += healthGain;
-        
+
         // Reset XP to 0 (no carry-over) and double the requirement
         _currentExperience = 0f;
-        _currentMaxExperience *= 2f;  // Double XP needed each level (30 -> 60 -> 120 -> 240...)
+        _currentMaxExperience *= 2f; // Double XP needed each level (30 -> 60 -> 120 -> 240...)
 
         _healthBar?.UpdateBar(_currentHealth, _currentMaxHealth);
         _experienceBar?.UpdateBar(_currentExperience, _currentMaxExperience);
@@ -559,38 +568,38 @@ public class PlayerStats : MonoBehaviour
     {
         _currentDetectionRadius += amount;
     }
-    
+
     // Roguelike stat modifiers
     public void AddCritChance(float amount)
     {
         _currentCritChance = Mathf.Clamp(_currentCritChance + amount, 0f, 100f);
     }
-    
+
     public void AddCritDamage(float amount)
     {
         _currentCritDamage += amount;
     }
-    
+
     public void AddDodgeChance(float amount)
     {
         _currentDodgeChance = Mathf.Clamp(_currentDodgeChance + amount, 0f, 75f); // Cap at 75%
     }
-    
+
     public void AddArmor(float amount)
     {
         _currentArmor += amount;
     }
-    
+
     public void AddHealthRegen(float amount)
     {
         _currentHealthRegen += amount;
     }
-    
+
     public void AddLifeSteal(float amount)
     {
         _currentLifeSteal = Mathf.Clamp(_currentLifeSteal + amount, 0f, 100f);
     }
-    
+
     /// <summary>
     /// Calculate final damage output with crit chance.
     /// Call this when dealing damage to enemies.
@@ -604,7 +613,7 @@ public class PlayerStats : MonoBehaviour
         }
         return baseDamage;
     }
-    
+
     /// <summary>
     /// Apply life steal healing based on damage dealt.
     /// Call this after dealing damage to enemies.

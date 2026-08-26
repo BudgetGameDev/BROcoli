@@ -1,0 +1,37 @@
+# Existing source-size debt at introduction of the 300-line gate.
+# Entries may only decrease. Remove an entry once the file reaches 300 lines.
+727	Assets/Scripts/Boost/ProceduralBoostAudio.cs
+990	Assets/Scripts/Enemy Spawner/Enemies/EnemyBase.cs
+504	Assets/Scripts/Enemy Spawner/Enemies/EnemyScript.cs
+368	Assets/Scripts/Enemy Spawner/EnemySpawner.cs
+579	Assets/Scripts/ForceLandscapeAspect.cs
+516	Assets/Scripts/FrameRateOptimizer.cs
+363	Assets/Scripts/GamePreloader.cs
+606	Assets/Scripts/HydraEnemyScript.cs
+581	Assets/Scripts/LevelUpScreen.cs
+314	Assets/Scripts/MainMenu/MainMenu.cs
+661	Assets/Scripts/PauseMenu.cs
+892	Assets/Scripts/PickupVisual3D.cs
+630	Assets/Scripts/Player/PlayerStats.cs
+427	Assets/Scripts/Pooling/PoolManager.cs
+1276	Assets/Scripts/ProceduralEnemyGunAudio.cs
+795	Assets/Scripts/ProceduralEnemyMeleeAudio.cs
+542	Assets/Scripts/ProceduralEnemyProjectileHitAudio.cs
+915	Assets/Scripts/ProceduralEnemyWalkAudio.cs
+988	Assets/Scripts/ProceduralGunAudio.cs
+448	Assets/Scripts/ProceduralProjectileHitAudio.cs
+306	Assets/Scripts/ProceduralXPPickupAudio.cs
+531	Assets/Scripts/ShuffleWalkVisual.cs
+357	Assets/Scripts/Spray/SanitizerSpray.cs
+333	Assets/Scripts/Spray/SprayDamageHandler.cs
+340	Assets/Scripts/Spray/SprayMaterialCreator.cs
+376	Assets/Scripts/Spray/SprayParticleController.cs
+683	Assets/Scripts/TouchAction.cs
+410	Assets/Scripts/UI/ControllerUINavigator.cs
+316	Assets/Scripts/UI/VictoryScreen.cs
+417	Assets/Scripts/UpgradeOption.cs
+915	Assets/Scripts/VirtualController.cs
+445	Assets/Scripts/gamejam-2022/ClueSystem.cs
+315	Assets/Scripts/gamejam-2022/GameOverScreen.cs
+399	Assets/Scripts/gamejam-2022/PlayerCombat.cs
+301	Assets/Scripts/gamejam-2022/PlayerMovement.cs

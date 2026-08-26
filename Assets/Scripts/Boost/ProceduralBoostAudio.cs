@@ -8,27 +8,28 @@ public class ProceduralBoostAudio : MonoBehaviour
 {
     public enum BoostSoundType
     {
-        Health,         // Warm, healing chime
-        Damage,         // Powerful impact punch
-        AttackSpeed,    // Rapid staccato tones
-        MovementSpeed,  // Whooshing wind sound
-        Experience,     // Bright ascending sparkle
-        DetectionRadius,// Radar ping/sonar
-        SprayRange,     // Extending reach sound
-        SprayWidth,     // Spreading expansion sound
-        Magnet,         // Magnetic pull whoosh
-        TimeSlow        // Descending clock-like chime
+        Health, // Warm, healing chime
+        Damage, // Powerful impact punch
+        AttackSpeed, // Rapid staccato tones
+        MovementSpeed, // Whooshing wind sound
+        Experience, // Bright ascending sparkle
+        DetectionRadius, // Radar ping/sonar
+        SprayRange, // Extending reach sound
+        SprayWidth, // Spreading expansion sound
+        Magnet, // Magnetic pull whoosh
+        TimeSlow, // Descending clock-like chime
     }
 
     [Header("Volume")]
     [Range(0f, 1f)]
-    [SerializeField] private float volume = 0.6f;
+    [SerializeField]
+    private float volume = 0.6f;
 
     private static AudioSource sharedAudioSource;
     private static int sampleRate;
     private static float[] audioBuffer;
     private static float[] filterState = new float[8];
-    
+
     // Cached clips for each boost type
     private static System.Collections.Generic.Dictionary<BoostSoundType, AudioClip> cachedClips;
     private static bool isPrewarmed = false;
@@ -47,14 +48,14 @@ public class ProceduralBoostAudio : MonoBehaviour
             sharedAudioSource = audioObj.AddComponent<AudioSource>();
             sharedAudioSource.playOnAwake = false;
             sharedAudioSource.spatialBlend = 0f;
-            
+
             sampleRate = AudioSettings.outputSampleRate;
             int maxSamples = Mathf.CeilToInt(0.8f * sampleRate);
             audioBuffer = new float[maxSamples];
             cachedClips = new System.Collections.Generic.Dictionary<BoostSoundType, AudioClip>();
         }
     }
-    
+
     /// <summary>
     /// Pre-generate all boost sound clips to avoid hitches on first pickup.
     /// Call this during loading screen.
@@ -62,8 +63,9 @@ public class ProceduralBoostAudio : MonoBehaviour
     public static void PrewarmAll()
     {
         EnsureInitialized();
-        if (isPrewarmed) return;
-        
+        if (isPrewarmed)
+            return;
+
         foreach (BoostSoundType type in System.Enum.GetValues(typeof(BoostSoundType)))
         {
             if (!cachedClips.ContainsKey(type))
@@ -82,7 +84,7 @@ public class ProceduralBoostAudio : MonoBehaviour
     public static void PlaySound(BoostSoundType type, float vol = 0.6f)
     {
         EnsureInitialized();
-        
+
         // Use cached clip if available, otherwise generate
         AudioClip clip;
         if (cachedClips.TryGetValue(type, out clip) && clip != null)
@@ -100,7 +102,7 @@ public class ProceduralBoostAudio : MonoBehaviour
     private static AudioClip GenerateClip(BoostSoundType type)
     {
         System.Array.Clear(filterState, 0, filterState.Length);
-        
+
         switch (type)
         {
             case BoostSoundType.Health:
@@ -151,16 +153,17 @@ public class ProceduralBoostAudio : MonoBehaviour
             {
                 float noteDelay = n * 0.04f;
                 float noteT = t - noteDelay;
-                if (noteT < 0f) continue;
+                if (noteT < 0f)
+                    continue;
 
                 float env = GetHealEnvelope(noteT, duration - noteDelay);
                 float phase = noteT * freqs[n] * Mathf.PI * 2f;
-                
+
                 // Soft sine with gentle harmonics
                 float tone = Mathf.Sin(phase) * 0.6f;
                 tone += Mathf.Sin(phase * 2f) * 0.2f;
                 tone += Mathf.Sin(phase * 0.5f) * 0.15f; // Sub-harmonic warmth
-                
+
                 sample += tone * env * 0.3f;
             }
 
@@ -256,7 +259,7 @@ public class ProceduralBoostAudio : MonoBehaviour
                 // Exponentially decreasing gaps (accelerating)
                 float clickTime = c * (0.06f - c * 0.008f);
                 float clickT = t - clickTime;
-                
+
                 if (clickT >= 0f && clickT < clickDuration)
                 {
                     float clickEnv = Mathf.Exp(-clickT * 100f);
@@ -302,7 +305,7 @@ public class ProceduralBoostAudio : MonoBehaviour
             float whooshEnv = GetWhooshEnvelope(t, duration);
             float cutoff = 800f + 2500f * Mathf.Sin(t * 4f * Mathf.PI);
             cutoff = Mathf.Max(cutoff, 400f);
-            
+
             float noise = Random.Range(-1f, 1f);
             float whoosh = Lowpass(noise, cutoff, 0);
             whoosh = Highpass(whoosh, 200f, 1);
@@ -358,15 +361,16 @@ public class ProceduralBoostAudio : MonoBehaviour
             {
                 float noteStart = n * 0.035f;
                 float noteT = t - noteStart;
-                if (noteT < 0f) continue;
+                if (noteT < 0f)
+                    continue;
 
                 float noteEnv = Mathf.Exp(-noteT * 12f);
                 float phase = noteT * notes[n] * Mathf.PI * 2f;
-                
+
                 float tone = Mathf.Sin(phase) * 0.5f;
                 tone += Mathf.Sin(phase * 2f) * 0.2f;
                 tone += Mathf.Sin(phase * 3f) * 0.1f;
-                
+
                 sample += tone * noteEnv * 0.25f;
             }
 
@@ -377,7 +381,8 @@ public class ProceduralBoostAudio : MonoBehaviour
 
             // Bright shimmer
             float shimmerMod = Mathf.Sin(t * 40f) * 0.5f + 0.5f;
-            sample += Mathf.Sin(t * 4000f * Mathf.PI * 2f) * shimmerMod * Mathf.Exp(-t * 15f) * 0.06f;
+            sample +=
+                Mathf.Sin(t * 4000f * Mathf.PI * 2f) * shimmerMod * Mathf.Exp(-t * 15f) * 0.06f;
 
             audioBuffer[i] = SoftClip(sample);
         }
@@ -404,7 +409,7 @@ public class ProceduralBoostAudio : MonoBehaviour
             float pingEnv = Mathf.Exp(-t * 6f);
             float pingFreq = 1400f;
             float ping = Mathf.Sin(t * pingFreq * Mathf.PI * 2f) * pingEnv * 0.5f;
-            
+
             // Resonant harmonics (sonar character)
             ping += Mathf.Sin(t * pingFreq * 2f * Mathf.PI * 2f) * pingEnv * 0.2f;
             ping += Mathf.Sin(t * pingFreq * 0.5f * Mathf.PI * 2f) * pingEnv * 0.15f;
@@ -459,7 +464,7 @@ public class ProceduralBoostAudio : MonoBehaviour
             float extendEnv = GetExtendEnvelope(t, duration);
             float pitchCurve = 1f + 0.3f * Mathf.Exp(-t * 8f); // Starts high, settles
             float baseFreq = 600f * pitchCurve;
-            
+
             sample += Mathf.Sin(t * baseFreq * Mathf.PI * 2f) * extendEnv * 0.35f;
             sample += Mathf.Sin(t * baseFreq * 1.5f * Mathf.PI * 2f) * extendEnv * 0.2f;
 
@@ -507,11 +512,13 @@ public class ProceduralBoostAudio : MonoBehaviour
             float spreadEnv = GetSpreadEnvelope(t, duration);
             float centerFreq = 700f;
             float spread = Mathf.Min(t * 3f, 1f) * 200f; // Frequencies spread apart
-            
+
             sample += Mathf.Sin(t * centerFreq * Mathf.PI * 2f) * spreadEnv * 0.25f;
             sample += Mathf.Sin(t * (centerFreq + spread) * Mathf.PI * 2f) * spreadEnv * 0.2f;
-            sample += Mathf.Sin(t * (centerFreq - spread * 0.8f) * Mathf.PI * 2f) * spreadEnv * 0.2f;
-            sample += Mathf.Sin(t * (centerFreq + spread * 1.5f) * Mathf.PI * 2f) * spreadEnv * 0.15f;
+            sample +=
+                Mathf.Sin(t * (centerFreq - spread * 0.8f) * Mathf.PI * 2f) * spreadEnv * 0.2f;
+            sample +=
+                Mathf.Sin(t * (centerFreq + spread * 1.5f) * Mathf.PI * 2f) * spreadEnv * 0.15f;
 
             // Fan-out hiss
             float fanEnv = Mathf.Exp(-t * 5f);
@@ -544,7 +551,7 @@ public class ProceduralBoostAudio : MonoBehaviour
     {
         float attack = 0.02f;
         float sustain = 0.3f;
-        
+
         if (t < attack)
             return t / attack;
         else if (t < sustain)
@@ -575,7 +582,7 @@ public class ProceduralBoostAudio : MonoBehaviour
     {
         float attack = 0.03f;
         float hold = 0.1f;
-        
+
         if (t < attack)
             return t / attack;
         else if (t < attack + hold)
@@ -589,7 +596,7 @@ public class ProceduralBoostAudio : MonoBehaviour
         float rc = 1f / (2f * Mathf.PI * cutoff);
         float dt = 1f / sampleRate;
         float alpha = Mathf.Clamp01(dt / (rc + dt));
-        
+
         filterState[stateIdx] += alpha * (input - filterState[stateIdx]);
         return filterState[stateIdx];
     }
@@ -599,7 +606,7 @@ public class ProceduralBoostAudio : MonoBehaviour
         float rc = 1f / (2f * Mathf.PI * cutoff);
         float dt = 1f / sampleRate;
         float alpha = Mathf.Clamp01(rc / (rc + dt));
-        
+
         float output = alpha * (filterState[stateIdx + 4] + input - filterState[stateIdx]);
         filterState[stateIdx] = input;
         filterState[stateIdx + 4] = output;
@@ -608,8 +615,10 @@ public class ProceduralBoostAudio : MonoBehaviour
 
     private static float SoftClip(float x)
     {
-        if (x > 1f) return 1f;
-        if (x < -1f) return -1f;
+        if (x > 1f)
+            return 1f;
+        if (x < -1f)
+            return -1f;
         return x - (x * x * x) / 3f;
     }
 
@@ -647,7 +656,7 @@ public class ProceduralBoostAudio : MonoBehaviour
         clip.SetData(clipData, 0);
         return clip;
     }
-    
+
     /// <summary>
     /// Magnet boost - Magnetic pull whoosh with swirling resonance.
     /// Evokes attraction and gathering.
@@ -656,30 +665,30 @@ public class ProceduralBoostAudio : MonoBehaviour
     {
         float duration = 0.45f;
         int numSamples = Mathf.CeilToInt(duration * sampleRate);
-        
+
         for (int i = 0; i < numSamples; i++)
         {
             float t = (float)i / sampleRate;
             float norm = t / duration;
-            
+
             // Swirling magnetic pull effect - frequency rises then falls
-            float freqCurve = Mathf.Sin(norm * Mathf.PI);  // Peaks at middle
+            float freqCurve = Mathf.Sin(norm * Mathf.PI); // Peaks at middle
             float baseFreq = Mathf.Lerp(150f, 400f, freqCurve);
             float phase = t * baseFreq * Mathf.PI * 2f;
-            
+
             // Magnetic hum with modulation
             float hum = Mathf.Sin(phase);
             float modulation = 1f + 0.3f * Mathf.Sin(t * 25f * Mathf.PI * 2f);
             hum *= modulation;
-            
+
             // Swirling overtones
             float swirl1 = Mathf.Sin(phase * 1.5f + t * 8f) * 0.3f;
             float swirl2 = Mathf.Sin(phase * 2.01f - t * 12f) * 0.2f;
-            
+
             // Whoosh component - filtered noise
             float noise = Mathf.PerlinNoise(t * 50f, 0f) * 2f - 1f;
             noise *= freqCurve * 0.4f;
-            
+
             // Envelope - quick attack, sustain, smooth decay
             float envelope;
             if (norm < 0.1f)
@@ -688,10 +697,10 @@ public class ProceduralBoostAudio : MonoBehaviour
                 envelope = 1f;
             else
                 envelope = (1f - norm) / 0.3f;
-            
+
             audioBuffer[i] = (hum * 0.5f + swirl1 + swirl2 + noise) * envelope;
         }
-        
+
         return FinalizeClip("MagnetBoost", numSamples, duration);
     }
 

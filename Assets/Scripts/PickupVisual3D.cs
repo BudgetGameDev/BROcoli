@@ -22,7 +22,7 @@ public sealed class PickupVisual3D : MonoBehaviour
         Magnet,
         Hourglass,
         SprayRange,
-        SprayWidth
+        SprayWidth,
     }
 
     private const string ModelRootName = "PickupModel3D";
@@ -98,7 +98,7 @@ public sealed class PickupVisual3D : MonoBehaviour
             ProceduralBoostAudio.BoostSoundType.SprayWidth => ModelKind.SprayWidth,
             ProceduralBoostAudio.BoostSoundType.Magnet => ModelKind.Magnet,
             ProceduralBoostAudio.BoostSoundType.TimeSlow => ModelKind.Hourglass,
-            _ => ModelKind.ExperienceBoost
+            _ => ModelKind.ExperienceBoost,
         };
 
         return Attach(boost.gameObject, kind);
@@ -123,15 +123,17 @@ public sealed class PickupVisual3D : MonoBehaviour
         Kind = kind;
         animationPhase = Mathf.Abs(GetInstanceID() % 1000) * 0.013f;
         spinSpeed = kind == ModelKind.Experience ? 72f : 34f;
-        rotationAxis = kind == ModelKind.Experience
-            ? new Vector3(0.25f, 0.5f, 1f).normalized
-            : Vector3.forward;
+        rotationAxis =
+            kind == ModelKind.Experience
+                ? new Vector3(0.25f, 0.5f, 1f).normalized
+                : Vector3.forward;
         modelBasePosition = new Vector3(
             0f,
             0f,
-            kind == ModelKind.Experience ? ExperienceBaseDepth : BoostBaseDepth);
-        modelBaseScale = Vector3.one *
-            (kind == ModelKind.Experience ? ExperienceVisualScale : BoostVisualScale);
+            kind == ModelKind.Experience ? ExperienceBaseDepth : BoostBaseDepth
+        );
+        modelBaseScale =
+            Vector3.one * (kind == ModelKind.Experience ? ExperienceVisualScale : BoostVisualScale);
 
         foreach (SpriteRenderer spriteRenderer in GetComponentsInChildren<SpriteRenderer>(true))
             spriteRenderer.enabled = false;
@@ -144,12 +146,9 @@ public sealed class PickupVisual3D : MonoBehaviour
             modelRoot.localScale = modelBaseScale;
             modelBaseRotation = Quaternion.identity;
             modelRoot.localRotation = modelBaseRotation;
-            spinTarget = kind == ModelKind.Experience
-                ? modelRoot
-                : modelRoot.Find("Token Face");
-            spinBaseRotation = kind == ModelKind.Experience
-                ? Quaternion.identity
-                : Quaternion.Euler(-60f, 0f, 0f);
+            spinTarget = kind == ModelKind.Experience ? modelRoot : modelRoot.Find("Token Face");
+            spinBaseRotation =
+                kind == ModelKind.Experience ? Quaternion.identity : Quaternion.Euler(-60f, 0f, 0f);
             if (spinTarget != null)
                 spinTarget.localRotation = spinBaseRotation;
             return;
@@ -169,12 +168,8 @@ public sealed class PickupVisual3D : MonoBehaviour
         else
             BuildBoostToken(kind);
 
-        spinTarget = kind == ModelKind.Experience
-            ? modelRoot
-            : modelRoot.Find("Token Face");
-        spinBaseRotation = spinTarget != null
-            ? spinTarget.localRotation
-            : Quaternion.identity;
+        spinTarget = kind == ModelKind.Experience ? modelRoot : modelRoot.Find("Token Face");
+        spinBaseRotation = spinTarget != null ? spinTarget.localRotation : Quaternion.identity;
     }
 
     private void Update()
@@ -186,7 +181,8 @@ public sealed class PickupVisual3D : MonoBehaviour
         attractionBlend = Mathf.MoveTowards(
             attractionBlend,
             attractionRequested ? 1f : 0f,
-            Time.deltaTime * 7f);
+            Time.deltaTime * 7f
+        );
         float bobAmplitude = Mathf.Lerp(0.055f, 0.012f, attractionBlend);
         float bob = Mathf.Sin(time * 3.2f) * bobAmplitude;
         float pulse = 1f + Mathf.Sin(time * 4.1f) * 0.035f;
@@ -216,7 +212,8 @@ public sealed class PickupVisual3D : MonoBehaviour
             new Vector3(0.58f, 0.58f, 0.82f),
             deepBlue,
             electricBlue,
-            iceBlue);
+            iceBlue
+        );
 
         CreatePart(
             modelRoot,
@@ -225,7 +222,8 @@ public sealed class PickupVisual3D : MonoBehaviour
             Vector3.zero,
             Quaternion.Euler(68f, 0f, 18f),
             new Vector3(0.98f, 0.98f, 0.05f),
-            iceBlue);
+            iceBlue
+        );
     }
 
     private void BuildBoostToken(ModelKind kind)
@@ -245,7 +243,8 @@ public sealed class PickupVisual3D : MonoBehaviour
             Vector3.zero,
             Quaternion.identity,
             new Vector3(0.84f, 0.84f, 0.16f),
-            baseColor);
+            baseColor
+        );
 
         CreatePart(
             face,
@@ -254,7 +253,8 @@ public sealed class PickupVisual3D : MonoBehaviour
             Vector3.zero,
             Quaternion.identity,
             new Vector3(0.98f, 0.98f, 0.21f),
-            rimColor);
+            rimColor
+        );
 
         BuildSymbol(face, kind, symbolColor, rimColor);
     }
@@ -266,19 +266,49 @@ public sealed class PickupVisual3D : MonoBehaviour
         switch (kind)
         {
             case ModelKind.Health:
-                AddBox(face, "Health Vertical", new Vector3(0f, 0f, faceDepth),
-                    new Vector3(0.14f, 0.54f, 0.075f), 0f, symbolColor);
-                AddBox(face, "Health Horizontal", new Vector3(0f, 0f, faceDepth),
-                    new Vector3(0.54f, 0.14f, 0.075f), 0f, symbolColor);
+                AddBox(
+                    face,
+                    "Health Vertical",
+                    new Vector3(0f, 0f, faceDepth),
+                    new Vector3(0.14f, 0.54f, 0.075f),
+                    0f,
+                    symbolColor
+                );
+                AddBox(
+                    face,
+                    "Health Horizontal",
+                    new Vector3(0f, 0f, faceDepth),
+                    new Vector3(0.54f, 0.14f, 0.075f),
+                    0f,
+                    symbolColor
+                );
                 break;
 
             case ModelKind.Damage:
-                AddBox(face, "Blade", new Vector3(0.02f, 0.03f, faceDepth),
-                    new Vector3(0.13f, 0.58f, 0.075f), -24f, symbolColor);
-                AddBox(face, "Guard", new Vector3(-0.08f, -0.18f, faceDepth - 0.005f),
-                    new Vector3(0.4f, 0.09f, 0.085f), -24f, accentColor);
-                AddBox(face, "Pommel", new Vector3(-0.17f, -0.34f, faceDepth),
-                    new Vector3(0.13f, 0.13f, 0.08f), -24f, symbolColor);
+                AddBox(
+                    face,
+                    "Blade",
+                    new Vector3(0.02f, 0.03f, faceDepth),
+                    new Vector3(0.13f, 0.58f, 0.075f),
+                    -24f,
+                    symbolColor
+                );
+                AddBox(
+                    face,
+                    "Guard",
+                    new Vector3(-0.08f, -0.18f, faceDepth - 0.005f),
+                    new Vector3(0.4f, 0.09f, 0.085f),
+                    -24f,
+                    accentColor
+                );
+                AddBox(
+                    face,
+                    "Pommel",
+                    new Vector3(-0.17f, -0.34f, faceDepth),
+                    new Vector3(0.13f, 0.13f, 0.08f),
+                    -24f,
+                    symbolColor
+                );
                 break;
 
             case ModelKind.MovementSpeed:
@@ -287,82 +317,226 @@ public sealed class PickupVisual3D : MonoBehaviour
                 break;
 
             case ModelKind.AttackSpeed:
-                CreatePart(face, "Attack Dial", GetRingMesh(),
-                    new Vector3(0f, 0f, faceDepth), Quaternion.identity,
-                    new Vector3(0.6f, 0.6f, 0.07f), symbolColor);
-                AddBox(face, "Attack Hand", new Vector3(0.07f, 0.09f, faceDepth - 0.015f),
-                    new Vector3(0.09f, 0.34f, 0.09f), -34f, accentColor);
-                AddBox(face, "Attack Tick", new Vector3(-0.2f, 0.19f, faceDepth - 0.01f),
-                    new Vector3(0.08f, 0.15f, 0.08f), -44f, symbolColor);
+                CreatePart(
+                    face,
+                    "Attack Dial",
+                    GetRingMesh(),
+                    new Vector3(0f, 0f, faceDepth),
+                    Quaternion.identity,
+                    new Vector3(0.6f, 0.6f, 0.07f),
+                    symbolColor
+                );
+                AddBox(
+                    face,
+                    "Attack Hand",
+                    new Vector3(0.07f, 0.09f, faceDepth - 0.015f),
+                    new Vector3(0.09f, 0.34f, 0.09f),
+                    -34f,
+                    accentColor
+                );
+                AddBox(
+                    face,
+                    "Attack Tick",
+                    new Vector3(-0.2f, 0.19f, faceDepth - 0.01f),
+                    new Vector3(0.08f, 0.15f, 0.08f),
+                    -44f,
+                    symbolColor
+                );
                 break;
 
             case ModelKind.ExperienceBoost:
-                AddBox(face, "XP Diamond", new Vector3(0f, 0f, faceDepth),
-                    new Vector3(0.36f, 0.36f, 0.1f), 45f, symbolColor);
-                AddBox(face, "XP Spark", new Vector3(0.22f, 0.22f, faceDepth - 0.015f),
-                    new Vector3(0.1f, 0.1f, 0.08f), 45f, accentColor);
+                AddBox(
+                    face,
+                    "XP Diamond",
+                    new Vector3(0f, 0f, faceDepth),
+                    new Vector3(0.36f, 0.36f, 0.1f),
+                    45f,
+                    symbolColor
+                );
+                AddBox(
+                    face,
+                    "XP Spark",
+                    new Vector3(0.22f, 0.22f, faceDepth - 0.015f),
+                    new Vector3(0.1f, 0.1f, 0.08f),
+                    45f,
+                    accentColor
+                );
                 break;
 
             case ModelKind.DetectionRadius:
-                CreatePart(face, "Radar Outer", GetRingMesh(),
-                    new Vector3(0f, 0f, faceDepth), Quaternion.identity,
-                    new Vector3(0.65f, 0.65f, 0.065f), symbolColor);
-                CreatePart(face, "Radar Inner", GetRingMesh(),
-                    new Vector3(0f, 0f, faceDepth - 0.01f), Quaternion.identity,
-                    new Vector3(0.34f, 0.34f, 0.08f), accentColor);
-                AddBox(face, "Radar Sweep", new Vector3(0.08f, 0.09f, faceDepth - 0.02f),
-                    new Vector3(0.07f, 0.34f, 0.09f), -42f, symbolColor);
+                CreatePart(
+                    face,
+                    "Radar Outer",
+                    GetRingMesh(),
+                    new Vector3(0f, 0f, faceDepth),
+                    Quaternion.identity,
+                    new Vector3(0.65f, 0.65f, 0.065f),
+                    symbolColor
+                );
+                CreatePart(
+                    face,
+                    "Radar Inner",
+                    GetRingMesh(),
+                    new Vector3(0f, 0f, faceDepth - 0.01f),
+                    Quaternion.identity,
+                    new Vector3(0.34f, 0.34f, 0.08f),
+                    accentColor
+                );
+                AddBox(
+                    face,
+                    "Radar Sweep",
+                    new Vector3(0.08f, 0.09f, faceDepth - 0.02f),
+                    new Vector3(0.07f, 0.34f, 0.09f),
+                    -42f,
+                    symbolColor
+                );
                 break;
 
             case ModelKind.Magnet:
-                AddBox(face, "Magnet Bridge", new Vector3(0f, -0.2f, faceDepth),
-                    new Vector3(0.5f, 0.13f, 0.085f), 0f, accentColor);
-                AddBox(face, "Magnet Left", new Vector3(-0.19f, 0f, faceDepth),
-                    new Vector3(0.13f, 0.42f, 0.085f), 0f, accentColor);
-                AddBox(face, "Magnet Right", new Vector3(0.19f, 0f, faceDepth),
-                    new Vector3(0.13f, 0.42f, 0.085f), 0f, symbolColor);
-                AddBox(face, "Magnet Left Tip", new Vector3(-0.19f, 0.25f, faceDepth - 0.01f),
-                    new Vector3(0.15f, 0.12f, 0.095f), 0f, symbolColor);
-                AddBox(face, "Magnet Right Tip", new Vector3(0.19f, 0.25f, faceDepth - 0.01f),
-                    new Vector3(0.15f, 0.12f, 0.095f), 0f, Color.white);
+                AddBox(
+                    face,
+                    "Magnet Bridge",
+                    new Vector3(0f, -0.2f, faceDepth),
+                    new Vector3(0.5f, 0.13f, 0.085f),
+                    0f,
+                    accentColor
+                );
+                AddBox(
+                    face,
+                    "Magnet Left",
+                    new Vector3(-0.19f, 0f, faceDepth),
+                    new Vector3(0.13f, 0.42f, 0.085f),
+                    0f,
+                    accentColor
+                );
+                AddBox(
+                    face,
+                    "Magnet Right",
+                    new Vector3(0.19f, 0f, faceDepth),
+                    new Vector3(0.13f, 0.42f, 0.085f),
+                    0f,
+                    symbolColor
+                );
+                AddBox(
+                    face,
+                    "Magnet Left Tip",
+                    new Vector3(-0.19f, 0.25f, faceDepth - 0.01f),
+                    new Vector3(0.15f, 0.12f, 0.095f),
+                    0f,
+                    symbolColor
+                );
+                AddBox(
+                    face,
+                    "Magnet Right Tip",
+                    new Vector3(0.19f, 0.25f, faceDepth - 0.01f),
+                    new Vector3(0.15f, 0.12f, 0.095f),
+                    0f,
+                    Color.white
+                );
                 break;
 
             case ModelKind.Hourglass:
-                AddBox(face, "Hourglass Top", new Vector3(0f, 0.28f, faceDepth),
-                    new Vector3(0.52f, 0.08f, 0.075f), 0f, accentColor);
-                AddBox(face, "Hourglass Bottom", new Vector3(0f, -0.28f, faceDepth),
-                    new Vector3(0.52f, 0.08f, 0.075f), 0f, accentColor);
-                AddBox(face, "Hourglass Left", new Vector3(-0.11f, 0f, faceDepth),
-                    new Vector3(0.08f, 0.5f, 0.065f), -24f, symbolColor);
-                AddBox(face, "Hourglass Right", new Vector3(0.11f, 0f, faceDepth),
-                    new Vector3(0.08f, 0.5f, 0.065f), 24f, symbolColor);
-                AddBox(face, "Hourglass Sand", new Vector3(0f, -0.1f, faceDepth - 0.015f),
-                    new Vector3(0.13f, 0.2f, 0.09f), 45f, accentColor);
+                AddBox(
+                    face,
+                    "Hourglass Top",
+                    new Vector3(0f, 0.28f, faceDepth),
+                    new Vector3(0.52f, 0.08f, 0.075f),
+                    0f,
+                    accentColor
+                );
+                AddBox(
+                    face,
+                    "Hourglass Bottom",
+                    new Vector3(0f, -0.28f, faceDepth),
+                    new Vector3(0.52f, 0.08f, 0.075f),
+                    0f,
+                    accentColor
+                );
+                AddBox(
+                    face,
+                    "Hourglass Left",
+                    new Vector3(-0.11f, 0f, faceDepth),
+                    new Vector3(0.08f, 0.5f, 0.065f),
+                    -24f,
+                    symbolColor
+                );
+                AddBox(
+                    face,
+                    "Hourglass Right",
+                    new Vector3(0.11f, 0f, faceDepth),
+                    new Vector3(0.08f, 0.5f, 0.065f),
+                    24f,
+                    symbolColor
+                );
+                AddBox(
+                    face,
+                    "Hourglass Sand",
+                    new Vector3(0f, -0.1f, faceDepth - 0.015f),
+                    new Vector3(0.13f, 0.2f, 0.09f),
+                    45f,
+                    accentColor
+                );
                 break;
 
             case ModelKind.SprayRange:
-                AddBox(face, "Range Stem", new Vector3(-0.08f, -0.08f, faceDepth),
-                    new Vector3(0.1f, 0.5f, 0.075f), -35f, symbolColor);
+                AddBox(
+                    face,
+                    "Range Stem",
+                    new Vector3(-0.08f, -0.08f, faceDepth),
+                    new Vector3(0.1f, 0.5f, 0.075f),
+                    -35f,
+                    symbolColor
+                );
                 AddChevron(face, 0.18f, faceDepth - 0.01f, accentColor);
                 break;
 
             case ModelKind.SprayWidth:
-                AddBox(face, "Width Left", new Vector3(-0.13f, 0f, faceDepth),
-                    new Vector3(0.09f, 0.54f, 0.075f), -20f, symbolColor);
-                AddBox(face, "Width Right", new Vector3(0.13f, 0f, faceDepth),
-                    new Vector3(0.09f, 0.54f, 0.075f), 20f, symbolColor);
-                AddBox(face, "Width Base", new Vector3(0f, -0.22f, faceDepth - 0.01f),
-                    new Vector3(0.42f, 0.09f, 0.085f), 0f, accentColor);
+                AddBox(
+                    face,
+                    "Width Left",
+                    new Vector3(-0.13f, 0f, faceDepth),
+                    new Vector3(0.09f, 0.54f, 0.075f),
+                    -20f,
+                    symbolColor
+                );
+                AddBox(
+                    face,
+                    "Width Right",
+                    new Vector3(0.13f, 0f, faceDepth),
+                    new Vector3(0.09f, 0.54f, 0.075f),
+                    20f,
+                    symbolColor
+                );
+                AddBox(
+                    face,
+                    "Width Base",
+                    new Vector3(0f, -0.22f, faceDepth - 0.01f),
+                    new Vector3(0.42f, 0.09f, 0.085f),
+                    0f,
+                    accentColor
+                );
                 break;
         }
     }
 
     private void AddChevron(Transform parent, float yOffset, float depth, Color color)
     {
-        AddBox(parent, "Chevron Left", new Vector3(-0.105f, yOffset, depth),
-            new Vector3(0.1f, 0.34f, 0.075f), -48f, color);
-        AddBox(parent, "Chevron Right", new Vector3(0.105f, yOffset, depth),
-            new Vector3(0.1f, 0.34f, 0.075f), 48f, color);
+        AddBox(
+            parent,
+            "Chevron Left",
+            new Vector3(-0.105f, yOffset, depth),
+            new Vector3(0.1f, 0.34f, 0.075f),
+            -48f,
+            color
+        );
+        AddBox(
+            parent,
+            "Chevron Right",
+            new Vector3(0.105f, yOffset, depth),
+            new Vector3(0.1f, 0.34f, 0.075f),
+            48f,
+            color
+        );
     }
 
     private void AddBox(
@@ -371,7 +545,8 @@ public sealed class PickupVisual3D : MonoBehaviour
         Vector3 position,
         Vector3 scale,
         float zRotation,
-        Color color)
+        Color color
+    )
     {
         CreatePart(
             parent,
@@ -380,7 +555,8 @@ public sealed class PickupVisual3D : MonoBehaviour
             position,
             Quaternion.Euler(0f, 0f, zRotation),
             scale,
-            color);
+            color
+        );
     }
 
     private GameObject CreatePart(
@@ -390,7 +566,8 @@ public sealed class PickupVisual3D : MonoBehaviour
         Vector3 position,
         Quaternion rotation,
         Vector3 scale,
-        params Color[] colors)
+        params Color[] colors
+    )
     {
         GameObject part = new GameObject(partName, typeof(MeshFilter), typeof(MeshRenderer));
         part.layer = gameObject.layer;
@@ -433,7 +610,7 @@ public sealed class PickupVisual3D : MonoBehaviour
         {
             name = $"Pickup3D {ColorUtility.ToHtmlStringRGB(color)}",
             color = color,
-            enableInstancing = true
+            enableInstancing = true,
         };
 
         if (material.HasProperty("_BaseColor"))
@@ -450,44 +627,54 @@ public sealed class PickupVisual3D : MonoBehaviour
             ModelKind.Health => (
                 new Color(0.34f, 0.035f, 0.06f),
                 new Color(1f, 0.18f, 0.24f),
-                new Color(1f, 0.88f, 0.88f)),
+                new Color(1f, 0.88f, 0.88f)
+            ),
             ModelKind.Damage => (
                 new Color(0.28f, 0.055f, 0.015f),
                 new Color(1f, 0.32f, 0.05f),
-                new Color(1f, 0.86f, 0.16f)),
+                new Color(1f, 0.86f, 0.16f)
+            ),
             ModelKind.AttackSpeed => (
                 new Color(0.23f, 0.025f, 0.36f),
                 new Color(0.84f, 0.17f, 1f),
-                new Color(1f, 0.72f, 1f)),
+                new Color(1f, 0.72f, 1f)
+            ),
             ModelKind.MovementSpeed => (
                 new Color(0.015f, 0.22f, 0.3f),
                 new Color(0.05f, 0.9f, 1f),
-                new Color(0.78f, 1f, 1f)),
+                new Color(0.78f, 1f, 1f)
+            ),
             ModelKind.ExperienceBoost => (
                 new Color(0.015f, 0.16f, 0.44f),
                 new Color(0.05f, 0.55f, 1f),
-                new Color(0.55f, 0.92f, 1f)),
+                new Color(0.55f, 0.92f, 1f)
+            ),
             ModelKind.DetectionRadius => (
                 new Color(0.02f, 0.25f, 0.13f),
                 new Color(0.08f, 0.95f, 0.42f),
-                new Color(0.72f, 1f, 0.8f)),
+                new Color(0.72f, 1f, 0.8f)
+            ),
             ModelKind.Magnet => (
                 new Color(0.14f, 0.07f, 0.2f),
                 new Color(0.28f, 0.63f, 1f),
-                new Color(1f, 0.22f, 0.22f)),
+                new Color(1f, 0.22f, 0.22f)
+            ),
             ModelKind.Hourglass => (
                 new Color(0.04f, 0.1f, 0.3f),
                 new Color(0.26f, 0.64f, 1f),
-                new Color(0.95f, 0.96f, 1f)),
+                new Color(0.95f, 0.96f, 1f)
+            ),
             ModelKind.SprayRange => (
                 new Color(0.05f, 0.2f, 0.16f),
                 new Color(0.18f, 0.9f, 0.68f),
-                new Color(0.8f, 1f, 0.9f)),
+                new Color(0.8f, 1f, 0.9f)
+            ),
             ModelKind.SprayWidth => (
                 new Color(0.13f, 0.16f, 0.28f),
                 new Color(0.4f, 0.65f, 1f),
-                new Color(0.82f, 0.9f, 1f)),
-            _ => (Color.black, Color.white, Color.white)
+                new Color(0.82f, 0.9f, 1f)
+            ),
+            _ => (Color.black, Color.white, Color.white),
         };
     }
 
@@ -498,19 +685,53 @@ public sealed class PickupVisual3D : MonoBehaviour
 
         Vector3[] vertices =
         {
-            new Vector3(-0.5f, -0.5f, -0.5f), new Vector3(0.5f, -0.5f, -0.5f),
-            new Vector3(0.5f, 0.5f, -0.5f), new Vector3(-0.5f, 0.5f, -0.5f),
-            new Vector3(-0.5f, -0.5f, 0.5f), new Vector3(0.5f, -0.5f, 0.5f),
-            new Vector3(0.5f, 0.5f, 0.5f), new Vector3(-0.5f, 0.5f, 0.5f)
+            new Vector3(-0.5f, -0.5f, -0.5f),
+            new Vector3(0.5f, -0.5f, -0.5f),
+            new Vector3(0.5f, 0.5f, -0.5f),
+            new Vector3(-0.5f, 0.5f, -0.5f),
+            new Vector3(-0.5f, -0.5f, 0.5f),
+            new Vector3(0.5f, -0.5f, 0.5f),
+            new Vector3(0.5f, 0.5f, 0.5f),
+            new Vector3(-0.5f, 0.5f, 0.5f),
         };
         int[] triangles =
         {
-            0, 2, 1, 0, 3, 2,
-            1, 2, 6, 1, 6, 5,
-            5, 6, 7, 5, 7, 4,
-            4, 7, 3, 4, 3, 0,
-            3, 7, 6, 3, 6, 2,
-            4, 0, 1, 4, 1, 5
+            0,
+            2,
+            1,
+            0,
+            3,
+            2,
+            1,
+            2,
+            6,
+            1,
+            6,
+            5,
+            5,
+            6,
+            7,
+            5,
+            7,
+            4,
+            4,
+            7,
+            3,
+            4,
+            3,
+            0,
+            3,
+            7,
+            6,
+            3,
+            6,
+            2,
+            4,
+            0,
+            1,
+            4,
+            1,
+            5,
         };
 
         boxMesh = FinalizeMesh("Pickup Box", vertices, triangles);
@@ -586,17 +807,35 @@ public sealed class PickupVisual3D : MonoBehaviour
             int nextFarOuter = next + 2;
             int nextFarInner = next + 3;
 
-            triangles.AddRange(new[]
-            {
-                nearOuter, nextNearInner, nextNearOuter,
-                nearOuter, nearInner, nextNearInner,
-                farOuter, nextFarOuter, nextFarInner,
-                farOuter, nextFarInner, farInner,
-                nearOuter, nextNearOuter, nextFarOuter,
-                nearOuter, nextFarOuter, farOuter,
-                nearInner, farInner, nextFarInner,
-                nearInner, nextFarInner, nextNearInner
-            });
+            triangles.AddRange(
+                new[]
+                {
+                    nearOuter,
+                    nextNearInner,
+                    nextNearOuter,
+                    nearOuter,
+                    nearInner,
+                    nextNearInner,
+                    farOuter,
+                    nextFarOuter,
+                    nextFarInner,
+                    farOuter,
+                    nextFarInner,
+                    farInner,
+                    nearOuter,
+                    nextNearOuter,
+                    nextFarOuter,
+                    nearOuter,
+                    nextFarOuter,
+                    farOuter,
+                    nearInner,
+                    farInner,
+                    nextFarInner,
+                    nearInner,
+                    nextFarInner,
+                    nextNearInner,
+                }
+            );
         }
 
         ringMesh = FinalizeMesh("Pickup Ring", vertices.ToArray(), triangles.ToArray());
@@ -612,7 +851,7 @@ public sealed class PickupVisual3D : MonoBehaviour
         List<Vector3> vertices = new List<Vector3>(sides + 2)
         {
             new Vector3(0f, 0f, -0.62f),
-            new Vector3(0f, 0f, 0.46f)
+            new Vector3(0f, 0f, 0.46f),
         };
         for (int i = 0; i < sides; i++)
         {
@@ -620,12 +859,7 @@ public sealed class PickupVisual3D : MonoBehaviour
             vertices.Add(new Vector3(Mathf.Cos(angle) * 0.5f, Mathf.Sin(angle) * 0.5f, 0f));
         }
 
-        List<int>[] facets =
-        {
-            new List<int>(),
-            new List<int>(),
-            new List<int>()
-        };
+        List<int>[] facets = { new List<int>(), new List<int>(), new List<int>() };
         for (int i = 0; i < sides; i++)
         {
             int current = 2 + i;

@@ -7,7 +7,7 @@ using UnityEngine;
 public class PlayerInputHandler : MonoBehaviour
 {
     private const float InputSmoothSpeed = 15f;
-    
+
     private Vector2 _rawInput;
     private Vector2 _smoothedInput;
     private Vector2 _lastNonZeroInput;
@@ -53,7 +53,11 @@ public class PlayerInputHandler : MonoBehaviour
         if (BotDriver.Active)
         {
             _rawInput = BotDriver.Move;
-            _smoothedInput = Vector2.Lerp(_smoothedInput, _rawInput, InputSmoothSpeed * Time.deltaTime);
+            _smoothedInput = Vector2.Lerp(
+                _smoothedInput,
+                _rawInput,
+                InputSmoothSpeed * Time.deltaTime
+            );
             if (_rawInput.sqrMagnitude > 0.01f)
             {
                 _lastNonZeroInput = _rawInput.normalized;
@@ -66,7 +70,7 @@ public class PlayerInputHandler : MonoBehaviour
             Input.GetAxisRaw("Horizontal"),
             Input.GetAxisRaw("Vertical")
         );
-        
+
         // Normalize if exceeds unit circle (diagonal movement)
         if (keyboardInput.sqrMagnitude > 1f)
         {
@@ -80,7 +84,7 @@ public class PlayerInputHandler : MonoBehaviour
             // Try to find it again in case it was instantiated later
             _virtualController = VirtualController.Instance;
         }
-        
+
         if (_virtualController != null)
         {
             virtualInput = _virtualController.JoystickInput;

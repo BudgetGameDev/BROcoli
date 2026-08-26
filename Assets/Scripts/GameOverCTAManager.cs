@@ -91,7 +91,8 @@ public sealed class GameOverCTAManager : MonoBehaviour
             typeof(CanvasRenderer),
             typeof(Image),
             typeof(Button),
-            typeof(Outline));
+            typeof(Outline)
+        );
         editorFallbackUI.layer = canvas.gameObject.layer;
         editorFallbackUI.transform.SetParent(canvas.transform, false);
 
@@ -114,7 +115,8 @@ public sealed class GameOverCTAManager : MonoBehaviour
             "Label",
             typeof(RectTransform),
             typeof(CanvasRenderer),
-            typeof(TextMeshProUGUI));
+            typeof(TextMeshProUGUI)
+        );
         labelObject.layer = editorFallbackUI.layer;
         labelObject.transform.SetParent(editorFallbackUI.transform, false);
         RectTransform labelRect = labelObject.GetComponent<RectTransform>();

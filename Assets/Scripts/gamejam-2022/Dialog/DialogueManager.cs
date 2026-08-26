@@ -3,8 +3,8 @@ using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using UnityEngine.Serialization;
 using UnityEngine.UI;
-
 
 public class DialogueManager : MonoBehaviour
 {
@@ -15,20 +15,19 @@ public class DialogueManager : MonoBehaviour
     public Animator animator;
     public GameObject img;
 
-    public new AudioSource audio;
+    [FormerlySerializedAs("audio")]
+    public AudioSource audioSource;
     public AudioClip audioEnterPaper;
     public AudioClip audioExitPaper;
 
-
     private Queue<string> clues; // first in first out
-
 
     private void Start()
     {
         clues = new Queue<string>();
     }
 
-    public void StartDialogue (Dialogue dialogue)
+    public void StartDialogue(Dialogue dialogue)
     {
         Debug.Log("Starting dialogue");
 
@@ -56,8 +55,8 @@ public class DialogueManager : MonoBehaviour
 
         string clue = clues.Dequeue();
         dialogueText.text = clue;
-        audio.clip = audioEnterPaper;
-        audio.Play();
+        audioSource.clip = audioEnterPaper;
+        audioSource.Play();
         Time.timeScale = 0;
         Debug.Log(clue);
     }
@@ -67,13 +66,13 @@ public class DialogueManager : MonoBehaviour
         Debug.Log("remove Dialogue");
 
         Time.timeScale = 1;
-        
-        audio.clip = audioExitPaper;
-        audio.Play();
+
+        audioSource.clip = audioExitPaper;
+        audioSource.Play();
 
         animator.SetBool("IsOpen", false);
     }
-    
+
     public void TriggerDialogue(Clue clue)
     {
         Dialogue d = new Dialogue();
@@ -94,6 +93,6 @@ public class DialogueManager : MonoBehaviour
         //img.sprite = Resources.Load<Sprite>("/Resources/IMG_2561");
         //img.sprite = Resources.Load<Sprite>("Resources/IMG_2561");
         //Debug.Log($"Image: {img.sprite}");
-        FindObjectOfType<DialogueManager>().StartDialogue(d);
+        StartDialogue(d);
     }
 }

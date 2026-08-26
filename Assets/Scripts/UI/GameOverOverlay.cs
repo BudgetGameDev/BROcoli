@@ -75,7 +75,8 @@ public sealed partial class GameOverOverlay : MonoBehaviour
         GameObject eventSystemObject = new GameObject(
             "GameOverEventSystem",
             typeof(EventSystem),
-            typeof(InputSystemUIInputModule));
+            typeof(InputSystemUIInputModule)
+        );
         eventSystemObject.layer = LayerMask.NameToLayer("UI");
     }
 
@@ -84,9 +85,8 @@ public sealed partial class GameOverOverlay : MonoBehaviour
         if (!IsVisible || menuButtons == null || menuButtons.Length == 0)
             return;
 
-        GameObject selectedObject = EventSystem.current != null
-            ? EventSystem.current.currentSelectedGameObject
-            : null;
+        GameObject selectedObject =
+            EventSystem.current != null ? EventSystem.current.currentSelectedGameObject : null;
         for (int i = 0; i < menuButtons.Length; i++)
         {
             if (selectedObject == menuButtons[i].gameObject)
@@ -105,7 +105,8 @@ public sealed partial class GameOverOverlay : MonoBehaviour
             menuButtons[i].transform.localScale = Vector3.Lerp(
                 menuButtons[i].transform.localScale,
                 targetScale,
-                Time.unscaledDeltaTime * 12f);
+                Time.unscaledDeltaTime * 12f
+            );
         }
     }
 

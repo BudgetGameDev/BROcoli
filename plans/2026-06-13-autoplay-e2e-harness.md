@@ -50,10 +50,10 @@ The key architectural decision that makes this work:
   Autoplay jumps straight to `Game`.
 - **Determinism:** spawners use `Random.insideUnitCircle` → seed
   `UnityEngine.Random.InitState(seed)` at boot (best-effort in Phase 1).
-- **Build tooling:** Unity `6000.3.6f1`. On this machine the editor lives under
-  `~/Applications/Unity/Hub/Editor/...` (the Hub "secondary install path"), NOT
-  `/Applications/...` — the existing `scripts/unity-build-check.sh` assumes the
-  latter, so our runner checks both.
+- **Build tooling:** The required editor version comes from
+  `ProjectSettings/ProjectVersion.txt`. On macOS, both the Unity Hub primary path
+  (`/Applications/...`) and per-user path (`~/Applications/...`) are supported by
+  `scripts/unity-build-check.sh` and the autoplay runner.
 
 ---
 

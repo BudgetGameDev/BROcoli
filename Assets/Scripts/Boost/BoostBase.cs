@@ -9,15 +9,20 @@ public abstract class BoostBase : MonoBehaviour
 
     public abstract float Amount { get; }
     public virtual float DropWeight => 1f;
-    
+
     /// <summary>
     /// Duration of the boost effect in seconds. 0 = permanent/instant.
     /// </summary>
     public virtual float Duration => 20f;
 
-    [SerializeField] private Rigidbody2D _body;
-    [SerializeField] private Collider2D _collider;
-    [SerializeField] private float _lifetime = 30f;
+    [SerializeField]
+    private Rigidbody2D _body;
+
+    [SerializeField]
+    private Collider2D _collider;
+
+    [SerializeField]
+    private float _lifetime = 30f;
     private PickupVisual3D _pickupVisual;
     private float _currentSpeed = 0f;
     private bool _localAttractionLocked;
@@ -42,11 +47,7 @@ public abstract class BoostBase : MonoBehaviour
         ActivePickups.Add(this);
         ConfigureMagnetBody();
         _pickupVisual = PickupVisual3D.AttachBoost(this);
-        PickupAttraction.Reset(
-            _body,
-            ref _currentSpeed,
-            ref _localAttractionLocked,
-            _pickupVisual);
+        PickupAttraction.Reset(_body, ref _currentSpeed, ref _localAttractionLocked, _pickupVisual);
     }
 
     private void OnDisable()
@@ -58,7 +59,11 @@ public abstract class BoostBase : MonoBehaviour
     /// Returns true when another pickup already occupies an area approximately
     /// one camera viewport wide and tall around the proposed drop point.
     /// </summary>
-    public static bool IsScreenAreaOccupied(Vector3 position, Camera camera, float fallbackWorldSize)
+    public static bool IsScreenAreaOccupied(
+        Vector3 position,
+        Camera camera,
+        float fallbackWorldSize
+    )
     {
         ActivePickups.RemoveWhere(pickup => pickup == null);
 
@@ -66,8 +71,10 @@ public abstract class BoostBase : MonoBehaviour
         {
             if (camera == null)
             {
-                if (((Vector2)pickup.transform.position - (Vector2)position).sqrMagnitude
-                    <= fallbackWorldSize * fallbackWorldSize)
+                if (
+                    ((Vector2)pickup.transform.position - (Vector2)position).sqrMagnitude
+                    <= fallbackWorldSize * fallbackWorldSize
+                )
                 {
                     return true;
                 }
@@ -76,8 +83,10 @@ public abstract class BoostBase : MonoBehaviour
 
             Vector3 candidateViewport = camera.WorldToViewportPoint(position);
             Vector3 pickupViewport = camera.WorldToViewportPoint(pickup.transform.position);
-            if (Mathf.Abs(candidateViewport.x - pickupViewport.x) <= 1f
-                && Mathf.Abs(candidateViewport.y - pickupViewport.y) <= 1f)
+            if (
+                Mathf.Abs(candidateViewport.x - pickupViewport.x) <= 1f
+                && Mathf.Abs(candidateViewport.y - pickupViewport.y) <= 1f
+            )
             {
                 return true;
             }
@@ -108,14 +117,15 @@ public abstract class BoostBase : MonoBehaviour
         if (_collider != null)
             _collider.isTrigger = true;
     }
-    
+
     private void FixedUpdate()
     {
         PickupAttraction.UpdateMotion(
             _body,
             ref _currentSpeed,
             ref _localAttractionLocked,
-            _pickupVisual);
+            _pickupVisual
+        );
     }
 
     private void OnTriggerEnter2D(Collider2D other)

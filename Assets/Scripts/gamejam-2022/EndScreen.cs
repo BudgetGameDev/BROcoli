@@ -1,6 +1,3 @@
 ﻿using UnityEngine;
 
-public class EndScreen : MonoBehaviour
-{
-    
-}
+public class EndScreen : MonoBehaviour { }

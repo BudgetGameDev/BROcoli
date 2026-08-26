@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+PROJECT_PATH="$(git rev-parse --show-toplevel)"
+TARGET_BRANCHES=""
+
+while read -r _local_ref local_oid remote_ref _remote_oid; do
+    case "$remote_ref" in
+        refs/heads/main | refs/heads/release | refs/heads/staging | refs/heads/production)
+            # Deleting a remote branch sends an all-zero local object ID. There is
+            # no source revision to validate in that case.
+            if [[ "$local_oid" =~ ^0+$ ]]; then
+                continue
+            fi
+
+            branch="${remote_ref#refs/heads/}"
+            TARGET_BRANCHES="${TARGET_BRANCHES:+$TARGET_BRANCHES, }$branch"
+            ;;
+    esac
+done
+
+if [ -z "$TARGET_BRANCHES" ]; then
+    echo "pre-push: no gated destination branches; skipping repository CI gate"
+    exit 0
+fi
+
+echo "pre-push: pushing to $TARGET_BRANCHES; running repository CI gate"
+exec "$PROJECT_PATH/ci.sh"

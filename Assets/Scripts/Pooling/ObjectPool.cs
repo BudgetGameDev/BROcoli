@@ -8,7 +8,8 @@ namespace Pooling
     /// Generic object pool for Unity GameObjects.
     /// Reduces GC pressure by reusing objects instead of Instantiate/Destroy.
     /// </summary>
-    public class ObjectPool<T> where T : Component
+    public class ObjectPool<T>
+        where T : Component
     {
         private readonly T _prefab;
         private readonly Transform _poolParent;
@@ -48,7 +49,8 @@ namespace Pooling
             int maxSize = 0,
             Transform parent = null,
             Action<T> onGet = null,
-            Action<T> onReturn = null)
+            Action<T> onReturn = null
+        )
         {
             _prefab = prefab;
             _maxSize = maxSize;
@@ -66,7 +68,8 @@ namespace Pooling
         {
             for (int i = 0; i < count; i++)
             {
-                if (_maxSize > 0 && TotalCount >= _maxSize) break;
+                if (_maxSize > 0 && TotalCount >= _maxSize)
+                    break;
 
                 T obj = CreateNew();
                 obj.gameObject.SetActive(false);
@@ -99,7 +102,9 @@ namespace Pooling
             {
                 if (_maxSize > 0 && _active.Count >= _maxSize)
                 {
-                    Debug.LogWarning($"[ObjectPool] Pool for {_prefab.name} at max capacity ({_maxSize})");
+                    Debug.LogWarning(
+                        $"[ObjectPool] Pool for {_prefab.name} at max capacity ({_maxSize})"
+                    );
                     return null;
                 }
                 obj = CreateNew();
@@ -130,16 +135,19 @@ namespace Pooling
         /// </summary>
         public void Return(T obj)
         {
-            if (obj == null) return;
+            if (obj == null)
+                return;
             if (!_active.Contains(obj))
             {
-                Debug.LogWarning($"[ObjectPool] Trying to return object not from this pool: {obj.name}");
+                Debug.LogWarning(
+                    $"[ObjectPool] Trying to return object not from this pool: {obj.name}"
+                );
                 return;
             }
 
             _onReturn?.Invoke(obj);
             obj.gameObject.SetActive(false);
-            
+
             if (_poolParent != null)
             {
                 obj.transform.SetParent(_poolParent);

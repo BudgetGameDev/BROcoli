@@ -15,8 +15,11 @@ public class PlayerDamageHandler : MonoBehaviour
     private const float DamageImmunityDuration = 0.3f; // Immunity frames after taking damage
 
     [Header("Death Sequence")]
-    [SerializeField, Min(0.2f)] private float deathFallDuration = 0.7f;
-    [SerializeField, Min(0f)] private float deathSettleDuration = 0.35f;
+    [SerializeField, Min(0.2f)]
+    private float deathFallDuration = 0.7f;
+
+    [SerializeField, Min(0f)]
+    private float deathSettleDuration = 0.35f;
 
     private PlayerStats _playerStats;
     private PlayerMovement _playerMovement;
@@ -54,7 +57,7 @@ public class PlayerDamageHandler : MonoBehaviour
         {
             Debug.LogError("PlayerDamageHandler: No PlayerStats found - damage will not work!");
         }
-        
+
         // Ensure feedback systems exist
         EnsureFeedbackSystems();
     }
@@ -63,7 +66,7 @@ public class PlayerDamageHandler : MonoBehaviour
     {
         _gameOver = false;
     }
-    
+
     private void EnsureFeedbackSystems()
     {
         // Add CameraShake to main camera if not present
@@ -72,7 +75,7 @@ public class PlayerDamageHandler : MonoBehaviour
         {
             mainCam.gameObject.AddComponent<CameraShake>();
         }
-        
+
         // Add DamageVignette if not present in scene
         if (FindAnyObjectByType<DamageVignette>() == null)
         {
@@ -86,32 +89,34 @@ public class PlayerDamageHandler : MonoBehaviour
     /// </summary>
     private float CalculateDamageIntensity(float damage)
     {
-        if (_playerStats == null) return 0.5f;
+        if (_playerStats == null)
+            return 0.5f;
         float maxHealth = _playerStats.CurrentMaxHealth;
-        if (maxHealth <= 0f) return 0.5f;
+        if (maxHealth <= 0f)
+            return 0.5f;
         return Mathf.Clamp01(damage / maxHealth);
     }
-    
+
     /// <summary>
     /// Trigger all damage feedback effects scaled by intensity.
     /// </summary>
     private void TriggerDamageFeedback(float damage, Vector2 knockbackDirection)
     {
         float intensity = CalculateDamageIntensity(damage);
-        
+
         // Scaled knockback - additive impulse, player keeps control
         if (knockbackDirection != Vector2.zero && _playerMovement != null)
         {
             float force = Mathf.Lerp(MinKnockbackForce, MaxKnockbackForce, intensity);
             _playerMovement.ApplyKnockbackImpulse(knockbackDirection.normalized, force);
         }
-        
+
         // Apply stumble to slow player down - clears on next landing
         _hopVisual?.ApplyStumble(intensity);
-        
+
         // Camera shake
         CameraShake.Shake(intensity * 0.8f);
-        
+
         // Damage vignette pulse
         DamageVignette.Pulse(intensity);
     }
@@ -130,8 +135,9 @@ public class PlayerDamageHandler : MonoBehaviour
     /// </summary>
     public bool TakeMeleeDamage(float damage, Vector2 knockbackDirection)
     {
-        if (_gameOver) return false;
-        
+        if (_gameOver)
+            return false;
+
         // Check damage immunity window to prevent rapid multiple hits
         if (Time.time - _lastDamageTime < DamageImmunityDuration)
         {
@@ -160,7 +166,8 @@ public class PlayerDamageHandler : MonoBehaviour
     /// </summary>
     public void HandleCollision(Collider2D other)
     {
-        if (_gameOver) return;
+        if (_gameOver)
+            return;
 
         switch (other.tag)
         {
@@ -182,7 +189,7 @@ public class PlayerDamageHandler : MonoBehaviour
 
         if (!WillDamageBeFatal(damage))
             _audioHandler?.PlayCollisionSound();
-        
+
         // Apply damage and feedback for projectiles
         _playerStats?.ApplyDamage(damage);
         TriggerDamageFeedback(damage, Vector2.zero);
@@ -194,8 +201,10 @@ public class PlayerDamageHandler : MonoBehaviour
     /// </summary>
     public void CheckForDeath()
     {
-        if (_playerStats == null) return;
-        if (_gameOver) return;
+        if (_playerStats == null)
+            return;
+        if (_gameOver)
+            return;
 
         if (!_playerStats.IsAlive)
         {
@@ -213,7 +222,8 @@ public class PlayerDamageHandler : MonoBehaviour
     /// </summary>
     public void TriggerGameOver()
     {
-        if (_gameOver) return;
+        if (_gameOver)
+            return;
 
         Debug.Log("Game over");
         _gameOver = true;

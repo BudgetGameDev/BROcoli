@@ -40,7 +40,8 @@ public sealed class LicensedAssetDecryptor : IPreprocessBuildWithReport
     {
         if (!DecryptAll(true))
             throw new BuildFailedException(
-                $"Licensed assets require {KeyName}. Copy .env.example to .env and add the repository key.");
+                $"Licensed assets require {KeyName}. Copy .env.example to .env and add the repository key."
+            );
     }
 
     [MenuItem("BROcoli/Licensed Assets/Decrypt All")]
@@ -82,15 +83,22 @@ public sealed class LicensedAssetDecryptor : IPreprocessBuildWithReport
         if (!File.Exists(metadataPath))
             throw new InvalidDataException($"Missing licensed asset metadata: {metadataPath}");
 
-        AssetMetadata metadata = JsonUtility.FromJson<AssetMetadata>(File.ReadAllText(metadataPath));
+        AssetMetadata metadata = JsonUtility.FromJson<AssetMetadata>(
+            File.ReadAllText(metadataPath)
+        );
         ValidateMetadata(metadata, metadataPath);
-        if (File.Exists(metadata.generatedPath) && HashFile(metadata.generatedPath) == metadata.sha256)
+        if (
+            File.Exists(metadata.generatedPath)
+            && HashFile(metadata.generatedPath) == metadata.sha256
+        )
             return false;
 
         byte[] plaintext = DecryptOpenSsl(File.ReadAllBytes(encryptedPath), secret);
         string actualHash = HashBytes(plaintext);
         if (!actualHash.Equals(metadata.sha256, StringComparison.OrdinalIgnoreCase))
-            throw new CryptographicException($"Wrong key or damaged licensed asset: {encryptedPath}");
+            throw new CryptographicException(
+                $"Wrong key or damaged licensed asset: {encryptedPath}"
+            );
 
         string directory = Path.GetDirectoryName(metadata.generatedPath);
         if (!string.IsNullOrEmpty(directory))
@@ -102,22 +110,35 @@ public sealed class LicensedAssetDecryptor : IPreprocessBuildWithReport
 
     private static void ValidateMetadata(AssetMetadata metadata, string metadataPath)
     {
-        if (metadata == null || metadata.formatVersion != 1 || string.IsNullOrWhiteSpace(metadata.sha256))
+        if (
+            metadata == null
+            || metadata.formatVersion != 1
+            || string.IsNullOrWhiteSpace(metadata.sha256)
+        )
             throw new InvalidDataException($"Invalid licensed asset metadata: {metadataPath}");
         string normalized = metadata.generatedPath?.Replace('\\', '/');
-        if (string.IsNullOrEmpty(normalized) || !normalized.StartsWith(GeneratedRoot, StringComparison.Ordinal))
+        if (
+            string.IsNullOrEmpty(normalized)
+            || !normalized.StartsWith(GeneratedRoot, StringComparison.Ordinal)
+        )
             throw new InvalidDataException($"Generated path must stay under {GeneratedRoot}");
     }
 
     private static byte[] DecryptOpenSsl(byte[] payload, string secret)
     {
         if (payload.Length < 32 || !payload.Take(8).SequenceEqual(OpenSslMagic))
-            throw new InvalidDataException("Encrypted asset does not use the expected OpenSSL format.");
+            throw new InvalidDataException(
+                "Encrypted asset does not use the expected OpenSSL format."
+            );
 
         byte[] salt = payload.Skip(8).Take(8).ToArray();
         byte[] ciphertext = payload.Skip(16).ToArray();
         using var derivation = new Rfc2898DeriveBytes(
-            Encoding.UTF8.GetBytes(secret), salt, Iterations, HashAlgorithmName.SHA256);
+            Encoding.UTF8.GetBytes(secret),
+            salt,
+            Iterations,
+            HashAlgorithmName.SHA256
+        );
         byte[] key = derivation.GetBytes(32);
         byte[] iv = derivation.GetBytes(16);
         using Aes aes = Aes.Create();

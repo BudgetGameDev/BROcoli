@@ -11,7 +11,7 @@ public class EnemySpatialHash : MonoBehaviour
     private static EnemySpatialHash _instance;
     private static bool _applicationIsQuitting = false;
     private static bool _isSceneUnloading = false;
-    
+
     public static EnemySpatialHash Instance
     {
         get
@@ -21,7 +21,7 @@ public class EnemySpatialHash : MonoBehaviour
             {
                 return null;
             }
-            
+
             if (_instance == null)
             {
                 _instance = FindFirstObjectByType<EnemySpatialHash>();
@@ -42,13 +42,13 @@ public class EnemySpatialHash : MonoBehaviour
 
     // Grid storage: key is cell hash, value is list of enemies in that cell
     private Dictionary<long, List<EnemyBase>> _grid = new Dictionary<long, List<EnemyBase>>();
-    
+
     // Track which cell each enemy is in for efficient updates
     private Dictionary<EnemyBase, long> _enemyCells = new Dictionary<EnemyBase, long>();
-    
+
     // Reusable list for query results to avoid allocations
     private List<EnemyBase> _queryResults = new List<EnemyBase>(32);
-    
+
     // Pool of lists to avoid allocations
     private Stack<List<EnemyBase>> _listPool = new Stack<List<EnemyBase>>();
 
@@ -60,7 +60,7 @@ public class EnemySpatialHash : MonoBehaviour
             return;
         }
         _instance = this;
-        
+
         // Subscribe to scene events to prevent singleton creation during teardown
         SceneManager.sceneUnloaded += OnSceneUnloaded;
         SceneManager.sceneLoaded += OnSceneLoaded;
@@ -75,18 +75,18 @@ public class EnemySpatialHash : MonoBehaviour
     {
         SceneManager.sceneUnloaded -= OnSceneUnloaded;
         SceneManager.sceneLoaded -= OnSceneLoaded;
-        
+
         if (_instance == this)
         {
             _instance = null;
         }
     }
-    
+
     private static void OnSceneUnloaded(Scene scene)
     {
         _isSceneUnloading = true;
     }
-    
+
     private static void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
         // Reset flag when a new scene loads
@@ -110,7 +110,8 @@ public class EnemySpatialHash : MonoBehaviour
     /// </summary>
     public void Register(EnemyBase enemy)
     {
-        if (enemy == null || _enemyCells.ContainsKey(enemy)) return;
+        if (enemy == null || _enemyCells.ContainsKey(enemy))
+            return;
 
         Vector2 pos = enemy.transform.position;
         long cellHash = GetCellHash(pos);
@@ -131,7 +132,8 @@ public class EnemySpatialHash : MonoBehaviour
     /// </summary>
     public void Unregister(EnemyBase enemy)
     {
-        if (enemy == null || !_enemyCells.TryGetValue(enemy, out long cellHash)) return;
+        if (enemy == null || !_enemyCells.TryGetValue(enemy, out long cellHash))
+            return;
 
         if (_grid.TryGetValue(cellHash, out var cellList))
         {
@@ -152,13 +154,15 @@ public class EnemySpatialHash : MonoBehaviour
     /// </summary>
     public void UpdatePosition(EnemyBase enemy)
     {
-        if (enemy == null || !_enemyCells.TryGetValue(enemy, out long oldHash)) return;
+        if (enemy == null || !_enemyCells.TryGetValue(enemy, out long oldHash))
+            return;
 
         Vector2 pos = enemy.transform.position;
         long newHash = GetCellHash(pos);
 
         // If still in same cell, no update needed
-        if (oldHash == newHash) return;
+        if (oldHash == newHash)
+            return;
 
         // Remove from old cell
         if (_grid.TryGetValue(oldHash, out var oldList))
@@ -207,7 +211,8 @@ public class EnemySpatialHash : MonoBehaviour
                     for (int i = 0; i < cellList.Count; i++)
                     {
                         EnemyBase enemy = cellList[i];
-                        if (enemy == null) continue;
+                        if (enemy == null)
+                            continue;
 
                         float distSqr = ((Vector2)enemy.transform.position - position).sqrMagnitude;
                         if (distSqr <= radiusSqr)

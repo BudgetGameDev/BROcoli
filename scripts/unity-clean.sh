@@ -45,7 +45,6 @@ echo ""
 echo "📁 Folders to delete:"
 [ -d "Library" ] && echo "   - Library/ ($(du -sh Library 2>/dev/null | cut -f1 || echo 'unknown size'))"
 [ -d "Temp" ] && echo "   - Temp/"
-[ -f "Packages/packages-lock.json" ] && echo "   - Packages/packages-lock.json"
 echo ""
 
 # Confirm with user (unless --force flag)
@@ -64,7 +63,6 @@ echo "🗑️  Cleaning..."
 # Delete using relative paths ONLY (safety)
 [ -d "Library" ] && rm -rf Library/ && echo "   ✓ Deleted Library/"
 [ -d "Temp" ] && rm -rf Temp/ && echo "   ✓ Deleted Temp/"
-[ -f "Packages/packages-lock.json" ] && rm -f Packages/packages-lock.json && echo "   ✓ Deleted packages-lock.json"
 
 echo ""
 echo "✅ Clean complete!"
@@ -72,3 +70,4 @@ echo ""
 echo "Next steps:"
 echo "  1. Run: ./scripts/unity-build-check.sh"
 echo "  2. First rebuild will take 2-5 minutes (downloading packages)"
+echo "  3. Packages/packages-lock.json was preserved for reproducible resolution"

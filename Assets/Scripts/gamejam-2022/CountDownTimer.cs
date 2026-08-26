@@ -6,24 +6,21 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
-public class CountDownTimer : MonoBehaviour { 
-
+public class CountDownTimer : MonoBehaviour
+{
     public GameOverScreen GameOverScreen;
     public GameObject Player;
     public PlayerController playerController;
 
-    [SerializeField] TextMeshProUGUI countdown;
+    [SerializeField]
+    TextMeshProUGUI countdown;
 
     void GameOver()
     {
         GameOverScreen.Setup();
     }
 
-
-    private void Start()
-    {
-
-    }
+    private void Start() { }
 
     private void Update()
     {
@@ -41,7 +38,6 @@ public class CountDownTimer : MonoBehaviour {
         //     currentTime = 0;
         //     return;
         // }
-
 
         // if (currentTime <= 0)
         // {

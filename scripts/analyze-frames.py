@@ -8,13 +8,18 @@ gradient (top band should be darkest) and player/ground overexposure (a band nea
 
 Usage: python3 analyze-frames.py <frames_dir>
 """
-import sys, os, glob
+
+import glob
+import os
+import sys
 
 try:
     from PIL import Image
 except Exception:
-    print("[analyze] Pillow not installed; skipping luminance analysis "
-          "(pip install Pillow to enable).")
+    print(
+        "[analyze] Pillow not installed; skipping luminance analysis "
+        "(pip install Pillow to enable)."
+    )
     sys.exit(0)
 
 frames_dir = sys.argv[1] if len(sys.argv) > 1 else "."

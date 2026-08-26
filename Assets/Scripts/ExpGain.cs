@@ -1,5 +1,5 @@
-using UnityEngine;
 using Pooling;
+using UnityEngine;
 
 [RequireComponent(typeof(Rigidbody2D))]
 [RequireComponent(typeof(Collider2D))]
@@ -13,11 +13,11 @@ public class ExpGain : MonoBehaviour
     private float _currentSpeed = 0f;
     private bool _localAttractionLocked;
     private bool _isCollected;
-    
+
     // Pooling support
     private bool _isPooled = false;
     private float _spawnTime;
-    
+
     void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
@@ -29,35 +29,27 @@ public class ExpGain : MonoBehaviour
 
         col.isTrigger = true;
     }
-    
+
     void OnEnable()
     {
         _isCollected = false;
         _spawnTime = Time.time;
-        PickupAttraction.Reset(
-            rb,
-            ref _currentSpeed,
-            ref _localAttractionLocked,
-            _pickupVisual);
+        PickupAttraction.Reset(rb, ref _currentSpeed, ref _localAttractionLocked, _pickupVisual);
     }
 
     public void Init(int expAmount)
     {
         expAmountGain = expAmount;
         _spawnTime = Time.time;
-        PickupAttraction.Reset(
-            rb,
-            ref _currentSpeed,
-            ref _localAttractionLocked,
-            _pickupVisual);
-        
+        PickupAttraction.Reset(rb, ref _currentSpeed, ref _localAttractionLocked, _pickupVisual);
+
         // For non-pooled objects, use Destroy with timer
         if (!_isPooled)
         {
             Destroy(gameObject, lifeTime);
         }
     }
-    
+
     /// <summary>
     /// Mark this ExpGain as pooled (affects lifetime handling).
     /// </summary>
@@ -65,7 +57,7 @@ public class ExpGain : MonoBehaviour
     {
         _isPooled = pooled;
     }
-    
+
     void Update()
     {
         // Check lifetime for pooled objects
@@ -74,7 +66,6 @@ public class ExpGain : MonoBehaviour
             ReturnToPool();
             return;
         }
-        
     }
 
     void FixedUpdate()
@@ -83,7 +74,8 @@ public class ExpGain : MonoBehaviour
             rb,
             ref _currentSpeed,
             ref _localAttractionLocked,
-            _pickupVisual);
+            _pickupVisual
+        );
     }
 
     void OnTriggerEnter2D(Collider2D other)
@@ -109,7 +101,7 @@ public class ExpGain : MonoBehaviour
         ProceduralXPPickupAudio.PlayPickup();
         stats.ApplyExperience(experience);
     }
-    
+
     private void ReturnToPool()
     {
         PoolManager.Instance?.ReturnExpGain(this);

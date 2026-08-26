@@ -11,5 +11,5 @@ public enum TemporaryBoostType
     SprayRange,
     SprayWidth,
     Magnet,
-    TimeSlow
+    TimeSlow,
 }

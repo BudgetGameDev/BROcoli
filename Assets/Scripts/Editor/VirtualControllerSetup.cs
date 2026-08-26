@@ -1,6 +1,6 @@
+using UnityEditor;
 using UnityEngine;
 using UnityEngine.UI;
-using UnityEditor;
 
 public class VirtualControllerSetup
 {
@@ -8,7 +8,7 @@ public class VirtualControllerSetup
     static void CreateVirtualController()
     {
         // Find or create Canvas
-        Canvas canvas = Object.FindObjectOfType<Canvas>();
+        Canvas canvas = Object.FindFirstObjectByType<Canvas>();
         if (canvas == null)
         {
             GameObject canvasObj = new GameObject("Canvas");
@@ -42,7 +42,7 @@ public class VirtualControllerSetup
         bgImage.sprite = bgSprite;
         bgImage.color = new Color(1, 1, 1, 0.5f);
         bgImage.type = Image.Type.Sliced;
-        
+
         // Create Joystick Handle
         GameObject joystickHandle = new GameObject("JoystickHandle");
         joystickHandle.transform.SetParent(joystickBg.transform, false);
@@ -62,7 +62,7 @@ public class VirtualControllerSetup
         buttonImage.sprite = uiSprite;
         buttonImage.color = new Color(0.2f, 0.6f, 1f, 0.8f);
         Button button = buttonObj.AddComponent<Button>();
-        
+
         // Add button label
         GameObject labelObj = new GameObject("Label");
         labelObj.transform.SetParent(buttonObj.transform, false);
@@ -89,6 +89,8 @@ public class VirtualControllerSetup
         Selection.activeGameObject = controllerObj;
         Undo.RegisterCreatedObjectUndo(controllerObj, "Create Virtual Controller");
 
-        Debug.Log("Virtual Controller created! Assign sprites in the Inspector for better visuals.");
+        Debug.Log(
+            "Virtual Controller created! Assign sprites in the Inspector for better visuals."
+        );
     }
 }

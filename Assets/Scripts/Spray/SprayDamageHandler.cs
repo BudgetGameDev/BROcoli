@@ -7,11 +7,13 @@ using UnityEngine;
 /// </summary>
 public class SprayDamageHandler
 {
-    private readonly Dictionary<EnemyBase, int> particleHitCounts = new Dictionary<EnemyBase, int>();
-    private readonly Dictionary<EnemyBase, float> coneDamageTotals = new Dictionary<EnemyBase, float>();
+    private readonly Dictionary<EnemyBase, int> particleHitCounts =
+        new Dictionary<EnemyBase, int>();
+    private readonly Dictionary<EnemyBase, float> coneDamageTotals =
+        new Dictionary<EnemyBase, float>();
     private readonly HashSet<EnemyBase> coneKnockbackResolved = new HashSet<EnemyBase>();
     private readonly Collider2D[] hitBuffer = new Collider2D[SpraySettings.HitBufferSize];
-    
+
     private float nextDamageTick = 0f;
     private PlayerStats playerStats;
     private Transform playerTransform;
@@ -22,7 +24,8 @@ public class SprayDamageHandler
     public SprayDamageHandler(
         PlayerStats stats,
         Transform player,
-        float knockbackMultiplier = 0.45f)
+        float knockbackMultiplier = 0.45f
+    )
     {
         playerStats = stats;
         playerTransform = player;
@@ -51,8 +54,9 @@ public class SprayDamageHandler
     /// </summary>
     public void RegisterParticleHit(EnemyBase enemy)
     {
-        if (enemy == null) return;
-        
+        if (enemy == null)
+            return;
+
         if (!particleHitCounts.ContainsKey(enemy))
         {
             particleHitCounts[enemy] = 0;
@@ -67,31 +71,39 @@ public class SprayDamageHandler
     /// <param name="currentRange">Current spray range</param>
     /// <param name="currentWidth">Current spray cone width in degrees</param>
     /// <param name="nozzleOrigin">Origin point for damage cone (nozzle position)</param>
-    public void ProcessDamage(Vector2 sprayDirection, float currentRange, float currentWidth, Vector2 nozzleOrigin)
+    public void ProcessDamage(
+        Vector2 sprayDirection,
+        float currentRange,
+        float currentWidth,
+        Vector2 nozzleOrigin
+    )
     {
-        if (Time.time < nextDamageTick) return;
+        if (Time.time < nextDamageTick)
+            return;
         nextDamageTick = Time.time + SpraySettings.DamageTickRate;
         if (sprayDirection.sqrMagnitude > 0.0001f)
             lastConeDirection = sprayDirection.normalized;
-        
+
         // Detect enemies in cone from nozzle origin
         DetectEnemiesInCone(sprayDirection, currentRange, currentWidth, nozzleOrigin);
-        
+
         // Queue damage with travel time delay
-        float damageMultiplier = playerStats != null ? playerStats.CurrentSprayDamageMultiplier : 1f;
-        float baseDamage = playerStats != null 
-            ? playerStats.CurrentDamage * 0.14f
-            : SpraySettings.BaseDamagePerParticle * 3f;
-        
+        float damageMultiplier =
+            playerStats != null ? playerStats.CurrentSprayDamageMultiplier : 1f;
+        float baseDamage =
+            playerStats != null
+                ? playerStats.CurrentDamage * 0.14f
+                : SpraySettings.BaseDamagePerParticle * 3f;
+
         foreach (var kvp in particleHitCounts)
         {
             EnemyBase enemy = kvp.Key;
             int hitCount = kvp.Value;
-            
+
             if (enemy != null && hitCount > 0)
             {
                 float damage = baseDamage * hitCount * damageMultiplier;
-                
+
                 // Damage remains responsive. The cone-wide accumulator below
                 // starts recoil as soon as its combined damage reaches 10%.
                 enemy.TakeDamage(damage);
@@ -103,9 +115,12 @@ public class SprayDamageHandler
                 accumulatedDamage += damage;
                 coneDamageTotals[enemy] = accumulatedDamage;
 
-                Vector2 knockbackDirection = playerTransform != null
-                    ? ((Vector2)enemy.transform.position - (Vector2)playerTransform.position).normalized
-                    : lastConeDirection;
+                Vector2 knockbackDirection =
+                    playerTransform != null
+                        ? (
+                            (Vector2)enemy.transform.position - (Vector2)playerTransform.position
+                        ).normalized
+                        : lastConeDirection;
                 if (knockbackDirection.sqrMagnitude < 0.0001f)
                     knockbackDirection = lastConeDirection;
 
@@ -116,18 +131,22 @@ public class SprayDamageHandler
                     enemy.StrengthenActiveDamageKnockback(
                         accumulatedDamage,
                         knockbackDirection,
-                        weaponKnockbackMultiplier);
+                        weaponKnockbackMultiplier
+                    );
                 }
-                else if (enemy.TryApplyDamageKnockback(
-                             accumulatedDamage,
-                             knockbackDirection,
-                             weaponKnockbackMultiplier))
+                else if (
+                    enemy.TryApplyDamageKnockback(
+                        accumulatedDamage,
+                        knockbackDirection,
+                        weaponKnockbackMultiplier
+                    )
+                )
                 {
                     coneKnockbackResolved.Add(enemy);
                 }
             }
         }
-        
+
         particleHitCounts.Clear();
     }
 
@@ -148,16 +167,16 @@ public class SprayDamageHandler
             if (enemy == null || !enemy.isActiveAndEnabled || coneKnockbackResolved.Contains(enemy))
                 continue;
 
-            Vector2 direction = playerTransform != null
-                ? ((Vector2)enemy.transform.position - (Vector2)playerTransform.position).normalized
-                : lastConeDirection;
+            Vector2 direction =
+                playerTransform != null
+                    ? (
+                        (Vector2)enemy.transform.position - (Vector2)playerTransform.position
+                    ).normalized
+                    : lastConeDirection;
             if (direction.sqrMagnitude < 0.0001f)
                 direction = lastConeDirection;
 
-            if (enemy.TryApplyDamageKnockback(
-                    kvp.Value,
-                    direction,
-                    weaponKnockbackMultiplier))
+            if (enemy.TryApplyDamageKnockback(kvp.Value, direction, weaponKnockbackMultiplier))
             {
                 coneKnockbackResolved.Add(enemy);
             }
@@ -175,28 +194,38 @@ public class SprayDamageHandler
     /// - Angle: center = denser spray (cone spreads at edges)
     /// </summary>
     /// <param name="nozzleOrigin">Origin point for damage cone (where spray emits from)</param>
-    private void DetectEnemiesInCone(Vector2 sprayDirection, float currentRange, float currentWidth, Vector2 nozzleOrigin)
+    private void DetectEnemiesInCone(
+        Vector2 sprayDirection,
+        float currentRange,
+        float currentWidth,
+        Vector2 nozzleOrigin
+    )
     {
         // Gameplay cone begins at the player, while particles still render from
         // the nozzle. This bridges the near field so a close enemy cannot sit
         // behind the visual emission point and be skipped by the cone angle.
-        Vector2 origin = playerTransform != null
-            ? (Vector2)playerTransform.position
-            : nozzleOrigin;
-        
+        Vector2 origin = playerTransform != null ? (Vector2)playerTransform.position : nozzleOrigin;
+
         float halfAngle = currentWidth * 0.5f;
-        
+
         // Detection still uses a circle around nozzle for initial broad-phase
-        int hitCount = Physics2D.OverlapCircleNonAlloc(origin, currentRange, hitBuffer);
-        
+        int hitCount = Physics2D.OverlapCircle(
+            origin,
+            currentRange,
+            ContactFilter2D.noFilter,
+            hitBuffer
+        );
+
         for (int i = 0; i < hitCount; i++)
         {
             Collider2D hit = hitBuffer[i];
-            if (hit == null || !hit.CompareTag("Enemy")) continue;
-            
+            if (hit == null || !hit.CompareTag("Enemy"))
+                continue;
+
             EnemyBase enemy = hit.GetComponent<EnemyBase>();
-            if (enemy == null) continue;
-            
+            if (enemy == null)
+                continue;
+
             // Use predicted position for fast-moving enemies
             Vector2 enemyPos = (Vector2)hit.bounds.center;
             if (enemy.rb != null && enemy.rb.linearVelocity.sqrMagnitude > 0.1f)
@@ -205,26 +234,27 @@ public class SprayDamageHandler
                 float travelTime = dist / particleSpeed;
                 enemyPos += enemy.rb.linearVelocity * travelTime;
             }
-            
+
             Vector2 toEnemy = (enemyPos - origin);
             float distance = toEnemy.magnitude;
-            if (distance < 0.01f || distance > currentRange) continue;
-            
+            if (distance < 0.01f || distance > currentRange)
+                continue;
+
             toEnemy /= distance; // normalize
             float angleToEnemy = Vector2.Angle(sprayDirection, toEnemy);
-            
+
             if (angleToEnemy <= halfAngle)
             {
                 // Physics-based damage: particles fizzle over distance, spread over angle
                 float distanceRatio = distance / currentRange;
                 float distanceFalloff = 1f - Mathf.Pow(distanceRatio, 0.7f);
-                
+
                 float angleRatio = angleToEnemy / halfAngle;
                 float angleFalloff = 1f - Mathf.Pow(angleRatio, 0.5f);
-                
+
                 float particleDensity = distanceFalloff * angleFalloff;
                 int simulatedHits = Mathf.Max(1, Mathf.RoundToInt(5f * particleDensity));
-                
+
                 for (int j = 0; j < simulatedHits; j++)
                 {
                     RegisterParticleHit(enemy);
@@ -240,18 +270,22 @@ public class SprayDamageHandler
     /// <param name="sprayParticles">The particle system to check</param>
     public void ProcessParticleTrigger(ParticleSystem sprayParticles)
     {
-        if (sprayParticles == null) return;
-        
+        if (sprayParticles == null)
+            return;
+
         // Get particles that entered triggers
         List<ParticleSystem.Particle> enter = new List<ParticleSystem.Particle>();
-        int numEnter = sprayParticles.GetTriggerParticles(ParticleSystemTriggerEventType.Enter, enter);
-        
+        int numEnter = sprayParticles.GetTriggerParticles(
+            ParticleSystemTriggerEventType.Enter,
+            enter
+        );
+
         bool anyKilled = false;
-        
+
         for (int i = 0; i < numEnter; i++)
         {
             Vector3 particlePos = enter[i].position;
-            
+
             // Find enemy at this position
             Collider2D hit = Physics2D.OverlapPoint(particlePos);
             if (hit != null && hit.CompareTag("Enemy"))
@@ -260,7 +294,7 @@ public class SprayDamageHandler
                 if (enemy != null)
                 {
                     RegisterParticleHit(enemy);
-                    
+
                     // Kill particle on impact - no piercing through enemies
                     var particle = enter[i];
                     particle.remainingLifetime = 0f;
@@ -269,7 +303,7 @@ public class SprayDamageHandler
                 }
             }
         }
-        
+
         // Write back modified particles
         if (anyKilled)
         {

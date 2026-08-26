@@ -56,13 +56,16 @@ public class PlayerModelLighting : MonoBehaviour
 
     private void Update()
     {
-        if (_applied || _layer < 0) return;
+        if (_applied || _layer < 0)
+            return;
 
         var player = GameObject.FindGameObjectWithTag("Player");
-        if (player == null) return;
+        if (player == null)
+            return;
 
         var renderers = player.GetComponentsInChildren<Renderer>(true);
-        if (renderers.Length == 0) return; // visual not spawned yet; try again next frame
+        if (renderers.Length == 0)
+            return; // visual not spawned yet; try again next frame
 
         // 1) Player renderers -> PlayerModel layer.
         foreach (var r in renderers)
@@ -72,8 +75,10 @@ public class PlayerModelLighting : MonoBehaviour
         Light main = null;
         foreach (var l in FindObjectsByType<Light>(FindObjectsSortMode.None))
         {
-            if (l.gameObject.name == "PlayerFillLight") continue;
-            if (main == null || l.intensity > main.intensity) main = l;
+            if (l.gameObject.name == "PlayerFillLight")
+                continue;
+            if (main == null || l.intensity > main.intensity)
+                main = l;
         }
 
         if (main != null)
@@ -91,7 +96,9 @@ public class PlayerModelLighting : MonoBehaviour
         }
 
         _applied = true;
-        Debug.Log($"[PlayerModelLighting] Applied: {renderers.Length} renderer(s) -> layer {_layer}, " +
-                  $"world light excludes player, fill light added.");
+        Debug.Log(
+            $"[PlayerModelLighting] Applied: {renderers.Length} renderer(s) -> layer {_layer}, "
+                + $"world light excludes player, fill light added."
+        );
     }
 }

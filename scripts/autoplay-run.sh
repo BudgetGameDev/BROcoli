@@ -25,24 +25,48 @@ DO_BUILD=0
 EXTRA=()
 
 while [ $# -gt 0 ]; do
-  case "$1" in
-    --build) DO_BUILD=1; shift ;;
-    --seed) SEED="$2"; shift 2 ;;
-    --duration) DURATION="$2"; shift 2 ;;
-    --interval) INTERVAL="$2"; shift 2 ;;
-    --scenario) SCENARIO="$2"; shift 2 ;;
-    --out) OUT="$2"; shift 2 ;;
-    *) EXTRA+=("$1"); shift ;;   # pass-through to the player
-  esac
+    case "$1" in
+        --build)
+            DO_BUILD=1
+            shift
+            ;;
+        --seed)
+            SEED="$2"
+            shift 2
+            ;;
+        --duration)
+            DURATION="$2"
+            shift 2
+            ;;
+        --interval)
+            INTERVAL="$2"
+            shift 2
+            ;;
+        --scenario)
+            SCENARIO="$2"
+            shift 2
+            ;;
+        --out)
+            OUT="$2"
+            shift 2
+            ;;
+        *)
+            EXTRA+=("$1")
+            shift
+            ;; # pass-through to the player
+    esac
 done
 
 find_unity() {
-  local base p
-  for base in "/Applications/Unity/Hub/Editor" "$HOME/Applications/Unity/Hub/Editor"; do
-    p="$base/$VERSION/Unity.app/Contents/MacOS/Unity"
-    [ -x "$p" ] && { echo "$p"; return 0; }
-  done
-  return 1
+    local base p
+    for base in "/Applications/Unity/Hub/Editor" "$HOME/Applications/Unity/Hub/Editor"; do
+        p="$base/$VERSION/Unity.app/Contents/MacOS/Unity"
+        [ -x "$p" ] && {
+            echo "$p"
+            return 0
+        }
+    done
+    return 1
 }
 
 SHA="$(git -C "$PROJECT_PATH" rev-parse --short HEAD 2>/dev/null || echo nogit)"
@@ -50,40 +74,52 @@ SHA="$(git -C "$PROJECT_PATH" rev-parse --short HEAD 2>/dev/null || echo nogit)"
 mkdir -p "$OUT"
 
 if [ "$DO_BUILD" -eq 1 ]; then
-  UNITY="$(find_unity)" || { echo "Unity $VERSION not found under /Applications or ~/Applications"; exit 1; }
-  echo "Building player (the Unity editor must be CLOSED)..."
-  "$UNITY" -batchmode -quit -projectPath "$PROJECT_PATH" \
-    -executeMethod AutoplayBuildScript.BuildAutoplayPlayer \
-    -logFile "$OUT/build.log" || { echo "Build failed; see $OUT/build.log"; exit 1; }
+    UNITY="$(find_unity)" || {
+        echo "Unity $VERSION not found under /Applications or ~/Applications"
+        exit 1
+    }
+    echo "Building player (the Unity editor must be CLOSED)..."
+    "$UNITY" -batchmode -quit -projectPath "$PROJECT_PATH" \
+        -executeMethod AutoplayBuildScript.BuildAutoplayPlayer \
+        -logFile "$OUT/build.log" || {
+        echo "Build failed; see $OUT/build.log"
+        exit 1
+    }
 fi
 
 if [ ! -d "$APP" ]; then
-  echo "Player not built. Run with --build (editor closed) or use Tools > Autoplay > Build Player."
-  exit 1
+    echo "Player not built. Run with --build (editor closed) or use Tools > Autoplay > Build Player."
+    exit 1
 fi
 
-BIN="$(ls "$APP/Contents/MacOS/"* 2>/dev/null | head -1 || true)"
-[ -n "$BIN" ] && [ -x "$BIN" ] || { echo "No executable found in $APP/Contents/MacOS"; exit 1; }
+BIN="$(find "$APP/Contents/MacOS" -maxdepth 1 -type f -perm -111 -print 2>/dev/null | head -1 || true)"
+[ -n "$BIN" ] && [ -x "$BIN" ] || {
+    echo "No executable found in $APP/Contents/MacOS"
+    exit 1
+}
 
 echo "Running [$SCENARIO] ${DURATION}s game-time seed=$SEED sha=$SHA -> $OUT"
 START=$(date +%s)
 set +e
 "$BIN" --autoplay --seed="$SEED" --duration="$DURATION" --interval="$INTERVAL" \
-  --scenario="$SCENARIO" --sha="$SHA" "${EXTRA[@]+"${EXTRA[@]}"}" --out="$OUT" \
-  -logFile "$OUT/player.log"
+    --scenario="$SCENARIO" --sha="$SHA" "${EXTRA[@]+"${EXTRA[@]}"}" --out="$OUT" \
+    -logFile "$OUT/player.log"
 RC=$?
 set -e
-REAL=$(( $(date +%s) - START ))
+REAL=$(($(date +%s) - START))
 
 echo ""
-echo "=== summary.json ==="; cat "$OUT/summary.json" 2>/dev/null; echo
-echo "frames:    $OUT/frames ($(ls "$OUT/frames" 2>/dev/null | wc -l | tr -d ' ') png)"
+echo "=== summary.json ==="
+cat "$OUT/summary.json" 2>/dev/null
+echo
+FRAME_COUNT="$(find "$OUT/frames" -maxdepth 1 -type f -name '*.png' -print 2>/dev/null | wc -l | tr -d ' ')"
+echo "frames:    $OUT/frames ($FRAME_COUNT png)"
 echo "telemetry: $OUT/telemetry.jsonl"
-echo "real time: ${REAL}s for ${DURATION}s game-time (~$([ "$REAL" -gt 0 ] && echo $((DURATION/REAL)) || echo 'inf')x speedup)"
+echo "real time: ${REAL}s for ${DURATION}s game-time (~$([ "$REAL" -gt 0 ] && echo $((DURATION / REAL)) || echo 'inf')x speedup)"
 if [ "$RC" -eq 0 ]; then echo "RESULT: PASS (exit 0)"; else echo "RESULT: FAIL (exit $RC)"; fi
 
 if command -v python3 >/dev/null 2>&1; then
-  python3 "$PROJECT_PATH/scripts/analyze-frames.py" "$OUT/frames" 2>/dev/null || true
+    python3 "$PROJECT_PATH/scripts/analyze-frames.py" "$OUT/frames" 2>/dev/null || true
 fi
 
 exit $RC

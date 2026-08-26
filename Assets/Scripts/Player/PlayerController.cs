@@ -3,7 +3,7 @@ using UnityEngine;
 /// <summary>
 /// Main player controller facade. Coordinates all player subsystems and provides
 /// backwards-compatible public API for external scripts.
-/// 
+///
 /// All functionality is delegated to specialized components:
 /// - PlayerInputHandler: Input collection and smoothing
 /// - PlayerMovement: Physics, knockback, animation
@@ -27,15 +27,19 @@ public class PlayerController : MonoBehaviour
     public enum WeaponType
     {
         Projectile,
-        SanitizerSpray
+        SanitizerSpray,
     }
 
     [Header("Weapon Selection")]
-    [SerializeField] private WeaponType currentWeapon = WeaponType.SanitizerSpray;
+    [SerializeField]
+    private WeaponType currentWeapon = WeaponType.SanitizerSpray;
 
     [Header("Debug Tuning")]
-    [Tooltip("Overrides the player's original base damage. The default is 5; upgrades are still added on top.")]
-    [SerializeField, Min(0f)] private float debugBaseDamage = PlayerStats.DefaultBaseDamage;
+    [Tooltip(
+        "Overrides the player's original base damage. The default is 5; upgrades are still added on top."
+    )]
+    [SerializeField, Min(0f)]
+    private float debugBaseDamage = PlayerStats.DefaultBaseDamage;
 
     public float DebugBaseDamage => debugBaseDamage;
 
@@ -91,7 +95,8 @@ public class PlayerController : MonoBehaviour
 
     private void Update()
     {
-        if (_damageHandler != null && _damageHandler.IsGameOver) return;
+        if (_damageHandler != null && _damageHandler.IsGameOver)
+            return;
 
         // Keep this live so the value can be edited in the Inspector while the
         // game is running and take effect on the very next damage calculation.
@@ -116,7 +121,8 @@ public class PlayerController : MonoBehaviour
 
     private void FixedUpdate()
     {
-        if (_damageHandler != null && _damageHandler.IsGameOver) return;
+        if (_damageHandler != null && _damageHandler.IsGameOver)
+            return;
 
         // Handle combat (enemy detection and attacking)
         _combat?.HandleCombat();
@@ -145,7 +151,7 @@ public class PlayerController : MonoBehaviour
     {
         Camera mainCam = Camera.main;
         Vector3 cameraOffset = Vector3.zero;
-        
+
         if (mainCam != null)
         {
             cameraOffset = mainCam.transform.position - transform.position;
@@ -188,7 +194,7 @@ public class PlayerController : MonoBehaviour
         return _damageHandler?.TakeMeleeDamage(damage) ?? false;
     }
 
-/// <summary>
+    /// <summary>
     /// Apply melee damage with knockback. Backwards compatible method.
     /// </summary>
     /// <param name="damage">Amount of damage.</param>

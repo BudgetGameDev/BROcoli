@@ -7,10 +7,30 @@ using UnityEngine;
 [System.Serializable]
 public class UpgradeOption
 {
-    public enum Rarity { Common, Uncommon, Rare, Epic, Legendary }
-    public enum StatType { 
-        MaxHealth, Damage, Speed, AttackSpeed, SprayRange, SprayWidth, DetectionRadius,
-        CritChance, CritDamage, Dodge, Armor, HealthRegen, LifeSteal
+    public enum Rarity
+    {
+        Common,
+        Uncommon,
+        Rare,
+        Epic,
+        Legendary,
+    }
+
+    public enum StatType
+    {
+        MaxHealth,
+        Damage,
+        Speed,
+        AttackSpeed,
+        SprayRange,
+        SprayWidth,
+        DetectionRadius,
+        CritChance,
+        CritDamage,
+        Dodge,
+        Armor,
+        HealthRegen,
+        LifeSteal,
     }
 
     public StatType Type;
@@ -18,18 +38,18 @@ public class UpgradeOption
     public float Amount;
     public string DisplayName;
     public string Description;
-    
+
     // Trade-off (troll) upgrade fields
     public bool IsTrollUpgrade;
     public StatType PenaltyType;
     public float PenaltyAmount;
 
     // Rarity colors
-    public static readonly Color CommonColor = new Color(0.7f, 0.7f, 0.7f);      // Gray
-    public static readonly Color UncommonColor = new Color(0.3f, 0.9f, 0.3f);    // Green
-    public static readonly Color RareColor = new Color(0.3f, 0.5f, 1f);          // Blue
-    public static readonly Color EpicColor = new Color(0.7f, 0.3f, 0.9f);        // Purple
-    public static readonly Color LegendaryColor = new Color(1f, 0.8f, 0.2f);     // Gold
+    public static readonly Color CommonColor = new Color(0.7f, 0.7f, 0.7f); // Gray
+    public static readonly Color UncommonColor = new Color(0.3f, 0.9f, 0.3f); // Green
+    public static readonly Color RareColor = new Color(0.3f, 0.5f, 1f); // Blue
+    public static readonly Color EpicColor = new Color(0.7f, 0.3f, 0.9f); // Purple
+    public static readonly Color LegendaryColor = new Color(1f, 0.8f, 0.2f); // Gold
 
     public Color GetRarityColor()
     {
@@ -40,7 +60,7 @@ public class UpgradeOption
             Rarity.Rare => RareColor,
             Rarity.Epic => EpicColor,
             Rarity.Legendary => LegendaryColor,
-            _ => CommonColor
+            _ => CommonColor,
         };
     }
 
@@ -55,13 +75,13 @@ public class UpgradeOption
     public static UpgradeOption GenerateRandom(int playerLevel)
     {
         var option = new UpgradeOption();
-        
+
         // Weighted rarity roll - higher levels have slightly better chances
         // Epic/Legendary are now much rarer
         float roll = Random.value;
-        float legendaryChance = Mathf.Min(0.005f + playerLevel * 0.001f, 0.025f);  // Max 2.5%
-        float epicChance = Mathf.Min(0.01f + playerLevel * 0.002f, 0.04f);          // Max 4%
-        float rareChance = Mathf.Min(0.08f + playerLevel * 0.008f, 0.18f);          // Max 18%
+        float legendaryChance = Mathf.Min(0.005f + playerLevel * 0.001f, 0.025f); // Max 2.5%
+        float epicChance = Mathf.Min(0.01f + playerLevel * 0.002f, 0.04f); // Max 4%
+        float rareChance = Mathf.Min(0.08f + playerLevel * 0.008f, 0.18f); // Max 18%
         float uncommonChance = 0.35f;
 
         if (roll < legendaryChance)
@@ -87,7 +107,7 @@ public class UpgradeOption
             Rarity.Rare => 2.5f,
             Rarity.Epic => 4f,
             Rarity.Legendary => 6f,
-            _ => 1f
+            _ => 1f,
         };
 
         // Set amount and description based on stat type
@@ -162,7 +182,7 @@ public class UpgradeOption
 
         return option;
     }
-    
+
     /// <summary>
     /// Generate a "troll" trade-off upgrade: big bonus to one stat, penalty to another.
     /// These are higher risk/reward and have distinctive colors.
@@ -171,7 +191,7 @@ public class UpgradeOption
     {
         var option = new UpgradeOption();
         option.IsTrollUpgrade = true;
-        
+
         // Troll upgrades are always Rare or better (they're special)
         float roll = Random.value;
         if (roll < 0.1f)
@@ -180,41 +200,43 @@ public class UpgradeOption
             option.RarityLevel = Rarity.Epic;
         else
             option.RarityLevel = Rarity.Rare;
-        
+
         // Bigger multipliers for troll upgrades (high risk, high reward)
         float rarityMult = option.RarityLevel switch
         {
             Rarity.Rare => 3f,
             Rarity.Epic => 5f,
             Rarity.Legendary => 8f,
-            _ => 3f
+            _ => 3f,
         };
-        
+
         // Pick random stat types (bonus and penalty must be different)
         var statTypes = System.Enum.GetValues(typeof(StatType));
         option.Type = (StatType)statTypes.GetValue(Random.Range(0, statTypes.Length));
-        
-        do {
+
+        do
+        {
             option.PenaltyType = (StatType)statTypes.GetValue(Random.Range(0, statTypes.Length));
         } while (option.PenaltyType == option.Type);
-        
+
         // Set bonus amount
         SetStatAmount(option, rarityMult);
-        
+
         // Set penalty amount (about 60-80% of what a normal upgrade would give)
         float penaltyMult = rarityMult * Random.Range(0.6f, 0.8f);
         option.PenaltyAmount = GetPenaltyAmount(option.PenaltyType, penaltyMult);
-        
+
         // Build description with colored text
         string bonusDesc = GetStatDescription(option.Type, option.Amount, true);
         string penaltyDesc = GetStatDescription(option.PenaltyType, option.PenaltyAmount, false);
-        
+
         option.DisplayName = $"{GetStatShortName(option.Type)} Trade";
-        option.Description = $"<color=#4CFF4C>{bonusDesc}</color>\n<color=#FF4C4C>{penaltyDesc}</color>";
-        
+        option.Description =
+            $"<color=#4CFF4C>{bonusDesc}</color>\n<color=#FF4C4C>{penaltyDesc}</color>";
+
         return option;
     }
-    
+
     private static void SetStatAmount(UpgradeOption option, float rarityMult)
     {
         switch (option.Type)
@@ -260,7 +282,7 @@ public class UpgradeOption
                 break;
         }
     }
-    
+
     private static float GetPenaltyAmount(StatType type, float mult)
     {
         return type switch
@@ -278,10 +300,10 @@ public class UpgradeOption
             StatType.Armor => 3f * mult,
             StatType.HealthRegen => 1f * mult,
             StatType.LifeSteal => 2f * mult,
-            _ => 1f * mult
+            _ => 1f * mult,
         };
     }
-    
+
     private static string GetStatDescription(StatType type, float amount, bool isBonus)
     {
         string sign = isBonus ? "+" : "-";
@@ -300,10 +322,10 @@ public class UpgradeOption
             StatType.Armor => $"{sign}{amount:F0} Armor",
             StatType.HealthRegen => $"{sign}{amount:F1} Regen",
             StatType.LifeSteal => $"{sign}{amount:F0}% Lifesteal",
-            _ => $"{sign}{amount:F0}"
+            _ => $"{sign}{amount:F0}",
         };
     }
-    
+
     private static string GetStatShortName(StatType type)
     {
         return type switch
@@ -321,7 +343,7 @@ public class UpgradeOption
             StatType.Armor => "ARM",
             StatType.HealthRegen => "REG",
             StatType.LifeSteal => "LSTL",
-            _ => "???"
+            _ => "???",
         };
     }
 
@@ -332,19 +354,19 @@ public class UpgradeOption
     {
         // Apply bonus
         ApplyStatChange(stats, Type, Amount, true);
-        
+
         // Apply penalty if this is a troll upgrade
         if (IsTrollUpgrade)
         {
             ApplyStatChange(stats, PenaltyType, PenaltyAmount, false);
         }
     }
-    
+
     private void ApplyStatChange(PlayerStats stats, StatType type, float amount, bool isBonus)
     {
         // For penalties, we subtract instead of add
         float finalAmount = isBonus ? amount : -amount;
-        
+
         switch (type)
         {
             case StatType.MaxHealth:

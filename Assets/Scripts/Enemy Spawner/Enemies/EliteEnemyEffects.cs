@@ -20,12 +20,12 @@ public class EliteEnemyEffects : MonoBehaviour
         public Renderer Renderer;
         public MaterialPropertyBlock Properties;
     }
-    
+
     [Header("Elite Visual Settings")]
     public Color glowColor = new Color(1f, 0.85f, 0.2f, 0.4f);
     public Color tintColor = new Color(1f, 0.9f, 0.5f, 1f);
     public float glowScale = 1.3f;
-    
+
     public void ApplyEliteVisuals()
     {
         RemoveEliteVisuals();
@@ -37,9 +37,11 @@ public class EliteEnemyEffects : MonoBehaviour
         // use; otherwise apply the elite tint to the current 3D model.
         foreach (var spriteRenderer in GetComponentsInChildren<SpriteRenderer>(true))
         {
-            if (!spriteRenderer.enabled ||
-                !spriteRenderer.gameObject.activeInHierarchy ||
-                spriteRenderer.sprite == null)
+            if (
+                !spriteRenderer.enabled
+                || !spriteRenderer.gameObject.activeInHierarchy
+                || spriteRenderer.sprite == null
+            )
             {
                 continue;
             }
@@ -58,38 +60,38 @@ public class EliteEnemyEffects : MonoBehaviour
 
         ApplyMeshTint();
     }
-    
+
     private void CreateGlowEffect()
     {
         glowEffect = new GameObject("EliteGlow");
         glowEffect.transform.SetParent(transform, false);
         glowEffect.transform.localPosition = Vector3.zero;
-        
+
         SpriteRenderer glowSr = glowEffect.AddComponent<SpriteRenderer>();
         glowSr.sprite = mainSpriteRenderer.sprite;
         glowSr.sortingOrder = mainSpriteRenderer.sortingOrder - 1;
         glowSr.color = glowColor;
         glowEffect.transform.localScale = Vector3.one * glowScale;
     }
-    
+
     private void ApplyMeshTint()
     {
         foreach (var renderer in GetComponentsInChildren<Renderer>(true))
         {
-            if (!renderer.enabled ||
-                !renderer.gameObject.activeInHierarchy ||
-                renderer is SpriteRenderer)
+            if (
+                !renderer.enabled
+                || !renderer.gameObject.activeInHierarchy
+                || renderer is SpriteRenderer
+            )
             {
                 continue;
             }
 
             var originalProperties = new MaterialPropertyBlock();
             renderer.GetPropertyBlock(originalProperties);
-            rendererStates.Add(new RendererState
-            {
-                Renderer = renderer,
-                Properties = originalProperties
-            });
+            rendererStates.Add(
+                new RendererState { Renderer = renderer, Properties = originalProperties }
+            );
 
             var eliteProperties = new MaterialPropertyBlock();
             renderer.GetPropertyBlock(eliteProperties);
@@ -103,7 +105,8 @@ public class EliteEnemyEffects : MonoBehaviour
         Renderer renderer,
         MaterialPropertyBlock originalProperties,
         MaterialPropertyBlock eliteProperties,
-        int propertyId)
+        int propertyId
+    )
     {
         Color sourceColor;
 
@@ -122,7 +125,7 @@ public class EliteEnemyEffects : MonoBehaviour
 
         eliteProperties.SetColor(propertyId, sourceColor * tintColor);
     }
-    
+
     public void RemoveEliteVisuals()
     {
         if (glowEffect != null)
@@ -130,7 +133,7 @@ public class EliteEnemyEffects : MonoBehaviour
             Destroy(glowEffect);
             glowEffect = null;
         }
-        
+
         if (mainSpriteRenderer != null)
         {
             mainSpriteRenderer.color = originalColor;
@@ -147,7 +150,7 @@ public class EliteEnemyEffects : MonoBehaviour
 
         rendererStates.Clear();
     }
-    
+
     void OnDestroy()
     {
         RemoveEliteVisuals();

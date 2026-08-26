@@ -13,7 +13,7 @@ public class PlayerCombat : MonoBehaviour
     public enum WeaponType
     {
         Projectile,
-        SanitizerSpray
+        SanitizerSpray,
     }
 
     private const float DefaultEnemyDetectionRadius = 12f;
@@ -49,23 +49,27 @@ public class PlayerCombat : MonoBehaviour
 
     private void Awake()
     {
-        _playerStats = GetComponentInChildren<PlayerStats>();  // May be on child prefab
+        _playerStats = GetComponentInChildren<PlayerStats>(); // May be on child prefab
         _playerMovement = GetComponent<PlayerMovement>();
-        _sanitizerSpray = GetComponentInChildren<SanitizerSpray>();  // May be on child object
+        _sanitizerSpray = GetComponentInChildren<SanitizerSpray>(); // May be on child object
         _gunAudio = GetComponentInChildren<ProceduralGunAudio>();
 
         // Load projectile prefab from Resources
         _projectilePrefab = Resources.Load<GameObject>(ProjectilePrefabPath);
         if (_projectilePrefab == null)
         {
-            Debug.LogWarning($"PlayerCombat: Could not load projectile prefab from '{ProjectilePrefabPath}'");
+            Debug.LogWarning(
+                $"PlayerCombat: Could not load projectile prefab from '{ProjectilePrefabPath}'"
+            );
         }
 
         // Get enemy layer mask programmatically
         _enemyLayer = LayerMask.GetMask("Enemy");
         if (_enemyLayer == 0)
         {
-            Debug.LogWarning("PlayerCombat: 'Enemy' layer not found! Combat detection will not work.");
+            Debug.LogWarning(
+                "PlayerCombat: 'Enemy' layer not found! Combat detection will not work."
+            );
         }
     }
 
@@ -81,8 +85,10 @@ public class PlayerCombat : MonoBehaviour
     /// </summary>
     public void HandleCombat()
     {
-        if (Time.time < _nextAllowedAttack) return;
-        if (_playerMovement == null || _playerMovement.Body == null) return;
+        if (Time.time < _nextAllowedAttack)
+            return;
+        if (_playerMovement == null || _playerMovement.Body == null)
+            return;
 
         Vector2 playerPos = _playerMovement.Position;
 
@@ -94,10 +100,12 @@ public class PlayerCombat : MonoBehaviour
         }
 
         Collider2D[] hits = Physics2D.OverlapCircleAll(playerPos, detectionRange, _enemyLayer);
-        if (hits.Length == 0) return;
+        if (hits.Length == 0)
+            return;
 
         Transform target = FindTarget(hits, playerPos, detectionRange);
-        if (target == null) return;
+        if (target == null)
+            return;
 
         if (_playerStats == null)
         {
@@ -115,7 +123,8 @@ public class PlayerCombat : MonoBehaviour
         if (_currentWeapon == WeaponType.SanitizerSpray && _sanitizerSpray != null)
         {
             Transform sprayTarget = FindBestSprayTarget(hits, playerPos, range);
-            if (sprayTarget != null) return sprayTarget;
+            if (sprayTarget != null)
+                return sprayTarget;
         }
 
         // Fallback: find closest enemy (prefer real enemies over projectiles)
@@ -131,7 +140,8 @@ public class PlayerCombat : MonoBehaviour
 
         foreach (Collider2D hit in hits)
         {
-            if (hit == null) continue;
+            if (hit == null)
+                continue;
 
             float sqrDist = ((Vector2)hit.transform.position - playerPos).sqrMagnitude;
             EnemyBase enemyComponent = hit.GetComponent<EnemyBase>();
@@ -159,11 +169,13 @@ public class PlayerCombat : MonoBehaviour
 
     private Transform FindBestSprayTarget(Collider2D[] hits, Vector2 playerPos, float sprayRange)
     {
-        if (hits == null || hits.Length == 0) return null;
+        if (hits == null || hits.Length == 0)
+            return null;
 
         float sprayAngle = _sanitizerSpray?.SprayWidth ?? 60f;
         float halfAngle = sprayAngle * 0.5f;
-        float particleSpeed = _sanitizerSpray?.GetParticleSpeed()
+        float particleSpeed =
+            _sanitizerSpray?.GetParticleSpeed()
             ?? (SpraySettings.BaseSprayRange / SpraySettings.ParticleLifetimeBase);
 
         // Collect enemies with predicted positions using dynamic velocity-based prediction
@@ -171,9 +183,11 @@ public class PlayerCombat : MonoBehaviour
 
         foreach (Collider2D hit in hits)
         {
-            if (hit == null) continue;
+            if (hit == null)
+                continue;
             EnemyBase enemy = hit.GetComponent<EnemyBase>();
-            if (enemy == null) continue;
+            if (enemy == null)
+                continue;
 
             Vector2 enemyPos = (Vector2)hit.bounds.center;
             float dist = Vector2.Distance(playerPos, enemyPos);
@@ -185,8 +199,10 @@ public class PlayerCombat : MonoBehaviour
             }
         }
 
-        if (enemies.Count == 0) return null;
-        if (enemies.Count == 1) return enemies[0].t;
+        if (enemies.Count == 0)
+            return null;
+        if (enemies.Count == 1)
+            return enemies[0].t;
 
         // Nozzle offset for accurate damage calculations
         float nozzleOffset = SpraySettings.HandOffset + SpraySettings.NozzleLocalPos.x;
@@ -202,7 +218,13 @@ public class PlayerCombat : MonoBehaviour
             Vector2 aimDir = (primary.predicted - playerPos).normalized;
             // Nozzle position is along the aim ray from player
             Vector2 nozzlePos = playerPos + aimDir * nozzleOffset;
-            float totalDamage = CalculateSprayDamage(enemies, nozzlePos, aimDir, halfAngle, sprayRange);
+            float totalDamage = CalculateSprayDamage(
+                enemies,
+                nozzlePos,
+                aimDir,
+                halfAngle,
+                sprayRange
+            );
 
             if (totalDamage > bestTotalDamage)
             {
@@ -219,7 +241,13 @@ public class PlayerCombat : MonoBehaviour
                 Vector2 midpoint = (enemies[i].predicted + enemies[j].predicted) * 0.5f;
                 Vector2 aimDir = (midpoint - playerPos).normalized;
                 Vector2 nozzlePos = playerPos + aimDir * nozzleOffset;
-                float totalDamage = CalculateSprayDamage(enemies, nozzlePos, aimDir, halfAngle, sprayRange);
+                float totalDamage = CalculateSprayDamage(
+                    enemies,
+                    nozzlePos,
+                    aimDir,
+                    halfAngle,
+                    sprayRange
+                );
 
                 if (totalDamage > bestTotalDamage)
                 {
@@ -238,33 +266,41 @@ public class PlayerCombat : MonoBehaviour
     /// - Close-range enemies: no prediction (aim dead center)
     /// - Moving enemies: prediction scales with velocity
     /// </summary>
-    private Vector2 GetPredictedEnemyPosition(EnemyBase enemy, Vector2 currentPos, float distance, float particleSpeed)
+    private Vector2 GetPredictedEnemyPosition(
+        EnemyBase enemy,
+        Vector2 currentPos,
+        float distance,
+        float particleSpeed
+    )
     {
         // Close-range: aim dead center (no prediction)
         if (distance < SpraySettings.CloseRangeThreshold)
             return currentPos;
-        
+
         // No rigidbody or stationary: aim dead center
         if (enemy.rb == null)
             return currentPos;
-        
+
         Vector2 velocity = enemy.rb.linearVelocity;
         float enemySpeed = velocity.magnitude;
-        
+
         // Stationary or nearly stationary: aim dead center
         if (enemySpeed < 0.5f)
             return currentPos;
-        
+
         // Dynamic prediction: scale with enemy speed
         // At reference speed, use full base prediction time
         // Faster enemies get more prediction, slower get less
         float speedRatio = enemySpeed / SpraySettings.PredictionReferenceSpeed;
         float predictionTime = SpraySettings.BasePredictionTime * speedRatio;
-        
+
         // Also factor in particle travel time for very fast enemies
         float travelTime = distance / particleSpeed;
-        predictionTime = Mathf.Min(predictionTime + travelTime * 0.5f, SpraySettings.MaxPredictionTime);
-        
+        predictionTime = Mathf.Min(
+            predictionTime + travelTime * 0.5f,
+            SpraySettings.MaxPredictionTime
+        );
+
         return currentPos + velocity * predictionTime;
     }
 
@@ -275,7 +311,11 @@ public class PlayerCombat : MonoBehaviour
     /// <param name="emitPos">The nozzle emission position (not player position)</param>
     private float CalculateSprayDamage(
         List<(Transform t, EnemyBase e, Vector2 predicted, float dist)> enemies,
-        Vector2 emitPos, Vector2 aimDir, float halfAngle, float sprayRange)
+        Vector2 emitPos,
+        Vector2 aimDir,
+        float halfAngle,
+        float sprayRange
+    )
     {
         float totalDamage = 0f;
 
@@ -283,7 +323,8 @@ public class PlayerCombat : MonoBehaviour
         {
             Vector2 toEnemy = (enemy.predicted - emitPos);
             float dist = toEnemy.magnitude;
-            if (dist < 0.01f || dist > sprayRange) continue;
+            if (dist < 0.01f || dist > sprayRange)
+                continue;
 
             toEnemy /= dist;
             float angle = Vector2.Angle(aimDir, toEnemy);
@@ -316,8 +357,9 @@ public class PlayerCombat : MonoBehaviour
 
     private void FireSprayAt(Transform target)
     {
-        if (target == null || _sanitizerSpray == null) return;
-        
+        if (target == null || _sanitizerSpray == null)
+            return;
+
         // Pass the target to SanitizerSpray - it handles aim tracking,
         // direction calculation, validation, and firing when ready
         _sanitizerSpray.FireSprayBurstAtTarget(target);
@@ -325,10 +367,12 @@ public class PlayerCombat : MonoBehaviour
 
     private void FireProjectileAt(Transform target)
     {
-        if (target == null || _projectilePrefab == null) return;
+        if (target == null || _projectilePrefab == null)
+            return;
 
         Collider2D col = target.GetComponent<Collider2D>();
-        if (col == null) return;
+        if (col == null)
+            return;
 
         Vector2 targetPoint = col.bounds.center;
         Vector2 playerPos = (Vector2)transform.position;
@@ -336,7 +380,8 @@ public class PlayerCombat : MonoBehaviour
 
         // Calculate spawn position
         Vector2 perpendicular = new Vector2(-direction.y, direction.x);
-        Vector2 spawnPos2D = playerPos
+        Vector2 spawnPos2D =
+            playerPos
             + (perpendicular * ProjectileSpawnSideOffset)
             + (direction * ProjectileSpawnForwardOffset);
 

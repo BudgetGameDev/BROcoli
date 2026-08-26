@@ -4,4 +4,4 @@
 # accurate — only wall-clock time is compressed. Sparse captures.
 #   ./scripts/autoplay-fast.sh [--build]
 exec "$(cd "$(dirname "$0")" && pwd)/autoplay-run.sh" \
-  --duration 300 --interval 2 --scenario survive --timestep=0.033 "$@"
+    --duration 300 --interval 2 --scenario survive --timestep=0.033 "$@"

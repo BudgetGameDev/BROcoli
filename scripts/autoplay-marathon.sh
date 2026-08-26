@@ -6,4 +6,4 @@
 # Real time depends on your CPU and is reported at the end.
 #   ./scripts/autoplay-marathon.sh [--build]
 exec "$(cd "$(dirname "$0")" && pwd)/autoplay-run.sh" \
-  --duration 10800 --interval 60 --scenario survive --timestep=0.04 "$@"
+    --duration 10800 --interval 60 --scenario survive --timestep=0.04 "$@"

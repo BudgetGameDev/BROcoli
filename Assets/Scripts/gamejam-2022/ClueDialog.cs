@@ -1,5 +1,3 @@
-
-
 public class ClueDialog
 {
     public string name;

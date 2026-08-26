@@ -6,23 +6,39 @@ using UnityEngine;
 public class EnemyWalkAnimation : MonoBehaviour
 {
     [Header("Pulsate Settings")]
-    [SerializeField] private float pulsateSpeed = 8f;         // How fast the pulsate cycle is
-    [SerializeField] private float pulsateAmountX = 0.08f;    // Horizontal squash/stretch
-    [SerializeField] private float pulsateAmountY = 0.12f;    // Vertical squash/stretch
-    [SerializeField] private float pulsateAmountZ = 0.05f;    // Depth squash/stretch (for 3D models)
-    
+    [SerializeField]
+    private float pulsateSpeed = 8f; // How fast the pulsate cycle is
+
+    [SerializeField]
+    private float pulsateAmountX = 0.08f; // Horizontal squash/stretch
+
+    [SerializeField]
+    private float pulsateAmountY = 0.12f; // Vertical squash/stretch
+
+    [SerializeField]
+    private float pulsateAmountZ = 0.05f; // Depth squash/stretch (for 3D models)
+
     [Header("Spin/Wobble Settings")]
-    [SerializeField] private float wobbleSpeed = 6f;          // How fast the wobble is
-    [SerializeField] private float wobbleAmount = 8f;         // Max rotation degrees
-    [SerializeField] private float spinSpeedMultiplier = 15f; // Spin based on movement speed
-    
+    [SerializeField]
+    private float wobbleSpeed = 6f; // How fast the wobble is
+
+    [SerializeField]
+    private float wobbleAmount = 8f; // Max rotation degrees
+
+    [SerializeField]
+    private float spinSpeedMultiplier = 15f; // Spin based on movement speed
+
     [Header("Bounce Settings")]
-    [SerializeField] private float bounceSpeed = 12f;         // Vertical bounce frequency
-    [SerializeField] private float bounceAmount = 0.15f;      // Vertical bounce height
-    
+    [SerializeField]
+    private float bounceSpeed = 12f; // Vertical bounce frequency
+
+    [SerializeField]
+    private float bounceAmount = 0.15f; // Vertical bounce height
+
     [Header("References")]
-    [SerializeField] private Transform visualTransform;       // The child transform to animate (optional)
-    
+    [SerializeField]
+    private Transform visualTransform; // The child transform to animate (optional)
+
     private Vector3 baseScale;
     private Vector3 basePosition;
     private Rigidbody2D rb;
@@ -30,13 +46,13 @@ public class EnemyWalkAnimation : MonoBehaviour
     private float currentSpin = 0f;
     private bool isInitialized = false;
     private bool attackOverride = false;
-    
+
     void Awake()
     {
         // Initialize in Awake so baseScale/basePosition are set before OnDisable can run (during pooling)
         InitializeVisualTransform();
     }
-    
+
     void Start()
     {
         // Ensure initialization (in case Awake didn't complete for some reason)
@@ -44,19 +60,20 @@ public class EnemyWalkAnimation : MonoBehaviour
         {
             InitializeVisualTransform();
         }
-        
+
         // Random offset so not all enemies animate in sync
         timeOffset = Random.Range(0f, Mathf.PI * 2f);
     }
-    
+
     private void InitializeVisualTransform()
     {
-        if (isInitialized) return;
-        
+        if (isInitialized)
+            return;
+
         rb = GetComponentInParent<Rigidbody2D>();
         if (rb == null)
             rb = GetComponent<Rigidbody2D>();
-        
+
         // If no visual transform specified, try to find a child or use self
         if (visualTransform == null)
         {
@@ -73,42 +90,43 @@ public class EnemyWalkAnimation : MonoBehaviour
                     }
                 }
             }
-            
+
             // If still null, animate this transform
             if (visualTransform == null)
                 visualTransform = transform;
         }
-        
+
         baseScale = visualTransform.localScale;
-        
+
         // Safety check: if scale is zero, use Vector3.one as fallback
         if (baseScale.sqrMagnitude < 0.0001f)
         {
             baseScale = Vector3.one;
             visualTransform.localScale = Vector3.one;
         }
-        
+
         basePosition = visualTransform.localPosition;
-        
+
         // Ensure Z offset for 3D models to prevent clipping into background
         if (Mathf.Approximately(basePosition.z, 0f))
         {
             basePosition.z = -0.5f;
         }
-        
+
         isInitialized = true;
     }
-    
+
     void Update()
     {
-        if (visualTransform == null || attackOverride) return;
-        
+        if (visualTransform == null || attackOverride)
+            return;
+
         float time = Time.time + timeOffset;
         float speed = rb != null ? rb.linearVelocity.magnitude : 0f;
-        
+
         // Intensity scales with movement speed (0.5 to 1.5 range)
         float intensity = Mathf.Clamp(0.5f + speed * 0.15f, 0.5f, 1.5f);
-        
+
         // --- Contained squash ---
         // Never expand past the prefab's base footprint. Expansion here would
         // make the mesh poke outside its correctly scaled solid collider.
@@ -118,13 +136,13 @@ public class EnemyWalkAnimation : MonoBehaviour
         float scaleX = baseScale.x * (1f - horizontalSquash * pulsateAmountX);
         float scaleY = baseScale.y * (1f - verticalSquash * pulsateAmountY);
         float scaleZ = baseScale.z * (1f - Mathf.Abs(pulsatePhase) * pulsateAmountZ);
-        
+
         visualTransform.localScale = new Vector3(scaleX, scaleY, scaleZ);
-        
+
         // --- Wobble/Spin Rotation ---
         // Base wobble
         float wobble = Mathf.Sin(time * wobbleSpeed) * wobbleAmount * intensity;
-        
+
         // Add spin based on movement direction
         if (rb != null && speed > 0.5f)
         {
@@ -136,9 +154,9 @@ public class EnemyWalkAnimation : MonoBehaviour
         {
             currentSpin = Mathf.Lerp(currentSpin, 0f, Time.deltaTime * 3f);
         }
-        
+
         visualTransform.localRotation = Quaternion.Euler(0f, 0f, wobble + currentSpin);
-        
+
         // --- Vertical Bounce ---
         float bounce = Mathf.Abs(Mathf.Sin(time * bounceSpeed)) * bounceAmount * intensity;
         visualTransform.localPosition = basePosition + new Vector3(0f, bounce, 0f);
@@ -155,13 +173,14 @@ public class EnemyWalkAnimation : MonoBehaviour
             InitializeVisualTransform();
 
         attackOverride = active;
-        if (visualTransform == null) return;
+        if (visualTransform == null)
+            return;
 
         visualTransform.localScale = baseScale;
         visualTransform.localPosition = basePosition;
         visualTransform.localRotation = Quaternion.identity;
     }
-    
+
     void OnDisable()
     {
         // Reset to base state when disabled

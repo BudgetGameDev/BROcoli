@@ -34,7 +34,8 @@ public class DamageVignette : MonoBehaviour
 
     private void Update()
     {
-        if (!_isPulsing) return;
+        if (!_isPulsing)
+            return;
 
         _pulseTimer += Time.deltaTime;
         float t = _pulseTimer / _pulseDuration;
@@ -133,7 +134,11 @@ public class DamageVignette : MonoBehaviour
         tex.SetPixels(pixels);
         tex.Apply();
 
-        return Sprite.Create(tex, new Rect(0, 0, TextureSize, TextureSize), new Vector2(0.5f, 0.5f));
+        return Sprite.Create(
+            tex,
+            new Rect(0, 0, TextureSize, TextureSize),
+            new Vector2(0.5f, 0.5f)
+        );
     }
 
     /// <summary>
@@ -144,7 +149,7 @@ public class DamageVignette : MonoBehaviour
     public void TriggerPulse(float intensity)
     {
         intensity = Mathf.Clamp01(intensity);
-        
+
         _targetAlpha = Mathf.Lerp(BaseAlpha, MaxAlpha, intensity);
         _pulseDuration = Mathf.Lerp(BaseDuration, MaxDuration, intensity);
         _pulseTimer = 0f;

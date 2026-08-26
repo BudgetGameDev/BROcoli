@@ -6,11 +6,10 @@ using Random = UnityEngine.Random;
 
 public class CloseObject : MonoBehaviour
 {
-
     public GameObject player;
     private float distance;
     private SpriteRenderer sprite;
-    
+
     // Start is called before the first frame update
     void Start()
     {
@@ -20,12 +19,11 @@ public class CloseObject : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-
         distance = Vector3.Distance(player.transform.position, gameObject.transform.position);
-        
+
         if (distance < 5f)
         {
-            Debug.Log("this is distance" +  distance);
+            Debug.Log("this is distance" + distance);
             sprite.color = Color.green;
         }
         else
@@ -33,5 +31,4 @@ public class CloseObject : MonoBehaviour
             sprite.color = Color.yellow;
         }
     }
-
 }

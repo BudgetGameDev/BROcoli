@@ -11,47 +11,58 @@ public class SwipeDetection : MonoBehaviour
         playerController = gameObject.GetComponent<PlayerController>();
     }
 
-    private void Awake() {
+    private void Awake()
+    {
         inputManager = InputManager.Instance;
     }
 
-    private void OnEnable() {
+    private void OnEnable()
+    {
         inputManager.OnUP += UP;
         inputManager.OnDOWN += DOWN;
         inputManager.OnLEFT += LEFT;
         inputManager.OnRIGHT += RIGHT;
     }
 
-    private void OnDisable() {
+    private void OnDisable()
+    {
         inputManager.OnUP -= UP;
         inputManager.OnDOWN -= DOWN;
         inputManager.OnLEFT -= LEFT;
         inputManager.OnRIGHT -= RIGHT;
     }
 
-    private void UP(float axis) {
-        if (axis == 1) {
+    private void UP(float axis)
+    {
+        if (axis == 1)
+        {
             Debug.Log("Keyboard UP");
-            //playerController.QueueMove(Direction.UP); 
+            //playerController.QueueMove(Direction.UP);
         }
     }
 
-    private void DOWN(float axis) {
-        if (axis == 1) {
+    private void DOWN(float axis)
+    {
+        if (axis == 1)
+        {
             Debug.Log("Keyboard DOWN");
             //playerController.QueueMove(Direction.DOWN);
         }
     }
 
-    private void LEFT(float axis) {
-        if (axis == 1) {
+    private void LEFT(float axis)
+    {
+        if (axis == 1)
+        {
             Debug.Log("Keyboard LEFT");
             //playerController.QueueMove(Direction.LEFT);
         }
     }
 
-    private void RIGHT(float axis) {
-        if (axis == 1) {
+    private void RIGHT(float axis)
+    {
+        if (axis == 1)
+        {
             Debug.Log("Keyboard RIGHT");
             //playerController.QueueMove(Direction.RIGHT);
         }

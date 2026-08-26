@@ -102,14 +102,14 @@ public sealed class AutoplayConfig
 {
     public bool Enabled;
     public int Seed = 12345;
-    public float Duration = 60f;        // game-seconds to simulate
-    public float Interval = 0.5f;       // game-seconds between samples/captures
+    public float Duration = 60f; // game-seconds to simulate
+    public float Interval = 0.5f; // game-seconds between samples/captures
     public string OutDir;
     public bool Deterministic = true;
-    public float Timestep = 1f / 60f;   // captureDeltaTime: game-seconds advanced per rendered frame
+    public float Timestep = 1f / 60f; // captureDeltaTime: game-seconds advanced per rendered frame
     public string Scenario = "survive"; // smoke | survive | progress
-    public int MinLevel = 2;            // pass threshold for the "progress" scenario
-    public string Sha = "";             // git SHA, for the run manifest
+    public int MinLevel = 2; // pass threshold for the "progress" scenario
+    public string Sha = ""; // git SHA, for the run manifest
 
     public static AutoplayConfig FromCommandLine()
     {
@@ -118,40 +118,66 @@ public sealed class AutoplayConfig
         bool enabled = EnvFlag("BROCOLI_AUTOPLAY");
         foreach (var arg in Environment.GetCommandLineArgs())
         {
-            if (arg == "--autoplay") enabled = true;
-            else if (arg == "--deterministic") cfg.Deterministic = true;
-            else if (arg == "--no-deterministic") cfg.Deterministic = false;
-            else if (arg.StartsWith("--seed=")) TryInt(arg.Substring(7), ref cfg.Seed);
-            else if (arg.StartsWith("--duration=")) TryFloat(arg.Substring(11), ref cfg.Duration);
-            else if (arg.StartsWith("--interval=")) TryFloat(arg.Substring(11), ref cfg.Interval);
-            else if (arg.StartsWith("--timestep=")) TryFloat(arg.Substring(11), ref cfg.Timestep);
-            else if (arg.StartsWith("--minlevel=")) TryInt(arg.Substring(11), ref cfg.MinLevel);
-            else if (arg.StartsWith("--out=")) cfg.OutDir = arg.Substring(6);
-            else if (arg.StartsWith("--scenario=")) cfg.Scenario = arg.Substring(11);
-            else if (arg.StartsWith("--sha=")) cfg.Sha = arg.Substring(6);
+            if (arg == "--autoplay")
+                enabled = true;
+            else if (arg == "--deterministic")
+                cfg.Deterministic = true;
+            else if (arg == "--no-deterministic")
+                cfg.Deterministic = false;
+            else if (arg.StartsWith("--seed="))
+                TryInt(arg.Substring(7), ref cfg.Seed);
+            else if (arg.StartsWith("--duration="))
+                TryFloat(arg.Substring(11), ref cfg.Duration);
+            else if (arg.StartsWith("--interval="))
+                TryFloat(arg.Substring(11), ref cfg.Interval);
+            else if (arg.StartsWith("--timestep="))
+                TryFloat(arg.Substring(11), ref cfg.Timestep);
+            else if (arg.StartsWith("--minlevel="))
+                TryInt(arg.Substring(11), ref cfg.MinLevel);
+            else if (arg.StartsWith("--out="))
+                cfg.OutDir = arg.Substring(6);
+            else if (arg.StartsWith("--scenario="))
+                cfg.Scenario = arg.Substring(11);
+            else if (arg.StartsWith("--sha="))
+                cfg.Sha = arg.Substring(6);
         }
         cfg.Enabled = enabled;
 
         // Environment variables act as fallbacks/overrides (convenient from a shell).
-        var s = Environment.GetEnvironmentVariable("BROCOLI_SEED"); if (!string.IsNullOrEmpty(s)) TryInt(s, ref cfg.Seed);
-        var d = Environment.GetEnvironmentVariable("BROCOLI_DURATION"); if (!string.IsNullOrEmpty(d)) TryFloat(d, ref cfg.Duration);
-        var i = Environment.GetEnvironmentVariable("BROCOLI_INTERVAL"); if (!string.IsNullOrEmpty(i)) TryFloat(i, ref cfg.Interval);
-        var ts = Environment.GetEnvironmentVariable("BROCOLI_TIMESTEP"); if (!string.IsNullOrEmpty(ts)) TryFloat(ts, ref cfg.Timestep);
-        var o = Environment.GetEnvironmentVariable("BROCOLI_OUT"); if (!string.IsNullOrEmpty(o)) cfg.OutDir = o;
-        var sc = Environment.GetEnvironmentVariable("BROCOLI_SCENARIO"); if (!string.IsNullOrEmpty(sc)) cfg.Scenario = sc;
+        var s = Environment.GetEnvironmentVariable("BROCOLI_SEED");
+        if (!string.IsNullOrEmpty(s))
+            TryInt(s, ref cfg.Seed);
+        var d = Environment.GetEnvironmentVariable("BROCOLI_DURATION");
+        if (!string.IsNullOrEmpty(d))
+            TryFloat(d, ref cfg.Duration);
+        var i = Environment.GetEnvironmentVariable("BROCOLI_INTERVAL");
+        if (!string.IsNullOrEmpty(i))
+            TryFloat(i, ref cfg.Interval);
+        var ts = Environment.GetEnvironmentVariable("BROCOLI_TIMESTEP");
+        if (!string.IsNullOrEmpty(ts))
+            TryFloat(ts, ref cfg.Timestep);
+        var o = Environment.GetEnvironmentVariable("BROCOLI_OUT");
+        if (!string.IsNullOrEmpty(o))
+            cfg.OutDir = o;
+        var sc = Environment.GetEnvironmentVariable("BROCOLI_SCENARIO");
+        if (!string.IsNullOrEmpty(sc))
+            cfg.Scenario = sc;
 
         if (string.IsNullOrEmpty(cfg.OutDir))
         {
-            cfg.OutDir = Path.Combine(Directory.GetCurrentDirectory(), "AutoplayRuns",
-                DateTime.Now.ToString("yyyyMMdd-HHmmss"));
+            cfg.OutDir = Path.Combine(
+                Directory.GetCurrentDirectory(),
+                "AutoplayRuns",
+                DateTime.Now.ToString("yyyyMMdd-HHmmss")
+            );
         }
 
         return cfg;
     }
 
     public override string ToString() =>
-        $"seed={Seed} duration={Duration}s interval={Interval}s timestep={Timestep:0.####} " +
-        $"deterministic={Deterministic} scenario={Scenario} sha={Sha} out={OutDir}";
+        $"seed={Seed} duration={Duration}s interval={Interval}s timestep={Timestep:0.####} "
+        + $"deterministic={Deterministic} scenario={Scenario} sha={Sha} out={OutDir}";
 
     private static bool EnvFlag(string name)
     {
@@ -161,11 +187,13 @@ public sealed class AutoplayConfig
 
     private static void TryInt(string raw, ref int target)
     {
-        if (int.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out var v)) target = v;
+        if (int.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out var v))
+            target = v;
     }
 
     private static void TryFloat(string raw, ref float target)
     {
-        if (float.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out var v)) target = v;
+        if (float.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out var v))
+            target = v;
     }
 }

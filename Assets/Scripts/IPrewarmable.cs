@@ -1,16 +1,16 @@
 /// <summary>
 /// Convention for systems that can be prewarmed/preloaded during game startup.
-/// 
+///
 /// Classes that generate runtime assets (procedural audio, materials, etc.)
 /// should implement a static PrewarmAll() method following this pattern:
-/// 
+///
 ///     public static void PrewarmAll()
 ///     {
 ///         // Pre-generate and cache assets here
 ///     }
-/// 
+///
 /// Then register the call in GamePreloader.WarmupAudio() or create a new warmup step.
-/// 
+///
 /// Current prewarmed systems:
 /// - ProceduralBoostAudio (9 boost pickup sounds)
 /// - ProceduralXPPickupAudio (XP pickup sound)

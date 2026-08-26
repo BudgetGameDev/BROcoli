@@ -7,15 +7,15 @@ using UnityEngine;
 public static class SpraySettings
 {
     // ==================== Base Stats ====================
-    public const float BaseSprayRange = 4.7f;          // Balanced range (+25% from 3.75)
-    public const float BaseSprayAngle = 28f;           // Wider cone angle (+25%)
-    public const float SpreadDelayPercent = 0.33f;     // Start spreading after 33% of lifetime
+    public const float BaseSprayRange = 4.7f; // Balanced range (+25% from 3.75)
+    public const float BaseSprayAngle = 28f; // Wider cone angle (+25%)
+    public const float SpreadDelayPercent = 0.33f; // Start spreading after 33% of lifetime
     public const float BaseDamagePerParticle = 0.55f;
-    public const float DamageTickRate = 0.08f;         // Five damage ticks during a standard burst
+    public const float DamageTickRate = 0.08f; // Five damage ticks during a standard burst
 
     // ==================== Burst Settings ====================
-    public const float BurstDuration = 0.4f;           // How long each spray burst lasts
-    public const float BurstCooldown = 0.1f;           // Minimum time between bursts
+    public const float BurstDuration = 0.4f; // How long each spray burst lasts
+    public const float BurstCooldown = 0.1f; // Minimum time between bursts
 
     // ==================== Visual Settings ====================
     public const float HandOffset = 0.7f;
@@ -26,9 +26,9 @@ public static class SpraySettings
     public const bool FlipHandWithDirection = true;
 
     // ==================== Hand Animation ====================
-    public const float HandRotationSpeed = 720f;       // Degrees per second
+    public const float HandRotationSpeed = 720f; // Degrees per second
     public const float AimDelayBeforeSpray = 0.08f;
-    public const bool ShowHandAlways = true;
+    public static readonly bool ShowHandAlways = true;
     public const float HandHoverAmplitude = 0.035f;
     public const float HandHoverSpeed = 3.2f;
     public const float HandWalkWobbleDegrees = 3.5f;
@@ -42,12 +42,12 @@ public static class SpraySettings
 
     // ==================== Particle Settings ====================
     public const float ParticleSpeedMultiplier = 2.5f;
-    public const float ParticleLifetimeBase = 0.5f;    // Shorter lifetime for fizzle effect
-    public const int EmissionRate = 25;                // Fewer particles
+    public const float ParticleLifetimeBase = 0.5f; // Shorter lifetime for fizzle effect
+    public const int EmissionRate = 25; // Fewer particles
     public const float NozzleOffset = 0.7f;
-    public const int MaxParticles = 150;              // Reduced max particles
-    public const float ParticleMinSize = 0.02f;        // Thin stripes
-    public const float ParticleMaxSize = 0.06f;        // Thin stripes
+    public const int MaxParticles = 150; // Reduced max particles
+    public const float ParticleMinSize = 0.02f; // Thin stripes
+    public const float ParticleMaxSize = 0.06f; // Thin stripes
 
     // ==================== Particle Shape ====================
     public const float ParticleShapeRadius = 0.08f;
@@ -59,7 +59,7 @@ public static class SpraySettings
     public const float NoiseScrollSpeed = 0.2f;
     public const float NoiseStrengthX = 0.1f;
     public const float NoiseStrengthY = 0.1f;
-    public const float NoiseStrengthZ = 0f;            // No Z noise - stay on plane
+    public const float NoiseStrengthZ = 0f; // No Z noise - stay on plane
 
     // Forward nozzle position shared by visuals, particles, and damage checks.
     public static readonly Vector3 NozzleLocalPos = new Vector3(0.22f, 0.02f, 0);
@@ -69,13 +69,13 @@ public static class SpraySettings
 
     // ==================== Detection ====================
     public const int HitBufferSize = 20;
-    public const float AngleToleranceForFiring = 5f;   // Degrees - tighter tolerance for accurate aiming
-    public const float MaxAimTime = 0.5f;              // Fire anyway after this long (reduced for responsiveness)
-    public const float MinTargetDistance = 0.5f;       // Don't spray at targets closer than this
+    public const float AngleToleranceForFiring = 5f; // Degrees - tighter tolerance for accurate aiming
+    public const float MaxAimTime = 0.5f; // Fire anyway after this long (reduced for responsiveness)
+    public const float MinTargetDistance = 0.5f; // Don't spray at targets closer than this
 
     // ==================== Dynamic Prediction ====================
-    public const float CloseRangeThreshold = 2.0f;     // Distance below which prediction is disabled, aim dead center
-    public const float PredictionReferenceSpeed = 4f;  // Enemy speed that gets full base prediction time
-    public const float BasePredictionTime = 0.15f;     // Prediction time at reference speed
-    public const float MaxPredictionTime = 0.25f;      // Cap on lead time for very fast enemies
+    public const float CloseRangeThreshold = 2.0f; // Distance below which prediction is disabled, aim dead center
+    public const float PredictionReferenceSpeed = 4f; // Enemy speed that gets full base prediction time
+    public const float BasePredictionTime = 0.15f; // Prediction time at reference speed
+    public const float MaxPredictionTime = 0.25f; // Cap on lead time for very fast enemies
 }

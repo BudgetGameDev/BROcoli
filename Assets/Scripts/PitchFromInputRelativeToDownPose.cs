@@ -13,6 +13,7 @@ public class PitchFromInputRelativeToDownPose : MonoBehaviour
     [Header("Pitch setup")]
     [Tooltip("Neutral X rotation when not moving")]
     private float neutralPitch = 0f;
+
     [Tooltip("Max tilt angle when moving toward movement direction")]
     private float tiltAmount = 20f;
     private float smooth = 12f;
@@ -21,7 +22,8 @@ public class PitchFromInputRelativeToDownPose : MonoBehaviour
 
     void LateUpdate()
     {
-        if (!controller) return;
+        if (!controller)
+            return;
 
         // Get movement magnitude from hop visual if available
         float forwardAmount = 0f;
@@ -34,7 +36,8 @@ public class PitchFromInputRelativeToDownPose : MonoBehaviour
         else
         {
             Vector2 dir = controller.movement;
-            if (dir.sqrMagnitude > 1f) dir.Normalize();
+            if (dir.sqrMagnitude > 1f)
+                dir.Normalize();
             forwardAmount = dir.magnitude;
         }
 

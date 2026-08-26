@@ -7,17 +7,21 @@ public class EnemyProjectile : MonoBehaviour
     public float damage = 10f;
     public float speed = 10f;
     public float lifeTime = 5f;
-    
+
     [Header("Fizzle Effect")]
-    [SerializeField] private float fizzleStartTime = 3f;  // When to start fizzling (seconds before death)
-    [SerializeField] private Transform visualTransform;    // The 3D model to scale during fizzle
-    [SerializeField] private float spinSpeed = 180f;       // Rotation speed in degrees/second
+    [SerializeField]
+    private float fizzleStartTime = 3f; // When to start fizzling (seconds before death)
+
+    [SerializeField]
+    private Transform visualTransform; // The 3D model to scale during fizzle
+
+    [SerializeField]
+    private float spinSpeed = 180f; // Rotation speed in degrees/second
 
     private Rigidbody2D rb;
     private Collider2D col;
     private float spawnTime;
     private Vector3 initialScale;
-    private bool isFizzling;
     private Vector2 travelDirection;
 
     void Awake()
@@ -28,7 +32,7 @@ public class EnemyProjectile : MonoBehaviour
         rb.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
 
         col.isTrigger = true;
-        
+
         if (visualTransform != null)
             initialScale = visualTransform.localScale;
     }
@@ -38,14 +42,14 @@ public class EnemyProjectile : MonoBehaviour
         travelDirection = direction.normalized;
         rb.linearVelocity = travelDirection * speed * PlayerStats.ActiveEnemyTimeScale;
         spawnTime = Time.time;
-        
+
         // Capture initial scale if not already done
         if (visualTransform != null && initialScale == Vector3.zero)
             initialScale = visualTransform.localScale;
-            
+
         Destroy(gameObject, lifeTime);
     }
-    
+
     void Update()
     {
         if (rb != null && travelDirection != Vector2.zero)
@@ -63,14 +67,13 @@ public class EnemyProjectile : MonoBehaviour
                 Space.Self
             );
         }
-        
+
         // Fizzle out effect - shrink towards end of life
         float timeAlive = Time.time - spawnTime;
         float fizzleThreshold = lifeTime - fizzleStartTime;
-        
+
         if (timeAlive > fizzleThreshold && visualTransform != null)
         {
-            isFizzling = true;
             float fizzleProgress = (timeAlive - fizzleThreshold) / fizzleStartTime;
             float scale = Mathf.Lerp(1f, 0f, fizzleProgress);
             visualTransform.localScale = initialScale * scale;
@@ -85,10 +88,14 @@ public class EnemyProjectile : MonoBehaviour
             PlayerStats stats = other.GetComponentInChildren<PlayerStats>();
 
             stats.ApplyDamage(damage);
-            
+
             // Play enemy projectile hit sound
-            ProceduralEnemyProjectileHitAudio.PlayHit(transform.position, ProceduralEnemyProjectileHitAudio.EnemyHitSoundType.PlasmaImpact, 0.45f);
-            
+            ProceduralEnemyProjectileHitAudio.PlayHit(
+                transform.position,
+                ProceduralEnemyProjectileHitAudio.EnemyHitSoundType.PlasmaImpact,
+                0.45f
+            );
+
             Destroy(gameObject);
         }
         // Destroy on hitting walls/obstacles (but not other enemies)

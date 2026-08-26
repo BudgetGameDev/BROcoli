@@ -180,13 +180,15 @@ public sealed class SprayWeaponVisual3D : MonoBehaviour
         if (Materials.TryGetValue(key, out Material material) && material != null)
             return material;
 
-        Shader shader = Shader.Find("Universal Render Pipeline/Lit") ??
-            Shader.Find("Standard") ?? Shader.Find("Sprites/Default");
+        Shader shader =
+            Shader.Find("Universal Render Pipeline/Lit")
+            ?? Shader.Find("Standard")
+            ?? Shader.Find("Sprites/Default");
         material = new Material(shader)
         {
             name = name,
             color = color,
-            enableInstancing = true
+            enableInstancing = true,
         };
         if (material.HasProperty("_BaseColor"))
             material.SetColor("_BaseColor", color);

@@ -1,19 +1,22 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.UI;
-using UnityEngine.SceneManagement;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
+using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 public class GameOverScreen : MonoBehaviour
 {
     private bool open;
-    
+
     [Header("Menu Buttons")]
-    [SerializeField] private Button restartButton;
-    [SerializeField] private Button mainMenuButton;
-    
+    [SerializeField]
+    private Button restartButton;
+
+    [SerializeField]
+    private Button mainMenuButton;
+
     // Controller navigation
     private Button[] menuButtons;
     private int selectedIndex = 0;
@@ -21,27 +24,29 @@ public class GameOverScreen : MonoBehaviour
     private const float NavRepeatDelay = 0.25f;
     private Outline[] buttonOutlines;
     private Vector3[] originalScales;
-    
-    public bool getOpen() {
+
+    public bool getOpen()
+    {
         return open;
     }
 
-    public void Start() {
+    public void Start()
+    {
         open = false;
     }
-    
+
     public void Setup()
     {
         open = true;
         gameObject.SetActive(true);
-        
+
         // Reset selection to restart button
         selectedIndex = 0;
-        
+
         // Setup controller navigation
         SetupControllerNavigation();
     }
-    
+
     private void SetupControllerNavigation()
     {
         // Find buttons if not assigned
@@ -51,30 +56,42 @@ public class GameOverScreen : MonoBehaviour
             foreach (var btn in allButtons)
             {
                 string name = btn.gameObject.name.ToLower();
-                if (name.Contains("restart") || name.Contains("retry") || name.Contains("endurbyrja"))
+                if (
+                    name.Contains("restart")
+                    || name.Contains("retry")
+                    || name.Contains("endurbyrja")
+                )
                 {
                     restartButton = btn;
                 }
-                else if (name.Contains("main") || name.Contains("menu") || name.Contains("enda") || name.Contains("exit"))
+                else if (
+                    name.Contains("main")
+                    || name.Contains("menu")
+                    || name.Contains("enda")
+                    || name.Contains("exit")
+                )
                 {
                     mainMenuButton = btn;
                 }
             }
         }
-        
+
         // Build button array
         var buttonList = new List<Button>();
-        if (restartButton != null) buttonList.Add(restartButton);
-        if (mainMenuButton != null) buttonList.Add(mainMenuButton);
+        if (restartButton != null)
+            buttonList.Add(restartButton);
+        if (mainMenuButton != null)
+            buttonList.Add(mainMenuButton);
         menuButtons = buttonList.ToArray();
-        
+
         buttonOutlines = new Outline[menuButtons.Length];
         originalScales = new Vector3[menuButtons.Length];
-        
+
         for (int i = 0; i < menuButtons.Length; i++)
         {
-            if (menuButtons[i] == null) continue;
-            
+            if (menuButtons[i] == null)
+                continue;
+
             // Connect click handlers
             if (menuButtons[i] == restartButton)
             {
@@ -86,13 +103,13 @@ public class GameOverScreen : MonoBehaviour
                 menuButtons[i].onClick.RemoveAllListeners();
                 menuButtons[i].onClick.AddListener(Enda);
             }
-            
+
             RectTransform rt = menuButtons[i].GetComponent<RectTransform>();
             if (rt != null)
             {
                 originalScales[i] = rt.localScale;
             }
-            
+
             // Add outline
             Outline outline = menuButtons[i].GetComponent<Outline>();
             if (outline == null)
@@ -103,7 +120,7 @@ public class GameOverScreen : MonoBehaviour
             outline.effectDistance = new Vector2(6f, 6f);
             outline.enabled = false;
             buttonOutlines[i] = outline;
-            
+
             // Setup hover
             int index = i;
             EventTrigger trigger = menuButtons[i].GetComponent<EventTrigger>();
@@ -111,18 +128,18 @@ public class GameOverScreen : MonoBehaviour
             {
                 trigger = menuButtons[i].gameObject.AddComponent<EventTrigger>();
             }
-            
+
             var enterEntry = new EventTrigger.Entry { eventID = EventTriggerType.PointerEnter };
             enterEntry.callback.AddListener((data) => SelectButton(index));
             trigger.triggers.Add(enterEntry);
         }
-        
+
         // Select restart button by default (index 0)
         if (menuButtons.Length > 0)
         {
             selectedIndex = 0;
             SelectButton(0);
-            
+
             // Force focus for controller
             if (EventSystem.current != null && menuButtons[0] != null)
             {
@@ -130,19 +147,20 @@ public class GameOverScreen : MonoBehaviour
             }
         }
     }
-    
+
     private void SelectButton(int index)
     {
-        if (menuButtons == null || index < 0 || index >= menuButtons.Length) return;
-        
+        if (menuButtons == null || index < 0 || index >= menuButtons.Length)
+            return;
+
         // Play hover sound if index changed
         if (index != selectedIndex)
         {
             ProceduralUIAudio.PlayHover();
         }
-        
+
         selectedIndex = index;
-        
+
         if (EventSystem.current != null && menuButtons[index] != null)
         {
             EventSystem.current.SetSelectedGameObject(menuButtons[index].gameObject);
@@ -163,41 +181,59 @@ public class GameOverScreen : MonoBehaviour
         SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex - 1);
     }
 
-    public void Update() {
-        if (!open) return;
-        
+    public void Update()
+    {
+        if (!open)
+            return;
+
         // Handle controller navigation
         HandleControllerNavigation();
         UpdateSelectionVisuals();
     }
-    
+
     private void HandleControllerNavigation()
     {
-        if (menuButtons == null || menuButtons.Length == 0) return;
-        
+        if (menuButtons == null || menuButtons.Length == 0)
+            return;
+
         // Rate limit
-        if (Time.unscaledTime - lastNavTime < NavRepeatDelay) return;
-        
+        if (Time.unscaledTime - lastNavTime < NavRepeatDelay)
+            return;
+
         float nav = 0f;
-        
+
         // Keyboard - support both horizontal and vertical
-        if (Input.GetKey(KeyCode.UpArrow) || Input.GetKey(KeyCode.W) || 
-            Input.GetKey(KeyCode.LeftArrow) || Input.GetKey(KeyCode.A)) nav = -1f;
-        else if (Input.GetKey(KeyCode.DownArrow) || Input.GetKey(KeyCode.S) ||
-                 Input.GetKey(KeyCode.RightArrow) || Input.GetKey(KeyCode.D)) nav = 1f;
-        
+        if (
+            Input.GetKey(KeyCode.UpArrow)
+            || Input.GetKey(KeyCode.W)
+            || Input.GetKey(KeyCode.LeftArrow)
+            || Input.GetKey(KeyCode.A)
+        )
+            nav = -1f;
+        else if (
+            Input.GetKey(KeyCode.DownArrow)
+            || Input.GetKey(KeyCode.S)
+            || Input.GetKey(KeyCode.RightArrow)
+            || Input.GetKey(KeyCode.D)
+        )
+            nav = 1f;
+
         // Gamepad
         if (Gamepad.current != null)
         {
             Vector2 dpad = Gamepad.current.dpad.ReadValue();
             Vector2 stick = Gamepad.current.leftStick.ReadValue();
-            
-            if (Mathf.Abs(dpad.y) > 0.5f) nav = -Mathf.Sign(dpad.y);
-            else if (Mathf.Abs(dpad.x) > 0.5f) nav = Mathf.Sign(dpad.x);
-            else if (Mathf.Abs(stick.y) > 0.5f) nav = -Mathf.Sign(stick.y);
-            else if (Mathf.Abs(stick.x) > 0.5f) nav = Mathf.Sign(stick.x);
+
+            if (Mathf.Abs(dpad.y) > 0.5f)
+                nav = -Mathf.Sign(dpad.y);
+            else if (Mathf.Abs(dpad.x) > 0.5f)
+                nav = Mathf.Sign(dpad.x);
+            else if (Mathf.Abs(stick.y) > 0.5f)
+                nav = -Mathf.Sign(stick.y);
+            else if (Mathf.Abs(stick.x) > 0.5f)
+                nav = Mathf.Sign(stick.x);
         }
-        
+
         // Navigate
         if (Mathf.Abs(nav) > 0.1f)
         {
@@ -206,15 +242,20 @@ public class GameOverScreen : MonoBehaviour
             selectedIndex = Mathf.Clamp(selectedIndex + direction, 0, menuButtons.Length - 1);
             SelectButton(selectedIndex);
         }
-        
+
         // Submit with Enter/Space/Gamepad A
         bool submit = Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.Space);
         if (Gamepad.current != null && Gamepad.current.buttonSouth.wasPressedThisFrame)
         {
             submit = true;
         }
-        
-        if (submit && menuButtons != null && selectedIndex >= 0 && selectedIndex < menuButtons.Length)
+
+        if (
+            submit
+            && menuButtons != null
+            && selectedIndex >= 0
+            && selectedIndex < menuButtons.Length
+        )
         {
             Button btn = menuButtons[selectedIndex];
             if (btn != null && btn.interactable)
@@ -235,23 +276,25 @@ public class GameOverScreen : MonoBehaviour
             }
         }
     }
-    
+
     private void UpdateSelectionVisuals()
     {
-        if (menuButtons == null || buttonOutlines == null) return;
-        
+        if (menuButtons == null || buttonOutlines == null)
+            return;
+
         for (int i = 0; i < menuButtons.Length; i++)
         {
-            if (menuButtons[i] == null) continue;
-            
+            if (menuButtons[i] == null)
+                continue;
+
             bool isSelected = (i == selectedIndex);
-            
+
             // Update outline
             if (buttonOutlines != null && i < buttonOutlines.Length && buttonOutlines[i] != null)
             {
                 buttonOutlines[i].enabled = isSelected;
             }
-            
+
             // Animate scale
             if (originalScales != null && i < originalScales.Length)
             {
@@ -260,7 +303,11 @@ public class GameOverScreen : MonoBehaviour
                 {
                     float targetScale = isSelected ? 1.1f : 1f;
                     Vector3 target = originalScales[i] * targetScale;
-                    rt.localScale = Vector3.Lerp(rt.localScale, target, Time.unscaledDeltaTime * 12f);
+                    rt.localScale = Vector3.Lerp(
+                        rt.localScale,
+                        target,
+                        Time.unscaledDeltaTime * 12f
+                    );
                 }
             }
         }

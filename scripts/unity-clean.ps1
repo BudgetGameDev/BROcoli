@@ -56,10 +56,6 @@ if (Test-Path $LibraryPath) {
 if (Test-Path $TempPath) {
     Write-Host "   - Temp\"
 }
-$PackagesLock = Join-Path $ProjectPath "Packages\packages-lock.json"
-if (Test-Path $PackagesLock) {
-    Write-Host "   - Packages\packages-lock.json"
-}
 Write-Host ""
 
 # Confirm with user (unless -Force flag)
@@ -87,10 +83,6 @@ try {
         Remove-Item -Recurse -Force "Temp"
         Write-Host "   ✓ Deleted Temp\" -ForegroundColor Green
     }
-    if (Test-Path "Packages\packages-lock.json") {
-        Remove-Item -Force "Packages\packages-lock.json"
-        Write-Host "   ✓ Deleted packages-lock.json" -ForegroundColor Green
-    }
 } finally {
     Pop-Location
 }
@@ -101,3 +93,4 @@ Write-Host ""
 Write-Host "Next steps:"
 Write-Host "  1. Run: .\scripts\unity-build-check.ps1"
 Write-Host "  2. First rebuild will take 2-5 minutes (downloading packages)"
+Write-Host "  3. Packages\packages-lock.json was preserved for reproducible resolution"

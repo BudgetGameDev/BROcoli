@@ -1,8 +1,8 @@
-using UnityEngine;
-using UnityEngine.UI;
 using TMPro;
+using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
+using UnityEngine.UI;
 
 /// <summary>
 /// Displays a level up screen with 3 upgrade choices.
@@ -12,30 +12,55 @@ using UnityEngine.InputSystem;
 public class LevelUpScreen : MonoBehaviour
 {
     [Header("UI References")]
-    [SerializeField] private GameObject levelUpPanel;
-    [SerializeField] private TextMeshProUGUI levelText;
-    
+    [SerializeField]
+    private GameObject levelUpPanel;
+
+    [SerializeField]
+    private TextMeshProUGUI levelText;
+
     [Header("Choice Buttons")]
-    [SerializeField] private Button[] choiceButtons = new Button[3];
-    [SerializeField] private TextMeshProUGUI[] choiceRarityTexts = new TextMeshProUGUI[3];
-    [SerializeField] private TextMeshProUGUI[] choiceNameTexts = new TextMeshProUGUI[3];
-    [SerializeField] private TextMeshProUGUI[] choiceDescTexts = new TextMeshProUGUI[3];
-    [SerializeField] private Image[] choiceBackgrounds = new Image[3];
+    [SerializeField]
+    private Button[] choiceButtons = new Button[3];
+
+    [SerializeField]
+    private TextMeshProUGUI[] choiceRarityTexts = new TextMeshProUGUI[3];
+
+    [SerializeField]
+    private TextMeshProUGUI[] choiceNameTexts = new TextMeshProUGUI[3];
+
+    [SerializeField]
+    private TextMeshProUGUI[] choiceDescTexts = new TextMeshProUGUI[3];
+
+    [SerializeField]
+    private Image[] choiceBackgrounds = new Image[3];
 
     [Header("Confirmation")]
     [Tooltip("Optional scene-wired button. A styled confirmation button is created when omitted.")]
-    [SerializeField] private Button confirmButton;
-    [SerializeField] private TextMeshProUGUI confirmButtonText;
-    
+    [SerializeField]
+    private Button confirmButton;
+
+    [SerializeField]
+    private TextMeshProUGUI confirmButtonText;
+
     [Header("Selection Visuals")]
-    [SerializeField] private Color selectedBorderColor = new Color(1f, 0.9f, 0.2f, 1f);
-    [SerializeField] private float selectedBorderWidth = 8f;
-    [SerializeField] private float selectedScale = 1.1f;
-    [SerializeField] private float normalScale = 1f;
-    [SerializeField] private float scaleAnimSpeed = 15f;
+    [SerializeField]
+    private Color selectedBorderColor = new Color(1f, 0.9f, 0.2f, 1f);
+
+    [SerializeField]
+    private float selectedBorderWidth = 8f;
+
+    [SerializeField]
+    private float selectedScale = 1.1f;
+
+    [SerializeField]
+    private float normalScale = 1f;
+
+    [SerializeField]
+    private float scaleAnimSpeed = 15f;
 
     [Header("Audio")]
-    [SerializeField] private ProceduralLevelUpAudio levelUpAudio;
+    [SerializeField]
+    private ProceduralLevelUpAudio levelUpAudio;
 
     private bool isShowing = false;
     private UpgradeOption[] currentOptions = new UpgradeOption[3];
@@ -44,7 +69,7 @@ public class LevelUpScreen : MonoBehaviour
     private bool hasPendingSelection;
     private float lastNavTime = 0f;
     private const float NavRepeatDelay = 0.2f;
-    
+
     // Visual components
     private Outline[] buttonOutlines = new Outline[3];
     private Vector3[] originalScales = new Vector3[3];
@@ -83,14 +108,16 @@ public class LevelUpScreen : MonoBehaviour
             return;
         }
 
-        if (levelUpPanel == null) return;
+        if (levelUpPanel == null)
+            return;
 
         GameObject buttonObject = new GameObject(
             "ConfirmUpgradeButton",
             typeof(RectTransform),
             typeof(CanvasRenderer),
             typeof(Image),
-            typeof(Button));
+            typeof(Button)
+        );
         buttonObject.transform.SetParent(levelUpPanel.transform, false);
 
         RectTransform buttonRect = buttonObject.GetComponent<RectTransform>();
@@ -119,7 +146,8 @@ public class LevelUpScreen : MonoBehaviour
             "Label",
             typeof(RectTransform),
             typeof(CanvasRenderer),
-            typeof(TextMeshProUGUI));
+            typeof(TextMeshProUGUI)
+        );
         labelObject.transform.SetParent(buttonObject.transform, false);
         RectTransform labelRect = labelObject.GetComponent<RectTransform>();
         labelRect.anchorMin = Vector2.zero;
@@ -136,19 +164,20 @@ public class LevelUpScreen : MonoBehaviour
 
         buttonObject.transform.SetAsLastSibling();
     }
-    
+
     private void SetupSelectionVisuals()
     {
         for (int i = 0; i < choiceButtons.Length; i++)
         {
-            if (choiceButtons[i] == null) continue;
-            
+            if (choiceButtons[i] == null)
+                continue;
+
             RectTransform rt = choiceButtons[i].GetComponent<RectTransform>();
             if (rt != null)
             {
                 originalScales[i] = rt.localScale;
             }
-            
+
             // Add outline for selection border
             Outline outline = choiceButtons[i].GetComponent<Outline>();
             if (outline == null)
@@ -159,7 +188,7 @@ public class LevelUpScreen : MonoBehaviour
             outline.effectDistance = new Vector2(selectedBorderWidth, selectedBorderWidth);
             outline.enabled = false;
             buttonOutlines[i] = outline;
-            
+
             // Setup hover events
             int index = i;
             EventTrigger trigger = choiceButtons[i].GetComponent<EventTrigger>();
@@ -167,15 +196,14 @@ public class LevelUpScreen : MonoBehaviour
             {
                 trigger = choiceButtons[i].gameObject.AddComponent<EventTrigger>();
             }
-            
+
             // Clear existing triggers
             trigger.triggers.Clear();
-            
+
             // Pointer enter
             var enterEntry = new EventTrigger.Entry { eventID = EventTriggerType.PointerEnter };
             enterEntry.callback.AddListener((data) => SetSelectedIndex(index));
             trigger.triggers.Add(enterEntry);
-            
         }
     }
 
@@ -226,7 +254,7 @@ public class LevelUpScreen : MonoBehaviour
         {
             // 25% chance for troll upgrade on each slot, higher at higher levels
             float trollChance = Mathf.Min(0.15f + newLevel * 0.02f, 0.35f);
-            
+
             if (Random.value < trollChance)
             {
                 currentOptions[i] = UpgradeOption.GenerateTrollUpgrade(newLevel);
@@ -254,10 +282,11 @@ public class LevelUpScreen : MonoBehaviour
 
     private void UpdateChoiceUI(int index, UpgradeOption option)
     {
-        if (index < 0 || index >= 3) return;
+        if (index < 0 || index >= 3)
+            return;
 
         Color rarityColor = option.GetRarityColor();
-        
+
         // Troll upgrades get a special yellow/orange tint
         if (option.IsTrollUpgrade)
         {
@@ -311,12 +340,16 @@ public class LevelUpScreen : MonoBehaviour
 
     /// <summary>Autoplay/E2E hook: read an offered option so a bot can score/choose it.</summary>
     public UpgradeOption GetOption(int index) =>
-        (currentOptions != null && index >= 0 && index < currentOptions.Length) ? currentOptions[index] : null;
+        (currentOptions != null && index >= 0 && index < currentOptions.Length)
+            ? currentOptions[index]
+            : null;
 
     private void ChooseUpgrade(int index)
     {
-        if (index < 0 || index >= currentOptions.Length) return;
-        if (currentOptions[index] == null) return;
+        if (index < 0 || index >= currentOptions.Length)
+            return;
+        if (currentOptions[index] == null)
+            return;
 
         SetSelectedIndex(index);
         hasPendingSelection = true;
@@ -325,15 +358,19 @@ public class LevelUpScreen : MonoBehaviour
 
     private void ConfirmSelectedUpgrade()
     {
-        if (!hasPendingSelection) return;
+        if (!hasPendingSelection)
+            return;
         ApplyUpgrade(selectedIndex);
     }
 
     private void ApplyUpgrade(int index)
     {
-        if (index < 0 || index >= currentOptions.Length) return;
-        if (currentOptions[index] == null) return;
-        if (playerStats == null) return;
+        if (index < 0 || index >= currentOptions.Length)
+            return;
+        if (currentOptions[index] == null)
+            return;
+        if (playerStats == null)
+            return;
 
         // Use hyped sound for level-up stat selection!
         ProceduralUIAudio.PlayLevelUpSelect();
@@ -356,15 +393,17 @@ public class LevelUpScreen : MonoBehaviour
     }
 
     public bool IsShowing() => isShowing;
+
     public bool HasPendingSelection => hasPendingSelection;
 
     void Update()
     {
-        if (!isShowing) return;
+        if (!isShowing)
+            return;
 
         // Handle gamepad/keyboard navigation
         HandleControllerNavigation();
-        
+
         // Keyboard number shortcuts
         if (Input.GetKeyDown(KeyCode.Alpha1) || Input.GetKeyDown(KeyCode.Keypad1))
         {
@@ -378,32 +417,37 @@ public class LevelUpScreen : MonoBehaviour
         {
             ChooseUpgrade(2);
         }
-        
+
         // Update selection visuals
         UpdateSelectionVisuals();
     }
-    
+
     private void HandleControllerNavigation()
     {
         // Rate limit navigation
-        if (Time.unscaledTime - lastNavTime < NavRepeatDelay) return;
-        
+        if (Time.unscaledTime - lastNavTime < NavRepeatDelay)
+            return;
+
         float horizontal = 0f;
-        
+
         // Keyboard arrows
-        if (Input.GetKey(KeyCode.LeftArrow) || Input.GetKey(KeyCode.A)) horizontal = -1f;
-        else if (Input.GetKey(KeyCode.RightArrow) || Input.GetKey(KeyCode.D)) horizontal = 1f;
-        
+        if (Input.GetKey(KeyCode.LeftArrow) || Input.GetKey(KeyCode.A))
+            horizontal = -1f;
+        else if (Input.GetKey(KeyCode.RightArrow) || Input.GetKey(KeyCode.D))
+            horizontal = 1f;
+
         // Gamepad
         if (Gamepad.current != null)
         {
             Vector2 dpad = Gamepad.current.dpad.ReadValue();
             Vector2 stick = Gamepad.current.leftStick.ReadValue();
-            
-            if (Mathf.Abs(dpad.x) > 0.5f) horizontal = Mathf.Sign(dpad.x);
-            else if (Mathf.Abs(stick.x) > 0.5f) horizontal = Mathf.Sign(stick.x);
+
+            if (Mathf.Abs(dpad.x) > 0.5f)
+                horizontal = Mathf.Sign(dpad.x);
+            else if (Mathf.Abs(stick.x) > 0.5f)
+                horizontal = Mathf.Sign(stick.x);
         }
-        
+
         // Navigate
         if (Mathf.Abs(horizontal) > 0.1f)
         {
@@ -412,14 +456,14 @@ public class LevelUpScreen : MonoBehaviour
             newIndex = Mathf.Clamp(newIndex, 0, 2);
             SetSelectedIndex(newIndex);
         }
-        
+
         // Submit with Enter/Space/Gamepad A
         bool submit = Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.Space);
         if (Gamepad.current != null && Gamepad.current.buttonSouth.wasPressedThisFrame)
         {
             submit = true;
         }
-        
+
         if (submit)
         {
             if (hasPendingSelection)
@@ -431,10 +475,12 @@ public class LevelUpScreen : MonoBehaviour
 
     private void UpdateConfirmButton()
     {
-        if (confirmButton == null) return;
+        if (confirmButton == null)
+            return;
 
         confirmButton.interactable = hasPendingSelection && isShowing;
-        if (confirmButtonText == null) return;
+        if (confirmButtonText == null)
+            return;
 
         if (!hasPendingSelection || currentOptions[selectedIndex] == null)
         {
@@ -442,21 +488,23 @@ public class LevelUpScreen : MonoBehaviour
             return;
         }
 
-        confirmButtonText.text = $"CONFIRM {currentOptions[selectedIndex].DisplayName.ToUpperInvariant()}";
+        confirmButtonText.text =
+            $"CONFIRM {currentOptions[selectedIndex].DisplayName.ToUpperInvariant()}";
     }
-    
+
     private void SetSelectedIndex(int index)
     {
-        if (index < 0 || index > 2) return;
-        
+        if (index < 0 || index > 2)
+            return;
+
         // Play hover sound if index changed
         if (index != selectedIndex)
         {
             ProceduralUIAudio.PlayHover();
         }
-        
+
         selectedIndex = index;
-        
+
         // Update EventSystem selection
         if (choiceButtons[selectedIndex] != null && EventSystem.current != null)
         {
@@ -466,28 +514,33 @@ public class LevelUpScreen : MonoBehaviour
         if (hasPendingSelection)
             UpdateConfirmButton();
     }
-    
+
     private void UpdateSelectionVisuals()
     {
         for (int i = 0; i < choiceButtons.Length; i++)
         {
-            if (choiceButtons[i] == null) continue;
-            
+            if (choiceButtons[i] == null)
+                continue;
+
             bool isSelected = (i == selectedIndex);
-            
+
             // Update outline
             if (buttonOutlines[i] != null)
             {
                 buttonOutlines[i].enabled = isSelected;
             }
-            
+
             // Animate scale
             RectTransform rt = choiceButtons[i].GetComponent<RectTransform>();
             if (rt != null && i < originalScales.Length)
             {
                 float targetScale = isSelected ? selectedScale : normalScale;
                 Vector3 target = originalScales[i] * targetScale;
-                rt.localScale = Vector3.Lerp(rt.localScale, target, Time.unscaledDeltaTime * scaleAnimSpeed);
+                rt.localScale = Vector3.Lerp(
+                    rt.localScale,
+                    target,
+                    Time.unscaledDeltaTime * scaleAnimSpeed
+                );
             }
         }
     }
@@ -504,7 +557,10 @@ public class LevelUpScreen : MonoBehaviour
 
         if (eventSystem == null)
         {
-            var allES = FindObjectsByType<EventSystem>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            var allES = FindObjectsByType<EventSystem>(
+                FindObjectsInactive.Include,
+                FindObjectsSortMode.None
+            );
             if (allES.Length > 0)
             {
                 eventSystem = allES[0];

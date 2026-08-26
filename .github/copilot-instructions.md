@@ -84,55 +84,76 @@ Procedural audio components prefixed with `Procedural*Audio` (e.g., `ProceduralG
 
 ## Build Verification (CRITICAL - Before Completing Any Task)
 
-**The agent MUST verify builds succeed before marking any coding task complete.**
+**The agent MUST complete the required verification before marking any coding task complete.**
 
 ### Verification Tiers (Choose Based on Change Complexity)
 
-| Change Type | Verification Required | Time |
-|-------------|----------------------|------|
-| **Trivial** (comments, formatting, docs) | None | 0s |
-| **Simple** (single file logic change) | `dotnet build unity-2.slnx` | ~3s |
-| **Moderate** (multiple files, new classes) | `dotnet build unity-2.slnx` | ~3s |
-| **Complex** (Unity APIs, scenes, prefabs) | `./scripts/unity-build-check.sh` | ~30s |
-| **Integration** (new packages, assets) | `./scripts/unity-build-check.sh` | ~30s |
+| Change Type | Verification Required |
+|-------------|----------------------|
+| **Trivial** (comments, formatting, docs) | None |
+| **C# code** (including single-file logic changes) | `./ci.sh` |
+| **Unity content** (scenes, prefabs, shaders, settings) | `./ci.sh` plus the relevant runtime or visual check |
+| **Integration** (new packages, assets, build configuration) | `./ci.sh` plus a real target build or focused integration check |
 
-### Quick Verification Commands
+### Authoritative Compilation Check
 
-**For most code changes** (fast, catches 90% of errors):
+Use the unified repository gate for all non-trivial source changes:
+
 ```bash
-dotnet build unity-2.slnx
-```
-*Note: Requires `Library/` folder to exist. If this fails with package errors, run `./scripts/unity-build-check.sh` first.*
-
-**For Unity-specific changes** (scenes, prefabs, Input System, URP):
-```bash
-./scripts/unity-build-check.sh
+./ci.sh
 ```
 
-### When `dotnet build` Works vs Doesn't
+From Windows, run the unified gate in Git Bash. For a standalone PowerShell
+compilation check only, use:
 
-`dotnet build unity-2.slnx` **DOES catch:**
-- Syntax errors
-- Missing semicolons, braces
-- Type mismatches
-- Missing `using` statements for standard C#
-- Method signature errors
-- Most compile-time errors in YOUR code
+```powershell
+.\scripts\unity-build-check.ps1
+```
 
-`dotnet build unity-2.slnx` **DOES NOT catch:**
-- Missing Unity package references (InputSystem, URP, etc.)
-- Scene/prefab reference errors
-- Unity-specific API availability
-- Asset import errors
+The gate performs formatting, lint, static analysis, source-size checks, and Unity
+compilation. It recompiles through a connected Editor for this project when one is
+available; otherwise the batch checker opens the editor with the WebGL target. The
+compilation scripts read the required editor version from
+`ProjectSettings/ProjectVersion.txt`. The check resolves packages, imports assets,
+and compiles scripts, but does not produce a deployable WebGL player; the GitHub
+Actions workflow performs the full WebGL build.
 
-**Rule of thumb:** If you touched anything Unity-specific (scenes, Input System, shaders, URP), use the full Unity build check.
+All new first-party source files are limited to 300 physical lines. The legacy
+ceilings in `.quality/loc-baseline.tsv` may only decrease and must be removed as
+files are reduced to 300 lines or fewer.
+
+### Why `dotnet build` Is Not a Repository Verification Step
+
+Unity generates `Assembly-CSharp.csproj` and `Assembly-CSharp-Editor.csproj` locally.
+They are intentionally gitignored, are absent from a fresh clone, and may contain
+machine-specific references into `Library/PackageCache`. The checked-in `.slnx`
+files are therefore IDE conveniences only after Unity has generated current project
+files.
+
+`Packages/manifest.json` declares direct dependencies and the tracked
+`Packages/packages-lock.json` pins the resolved graph. That pair, verified by Unity
+compilation and the player build, is the package-compatibility contract. Preserve the
+lockfile during cache cleanup; regenerating it is a dependency change, not routine
+troubleshooting.
+
+Running `dotnet build` can still be useful as optional local editor feedback when
+those generated files are current, but it is not reproducible from a clean checkout,
+does not validate Unity asset import or serialization, and must never replace the
+Unity compilation check above.
+
+### Full WebGL Build
+
+The CI workflow performs the authoritative player build with
+`game-ci/unity-builder`. To reproduce a player build locally, build the WebGL target
+from Unity rather than treating a successful batch-mode compile check as a player
+artifact.
 
 ## Unity CLI Compilation (Headless/Batch Mode)
 
-**IMPORTANT:** `dotnet build unity-2.slnx` does NOT work for Unity projects with package dependencies (InputSystem, URP, etc.). Use Unity's batch mode instead.
-
 ### Quick Verification
+
 Use the provided script:
+
 ```bash
 ./scripts/unity-build-check.sh
 ```
@@ -142,7 +163,7 @@ Use the provided script:
 **macOS:**
 ```bash
 /Applications/Unity/Hub/Editor/<version>/Unity.app/Contents/MacOS/Unity
-# Example: /Applications/Unity/Hub/Editor/6000.3.6f1/Unity.app/Contents/MacOS/Unity
+~/Applications/Unity/Hub/Editor/<version>/Unity.app/Contents/MacOS/Unity
 ```
 
 **Windows:**
@@ -157,34 +178,22 @@ Use the provided script:
 # Example: ~/Unity/Hub/Editor/6000.3.6f1/Editor/Unity
 ```
 
-### Batch Mode Compilation Command
-
-**macOS/Linux:**
-```bash
-/path/to/Unity -batchmode -projectPath /path/to/unity-2 -buildTarget WebGL -logFile /tmp/unity_build.log -quit
-```
-
-**Windows (PowerShell):**
-```powershell
-& "C:\Program Files\Unity\Hub\Editor\6000.3.6f1\Editor\Unity.exe" -batchmode -projectPath . -buildTarget WebGL -logFile "$env:TEMP\unity_build.log" -quit
-```
-
 ### Reading Build Logs
 
 **Check for success:**
 ```bash
 # Success indicator
-grep "Exiting batchmode successfully" /tmp/unity_build.log
+grep "Exiting batchmode successfully" /tmp/unity_build_check.log
 
 # Check for script errors in YOUR code (not package cache)
-grep "Assets/Scripts.*error CS" /tmp/unity_build.log
+grep "Assets/Scripts.*error CS" /tmp/unity_build_check.log
 
 # Check for warnings
-grep "Assets/Scripts.*warning CS" /tmp/unity_build.log
+grep "Assets/Scripts.*warning CS" /tmp/unity_build_check.log
 ```
 
 **Log file locations:**
-- macOS/Linux: Use `-logFile /tmp/unity_build.log` or `-logFile -` for stdout
+- macOS/Linux script: `/tmp/unity_build_check.log`
 - Windows: Use `-logFile "$env:TEMP\unity_build.log"` 
 - Default (no -logFile): `%LOCALAPPDATA%\Unity\Editor\Editor.log` (Windows) or `~/Library/Logs/Unity/Editor.log` (macOS)
 
@@ -192,10 +201,10 @@ grep "Assets/Scripts.*warning CS" /tmp/unity_build.log
 
 | Log Message | Meaning |
 |-------------|---------|
-| `Exiting batchmode successfully now!` | ✅ Build succeeded |
+| `Exiting batchmode successfully now!` | ✅ Compilation/import check succeeded |
 | `Scripts have compiler errors.` | ❌ Compilation failed |
 | `error CS####:` in `Assets/Scripts/` | ❌ Error in YOUR code - fix it |
-| `error CS####:` in `Library/PackageCache/` | ⚠️ Package cache corruption - see Clean Rebuild |
+| `error CS####:` in `Library/PackageCache/` | ❌ Diagnose package/API compatibility first; reset only the generated cache if corruption is established |
 
 ## Clean Rebuild Process (LAST RESORT ONLY)
 
@@ -203,15 +212,13 @@ grep "Assets/Scripts.*warning CS" /tmp/unity_build.log
 
 ### Troubleshooting Order (Try These First!)
 
-1. **First:** Run `dotnet build unity-2.slnx` - catches most code errors in ~3 seconds
-2. **Second:** Run `./scripts/unity-build-check.sh` - full Unity compilation in ~30 seconds
-3. **Third:** Check if the error is in YOUR code (`Assets/Scripts/`) or package cache (`Library/PackageCache/`)
-4. **Fourth:** If error is in your code, FIX IT - don't clean rebuild!
-5. **LAST RESORT:** Clean rebuild only if errors are in `Library/PackageCache/` with no code changes
+1. **First:** Run `./scripts/unity-build-check.sh` (or the PowerShell equivalent)
+2. **Second:** Check whether the error is in project code (`Assets/`) or a package (`Library/PackageCache/`)
+3. **Third:** For a package error, verify its API against the versions pinned in `Packages/packages-lock.json`
+4. **LAST RESORT:** Delete only generated caches after compatibility and code changes have been ruled out; preserve the package lockfile
 
 ### Symptoms that ACTUALLY require a clean rebuild:
-- Errors in `Library/PackageCache/` (not your code) AND you made no code changes
-- "The type or namespace name 'X' does not exist" for Unity packages after package updates
+- Package files differ from a fresh resolution of the already-pinned lockfile
 - Build worked before, you reverted all changes, still fails
 - Corrupt meta files or asset database
 
@@ -219,6 +226,8 @@ grep "Assets/Scripts.*warning CS" /tmp/unity_build.log
 - Errors in `Assets/Scripts/` - these are YOUR bugs, fix them!
 - Missing references after renaming/moving files - update the references
 - New compile errors after your changes - your code has bugs
+- Package API errors after changing `manifest.json` or `packages-lock.json` - resolve
+  the dependency compatibility issue and review the lockfile diff
 
 ### ⚠️ SAFETY GUARDRAILS (CRITICAL)
 
@@ -234,14 +243,14 @@ Before running any destructive delete command:
    - `Temp/` - Temporary build files
    - `Logs/` - Editor logs
 3. **Use relative paths only**: `rm -rf Library/` NOT `rm -rf /Users/.../Library/`
-4. **Never delete**: `Assets/`, `Packages/manifest.json`, `ProjectSettings/`, or any code
+4. **Never delete during cache cleanup**: `Assets/`, `Packages/manifest.json`,
+   `Packages/packages-lock.json`, `ProjectSettings/`, or any code
 
 **Safe delete patterns:**
 ```bash
 # ✅ SAFE - relative paths within project
 rm -rf Library/
 rm -rf Temp/
-rm -f Packages/packages-lock.json
 
 # ❌ DANGEROUS - never use absolute paths or parent traversal
 rm -rf /Users/user/Library/        # WRONG - system Library!
@@ -254,21 +263,19 @@ rm -rf ~/Library/                   # WRONG - user Library folder
 **macOS/Linux:**
 ```bash
 # First, verify you're in the project directory
-pwd  # Should show: .../unity-2
+pwd  # Should show: .../BROcoli
 
 # Then clean (relative paths only)
 rm -rf Library/
-rm -f Packages/packages-lock.json
 ```
 
 **Windows (PowerShell):**
 ```powershell
 # First, verify you're in the project directory
-Get-Location  # Should show: ...\unity-2
+Get-Location  # Should show: ...\BROcoli
 
 # Then clean (relative paths only)
 Remove-Item -Recurse -Force Library
-Remove-Item -Force Packages\packages-lock.json -ErrorAction SilentlyContinue
 ```
 
 ### Step 2: Rebuild (Allow Extra Time)
@@ -313,7 +320,6 @@ rm -rf Library/ScriptAssemblies
 
 # Clear package cache only (keeps asset imports)
 rm -rf Library/PackageCache
-rm -f Packages/packages-lock.json
 ```
 
 ### CI/CD Considerations
@@ -376,7 +382,7 @@ After implementing UI or visual changes, **verify by running in Unity Editor and
    - If issues are found, iterate on the implementation
 
 **When to verify** (walk the verification tree based on complexity):
-- **Simple code changes** (logic, bug fixes): `dotnet build` is sufficient
+- **Simple code changes** (logic, bug fixes): Unity compilation check
 - **UI changes** (layout, positioning): Screenshot verification recommended
 - **Cross-platform changes** (mobile/desktop): Full screenshot verification at multiple resolutions
 - **New features**: Build + run + screenshot + manual testing
@@ -439,7 +445,10 @@ The manager agent MUST maintain and update a TODO list throughout the session to
 - This helps maintain context across long sessions and prevents losing track of work
 
 **Code File Size Limit:**
-All changed `.cs` files MUST be maximum 300 lines of code. If a file exceeds 300 LOC, refactor it into smaller files (each max 300 LOC).
+New first-party source files MUST be no more than 300 physical lines. A file listed
+in `.quality/loc-baseline.tsv` predates this limit: it may shrink but must not grow,
+and its entry must be removed as soon as it reaches 300 lines. Other oversized files
+hard-fail `./ci.sh`.
 
 ## Direct Scene Editing (CRITICAL)
 
@@ -483,4 +492,4 @@ RectTransform:
 - Use existing GameObjects as templates for new ones
 - Generate unique `fileID` values (use large random numbers)
 - Maintain proper component references between GameObjects
-- Verify changes compile with `dotnet build .\unity-2.slnx`
+- Verify changes with `./ci.sh`

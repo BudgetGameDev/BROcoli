@@ -4,14 +4,45 @@ on:
   push:
     branches: [ "main", "release" ]
 
+  pull_request:
+    branches: [ "main", "release" ]
+
   workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
+  quality:
+    name: Static analysis, lint, and formatting
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          version: 0.11.6
+          enable-cache: true
+
+      - name: Install shell quality tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes shellcheck shfmt
+
+      - name: Run repository gate
+        run: ./ci.sh --skip-unity
+
   buildWebGL:
     name: Build for WebGL
+    needs: quality
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -45,6 +76,7 @@ jobs:
 
   deployPages:
     needs: buildWebGL
+    if: github.event_name != 'pull_request'
     name: Deploy to Github Pages
     runs-on: ubuntu-latest
     steps:

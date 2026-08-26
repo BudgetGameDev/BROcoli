@@ -15,7 +15,8 @@ public sealed partial class GameOverOverlay
             "GameOverOverlay",
             typeof(RectTransform),
             typeof(CanvasRenderer),
-            typeof(Image));
+            typeof(Image)
+        );
         overlayObject.layer = canvas.gameObject.layer;
         overlayObject.transform.SetParent(canvas.transform, false);
 
@@ -41,7 +42,8 @@ public sealed partial class GameOverOverlay
             typeof(RectTransform),
             typeof(Canvas),
             typeof(CanvasScaler),
-            typeof(GraphicRaycaster));
+            typeof(GraphicRaycaster)
+        );
         canvasObject.layer = LayerMask.NameToLayer("UI");
 
         Canvas canvas = canvasObject.GetComponent<Canvas>();
@@ -73,7 +75,8 @@ public sealed partial class GameOverOverlay
             new Vector2(720f, 110f),
             76f,
             new Color(1f, 0.24f, 0.28f),
-            FontStyles.Bold);
+            FontStyles.Bold
+        );
 
         statsText = CreateText(
             content.transform,
@@ -83,7 +86,8 @@ public sealed partial class GameOverOverlay
             new Vector2(700f, 120f),
             34f,
             Color.white,
-            FontStyles.Bold);
+            FontStyles.Bold
+        );
 
         CreateText(
             content.transform,
@@ -93,12 +97,14 @@ public sealed partial class GameOverOverlay
             new Vector2(700f, 70f),
             24f,
             new Color(0.76f, 0.8f, 0.88f),
-            FontStyles.Normal);
+            FontStyles.Normal
+        );
 
         GameObject buttons = new GameObject(
             "Buttons",
             typeof(RectTransform),
-            typeof(HorizontalLayoutGroup));
+            typeof(HorizontalLayoutGroup)
+        );
         buttons.layer = gameObject.layer;
         buttons.transform.SetParent(content.transform, false);
         RectTransform buttonsRect = buttons.GetComponent<RectTransform>();
@@ -119,12 +125,14 @@ public sealed partial class GameOverOverlay
             buttons.transform,
             "RestartButton",
             "RESTART",
-            new Color(0.12f, 0.55f, 0.25f));
+            new Color(0.12f, 0.55f, 0.25f)
+        );
         mainMenuButton = CreateButton(
             buttons.transform,
             "MainMenuButton",
             "MAIN MENU",
-            new Color(0.24f, 0.3f, 0.42f));
+            new Color(0.24f, 0.3f, 0.42f)
+        );
 
         restartButton.onClick.AddListener(RestartGame);
         mainMenuButton.onClick.AddListener(GoToMainMenu);
@@ -140,13 +148,15 @@ public sealed partial class GameOverOverlay
         Vector2 size,
         float fontSize,
         Color color,
-        FontStyles style)
+        FontStyles style
+    )
     {
         GameObject textObject = new GameObject(
             objectName,
             typeof(RectTransform),
             typeof(CanvasRenderer),
-            typeof(TextMeshProUGUI));
+            typeof(TextMeshProUGUI)
+        );
         textObject.layer = gameObject.layer;
         textObject.transform.SetParent(parent, false);
 
@@ -173,7 +183,8 @@ public sealed partial class GameOverOverlay
         Transform parent,
         string objectName,
         string label,
-        Color backgroundColor)
+        Color backgroundColor
+    )
     {
         GameObject buttonObject = new GameObject(
             objectName,
@@ -181,7 +192,8 @@ public sealed partial class GameOverOverlay
             typeof(CanvasRenderer),
             typeof(Image),
             typeof(Button),
-            typeof(Outline));
+            typeof(Outline)
+        );
         buttonObject.layer = gameObject.layer;
         buttonObject.transform.SetParent(parent, false);
         buttonObject.GetComponent<RectTransform>().sizeDelta = new Vector2(285f, 72f);
@@ -211,7 +223,8 @@ public sealed partial class GameOverOverlay
             new Vector2(265f, 62f),
             28f,
             Color.white,
-            FontStyles.Bold);
+            FontStyles.Bold
+        );
         return button;
     }
 
@@ -229,7 +242,7 @@ public sealed partial class GameOverOverlay
             EventTrigger trigger = button.gameObject.AddComponent<EventTrigger>();
             EventTrigger.Entry enter = new EventTrigger.Entry
             {
-                eventID = EventTriggerType.PointerEnter
+                eventID = EventTriggerType.PointerEnter,
             };
             enter.callback.AddListener(_ => SelectButton(index));
             trigger.triggers.Add(enter);

@@ -3,9 +3,11 @@
 public class DetectionRadiusBoost : BoostBase
 {
     public override float Amount => _detectionRadius;
-    public override ProceduralBoostAudio.BoostSoundType BoostSoundType => ProceduralBoostAudio.BoostSoundType.DetectionRadius;
+    public override ProceduralBoostAudio.BoostSoundType BoostSoundType =>
+        ProceduralBoostAudio.BoostSoundType.DetectionRadius;
 
-    [SerializeField] private float _detectionRadius = 2f;
+    [SerializeField]
+    private float _detectionRadius = 2f;
 
     public override void Apply(PlayerStats stats)
     {

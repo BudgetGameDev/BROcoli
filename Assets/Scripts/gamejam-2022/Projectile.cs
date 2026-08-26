@@ -6,12 +6,21 @@ using static UnityEngine.EventSystems.EventTrigger;
 
 public class Projectile : MonoBehaviour
 {
-    [SerializeField] private float _speed = 8f;
-    [SerializeField] private float _lifetime = 3f;
-    [SerializeField] Rigidbody2D _body;
-    [SerializeField] Collider2D _collider;
+    [SerializeField]
+    private float _speed = 8f;
+
+    [SerializeField]
+    private float _lifetime = 3f;
+
+    [SerializeField]
+    Rigidbody2D _body;
+
+    [SerializeField]
+    Collider2D _collider;
+
     [Tooltip("Multiplies the shared damage-relative enemy knockback roll.")]
-    [SerializeField, Min(0f)] private float _baseKnockbackMultiplier = 1f;
+    [SerializeField, Min(0f)]
+    private float _baseKnockbackMultiplier = 1f;
 
     private float _damage = 1;
     private Vector2 direction;
@@ -62,10 +71,14 @@ public class Projectile : MonoBehaviour
         {
             // Pass knockback direction (same as projectile direction)
             enemy.TakeDamage(_damage, direction, _activeKnockbackMultiplier);
-            
+
             // Play hit sound
-            ProceduralProjectileHitAudio.PlayHit(transform.position, ProceduralProjectileHitAudio.HitSoundType.Energy, 0.5f);
-            
+            ProceduralProjectileHitAudio.PlayHit(
+                transform.position,
+                ProceduralProjectileHitAudio.HitSoundType.Energy,
+                0.5f
+            );
+
             Destroy(gameObject);
         }
     }

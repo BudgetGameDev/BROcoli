@@ -1,5 +1,5 @@
-using UnityEngine;
 using UnityEditor;
+using UnityEngine;
 
 /// <summary>
 /// Editor tool to set up the Sanitizer Spray weapon on the Player.
@@ -13,14 +13,22 @@ public class SanitizerSpraySetup : EditorWindow
         GameObject player = GameObject.FindGameObjectWithTag("Player");
         if (player == null)
         {
-            EditorUtility.DisplayDialog("Error", "No GameObject with tag 'Player' found in the scene!", "OK");
+            EditorUtility.DisplayDialog(
+                "Error",
+                "No GameObject with tag 'Player' found in the scene!",
+                "OK"
+            );
             return;
         }
 
         PlayerController playerController = player.GetComponent<PlayerController>();
         if (playerController == null)
         {
-            EditorUtility.DisplayDialog("Error", "Player does not have a PlayerController component!", "OK");
+            EditorUtility.DisplayDialog(
+                "Error",
+                "Player does not have a PlayerController component!",
+                "OK"
+            );
             return;
         }
 
@@ -28,9 +36,14 @@ public class SanitizerSpraySetup : EditorWindow
         SanitizerSpray existingSpray = player.GetComponentInChildren<SanitizerSpray>();
         if (existingSpray != null)
         {
-            if (!EditorUtility.DisplayDialog("Spray Already Exists", 
-                "A SanitizerSpray component already exists on the player. Do you want to recreate it?", 
-                "Recreate", "Cancel"))
+            if (
+                !EditorUtility.DisplayDialog(
+                    "Spray Already Exists",
+                    "A SanitizerSpray component already exists on the player. Do you want to recreate it?",
+                    "Recreate",
+                    "Cancel"
+                )
+            )
             {
                 return;
             }
@@ -51,7 +64,7 @@ public class SanitizerSpraySetup : EditorWindow
         AudioSource audioSource = sprayObj.AddComponent<AudioSource>();
         audioSource.playOnAwake = false;
         audioSource.spatialBlend = 0f; // 2D sound
-        
+
         ProceduralSprayAudio sprayAudio = sprayObj.AddComponent<ProceduralSprayAudio>();
 
         // Link the spray to the player controller via SerializedObject
@@ -73,20 +86,23 @@ public class SanitizerSpraySetup : EditorWindow
 
         // Mark scene dirty
         UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(
-            UnityEditor.SceneManagement.EditorSceneManager.GetActiveScene());
+            UnityEditor.SceneManagement.EditorSceneManager.GetActiveScene()
+        );
 
         // Select the spray object
         Selection.activeGameObject = sprayObj;
 
-        EditorUtility.DisplayDialog("Success", 
-            "Sanitizer Spray weapon has been set up on the Player!\n\n" +
-            "The spray includes:\n" +
-            "• Particle system for spray visual\n" +
-            "• Procedural spray sound effect\n" +
-            "• Hand sprite holding spray can\n" +
-            "• Auto-aiming at enemies in range\n\n" +
-            "You can customize the spray settings in the Inspector.", 
-            "OK");
+        EditorUtility.DisplayDialog(
+            "Success",
+            "Sanitizer Spray weapon has been set up on the Player!\n\n"
+                + "The spray includes:\n"
+                + "• Particle system for spray visual\n"
+                + "• Procedural spray sound effect\n"
+                + "• Hand sprite holding spray can\n"
+                + "• Auto-aiming at enemies in range\n\n"
+                + "You can customize the spray settings in the Inspector.",
+            "OK"
+        );
 
         Debug.Log("[SanitizerSpraySetup] Spray weapon set up successfully on " + player.name);
     }
@@ -128,7 +144,8 @@ public class SanitizerSpraySetup : EditorWindow
         }
 
         UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(
-            UnityEditor.SceneManagement.EditorSceneManager.GetActiveScene());
+            UnityEditor.SceneManagement.EditorSceneManager.GetActiveScene()
+        );
 
         Debug.Log($"[SanitizerSpraySetup] Switched weapon to {weaponType}");
     }

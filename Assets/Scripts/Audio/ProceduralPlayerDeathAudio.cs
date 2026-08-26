@@ -40,16 +40,16 @@ public static class ProceduralPlayerDeathAudio
             float snapPitch = Mathf.Lerp(920f, 420f, Mathf.Clamp01(time / 0.14f));
             float snap = Mathf.Sin(time * snapPitch * Mathf.PI * 2f) * snapEnvelope;
 
-            float leafEnvelope = Mathf.Exp(-time * 5.2f) *
-                Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(time / 0.025f));
+            float leafEnvelope =
+                Mathf.Exp(-time * 5.2f) * Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(time / 0.025f));
             float leaves = rustle * leafEnvelope;
 
             float wiltPitch = Mathf.Lerp(285f, 82f, Mathf.Pow(time / Duration, 0.72f));
             wiltPhase += wiltPitch * Mathf.PI * 2f / sampleRate;
-            float wiltEnvelope = Mathf.Sin(Mathf.Min(1f, time / 0.09f) * Mathf.PI * 0.5f) *
-                Mathf.Exp(-time * 2.7f);
-            float wilt = (Mathf.Sin(wiltPhase) + 0.22f * Mathf.Sin(wiltPhase * 2.01f)) *
-                wiltEnvelope;
+            float wiltEnvelope =
+                Mathf.Sin(Mathf.Min(1f, time / 0.09f) * Mathf.PI * 0.5f) * Mathf.Exp(-time * 2.7f);
+            float wilt =
+                (Mathf.Sin(wiltPhase) + 0.22f * Mathf.Sin(wiltPhase * 2.01f)) * wiltEnvelope;
 
             float landingTime = time - 0.58f;
             float thump = 0f;
@@ -62,8 +62,8 @@ public static class ProceduralPlayerDeathAudio
             }
 
             float sample = snap * 0.18f + leaves * 0.24f + wilt * 0.34f + thump * 0.5f;
-            float fadeOut = 1f - Mathf.SmoothStep(0f, 1f,
-                Mathf.Clamp01((time - Duration + 0.12f) / 0.12f));
+            float fadeOut =
+                1f - Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((time - Duration + 0.12f) / 0.12f));
             samples[i] = sample * fadeOut;
             peak = Mathf.Max(peak, Mathf.Abs(samples[i]));
         }
@@ -72,12 +72,7 @@ public static class ProceduralPlayerDeathAudio
         for (int i = 0; i < samples.Length; i++)
             samples[i] *= gain;
 
-        cachedClip = AudioClip.Create(
-            "BroccoliDefeat",
-            sampleCount,
-            1,
-            sampleRate,
-            false);
+        cachedClip = AudioClip.Create("BroccoliDefeat", sampleCount, 1, sampleRate, false);
         cachedClip.SetData(samples, 0);
         return cachedClip;
     }

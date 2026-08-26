@@ -8,5 +8,4 @@ public class OfficeScene : MonoBehaviour
         Debug.Log("Back has been pressed");
         SceneManager.LoadScene("gw3");
     }
-    
 }

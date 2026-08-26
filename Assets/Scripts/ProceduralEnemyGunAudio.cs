@@ -9,12 +9,12 @@ public class ProceduralEnemyGunAudio : MonoBehaviour
 {
     public enum EnemyGunSoundType
     {
-        PlasmaSpitter,      // Organic, wet, splattery
-        VoidCannon,         // Deep, resonant, ominous
-        SwarmShot,          // Buzzing, insectoid
-        CorruptedBlaster,   // Distorted, glitchy
-        AcidLauncher,       // Hissing, corrosive
-        Sneeze              // Corona sneeze attack
+        PlasmaSpitter, // Organic, wet, splattery
+        VoidCannon, // Deep, resonant, ominous
+        SwarmShot, // Buzzing, insectoid
+        CorruptedBlaster, // Distorted, glitchy
+        AcidLauncher, // Hissing, corrosive
+        Sneeze, // Corona sneeze attack
     }
 
     // Static caching for prewarmed clips
@@ -31,47 +31,50 @@ public class ProceduralEnemyGunAudio : MonoBehaviour
     private static int[] staticCombIndices;
 
     [Header("Sound Type")]
-    [SerializeField] private EnemyGunSoundType soundType = EnemyGunSoundType.PlasmaSpitter;
+    [SerializeField]
+    private EnemyGunSoundType soundType = EnemyGunSoundType.PlasmaSpitter;
 
     [Header("Volume")]
     [Range(0f, 1f)]
-    [SerializeField] private float volume = 0.0675f;
+    [SerializeField]
+    private float volume = 0.0675f;
 
     [Header("Variation")]
     [Range(0f, 0.25f)]
-    [SerializeField] private float randomization = 0.15f;
+    [SerializeField]
+    private float randomization = 0.15f;
 
     private struct EnemyGunPreset
     {
         public float duration;
         public float roomSize;
-        
+
         // Transient
         public float transientFreq1;
         public float transientFreq2;
         public float transientDecay;
         public float transientAmount;
-        
+
         // Body
         public float subFreq;
         public float subAmount;
         public float midFreq;
         public float midAmount;
         public float bodyDecay;
-        
+
         // Character layers
         public float modFreq;
         public float modDepth;
         public float resonanceFreq;
         public float resonanceQ;
         public float resonanceAmount;
-        
+
         // Noise
-        public float noiseColor;  // 0 = white, 1 = pink/brown
+        public float noiseColor; // 0 = white, 1 = pink/brown
         public float noiseCutoff;
         public float noiseAmount;
         public float noiseDecay;
-        
+
         // Special effects
         public float distortion;
         public float pitchBend;
@@ -94,7 +97,7 @@ public class ProceduralEnemyGunAudio : MonoBehaviour
     private int[] allpassIndices;
     private float[][] combBuffers;
     private int[] combIndices;
-    
+
     // Distance-based volume attenuation
     private static Transform playerTransform;
     private const float MAX_AUDIBLE_DISTANCE = 30f;
@@ -111,11 +114,12 @@ public class ProceduralEnemyGunAudio : MonoBehaviour
         audioBuffer = new float[maxSamples];
 
         InitializeReverb();
-        
+
         if (playerTransform == null)
         {
             GameObject player = GameObject.FindGameObjectWithTag("Player");
-            if (player != null) playerTransform = player.transform;
+            if (player != null)
+                playerTransform = player.transform;
         }
     }
 
@@ -294,31 +298,31 @@ public class ProceduralEnemyGunAudio : MonoBehaviour
                 p.hasChorus = true;
                 p.hasGlitch = false;
                 break;
-                
+
             case EnemyGunSoundType.Sneeze:
                 // Soft muffled cough/spit - subtle and non-intrusive
-                p.duration = 0.18f;          // Short, quick sound
-                p.roomSize = 0.05f;          // Minimal reverb
-                p.transientFreq1 = 400f;     // Low soft thump
-                p.transientFreq2 = 800f;     // Muffled pop
-                p.transientDecay = 12f;      // Very fast decay
-                p.transientAmount = 0.2f;    // Subtle transient
-                p.subFreq = 80f;             // Soft bass
-                p.subAmount = 0.15f;         // Minimal sub
-                p.midFreq = 250f;            // Muffled mid
-                p.midAmount = 0.25f;         // Low mid presence
-                p.bodyDecay = 10f;           // Quick fade
-                p.modFreq = 8f;              // Gentle wobble
-                p.modDepth = 0.15f;          // Subtle modulation
-                p.resonanceFreq = 350f;      // Low resonance
-                p.resonanceQ = 2f;           // Soft Q
-                p.resonanceAmount = 0.2f;    // Minimal resonance
-                p.noiseColor = 0.7f;         // Darker noise (pink/brown)
-                p.noiseCutoff = 1200f;       // Low-passed breath
-                p.noiseAmount = 0.25f;       // Subtle breath
-                p.noiseDecay = 8f;           // Fast noise decay
-                p.distortion = 0.05f;        // Almost no distortion
-                p.pitchBend = -0.1f;         // Slight pitch drop
+                p.duration = 0.18f; // Short, quick sound
+                p.roomSize = 0.05f; // Minimal reverb
+                p.transientFreq1 = 400f; // Low soft thump
+                p.transientFreq2 = 800f; // Muffled pop
+                p.transientDecay = 12f; // Very fast decay
+                p.transientAmount = 0.2f; // Subtle transient
+                p.subFreq = 80f; // Soft bass
+                p.subAmount = 0.15f; // Minimal sub
+                p.midFreq = 250f; // Muffled mid
+                p.midAmount = 0.25f; // Low mid presence
+                p.bodyDecay = 10f; // Quick fade
+                p.modFreq = 8f; // Gentle wobble
+                p.modDepth = 0.15f; // Subtle modulation
+                p.resonanceFreq = 350f; // Low resonance
+                p.resonanceQ = 2f; // Soft Q
+                p.resonanceAmount = 0.2f; // Minimal resonance
+                p.noiseColor = 0.7f; // Darker noise (pink/brown)
+                p.noiseCutoff = 1200f; // Low-passed breath
+                p.noiseAmount = 0.25f; // Subtle breath
+                p.noiseDecay = 8f; // Fast noise decay
+                p.distortion = 0.05f; // Almost no distortion
+                p.pitchBend = -0.1f; // Slight pitch drop
                 p.hasChorus = false;
                 p.hasGlitch = false;
                 break;
@@ -329,11 +333,13 @@ public class ProceduralEnemyGunAudio : MonoBehaviour
 
     private float GetDistanceAttenuation()
     {
-        if (playerTransform == null) return 1f;
-        
+        if (playerTransform == null)
+            return 1f;
+
         float dist = Vector2.Distance(transform.position, playerTransform.position);
-        if (dist > MAX_AUDIBLE_DISTANCE) return 0f;
-        
+        if (dist > MAX_AUDIBLE_DISTANCE)
+            return 0f;
+
         float attenuation = Mathf.InverseLerp(MAX_AUDIBLE_DISTANCE, MIN_AUDIBLE_DISTANCE, dist);
         return Mathf.Sqrt(attenuation);
     }
@@ -344,7 +350,8 @@ public class ProceduralEnemyGunAudio : MonoBehaviour
     /// </summary>
     public static void PrewarmAll()
     {
-        if (isPrewarmed) return;
+        if (isPrewarmed)
+            return;
 
         staticSampleRate = AudioSettings.outputSampleRate;
         int maxSamples = Mathf.CeilToInt(1.2f * staticSampleRate);
@@ -355,11 +362,21 @@ public class ProceduralEnemyGunAudio : MonoBehaviour
         InitializeReverbStatic();
 
         cachedClips = new System.Collections.Generic.Dictionary<EnemyGunSoundType, AudioClip>();
-        cachedClips[EnemyGunSoundType.PlasmaSpitter] = GenerateGunClipStatic(EnemyGunSoundType.PlasmaSpitter);
-        cachedClips[EnemyGunSoundType.VoidCannon] = GenerateGunClipStatic(EnemyGunSoundType.VoidCannon);
-        cachedClips[EnemyGunSoundType.SwarmShot] = GenerateGunClipStatic(EnemyGunSoundType.SwarmShot);
-        cachedClips[EnemyGunSoundType.CorruptedBlaster] = GenerateGunClipStatic(EnemyGunSoundType.CorruptedBlaster);
-        cachedClips[EnemyGunSoundType.AcidLauncher] = GenerateGunClipStatic(EnemyGunSoundType.AcidLauncher);
+        cachedClips[EnemyGunSoundType.PlasmaSpitter] = GenerateGunClipStatic(
+            EnemyGunSoundType.PlasmaSpitter
+        );
+        cachedClips[EnemyGunSoundType.VoidCannon] = GenerateGunClipStatic(
+            EnemyGunSoundType.VoidCannon
+        );
+        cachedClips[EnemyGunSoundType.SwarmShot] = GenerateGunClipStatic(
+            EnemyGunSoundType.SwarmShot
+        );
+        cachedClips[EnemyGunSoundType.CorruptedBlaster] = GenerateGunClipStatic(
+            EnemyGunSoundType.CorruptedBlaster
+        );
+        cachedClips[EnemyGunSoundType.AcidLauncher] = GenerateGunClipStatic(
+            EnemyGunSoundType.AcidLauncher
+        );
         cachedClips[EnemyGunSoundType.Sneeze] = GenerateGunClipStatic(EnemyGunSoundType.Sneeze);
 
         isPrewarmed = true;
@@ -401,82 +418,160 @@ public class ProceduralEnemyGunAudio : MonoBehaviour
         switch (type)
         {
             case EnemyGunSoundType.PlasmaSpitter:
-                p.duration = 0.25f; p.roomSize = 0.15f;
-                p.transientFreq1 = 800f; p.transientFreq2 = 1200f;
-                p.transientDecay = 8f; p.transientAmount = 0.3f;
-                p.subFreq = 65f; p.subAmount = 0.5f;
-                p.midFreq = 220f; p.midAmount = 0.6f; p.bodyDecay = 6f;
-                p.modFreq = 12f; p.modDepth = 0.4f;
-                p.resonanceFreq = 350f; p.resonanceQ = 4f; p.resonanceAmount = 0.5f;
-                p.noiseColor = 0.8f; p.noiseCutoff = 600f;
-                p.noiseAmount = 0.45f; p.noiseDecay = 7f;
-                p.distortion = 0.3f; p.pitchBend = -0.3f;
-                p.hasChorus = true; p.hasGlitch = false;
+                p.duration = 0.25f;
+                p.roomSize = 0.15f;
+                p.transientFreq1 = 800f;
+                p.transientFreq2 = 1200f;
+                p.transientDecay = 8f;
+                p.transientAmount = 0.3f;
+                p.subFreq = 65f;
+                p.subAmount = 0.5f;
+                p.midFreq = 220f;
+                p.midAmount = 0.6f;
+                p.bodyDecay = 6f;
+                p.modFreq = 12f;
+                p.modDepth = 0.4f;
+                p.resonanceFreq = 350f;
+                p.resonanceQ = 4f;
+                p.resonanceAmount = 0.5f;
+                p.noiseColor = 0.8f;
+                p.noiseCutoff = 600f;
+                p.noiseAmount = 0.45f;
+                p.noiseDecay = 7f;
+                p.distortion = 0.3f;
+                p.pitchBend = -0.3f;
+                p.hasChorus = true;
+                p.hasGlitch = false;
                 break;
             case EnemyGunSoundType.VoidCannon:
-                p.duration = 0.35f; p.roomSize = 0.4f;
-                p.transientFreq1 = 600f; p.transientFreq2 = 900f;
-                p.transientDecay = 5f; p.transientAmount = 0.4f;
-                p.subFreq = 30f; p.subAmount = 0.9f;
-                p.midFreq = 80f; p.midAmount = 0.7f; p.bodyDecay = 4f;
-                p.modFreq = 3f; p.modDepth = 0.2f;
-                p.resonanceFreq = 120f; p.resonanceQ = 6f; p.resonanceAmount = 0.6f;
-                p.noiseColor = 0.9f; p.noiseCutoff = 300f;
-                p.noiseAmount = 0.3f; p.noiseDecay = 5f;
-                p.distortion = 0.5f; p.pitchBend = -0.5f;
-                p.hasChorus = false; p.hasGlitch = false;
+                p.duration = 0.35f;
+                p.roomSize = 0.4f;
+                p.transientFreq1 = 600f;
+                p.transientFreq2 = 900f;
+                p.transientDecay = 5f;
+                p.transientAmount = 0.4f;
+                p.subFreq = 30f;
+                p.subAmount = 0.9f;
+                p.midFreq = 80f;
+                p.midAmount = 0.7f;
+                p.bodyDecay = 4f;
+                p.modFreq = 3f;
+                p.modDepth = 0.2f;
+                p.resonanceFreq = 120f;
+                p.resonanceQ = 6f;
+                p.resonanceAmount = 0.6f;
+                p.noiseColor = 0.9f;
+                p.noiseCutoff = 300f;
+                p.noiseAmount = 0.3f;
+                p.noiseDecay = 5f;
+                p.distortion = 0.5f;
+                p.pitchBend = -0.5f;
+                p.hasChorus = false;
+                p.hasGlitch = false;
                 break;
             case EnemyGunSoundType.SwarmShot:
-                p.duration = 0.2f; p.roomSize = 0.1f;
-                p.transientFreq1 = 2200f; p.transientFreq2 = 3500f;
-                p.transientDecay = 12f; p.transientAmount = 0.35f;
-                p.subFreq = 90f; p.subAmount = 0.25f;
-                p.midFreq = 380f; p.midAmount = 0.4f; p.bodyDecay = 10f;
-                p.modFreq = 85f; p.modDepth = 0.6f;
-                p.resonanceFreq = 550f; p.resonanceQ = 8f; p.resonanceAmount = 0.55f;
-                p.noiseColor = 0.3f; p.noiseCutoff = 2500f;
-                p.noiseAmount = 0.35f; p.noiseDecay = 9f;
-                p.distortion = 0.2f; p.pitchBend = 0.2f;
-                p.hasChorus = true; p.hasGlitch = false;
+                p.duration = 0.2f;
+                p.roomSize = 0.1f;
+                p.transientFreq1 = 2200f;
+                p.transientFreq2 = 3500f;
+                p.transientDecay = 12f;
+                p.transientAmount = 0.35f;
+                p.subFreq = 90f;
+                p.subAmount = 0.25f;
+                p.midFreq = 380f;
+                p.midAmount = 0.4f;
+                p.bodyDecay = 10f;
+                p.modFreq = 85f;
+                p.modDepth = 0.6f;
+                p.resonanceFreq = 550f;
+                p.resonanceQ = 8f;
+                p.resonanceAmount = 0.55f;
+                p.noiseColor = 0.3f;
+                p.noiseCutoff = 2500f;
+                p.noiseAmount = 0.35f;
+                p.noiseDecay = 9f;
+                p.distortion = 0.2f;
+                p.pitchBend = 0.2f;
+                p.hasChorus = true;
+                p.hasGlitch = false;
                 break;
             case EnemyGunSoundType.CorruptedBlaster:
-                p.duration = 0.22f; p.roomSize = 0.2f;
-                p.transientFreq1 = 1500f; p.transientFreq2 = 2400f;
-                p.transientDecay = 10f; p.transientAmount = 0.5f;
-                p.subFreq = 55f; p.subAmount = 0.4f;
-                p.midFreq = 280f; p.midAmount = 0.5f; p.bodyDecay = 8f;
-                p.modFreq = 45f; p.modDepth = 0.35f;
-                p.resonanceFreq = 420f; p.resonanceQ = 5f; p.resonanceAmount = 0.45f;
-                p.noiseColor = 0.5f; p.noiseCutoff = 1800f;
-                p.noiseAmount = 0.4f; p.noiseDecay = 8f;
-                p.distortion = 0.7f; p.pitchBend = 0f;
-                p.hasChorus = false; p.hasGlitch = true;
+                p.duration = 0.22f;
+                p.roomSize = 0.2f;
+                p.transientFreq1 = 1500f;
+                p.transientFreq2 = 2400f;
+                p.transientDecay = 10f;
+                p.transientAmount = 0.5f;
+                p.subFreq = 55f;
+                p.subAmount = 0.4f;
+                p.midFreq = 280f;
+                p.midAmount = 0.5f;
+                p.bodyDecay = 8f;
+                p.modFreq = 45f;
+                p.modDepth = 0.35f;
+                p.resonanceFreq = 420f;
+                p.resonanceQ = 5f;
+                p.resonanceAmount = 0.45f;
+                p.noiseColor = 0.5f;
+                p.noiseCutoff = 1800f;
+                p.noiseAmount = 0.4f;
+                p.noiseDecay = 8f;
+                p.distortion = 0.7f;
+                p.pitchBend = 0f;
+                p.hasChorus = false;
+                p.hasGlitch = true;
                 break;
             case EnemyGunSoundType.AcidLauncher:
-                p.duration = 0.28f; p.roomSize = 0.25f;
-                p.transientFreq1 = 1100f; p.transientFreq2 = 1800f;
-                p.transientDecay = 7f; p.transientAmount = 0.35f;
-                p.subFreq = 50f; p.subAmount = 0.35f;
-                p.midFreq = 180f; p.midAmount = 0.45f; p.bodyDecay = 6f;
-                p.modFreq = 8f; p.modDepth = 0.25f;
-                p.resonanceFreq = 280f; p.resonanceQ = 3f; p.resonanceAmount = 0.4f;
-                p.noiseColor = 0.2f; p.noiseCutoff = 3500f;
-                p.noiseAmount = 0.6f; p.noiseDecay = 6f;
-                p.distortion = 0.25f; p.pitchBend = -0.15f;
-                p.hasChorus = true; p.hasGlitch = false;
+                p.duration = 0.28f;
+                p.roomSize = 0.25f;
+                p.transientFreq1 = 1100f;
+                p.transientFreq2 = 1800f;
+                p.transientDecay = 7f;
+                p.transientAmount = 0.35f;
+                p.subFreq = 50f;
+                p.subAmount = 0.35f;
+                p.midFreq = 180f;
+                p.midAmount = 0.45f;
+                p.bodyDecay = 6f;
+                p.modFreq = 8f;
+                p.modDepth = 0.25f;
+                p.resonanceFreq = 280f;
+                p.resonanceQ = 3f;
+                p.resonanceAmount = 0.4f;
+                p.noiseColor = 0.2f;
+                p.noiseCutoff = 3500f;
+                p.noiseAmount = 0.6f;
+                p.noiseDecay = 6f;
+                p.distortion = 0.25f;
+                p.pitchBend = -0.15f;
+                p.hasChorus = true;
+                p.hasGlitch = false;
                 break;
             case EnemyGunSoundType.Sneeze:
-                p.duration = 0.18f; p.roomSize = 0.05f;
-                p.transientFreq1 = 400f; p.transientFreq2 = 800f;
-                p.transientDecay = 12f; p.transientAmount = 0.2f;
-                p.subFreq = 80f; p.subAmount = 0.15f;
-                p.midFreq = 250f; p.midAmount = 0.25f; p.bodyDecay = 10f;
-                p.modFreq = 8f; p.modDepth = 0.15f;
-                p.resonanceFreq = 350f; p.resonanceQ = 2f; p.resonanceAmount = 0.2f;
-                p.noiseColor = 0.7f; p.noiseCutoff = 1200f;
-                p.noiseAmount = 0.25f; p.noiseDecay = 8f;
-                p.distortion = 0.05f; p.pitchBend = -0.1f;
-                p.hasChorus = false; p.hasGlitch = false;
+                p.duration = 0.18f;
+                p.roomSize = 0.05f;
+                p.transientFreq1 = 400f;
+                p.transientFreq2 = 800f;
+                p.transientDecay = 12f;
+                p.transientAmount = 0.2f;
+                p.subFreq = 80f;
+                p.subAmount = 0.15f;
+                p.midFreq = 250f;
+                p.midAmount = 0.25f;
+                p.bodyDecay = 10f;
+                p.modFreq = 8f;
+                p.modDepth = 0.15f;
+                p.resonanceFreq = 350f;
+                p.resonanceQ = 2f;
+                p.resonanceAmount = 0.2f;
+                p.noiseColor = 0.7f;
+                p.noiseCutoff = 1200f;
+                p.noiseAmount = 0.25f;
+                p.noiseDecay = 8f;
+                p.distortion = 0.05f;
+                p.pitchBend = -0.1f;
+                p.hasChorus = false;
+                p.hasGlitch = false;
                 break;
         }
         return p;
@@ -498,9 +593,12 @@ public class ProceduralEnemyGunAudio : MonoBehaviour
         System.Array.Clear(staticBpState, 0, staticBpState.Length);
         ClearReverbStatic();
 
-        float phase1 = 0f, phase2 = 0f;
-        float phaseSub = 0f, phaseMid = 0f;
-        float phaseMod = 0f, phaseRes = 0f;
+        float phase1 = 0f,
+            phase2 = 0f;
+        float phaseSub = 0f,
+            phaseMid = 0f;
+        float phaseMod = 0f,
+            phaseRes = 0f;
         float noiseState = 0f;
         uint rngState = (uint)(type + 54321);
 
@@ -530,12 +628,14 @@ public class ProceduralEnemyGunAudio : MonoBehaviour
                 phase2 += tf2 / staticSampleRate;
                 float trans1 = Mathf.Sin(phase1 * Mathf.PI * 2f);
                 float trans2 = Mathf.Sin(phase2 * Mathf.PI * 2f);
-                float transient = (trans1 * 0.6f + trans2 * 0.4f) * transientEnv * p.transientAmount;
+                float transient =
+                    (trans1 * 0.6f + trans2 * 0.4f) * transientEnv * p.transientAmount;
 
                 // Body
                 float bodyEnv = GetBodyEnvelopeStatic(t, dur, p.bodyDecay);
                 float subF = p.subFreq * pitchMod;
-                if (p.hasChorus) subF *= 1f + lfo * p.modDepth * 0.05f;
+                if (p.hasChorus)
+                    subF *= 1f + lfo * p.modDepth * 0.05f;
                 phaseSub += subF / staticSampleRate;
                 float sub = Mathf.Sin(phaseSub * Mathf.PI * 2f);
                 sub += Mathf.Sin(phaseSub * Mathf.PI * 3f) * 0.3f;
@@ -558,9 +658,15 @@ public class ProceduralEnemyGunAudio : MonoBehaviour
                 float noiseEnv = GetNoiseEnvelopeStatic(t, dur, p.noiseDecay);
                 rngState = rngState * 1103515245 + 12345;
                 float whiteNoise = ((rngState >> 16) & 0x7FFF) / 16383.5f - 1f;
-                noiseState = noiseState * (0.95f + p.noiseColor * 0.04f) + whiteNoise * (0.05f - p.noiseColor * 0.04f);
+                noiseState =
+                    noiseState * (0.95f + p.noiseColor * 0.04f)
+                    + whiteNoise * (0.05f - p.noiseColor * 0.04f);
                 float coloredNoise = noiseState * p.noiseColor + whiteNoise * (1f - p.noiseColor);
-                float noise = LowpassFilterStatic(coloredNoise, p.noiseCutoff * (1f - normalizedT * 0.4f), 0);
+                float noise = LowpassFilterStatic(
+                    coloredNoise,
+                    p.noiseCutoff * (1f - normalizedT * 0.4f),
+                    0
+                );
                 noise *= noiseEnv * p.noiseAmount;
 
                 sample = transient + body + res + noise;
@@ -594,7 +700,13 @@ public class ProceduralEnemyGunAudio : MonoBehaviour
                 staticAudioBuffer[i] *= normalize;
         }
 
-        AudioClip clip = AudioClip.Create("EnemyGun_" + type, totalSamples, 1, staticSampleRate, false);
+        AudioClip clip = AudioClip.Create(
+            "EnemyGun_" + type,
+            totalSamples,
+            1,
+            staticSampleRate,
+            false
+        );
         float[] clipData = new float[totalSamples];
         System.Array.Copy(staticAudioBuffer, clipData, totalSamples);
         clip.SetData(clipData, 0);
@@ -605,8 +717,10 @@ public class ProceduralEnemyGunAudio : MonoBehaviour
     {
         float attack = 0.001f;
         float decay = 0.025f;
-        if (t < attack) return t / attack;
-        if (t < attack + decay) return Mathf.Exp(-((t - attack) / decay) * decayRate);
+        if (t < attack)
+            return t / attack;
+        if (t < attack + decay)
+            return Mathf.Exp(-((t - attack) / decay) * decayRate);
         return Mathf.Exp(-(t - attack - decay) * 30f) * 0.08f;
     }
 
@@ -614,8 +728,10 @@ public class ProceduralEnemyGunAudio : MonoBehaviour
     {
         float attack = 0.003f;
         float sustain = duration * 0.15f;
-        if (t < attack) return t / attack;
-        if (t < attack + sustain) return 1f - (t - attack) / sustain * 0.1f;
+        if (t < attack)
+            return t / attack;
+        if (t < attack + sustain)
+            return 1f - (t - attack) / sustain * 0.1f;
         float dt = (t - attack - sustain) / (duration * 0.85f);
         return 0.9f * Mathf.Exp(-dt * decayRate);
     }
@@ -624,9 +740,11 @@ public class ProceduralEnemyGunAudio : MonoBehaviour
     {
         float delay = 0.002f;
         float attack = 0.005f;
-        if (t < delay) return 0f;
+        if (t < delay)
+            return 0f;
         t -= delay;
-        if (t < attack) return t / attack;
+        if (t < attack)
+            return t / attack;
         return Mathf.Exp(-((t - attack) / (duration * 0.7f)) * 5f);
     }
 
@@ -634,8 +752,10 @@ public class ProceduralEnemyGunAudio : MonoBehaviour
     {
         float attack = 0.001f;
         float hold = 0.01f;
-        if (t < attack) return t / attack;
-        if (t < attack + hold) return 1f;
+        if (t < attack)
+            return t / attack;
+        if (t < attack + hold)
+            return 1f;
         float dt = (t - attack - hold) / (duration * 0.75f);
         return Mathf.Exp(-dt * decayRate);
     }
@@ -649,7 +769,12 @@ public class ProceduralEnemyGunAudio : MonoBehaviour
         return staticLpState[stateIndex];
     }
 
-    private static float BandpassFilterStatic(float input, float centerFreq, float q, int stateIndex)
+    private static float BandpassFilterStatic(
+        float input,
+        float centerFreq,
+        float q,
+        int stateIndex
+    )
     {
         float w0 = 2f * Mathf.PI * centerFreq / staticSampleRate;
         float alpha = Mathf.Sin(w0) / (2f * q);
@@ -657,8 +782,11 @@ public class ProceduralEnemyGunAudio : MonoBehaviour
         float a1 = -2f * Mathf.Cos(w0);
         float a2 = 1f - alpha;
         float norm = 1f + alpha;
-        b0 /= norm; a1 /= norm; a2 /= norm;
-        float output = b0 * input - a1 * staticBpState[stateIndex] - a2 * staticBpState[stateIndex + 1];
+        b0 /= norm;
+        a1 /= norm;
+        a2 /= norm;
+        float output =
+            b0 * input - a1 * staticBpState[stateIndex] - a2 * staticBpState[stateIndex + 1];
         staticBpState[stateIndex + 1] = staticBpState[stateIndex];
         staticBpState[stateIndex] = output;
         return output;
@@ -666,10 +794,12 @@ public class ProceduralEnemyGunAudio : MonoBehaviour
 
     private static float DistortStatic(float x, float amount)
     {
-        if (amount <= 0f) return x;
+        if (amount <= 0f)
+            return x;
         float drive = 1f + amount * 5f;
         x *= drive;
-        if (x > 0) return (1f - Mathf.Exp(-x * 1.8f)) / 1.1f;
+        if (x > 0)
+            return (1f - Mathf.Exp(-x * 1.8f)) / 1.1f;
         return (-1f + Mathf.Exp(x * 1.4f)) / 1.1f;
     }
 
@@ -706,7 +836,8 @@ public class ProceduralEnemyGunAudio : MonoBehaviour
         float threshold = 0.75f;
         float knee = 0.15f;
         float absX = Mathf.Abs(x);
-        if (absX < threshold - knee) return x;
+        if (absX < threshold - knee)
+            return x;
         if (absX < threshold + knee)
         {
             float t = (absX - (threshold - knee)) / (2f * knee);
@@ -720,7 +851,8 @@ public class ProceduralEnemyGunAudio : MonoBehaviour
     public void PlayGunSound()
     {
         float distAtten = GetDistanceAttenuation();
-        if (distAtten < 0.01f) return;
+        if (distAtten < 0.01f)
+            return;
 
         AudioClip clip;
         if (cachedClips != null && cachedClips.TryGetValue(soundType, out clip))
@@ -738,7 +870,8 @@ public class ProceduralEnemyGunAudio : MonoBehaviour
     public void PlayGunSound(float volumeMultiplier)
     {
         float distAtten = GetDistanceAttenuation();
-        if (distAtten < 0.01f) return;
+        if (distAtten < 0.01f)
+            return;
 
         AudioClip clip;
         if (cachedClips != null && cachedClips.TryGetValue(soundType, out clip))
@@ -752,11 +885,12 @@ public class ProceduralEnemyGunAudio : MonoBehaviour
             audioSource.PlayOneShot(clip, volume * volumeMultiplier * distAtten);
         }
     }
-    
+
     public void PlayGunSound(EnemyGunSoundType overrideSoundType)
     {
         float distAtten = GetDistanceAttenuation();
-        if (distAtten < 0.01f) return;
+        if (distAtten < 0.01f)
+            return;
 
         AudioClip clip;
         if (cachedClips != null && cachedClips.TryGetValue(overrideSoundType, out clip))
@@ -770,11 +904,12 @@ public class ProceduralEnemyGunAudio : MonoBehaviour
             audioSource.PlayOneShot(clip, volume * distAtten);
         }
     }
-    
+
     public void PlayGunSound(EnemyGunSoundType overrideSoundType, float volumeMultiplier)
     {
         float distAtten = GetDistanceAttenuation();
-        if (distAtten < 0.01f) return;
+        if (distAtten < 0.01f)
+            return;
 
         AudioClip clip;
         if (cachedClips != null && cachedClips.TryGetValue(overrideSoundType, out clip))
@@ -807,9 +942,12 @@ public class ProceduralEnemyGunAudio : MonoBehaviour
         System.Array.Clear(bpState, 0, bpState.Length);
         ClearReverb();
 
-        float phase1 = 0f, phase2 = 0f;
-        float phaseSub = 0f, phaseMid = 0f;
-        float phaseMod = 0f, phaseRes = 0f;
+        float phase1 = 0f,
+            phase2 = 0f;
+        float phaseSub = 0f,
+            phaseMid = 0f;
+        float phaseMod = 0f,
+            phaseRes = 0f;
         float noiseState = 0f;
 
         float freqOffset1 = Random.Range(0.9f, 1.1f);
@@ -830,7 +968,7 @@ public class ProceduralEnemyGunAudio : MonoBehaviour
             {
                 // Pitch modulation
                 float pitchMod = 1f + p.pitchBend * normalizedT;
-                
+
                 // LFO for chorus/wobble
                 phaseMod += p.modFreq / sampleRate;
                 float lfo = Mathf.Sin(phaseMod * Mathf.PI * 2f);
@@ -839,8 +977,10 @@ public class ProceduralEnemyGunAudio : MonoBehaviour
                 float glitchMod = 1f;
                 if (p.hasGlitch)
                 {
-                    if ((t > glitchTime1 && t < glitchTime1 + 0.008f) ||
-                        (t > glitchTime2 && t < glitchTime2 + 0.012f))
+                    if (
+                        (t > glitchTime1 && t < glitchTime1 + 0.008f)
+                        || (t > glitchTime2 && t < glitchTime2 + 0.012f)
+                    )
                     {
                         glitchMod = Random.Range(0.1f, 0.4f);
                         pitchMod *= Random.Range(0.7f, 1.4f);
@@ -849,47 +989,48 @@ public class ProceduralEnemyGunAudio : MonoBehaviour
 
                 // ===== TRANSIENT =====
                 float transientEnv = GetTransientEnvelope(t, p.transientDecay);
-                
+
                 float tf1 = p.transientFreq1 * freqOffset1 * pitchMod;
                 float tf2 = p.transientFreq2 * freqOffset2 * pitchMod;
-                
+
                 if (p.hasChorus)
                 {
                     tf1 *= 1f + lfo * p.modDepth * 0.1f;
                     tf2 *= 1f - lfo * p.modDepth * 0.08f;
                 }
-                
+
                 phase1 += tf1 / sampleRate;
                 phase2 += tf2 / sampleRate;
-                
+
                 float trans1 = Mathf.Sin(phase1 * Mathf.PI * 2f);
                 float trans2 = Mathf.Sin(phase2 * Mathf.PI * 2f);
-                float transient = (trans1 * 0.6f + trans2 * 0.4f) * transientEnv * p.transientAmount;
+                float transient =
+                    (trans1 * 0.6f + trans2 * 0.4f) * transientEnv * p.transientAmount;
 
                 // ===== BODY =====
                 float bodyEnv = GetBodyEnvelope(t, dur, p.bodyDecay);
-                
+
                 float subF = p.subFreq * pitchMod;
                 if (p.hasChorus)
                     subF *= 1f + lfo * p.modDepth * 0.05f;
-                
+
                 phaseSub += subF / sampleRate;
                 float sub = Mathf.Sin(phaseSub * Mathf.PI * 2f);
                 sub += Mathf.Sin(phaseSub * Mathf.PI * 3f) * 0.3f;
-                
+
                 float midF = p.midFreq * pitchMod;
                 phaseMid += midF / sampleRate;
                 float mid = Mathf.Sin(phaseMid * Mathf.PI * 2f);
                 mid += Mathf.Sin(phaseMid * Mathf.PI * 4f) * 0.25f;
-                
+
                 // Apply modulation depth
                 mid *= 1f + lfo * p.modDepth;
-                
+
                 float body = (sub * p.subAmount + mid * p.midAmount) * bodyEnv;
 
                 // ===== RESONANCE =====
                 float resEnv = GetResonanceEnvelope(t, dur);
-                
+
                 float resF = p.resonanceFreq * pitchMod;
                 phaseRes += resF / sampleRate;
                 float res = Mathf.Sin(phaseRes * Mathf.PI * 2f);
@@ -898,20 +1039,26 @@ public class ProceduralEnemyGunAudio : MonoBehaviour
 
                 // ===== NOISE =====
                 float noiseEnv = GetNoiseEnvelope(t, dur, p.noiseDecay);
-                
+
                 float whiteNoise = Random.Range(-1f, 1f);
-                noiseState = noiseState * (0.95f + p.noiseColor * 0.04f) + whiteNoise * (0.05f - p.noiseColor * 0.04f);
+                noiseState =
+                    noiseState * (0.95f + p.noiseColor * 0.04f)
+                    + whiteNoise * (0.05f - p.noiseColor * 0.04f);
                 float coloredNoise = noiseState * p.noiseColor + whiteNoise * (1f - p.noiseColor);
-                
-                float noise = LowpassFilter(coloredNoise, p.noiseCutoff * (1f - normalizedT * 0.4f), 0);
+
+                float noise = LowpassFilter(
+                    coloredNoise,
+                    p.noiseCutoff * (1f - normalizedT * 0.4f),
+                    0
+                );
                 noise *= noiseEnv * p.noiseAmount;
 
                 // ===== COMBINE =====
                 sample = transient + body + res + noise;
-                
+
                 // Apply distortion
                 sample = Distort(sample, p.distortion);
-                
+
                 // Apply glitch
                 sample *= glitchMod;
             }
@@ -943,7 +1090,7 @@ public class ProceduralEnemyGunAudio : MonoBehaviour
 
         if (maxAmp > 0.01f)
         {
-            float normalize = 0.7f / maxAmp;  // Leave more headroom
+            float normalize = 0.7f / maxAmp; // Leave more headroom
             for (int i = 0; i < totalSamples; i++)
                 audioBuffer[i] *= normalize;
         }
@@ -996,7 +1143,8 @@ public class ProceduralEnemyGunAudio : MonoBehaviour
         float attack = 0.005f;
         float decay = duration * 0.7f;
 
-        if (t < delay) return 0f;
+        if (t < delay)
+            return 0f;
         t -= delay;
 
         if (t < attack)
@@ -1061,11 +1209,12 @@ public class ProceduralEnemyGunAudio : MonoBehaviour
 
     private float Distort(float x, float amount)
     {
-        if (amount <= 0f) return x;
-        
+        if (amount <= 0f)
+            return x;
+
         float drive = 1f + amount * 5f;
         x *= drive;
-        
+
         // Asymmetric waveshaping for alien character
         if (x > 0)
             return (1f - Mathf.Exp(-x * 1.8f)) / 1.1f;

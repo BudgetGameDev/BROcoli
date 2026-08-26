@@ -17,37 +17,40 @@ public class LevelUpAutoResolver : MonoBehaviour
     private LevelUpScreen _screen;
     private float _cooldown;
 
-    private static float StatWeight(UpgradeOption.StatType t) => t switch
-    {
-        UpgradeOption.StatType.Speed => 10f,
-        UpgradeOption.StatType.LifeSteal => 9f,
-        UpgradeOption.StatType.SprayRange => 8f,
-        UpgradeOption.StatType.HealthRegen => 8f,
-        UpgradeOption.StatType.Armor => 8f,
-        UpgradeOption.StatType.Dodge => 8f,
-        UpgradeOption.StatType.MaxHealth => 7f,
-        UpgradeOption.StatType.AttackSpeed => 7f,
-        UpgradeOption.StatType.Damage => 6f,
-        UpgradeOption.StatType.SprayWidth => 6f,
-        UpgradeOption.StatType.CritChance => 5f,
-        UpgradeOption.StatType.CritDamage => 4f,
-        UpgradeOption.StatType.DetectionRadius => 2f,
-        _ => 3f
-    };
+    private static float StatWeight(UpgradeOption.StatType t) =>
+        t switch
+        {
+            UpgradeOption.StatType.Speed => 10f,
+            UpgradeOption.StatType.LifeSteal => 9f,
+            UpgradeOption.StatType.SprayRange => 8f,
+            UpgradeOption.StatType.HealthRegen => 8f,
+            UpgradeOption.StatType.Armor => 8f,
+            UpgradeOption.StatType.Dodge => 8f,
+            UpgradeOption.StatType.MaxHealth => 7f,
+            UpgradeOption.StatType.AttackSpeed => 7f,
+            UpgradeOption.StatType.Damage => 6f,
+            UpgradeOption.StatType.SprayWidth => 6f,
+            UpgradeOption.StatType.CritChance => 5f,
+            UpgradeOption.StatType.CritDamage => 4f,
+            UpgradeOption.StatType.DetectionRadius => 2f,
+            _ => 3f,
+        };
 
-    private static float RarityFactor(UpgradeOption.Rarity r) => r switch
-    {
-        UpgradeOption.Rarity.Common => 1f,
-        UpgradeOption.Rarity.Uncommon => 1.5f,
-        UpgradeOption.Rarity.Rare => 2.5f,
-        UpgradeOption.Rarity.Epic => 4f,
-        UpgradeOption.Rarity.Legendary => 6f,
-        _ => 1f
-    };
+    private static float RarityFactor(UpgradeOption.Rarity r) =>
+        r switch
+        {
+            UpgradeOption.Rarity.Common => 1f,
+            UpgradeOption.Rarity.Uncommon => 1.5f,
+            UpgradeOption.Rarity.Rare => 2.5f,
+            UpgradeOption.Rarity.Epic => 4f,
+            UpgradeOption.Rarity.Legendary => 6f,
+            _ => 1f,
+        };
 
     private static float Score(UpgradeOption o)
     {
-        if (o == null) return float.NegativeInfinity;
+        if (o == null)
+            return float.NegativeInfinity;
         float s = StatWeight(o.Type) * RarityFactor(o.RarityLevel);
         if (o.IsTrollUpgrade)
             s -= StatWeight(o.PenaltyType) * RarityFactor(o.RarityLevel) * 0.7f; // penalty ~60-80% magnitude
@@ -62,7 +65,8 @@ public class LevelUpAutoResolver : MonoBehaviour
         if (_screen == null)
         {
             _screen = FindAnyObjectByType<LevelUpScreen>();
-            if (_screen == null) return;
+            if (_screen == null)
+                return;
         }
 
         if (_cooldown > 0f || !_screen.IsShowing())
@@ -74,7 +78,11 @@ public class LevelUpAutoResolver : MonoBehaviour
         for (int i = 0; i < n; i++)
         {
             float sc = Score(_screen.GetOption(i));
-            if (sc > bestScore) { bestScore = sc; best = i; }
+            if (sc > bestScore)
+            {
+                bestScore = sc;
+                best = i;
+            }
         }
 
         _screen.AutoSelectUpgrade(best);

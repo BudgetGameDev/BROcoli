@@ -5,9 +5,9 @@ import argparse
 import hashlib
 import json
 import os
-from pathlib import Path
 import subprocess
 import sys
+from pathlib import Path
 
 KEY_NAME = "BROCOLI_LICENSED_ASSET_KEY"
 ITERATIONS = 200_000
@@ -44,9 +44,20 @@ def run_openssl(mode: str, source: Path, destination: Path, key: str) -> None:
     environment = os.environ.copy()
     environment[KEY_NAME] = key
     command = [
-        "openssl", "enc", "-aes-256-cbc", "-pbkdf2", "-iter", str(ITERATIONS),
-        "-md", "sha256", "-pass", f"env:{KEY_NAME}", "-in", str(source),
-        "-out", str(destination),
+        "openssl",
+        "enc",
+        "-aes-256-cbc",
+        "-pbkdf2",
+        "-iter",
+        str(ITERATIONS),
+        "-md",
+        "sha256",
+        "-pass",
+        f"env:{KEY_NAME}",
+        "-in",
+        str(source),
+        "-out",
+        str(destination),
     ]
     if mode == "decrypt":
         command.insert(2, "-d")
@@ -67,9 +78,7 @@ def encrypt(args: argparse.Namespace) -> None:
         "author": args.author,
         "license": args.license,
     }
-    Path(str(output) + ".json").write_text(
-        json.dumps(metadata, indent=2) + "\n", encoding="utf-8"
-    )
+    Path(str(output) + ".json").write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
     print(f"Encrypted {source.name} -> {output.relative_to(PROJECT_ROOT)}")
 
 
@@ -105,7 +114,12 @@ def main() -> int:
         args = parse_args()
         encrypt(args) if args.command == "encrypt" else decrypt(args)
         return 0
-    except (OSError, RuntimeError, subprocess.CalledProcessError, json.JSONDecodeError) as error:
+    except (
+        OSError,
+        RuntimeError,
+        subprocess.CalledProcessError,
+        json.JSONDecodeError,
+    ) as error:
         print(f"licensed asset error: {error}", file=sys.stderr)
         return 1
 

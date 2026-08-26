@@ -6,7 +6,8 @@ public class GameStates : MonoBehaviour
     public float gameTime = 0f;
     public bool IsGameOver => player != null && player.getGameOver();
 
-    [SerializeField] private PlayerController player;
+    [SerializeField]
+    private PlayerController player;
 
     private int lastSecond = 0;
     private int lastTenSecondMilestone = 0;
@@ -19,7 +20,8 @@ public class GameStates : MonoBehaviour
 
     void Update()
     {
-        if (IsGameOver) return;
+        if (IsGameOver)
+            return;
 
         gameTime += Time.deltaTime;
 

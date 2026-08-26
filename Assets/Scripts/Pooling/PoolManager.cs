@@ -32,11 +32,13 @@ namespace Pooling
         private const int ExpGainCount = 100;
 
         // Enemy pools keyed by prefab instance ID
-        private Dictionary<int, ObjectPool<EnemyBase>> _enemyPools = new Dictionary<int, ObjectPool<EnemyBase>>();
-        
+        private Dictionary<int, ObjectPool<EnemyBase>> _enemyPools =
+            new Dictionary<int, ObjectPool<EnemyBase>>();
+
         // Projectile pools
-        private Dictionary<int, ObjectPool<EnemyProjectile>> _projectilePools = new Dictionary<int, ObjectPool<EnemyProjectile>>();
-        
+        private Dictionary<int, ObjectPool<EnemyProjectile>> _projectilePools =
+            new Dictionary<int, ObjectPool<EnemyProjectile>>();
+
         // ExpGain pool
         private ObjectPool<ExpGain> _expGainPool;
         private ExpGain _expGainPrefab;
@@ -75,16 +77,22 @@ namespace Pooling
         /// <param name="enemyPrefabs">Array of enemy prefabs to pool</param>
         /// <param name="expGainPrefab">ExpGain prefab to pool</param>
         /// <param name="projectilePrefabs">Array of projectile prefabs to pool</param>
-        public void PreWarmAll(GameObject[] enemyPrefabs, ExpGain expGainPrefab, GameObject[] projectilePrefabs = null)
+        public void PreWarmAll(
+            GameObject[] enemyPrefabs,
+            ExpGain expGainPrefab,
+            GameObject[] projectilePrefabs = null
+        )
         {
-            if (_isPrewarmed) return;
+            if (_isPrewarmed)
+                return;
 
             // Pre-warm enemy pools
             if (enemyPrefabs != null)
             {
                 foreach (var prefab in enemyPrefabs)
                 {
-                    if (prefab == null) continue;
+                    if (prefab == null)
+                        continue;
                     var enemy = prefab.GetComponent<EnemyBase>();
                     if (enemy != null)
                     {
@@ -112,7 +120,8 @@ namespace Pooling
             {
                 foreach (var prefab in projectilePrefabs)
                 {
-                    if (prefab == null) continue;
+                    if (prefab == null)
+                        continue;
                     var proj = prefab.GetComponent<EnemyProjectile>();
                     if (proj != null)
                     {
@@ -122,8 +131,10 @@ namespace Pooling
             }
 
             _isPrewarmed = true;
-            Debug.Log($"[PoolManager] Pre-warmed pools: {_enemyPools.Count} enemy types, " +
-                      $"{_projectilePools.Count} projectile types, ExpGain pool");
+            Debug.Log(
+                $"[PoolManager] Pre-warmed pools: {_enemyPools.Count} enemy types, "
+                    + $"{_projectilePools.Count} projectile types, ExpGain pool"
+            );
         }
 
         #region Enemy Pool
@@ -133,7 +144,8 @@ namespace Pooling
         /// </summary>
         public EnemyBase GetEnemy(EnemyBase prefab, Vector3 position, Quaternion rotation)
         {
-            if (prefab == null) return null;
+            if (prefab == null)
+                return null;
             var pool = GetOrCreateEnemyPool(prefab);
             return pool.Get(position, rotation);
         }
@@ -143,7 +155,8 @@ namespace Pooling
         /// </summary>
         public void ReturnEnemy(EnemyBase enemy)
         {
-            if (enemy == null) return;
+            if (enemy == null)
+                return;
 
             // Find the pool this enemy belongs to
             int prefabId = GetPrefabId(enemy);
@@ -180,7 +193,7 @@ namespace Pooling
         {
             // Call ResetForPool to reset all enemy state (health, visuals, attack state, etc.)
             enemy.ResetForPool();
-            
+
             // Re-enable components
             var rb = enemy.rb;
             if (rb != null)
@@ -240,7 +253,8 @@ namespace Pooling
         {
             if (_expGainPool == null || expGain == null)
             {
-                if (expGain != null) Destroy(expGain.gameObject);
+                if (expGain != null)
+                    Destroy(expGain.gameObject);
                 return;
             }
             _expGainPool.Return(expGain);
@@ -285,9 +299,14 @@ namespace Pooling
         /// <summary>
         /// Get a projectile from the pool.
         /// </summary>
-        public EnemyProjectile GetProjectile(EnemyProjectile prefab, Vector3 position, Quaternion rotation)
+        public EnemyProjectile GetProjectile(
+            EnemyProjectile prefab,
+            Vector3 position,
+            Quaternion rotation
+        )
         {
-            if (prefab == null) return null;
+            if (prefab == null)
+                return null;
             var pool = GetOrCreateProjectilePool(prefab);
             return pool.Get(position, rotation);
         }
@@ -297,7 +316,8 @@ namespace Pooling
         /// </summary>
         public void ReturnProjectile(EnemyProjectile projectile)
         {
-            if (projectile == null) return;
+            if (projectile == null)
+                return;
 
             int prefabId = GetPrefabId(projectile);
             if (_projectilePools.TryGetValue(prefabId, out var pool))

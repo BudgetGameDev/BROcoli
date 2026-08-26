@@ -8,7 +8,8 @@ public class ProceduralLevelUpAudio : MonoBehaviour
 {
     [Header("Volume")]
     [Range(0f, 1f)]
-    [SerializeField] private float volume = 0.8f;
+    [SerializeField]
+    private float volume = 0.8f;
 
     private AudioSource audioSource;
     private int sampleRate;

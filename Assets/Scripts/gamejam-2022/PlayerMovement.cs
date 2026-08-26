@@ -54,14 +54,14 @@ public class PlayerMovement : MonoBehaviour
         _animator = GetComponent<Animator>();
         _collider = GetComponent<Collider2D>();
         _hopVisual = GetComponentInChildren<ShuffleWalkVisual>();
-        _playerStats = GetComponentInChildren<PlayerStats>();  // May be on child prefab
+        _playerStats = GetComponentInChildren<PlayerStats>(); // May be on child prefab
         _inputHandler = GetComponent<PlayerInputHandler>();
         _enemyLayerMask = LayerMask.GetMask("Enemy");
         _enemyContactFilter = new ContactFilter2D
         {
             useLayerMask = true,
             layerMask = _enemyLayerMask,
-            useTriggers = false
+            useTriggers = false,
         };
 
         // This collider is the player's solid navigation body. Trigger-based
@@ -86,12 +86,17 @@ public class PlayerMovement : MonoBehaviour
     /// <param name="rawInput">The raw input direction from input handler.</param>
     public void ProcessMovement(Vector2 rawInput)
     {
-        if (_body == null) return;
+        if (_body == null)
+            return;
 
         // Decay knockback velocity over time
         if (_knockbackVelocity.sqrMagnitude > 0.01f)
         {
-            _knockbackVelocity = Vector2.MoveTowards(_knockbackVelocity, Vector2.zero, KnockbackDecay * Time.fixedDeltaTime);
+            _knockbackVelocity = Vector2.MoveTowards(
+                _knockbackVelocity,
+                Vector2.zero,
+                KnockbackDecay * Time.fixedDeltaTime
+            );
         }
         else
         {
@@ -115,7 +120,7 @@ public class PlayerMovement : MonoBehaviour
         Vector2 playerDelta = moveDir * speed * Time.fixedDeltaTime;
         Vector2 knockbackDelta = _knockbackVelocity * Time.fixedDeltaTime;
         Vector2 totalDelta = playerDelta + knockbackDelta;
-        
+
         _body.MovePosition(_body.position + ResolveEnemyCollisions(totalDelta));
 
         // Update animator
@@ -141,15 +146,19 @@ public class PlayerMovement : MonoBehaviour
         for (int i = 0; i < MaxCollisionSlides; i++)
         {
             float distance = remainingDelta.magnitude;
-            if (distance < 0.0001f) break;
+            if (distance < 0.0001f)
+                break;
 
             Vector2 direction = remainingDelta / distance;
-            if (!TryGetBlockingHit(
+            if (
+                !TryGetBlockingHit(
                     castCenter,
                     castSize,
                     direction,
                     distance + CollisionSkin + EnemyStandOffGap,
-                    out RaycastHit2D hit))
+                    out RaycastHit2D hit
+                )
+            )
             {
                 resolvedDelta += remainingDelta;
                 break;
@@ -158,7 +167,8 @@ public class PlayerMovement : MonoBehaviour
             float travelDistance = Mathf.Clamp(
                 hit.distance - CollisionSkin - EnemyStandOffGap,
                 0f,
-                distance);
+                distance
+            );
             Vector2 travel = direction * travelDistance;
             resolvedDelta += travel;
             castCenter += travel;
@@ -179,7 +189,8 @@ public class PlayerMovement : MonoBehaviour
         Vector2 castSize,
         Vector2 direction,
         float distance,
-        out RaycastHit2D closestHit)
+        out RaycastHit2D closestHit
+    )
     {
         int hitCount = Physics2D.BoxCast(
             castCenter,
@@ -188,7 +199,8 @@ public class PlayerMovement : MonoBehaviour
             direction,
             _enemyContactFilter,
             _collisionHits,
-            distance);
+            distance
+        );
 
         closestHit = default;
         float closestDistance = float.MaxValue;
@@ -221,7 +233,8 @@ public class PlayerMovement : MonoBehaviour
 
     private void UpdateAnimator(Vector2 moveDir)
     {
-        if (_animator == null) return;
+        if (_animator == null)
+            return;
 
         _animator.SetFloat("Horizontal", moveDir.x);
         _animator.SetFloat("Vertical", moveDir.y);
@@ -246,11 +259,12 @@ public class PlayerMovement : MonoBehaviour
     /// <param name="force">Force magnitude to add.</param>
     public void ApplyKnockbackImpulse(Vector2 direction, float force)
     {
-        if (_body == null || direction == Vector2.zero) return;
+        if (_body == null || direction == Vector2.zero)
+            return;
 
         // Add to existing knockback, but keep the result in the small-recoil range.
         _knockbackVelocity += direction.normalized * force;
-        
+
         if (_knockbackVelocity.magnitude > MaxKnockbackForce)
         {
             _knockbackVelocity = _knockbackVelocity.normalized * MaxKnockbackForce;

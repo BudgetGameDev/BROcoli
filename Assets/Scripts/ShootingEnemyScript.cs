@@ -1,25 +1,35 @@
-using UnityEngine;
 using Pooling;
+using UnityEngine;
 
 [RequireComponent(typeof(Rigidbody2D))]
 [RequireComponent(typeof(Collider2D))]
 public class ShootingEnemyScript : EnemyBase
 {
     [Header("Shooting")]
-    public float stopDistance = 6f;          // stop moving when within this distance from player
-    public float fireRate = 0.125f;          // shots per second (0.125 = one shot per 8 seconds)
+    public float stopDistance = 6f; // stop moving when within this distance from player
+    public float fireRate = 0.125f; // shots per second (0.125 = one shot per 8 seconds)
     public float projectileDamage = 10f;
     public GameObject projectilePrefab;
-    public Transform shootPoint;             // optional: where bullets spawn (defaults to this transform)
+    public Transform shootPoint; // optional: where bullets spawn (defaults to this transform)
 
     [Header("Projectile Spawn Offset")]
-    [SerializeField] private float projectileSpawnForwardOffset = 0.35f; // Forward offset from body
-    [SerializeField] private float projectileSpawnSideOffset = 0.2f;     // Side offset from body
-    [SerializeField] private float projectileVisualHeight = -0.5f;       // Z offset for visual "height"
+    [SerializeField]
+    private float projectileSpawnForwardOffset = 0.35f; // Forward offset from body
+
+    [SerializeField]
+    private float projectileSpawnSideOffset = 0.2f; // Side offset from body
+
+    [SerializeField]
+    private float projectileVisualHeight = -0.5f; // Z offset for visual "height"
 
     [Header("Audio")]
-    [SerializeField] private ProceduralEnemyGunAudio gunAudio;
-    [SerializeField] private ProceduralEnemyGunAudio.EnemyGunSoundType gunSoundType = ProceduralEnemyGunAudio.EnemyGunSoundType.Sneeze;
+    [SerializeField]
+    private ProceduralEnemyGunAudio gunAudio;
+
+    [SerializeField]
+    private ProceduralEnemyGunAudio.EnemyGunSoundType gunSoundType = ProceduralEnemyGunAudio
+        .EnemyGunSoundType
+        .Sneeze;
 
     private float nextShootTime = 0f;
     private EnemyProjectile _cachedProjectilePrefab;
@@ -28,11 +38,11 @@ public class ShootingEnemyScript : EnemyBase
     {
         if (shootPoint == null)
             shootPoint = transform;
-        
+
         // Try to get gun audio component if not assigned
         if (gunAudio == null)
             gunAudio = GetComponent<ProceduralEnemyGunAudio>();
-        
+
         // Cache projectile prefab component for pooling
         if (projectilePrefab != null)
             _cachedProjectilePrefab = projectilePrefab.GetComponent<EnemyProjectile>();
@@ -40,8 +50,9 @@ public class ShootingEnemyScript : EnemyBase
 
     protected override void FixedUpdate()
     {
-        if (player == null) return;
-        
+        if (player == null)
+            return;
+
         // Don't move toward player during knockback
         if (isKnockedBack)
         {
@@ -56,7 +67,8 @@ public class ShootingEnemyScript : EnemyBase
         // If far away -> move towards player
         if (dist > stopDistance)
         {
-            if (dist < 0.0001f) return;
+            if (dist < 0.0001f)
+                return;
 
             Vector2 dir = toPlayer / dist; // normalized
             Vector2 targetVel = dir * Speed * EnemyTimeScale;
@@ -89,15 +101,16 @@ public class ShootingEnemyScript : EnemyBase
                 acceleration * EnemyTimeScale * Time.fixedDeltaTime
             );
         }
-        
+
         // Apply separation AFTER movement
         base.FixedUpdate();
     }
 
     public override void Update()
     {
-        if (player == null) return;
-        
+        if (player == null)
+            return;
+
         // Shooting logic (only shoot when within stop distance)
         float distToPlayer = Vector2.Distance(transform.position, player.position);
         if (distToPlayer <= stopDistance)
@@ -109,35 +122,43 @@ public class ShootingEnemyScript : EnemyBase
 
     void TryShoot()
     {
-        if (projectilePrefab == null) return;
-        if (player == null) return;
-        if (fireRate <= 0f) return;
-        if (Time.time < nextShootTime) return;
+        if (projectilePrefab == null)
+            return;
+        if (player == null)
+            return;
+        if (fireRate <= 0f)
+            return;
+        if (Time.time < nextShootTime)
+            return;
         nextShootTime = Time.time + (1f / fireRate) / Mathf.Max(0.1f, EnemyTimeScale);
-        
+
         // Calculate direction to player
         Vector2 direction = ((Vector2)player.position - (Vector2)shootPoint.position).normalized;
-        
+
         // Calculate spawn position with offset (similar to player projectile spawning)
         Vector2 spawnPos2D = (Vector2)shootPoint.position;
-        
+
         // Offset to the side (perpendicular to firing direction)
         Vector2 perpendicular = new Vector2(-direction.y, direction.x);
         spawnPos2D += perpendicular * projectileSpawnSideOffset;
-        
+
         // Offset forward in the firing direction (away from body)
         spawnPos2D += direction * projectileSpawnForwardOffset;
-        
+
         // Use Z position for visual "height" - this doesn't affect 2D collision
         Vector3 spawnPos = new Vector3(spawnPos2D.x, spawnPos2D.y, projectileVisualHeight);
-        
+
         // Try to get projectile from pool first
         EnemyProjectile ep = null;
         if (_cachedProjectilePrefab != null)
         {
-            ep = PoolManager.Instance?.GetProjectile(_cachedProjectilePrefab, spawnPos, Quaternion.identity);
+            ep = PoolManager.Instance?.GetProjectile(
+                _cachedProjectilePrefab,
+                spawnPos,
+                Quaternion.identity
+            );
         }
-        
+
         // Fallback to instantiate if pool not available
         if (ep == null)
         {
@@ -149,7 +170,7 @@ public class ShootingEnemyScript : EnemyBase
         {
             ep.Init(direction);
         }
-        
+
         // Play procedural gun sound with configured type
         if (gunAudio != null)
         {
