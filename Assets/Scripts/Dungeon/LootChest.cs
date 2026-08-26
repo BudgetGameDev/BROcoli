@@ -63,7 +63,7 @@ public class LootChest : MonoBehaviour
 
         for (int i = 0; i < boostDropCount; i++)
         {
-            GameObject prefab = ChooseWeightedBoost(boostPrefabs);
+            GameObject prefab = PickWeightedBoost(boostPrefabs);
             if (prefab == null)
                 return;
             Vector2 spot = center + ScatterOffset(i, boostDropCount) * 1.4f;
@@ -80,8 +80,13 @@ public class LootChest : MonoBehaviour
         return new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * distance;
     }
 
-    private static GameObject ChooseWeightedBoost(GameObject[] prefabs)
+    /// <summary>Rolls one boost prefab weighted by <see cref="BoostBase.DropWeight"/>.
+    /// Shared with elite kill rewards (see DungeonEnemyPlacer).</summary>
+    public static GameObject PickWeightedBoost(GameObject[] prefabs)
     {
+        if (prefabs == null || prefabs.Length == 0)
+            return null;
+
         float totalWeight = 0f;
         foreach (GameObject prefab in prefabs)
         {

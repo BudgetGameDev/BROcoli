@@ -32,27 +32,8 @@ public class DungeonRoomBuilder : MonoBehaviour
     [SerializeField]
     private GameObject gateBlockedPrefab;
 
-    [Header("Loot and props")]
-    [SerializeField]
-    private GameObject chestPrefab;
-
-    [SerializeField]
-    private GameObject goldenChestPrefab;
-
-    [SerializeField]
-    private GameObject[] propPrefabs;
-
     [SerializeField, Range(0f, 1f)]
     private float floorVariantChance = 0.18f;
-
-    [SerializeField, Range(0f, 1f)]
-    private float chestChance = 0.35f;
-
-    [SerializeField, Range(0f, 1f)]
-    private float goldenChestChance = 0.12f;
-
-    [SerializeField]
-    private int maxPropsPerRoom = 4;
 
     /// <summary>Builds the 7x5 floor of a room under the given parent.</summary>
     public void BuildFloor(Transform parent, Vector2Int room, System.Random random)
@@ -173,87 +154,11 @@ public class DungeonRoomBuilder : MonoBehaviour
         return corner;
     }
 
-    /// <summary>
-    /// Scatters decorative props along the room's inner ring and maybe places
-    /// a loot chest. Returns the spawned chest, if any, so the manager can
-    /// track its opened state.
-    /// </summary>
-    public LootChest BuildContents(
-        Transform parent,
-        Vector2Int room,
-        System.Random random,
-        bool allowChest
-    )
-    {
-        Vector2 center = DungeonLayout.RoomCenter(room);
-        LootChest chest = null;
-
-        if (allowChest && chestPrefab != null && random.NextDouble() < chestChance)
-        {
-            bool golden = goldenChestPrefab != null && random.NextDouble() < goldenChestChance;
-            GameObject prefab = golden ? goldenChestPrefab : chestPrefab;
-            Vector2 chestSpot = InnerSpot(center, random);
-            GameObject spawned = Instantiate(
-                prefab,
-                chestSpot.ToWorld(),
-                GroundPlane.YawRotation(random.Next(0, 360)),
-                parent
-            );
-            chest = spawned.GetComponent<LootChest>();
-        }
-
-        if (propPrefabs != null && propPrefabs.Length > 0)
-        {
-            int propCount = random.Next(0, maxPropsPerRoom + 1);
-            for (int i = 0; i < propCount; i++)
-            {
-                GameObject prefab = propPrefabs[random.Next(propPrefabs.Length)];
-                Vector2 spot = InnerSpot(center, random);
-                Instantiate(
-                    prefab,
-                    spot.ToWorld(),
-                    GroundPlane.YawRotation(random.Next(0, 360)),
-                    parent
-                );
-            }
-        }
-
-        return chest;
-    }
-
     private static Vector2 TileCenter(Vector2 roomCenter, int i, int j)
     {
         return new Vector2(
             roomCenter.x + (i - DungeonLayout.RoomTilesX / 2) * Tile,
             roomCenter.y + (j - DungeonLayout.RoomTilesZ / 2) * Tile
         );
-    }
-
-    /// <summary>
-    /// A random spot inside the room that keeps clear of the walls, the
-    /// doorway lanes, and the room centre where the player walks in.
-    /// </summary>
-    private static Vector2 InnerSpot(Vector2 roomCenter, System.Random random)
-    {
-        for (int attempt = 0; attempt < 12; attempt++)
-        {
-            float x = Mathf.Lerp(
-                -HalfRoomWidth + 3.5f,
-                HalfRoomWidth - 3.5f,
-                (float)random.NextDouble()
-            );
-            float z = Mathf.Lerp(
-                -HalfRoomDepth + 3.5f,
-                HalfRoomDepth - 3.5f,
-                (float)random.NextDouble()
-            );
-
-            // The doorway lanes cross the room through its centre; keeping
-            // props out of both lanes also keeps the walk-in area clear.
-            if (Mathf.Abs(x) >= 2.5f && Mathf.Abs(z) >= 2.5f)
-                return roomCenter + new Vector2(x, z);
-        }
-
-        return roomCenter + new Vector2(HalfRoomWidth - 4f, HalfRoomDepth - 4f);
     }
 }

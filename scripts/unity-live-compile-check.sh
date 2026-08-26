@@ -13,7 +13,9 @@ for tool in unity python3; do
 done
 
 parse_result() {
-    python3 -c 'import json,sys; d=json.load(sys.stdin); r=d.get("data",{}).get("result",{}); print(r if isinstance(r,str) else json.dumps(r))'
+    # The response can transiently be null right after a recompile triggers a
+    # domain reload; treat that as an empty result so the caller retries.
+    python3 -c 'import json,sys; d=json.load(sys.stdin) or {}; r=d.get("data",{}).get("result",{}) or {}; print(r if isinstance(r,str) else json.dumps(r))'
 }
 
 unity command clear_console --format json >/dev/null
@@ -23,7 +25,7 @@ status="compiling"
 failed="false"
 for _attempt in $(seq 1 120); do
     result="$(unity command recompile_status --format json | parse_result)"
-    status="$(printf '%s' "$result" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("status","unknown"))')"
+    status="$(printf '%s' "$result" | python3 -c 'import json,sys; print((json.load(sys.stdin) or {}).get("status","compiling"))')"
     failed="$(printf '%s' "$result" | python3 -c 'import json,sys; print(str(json.load(sys.stdin).get("failed",False)).lower())')"
     case "$status" in
         completed | up_to_date)

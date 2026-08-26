@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Unity.AI.Navigation;
 using UnityEngine;
 
 /// <summary>
@@ -16,6 +17,9 @@ public class DungeonManager : MonoBehaviour
 
     [SerializeField]
     private DungeonRoomBuilder builder;
+
+    [SerializeField]
+    private DungeonPropPlacer decor;
 
     [SerializeField]
     [Tooltip("0 picks a fresh random seed every run.")]
@@ -47,6 +51,8 @@ public class DungeonManager : MonoBehaviour
     private Vector2Int currentRoom;
     private bool hasCurrentRoom;
     private float nextRoomCheck;
+    private NavMeshSurface navSurface;
+    private bool navMeshDirty;
 
     public int Seed => seed;
 
@@ -56,6 +62,15 @@ public class DungeonManager : MonoBehaviour
             seed = Random.Range(1, int.MaxValue);
         layout = new DungeonLayout(seed);
         Debug.Log($"DungeonManager: generating dungeon with seed {seed}.");
+
+        // Enemies path through doorways over a NavMesh baked from the loaded
+        // rooms' render meshes (see DungeonEnemyNavigator).
+        navSurface = gameObject.AddComponent<NavMeshSurface>();
+        navSurface.collectObjects = CollectObjects.Children;
+        navSurface.useGeometry = UnityEngine.AI.NavMeshCollectGeometry.RenderMeshes;
+        // Open-gate arch meshes sit on Ignore Raycast so their low arch does
+        // not carve the NavMesh out of the doorway (agent height > arch).
+        navSurface.layerMask = ~(1 << 2);
 
         LoadEnemyPrefabs();
         EnterRoom(Vector2Int.zero);
@@ -96,6 +111,12 @@ public class DungeonManager : MonoBehaviour
             EnsureRoom(room + new Vector2Int(dx, dy));
 
         UnloadDistantRooms();
+
+        if (navMeshDirty)
+        {
+            navSurface.BuildNavMesh();
+            navMeshDirty = false;
+        }
     }
 
     private void EnsureRoom(Vector2Int room)
@@ -108,7 +129,7 @@ public class DungeonManager : MonoBehaviour
         root.transform.SetParent(transform, false);
 
         builder.BuildFloor(root.transform, room, layout.RoomRandom(room, 404));
-        LootChest chest = builder.BuildContents(
+        LootChest chest = decor.BuildContents(
             root.transform,
             room,
             layout.RoomRandom(room, 505),
@@ -116,6 +137,7 @@ public class DungeonManager : MonoBehaviour
         );
         if (chest != null)
             chest.Opened += () => state.ChestOpened = true;
+        decor.BuildAtmosphere(root.transform, room, layout.RoomRandom(room, 707));
 
         for (int direction = 0; direction < 4; direction++)
         {
@@ -141,6 +163,7 @@ public class DungeonManager : MonoBehaviour
         }
 
         loadedRooms[room] = loaded;
+        navMeshDirty = true;
     }
 
     private void UnloadDistantRooms()
@@ -161,6 +184,7 @@ public class DungeonManager : MonoBehaviour
             DungeonEnemyPlacer.Despawn(loaded.DormantEnemies);
             Destroy(loaded.Root);
             loadedRooms.Remove(room);
+            navMeshDirty = true;
         }
 
         PruneSharedGeometry();

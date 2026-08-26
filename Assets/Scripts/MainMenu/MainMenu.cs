@@ -55,10 +55,10 @@ public class MainMenu : MonoBehaviour
         SetupControllerNavigation();
     }
 
-    private void SetupControllerNavigation()
+    public void SetupControllerNavigation(bool rescan = false)
     {
-        // Auto-find buttons if not assigned
-        if (menuButtons == null || menuButtons.Length == 0)
+        // Auto-find buttons if not assigned (or on a forced rescan)
+        if (rescan || menuButtons == null || menuButtons.Length == 0)
         {
             menuButtons = GetComponentsInChildren<Button>(true);
         }
@@ -159,7 +159,6 @@ public class MainMenu : MonoBehaviour
     public void playGame()
     {
         ProceduralUIAudio.PlaySelect();
-        Debug.Log("Play Game has been pressed - Virtual Controller HIDDEN");
         PlayerPrefs.SetInt("ShowVirtualController", 0);
         PlayerPrefs.Save();
         SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex + 1);
@@ -211,6 +210,7 @@ public class MainMenu : MonoBehaviour
                 && !Keyboard.current.sKey.isPressed
                 && !Keyboard.current.enterKey.isPressed
                 && !Keyboard.current.spaceKey.isPressed
+                && !GameModeMenu.IsOpen
             )
             {
                 SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex + 1);

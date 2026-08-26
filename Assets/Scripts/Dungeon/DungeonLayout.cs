@@ -131,15 +131,44 @@ public sealed class DungeonLayout
         return new System.Random((int)Hash(room.x, room.y, salt));
     }
 
-    /// <summary>How many enemies wait inside a freshly generated room.</summary>
-    public int EnemyCount(Vector2Int room)
+    /// <summary>What kind of enemy group a room holds.</summary>
+    public readonly struct RoomPopulation
+    {
+        public readonly int Count;
+        public readonly bool Elite;
+
+        public RoomPopulation(int count, bool elite)
+        {
+            Count = count;
+            Elite = elite;
+        }
+    }
+
+    /// <summary>
+    /// Rolls a room's population archetype: some rooms are empty, most hold a
+    /// small or medium group, a few are packed, and rare rooms are elite dens
+    /// (a couple of low-tier enemies promoted to elites).
+    /// </summary>
+    public RoomPopulation Population(Vector2Int room)
     {
         int ring = Ring(room);
         if (ring == 0)
-            return 0;
+            return new RoomPopulation(0, false);
 
         System.Random random = RoomRandom(room, 303);
-        return 2 + Mathf.Min(ring, 6) + random.Next(0, 3);
+        double roll = random.NextDouble();
+        if (roll < 0.18)
+            return new RoomPopulation(0, false);
+        if (roll < 0.52)
+            return new RoomPopulation(1 + random.Next(0, 2) + ring / 3, false);
+        if (roll < 0.82)
+            return new RoomPopulation(3 + random.Next(0, 3) + Mathf.Min(ring, 5), false);
+        if (roll < 0.95)
+            return new RoomPopulation(
+                Mathf.Min(12, 6 + random.Next(0, 4) + Mathf.Min(ring, 6)),
+                false
+            );
+        return new RoomPopulation(2 + random.Next(0, 2), true);
     }
 
     /// <summary>Health multiplier applied to enemies the deeper the player goes.</summary>

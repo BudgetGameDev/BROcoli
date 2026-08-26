@@ -4,9 +4,9 @@ using UnityEngine;
 
 /// <summary>
 /// Spawns a room's enemies ahead of the player's arrival. Enemies come from
-/// the shared <see cref="PoolManager"/> and are left dormant (inactive) so
-/// they neither chase nor take damage until the player actually walks into
-/// the room, which then wakes them all at once.
+/// the shared <see cref="PoolManager"/> and stand visibly in the room but
+/// dormant (their AI component disabled), so there is no pop-in when the
+/// player peers through a doorway; entering the room wakes the whole group.
 /// </summary>
 public static class DungeonEnemyPlacer
 {
@@ -15,7 +15,7 @@ public static class DungeonEnemyPlacer
 
     /// <summary>
     /// Spawns the room's enemy group dormant and returns it. The mix of enemy
-    /// types unlocks with ring distance so early rooms stay gentle.
+    /// types unlocks with ring distance; elite dens promote low-tier enemies.
     /// </summary>
     public static List<EnemyBase> SpawnDormant(
         IReadOnlyList<EnemyBase> prefabs,
@@ -24,15 +24,19 @@ public static class DungeonEnemyPlacer
     )
     {
         var spawned = new List<EnemyBase>();
-        int count = layout.EnemyCount(room);
-        if (count <= 0 || prefabs == null || prefabs.Count == 0)
+        DungeonLayout.RoomPopulation population = layout.Population(room);
+        if (population.Count <= 0 || prefabs == null || prefabs.Count == 0)
             return spawned;
 
         int ring = DungeonLayout.Ring(room);
         var allowed = new List<EnemyBase>();
         foreach (EnemyBase prefab in prefabs)
         {
-            if (prefab != null && ring >= MinRingFor(prefab.name))
+            if (prefab == null)
+                continue;
+            int minRing = MinRingFor(prefab.name);
+            // Elite dens promote the weakest enemies instead of using strong ones.
+            if (population.Elite ? minRing <= 1 : ring >= minRing)
                 allowed.Add(prefab);
         }
         if (allowed.Count == 0)
@@ -42,7 +46,7 @@ public static class DungeonEnemyPlacer
         float healthScale = layout.EnemyHealthScale(room);
         Vector2 roomCenter = DungeonLayout.RoomCenter(room);
 
-        for (int i = 0; i < count; i++)
+        for (int i = 0; i < population.Count; i++)
         {
             EnemyBase prefab = allowed[random.Next(allowed.Count)];
             Vector3 position = PickSpot(roomCenter, random).ToWorld();
@@ -60,7 +64,19 @@ public static class DungeonEnemyPlacer
 
             enemy.Health *= healthScale;
             enemy.MaxHealth *= healthScale;
-            enemy.gameObject.SetActive(false);
+
+            if (population.Elite)
+            {
+                enemy.MakeElite();
+                enemy.OnEliteDeath -= DropEliteReward;
+                enemy.OnEliteDeath += DropEliteReward;
+            }
+
+            if (enemy.GetComponent<DungeonEnemyNavigator>() == null)
+                enemy.gameObject.AddComponent<DungeonEnemyNavigator>();
+
+            // Visible but dormant: the enemy stands in the room, its AI off.
+            enemy.enabled = false;
             spawned.Add(enemy);
         }
 
@@ -75,8 +91,8 @@ public static class DungeonEnemyPlacer
 
         foreach (EnemyBase enemy in dormant)
         {
-            if (enemy != null && !enemy.gameObject.activeSelf)
-                enemy.gameObject.SetActive(true);
+            if (enemy != null)
+                enemy.enabled = true;
         }
         dormant.Clear();
     }
@@ -91,12 +107,23 @@ public static class DungeonEnemyPlacer
         {
             if (enemy == null)
                 continue;
+            // Re-enable the AI so the pooled instance behaves when reused.
+            enemy.enabled = true;
             if (PoolManager.Instance != null)
                 PoolManager.Instance.ReturnEnemy(enemy);
             else
                 Object.Destroy(enemy.gameObject);
         }
         dormant.Clear();
+    }
+
+    private static void DropEliteReward(Vector3 position)
+    {
+        GameObject prefab = LootChest.PickWeightedBoost(
+            Object.FindAnyObjectByType<BoostHandler>()?.BoostPrefabs
+        );
+        if (prefab != null)
+            Object.Instantiate(prefab, position, Quaternion.identity);
     }
 
     private static Vector2 PickSpot(Vector2 roomCenter, System.Random random)

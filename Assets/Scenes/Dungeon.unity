@@ -14,13 +14,13 @@ OcclusionCullingSettings:
 RenderSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 10
-  m_Fog: 0
-  m_FogColor: {r: 0.5, g: 0.5, b: 0.5, a: 1}
+  m_Fog: 1
+  m_FogColor: {r: 0.015, g: 0.012, b: 0.02, a: 1}
   m_FogMode: 3
-  m_FogDensity: 0.01
+  m_FogDensity: 0.028
   m_LinearFogStart: 0
   m_LinearFogEnd: 300
-  m_AmbientSkyColor: {r: 0.212, g: 0.227, b: 0.259, a: 1}
+  m_AmbientSkyColor: {r: 0.05, g: 0.05, b: 0.08, a: 1}
   m_AmbientEquatorColor: {r: 0.114, g: 0.125, b: 0.133, a: 1}
   m_AmbientGroundColor: {r: 0.047, g: 0.043, b: 0.035, a: 1}
   m_AmbientIntensity: 1
@@ -1718,8 +1718,8 @@ Camera:
   m_GameObject: {fileID: 733217557}
   m_Enabled: 1
   serializedVersion: 2
-  m_ClearFlags: 1
-  m_BackGroundColor: {r: 0, g: 0, b: 0, a: 0}
+  m_ClearFlags: 2
+  m_BackGroundColor: {r: 0.01, g: 0.008, b: 0.015, a: 1}
   m_projectionMatrixMode: 1
   m_GateFitMode: 2
   m_FOVAxisMode: 0
@@ -2533,9 +2533,9 @@ Light:
   m_Enabled: 1
   serializedVersion: 12
   m_Type: 2
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
-  m_Intensity: 250
-  m_Range: 100
+  m_Color: {r: 1, g: 0.82, b: 0.62, a: 1}
+  m_Intensity: 60
+  m_Range: 45
   m_SpotAngle: 45
   m_InnerSpotAngle: 21.80208
   m_CookieSize2D: {x: 0.5, y: 0.5}
@@ -4254,6 +4254,7 @@ GameObject:
   - component: {fileID: 1804916125}
   - component: {fileID: 1804916124}
   - component: {fileID: 1804916123}
+  - component: {fileID: 1804916126}
   m_Layer: 0
   m_Name: DungeonManager
   m_TagString: Untagged
@@ -4274,6 +4275,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DungeonManager
   builder: {fileID: 1804916124}
+  decor: {fileID: 1804916126}
   seed: 0
   unloadDistance: 2
 --- !u!114 &1804916124
@@ -4296,16 +4298,7 @@ MonoBehaviour:
   cornerPrefab: {fileID: 1060817209860657698, guid: 43c8daa5e74fb4cffab3dca6b3e2334c, type: 3}
   gateOpenPrefab: {fileID: 8584222620348506169, guid: 6ad6e09ffdc13409e84c2b24c52b09b2, type: 3}
   gateBlockedPrefab: {fileID: 680430146189615990, guid: 5b5f09ab1643240ec855adff195e6545, type: 3}
-  chestPrefab: {fileID: 2681810433698636376, guid: c461620d1b3794ae98c49364ca4939d4, type: 3}
-  goldenChestPrefab: {fileID: 6407661981916118143, guid: 22f7e8dbf9bff4fbaabf149cb10228e3, type: 3}
-  propPrefabs:
-  - {fileID: 1631201616987319535, guid: b6346e14d16ca4687a15519c271529ca, type: 3}
-  - {fileID: 2400465401108497178, guid: 37d6fd85f2ddf4d268cbf19a5de30239, type: 3}
-  - {fileID: 5885588032764245486, guid: 2b5e48f7163a94cb3bd351e415381f5e, type: 3}
   floorVariantChance: 0.18
-  chestChance: 0.35
-  goldenChestChance: 0.12
-  maxPropsPerRoom: 4
 --- !u!4 &1804916125
 Transform:
   m_ObjectHideFlags: 0
@@ -4321,6 +4314,34 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1804916126
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1804916122}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6fe0c7aaff54d46a08366bf8c2f46d81, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DungeonPropPlacer
+  chestPrefab: {fileID: 2681810433698636376, guid: c461620d1b3794ae98c49364ca4939d4, type: 3}
+  goldenChestPrefab: {fileID: 6407661981916118143, guid: 22f7e8dbf9bff4fbaabf149cb10228e3, type: 3}
+  chestChance: 0.35
+  goldenChestChance: 0.12
+  propPrefabs:
+  - {fileID: 1631201616987319535, guid: b6346e14d16ca4687a15519c271529ca, type: 3}
+  - {fileID: 2400465401108497178, guid: 37d6fd85f2ddf4d268cbf19a5de30239, type: 3}
+  - {fileID: 5885588032764245486, guid: 2b5e48f7163a94cb3bd351e415381f5e, type: 3}
+  - {fileID: 3258537138378706214, guid: c690d9973f5a243c7bde31faee2693dd, type: 3}
+  - {fileID: 754501543787322167, guid: 760084823805244b3913fa1e17b14660, type: 3}
+  - {fileID: 3514795203494919424, guid: 555311b6a018a437797badc231e9df96, type: 3}
+  - {fileID: 5325242817868952511, guid: b32d15e3e1b6f4c62b0c93f62ac2c47e, type: 3}
+  maxPropsPerRoom: 5
+  torchPrefab: {fileID: 803803779544073394, guid: 0a0dbfc4806e54ae1884d916d23fd1dd, type: 3}
+  waterPrefab: {fileID: 3017435811261841411, guid: 6a3ed5f722dca43db9cabb8b0db25ab7, type: 3}
+  waterChance: 0.45
 --- !u!1 &1933989425
 GameObject:
   m_ObjectHideFlags: 0
