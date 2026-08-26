@@ -93,10 +93,10 @@ if [ ! -d "$APP" ]; then
 fi
 
 BIN="$(find "$APP/Contents/MacOS" -maxdepth 1 -type f -perm -111 -print 2>/dev/null | head -1 || true)"
-[ -n "$BIN" ] && [ -x "$BIN" ] || {
+if [ -z "$BIN" ] || [ ! -x "$BIN" ]; then
     echo "No executable found in $APP/Contents/MacOS"
     exit 1
-}
+fi
 
 echo "Running [$SCENARIO] ${DURATION}s game-time seed=$SEED sha=$SHA -> $OUT"
 START=$(date +%s)
