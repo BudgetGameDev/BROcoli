@@ -24,26 +24,28 @@ const VersionChecker = (function() {
     };
   }
   
-  // Detect if we're on the staging build (BranchMain) or release build (root)
+  // Detect if we're on a staging path or the release build (root)
   function detectBuildPath() {
     try {
       const path = window.location.pathname;
-    // Check if we're on the staging build path
-    if (path.includes('/BranchMain/') || path.includes('/BranchMain')) {
+      // BranchStaging is canonical; BranchMain remains as a compatibility alias.
+      const stagingMatch = path.match(/\/(BranchStaging|BranchMain)(?:\/|$)/);
+      if (stagingMatch) {
+        const stagingFolder = stagingMatch[1];
+        return {
+          isStaging: true,
+          basePath: `/BROcoli/${stagingFolder}/`,
+          versionUrl: `https://budgetgamedev.github.io/BROcoli/${stagingFolder}/version.json`,
+          cachePrefix: 'staging'
+        };
+      }
+      // Default to release build
       return {
-        isStaging: true,
-        basePath: '/BROcoli/BranchMain/',
-        versionUrl: 'https://budgetgamedev.github.io/BROcoli/BranchMain/version.json',
-        cachePrefix: 'staging'
+        isStaging: false,
+        basePath: '/BROcoli/',
+        versionUrl: 'https://budgetgamedev.github.io/BROcoli/version.json',
+        cachePrefix: 'release'
       };
-    }
-    // Default to release build
-    return {
-      isStaging: false,
-      basePath: '/BROcoli/',
-      versionUrl: 'https://budgetgamedev.github.io/BROcoli/version.json',
-      cachePrefix: 'release'
-    };
     } catch (err) {
       console.warn('[VersionCheck] detectBuildPath error:', err);
       return {

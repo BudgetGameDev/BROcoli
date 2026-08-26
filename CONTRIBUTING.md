@@ -48,10 +48,10 @@ Enable the repository-managed pre-push hook with:
 ./scripts/install-git-hooks.sh
 ```
 
-The hook runs `./ci.sh` when a push updates `main`, `release`, `staging`, or
-`production`, and blocks that push if any gate fails. Pushes exclusively to other
-branches or tags skip the gate. Git hooks are local and are not activated merely by
-cloning the repository, which is why the installer is required once per clone.
+The hook runs `./ci.sh` when a push updates `staging`, `release`, or `production`,
+and blocks that push if any gate fails. Pushes exclusively to other branches or tags
+skip the gate. Git hooks are local and are not activated merely by cloning the
+repository, which is why the installer is required once per clone.
 
 ### 300-line source-file limit
 

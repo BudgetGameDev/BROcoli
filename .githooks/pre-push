@@ -6,7 +6,7 @@ TARGET_BRANCHES=""
 
 while read -r _local_ref local_oid remote_ref _remote_oid; do
     case "$remote_ref" in
-        refs/heads/main | refs/heads/release | refs/heads/staging | refs/heads/production)
+        refs/heads/release | refs/heads/staging | refs/heads/production)
             # Deleting a remote branch sends an all-zero local object ID. There is
             # no source revision to validate in that case.
             if [[ "$local_oid" =~ ^0+$ ]]; then

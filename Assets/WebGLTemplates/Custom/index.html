@@ -15,7 +15,8 @@
     <script>
       (function() {
         try {
-          window.isStagingBuild = window.location.pathname.indexOf('/BranchMain') !== -1;
+          // BranchStaging is canonical; BranchMain remains as a compatibility alias.
+          window.isStagingBuild = /\/(?:BranchStaging|BranchMain)(?:\/|$)/.test(window.location.pathname);
           if (window.isStagingBuild) {
             // Switch to staging manifest
             var manifestLink = document.getElementById('manifest-link');

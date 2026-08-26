@@ -5,17 +5,19 @@
 // =============================================================================
 const CACHE_VERSION = 'v3';
 
-// Detect if we're on the staging build (BranchMain) or release build (root)
+// Detect if we're on a staging path or the release build (root)
 function detectBuildPath() {
   // Service worker scope tells us where we're registered
   const scope = self.registration ? self.registration.scope : self.location.href;
-  
-  // Check if we're on the staging build path
-  if (scope.includes('/BranchMain/') || scope.includes('/BranchMain')) {
+
+  // BranchStaging is canonical; BranchMain remains as a compatibility alias.
+  const stagingMatch = scope.match(/\/(BranchStaging|BranchMain)(?:\/|$)/);
+  if (stagingMatch) {
+    const stagingFolder = stagingMatch[1];
     return {
       isStaging: true,
-      basePath: '/BROcoli/BranchMain/',
-      versionUrl: 'https://budgetgamedev.github.io/BROcoli/BranchMain/version.json',
+      basePath: `/BROcoli/${stagingFolder}/`,
+      versionUrl: `https://budgetgamedev.github.io/BROcoli/${stagingFolder}/version.json`,
       cachePrefix: 'staging'
     };
   }
