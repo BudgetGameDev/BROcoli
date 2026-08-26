@@ -133,9 +133,12 @@ public class EnemyWalkAnimation : MonoBehaviour
         float pulsatePhase = Mathf.Sin(time * pulsateSpeed) * intensity;
         float horizontalSquash = Mathf.InverseLerp(-1.5f, 1.5f, pulsatePhase);
         float verticalSquash = 1f - horizontalSquash;
+        // Screen-vertical (Y amount) is the ground-north local Z axis and depth
+        // (Z amount) is local Y, matching the pre-flip presentation through the
+        // fixed chase camera.
         float scaleX = baseScale.x * (1f - horizontalSquash * pulsateAmountX);
-        float scaleY = baseScale.y * (1f - verticalSquash * pulsateAmountY);
-        float scaleZ = baseScale.z * (1f - Mathf.Abs(pulsatePhase) * pulsateAmountZ);
+        float scaleY = baseScale.y * (1f - Mathf.Abs(pulsatePhase) * pulsateAmountZ);
+        float scaleZ = baseScale.z * (1f - verticalSquash * pulsateAmountY);
 
         visualTransform.localScale = new Vector3(scaleX, scaleY, scaleZ);
 
@@ -158,8 +161,10 @@ public class EnemyWalkAnimation : MonoBehaviour
         visualTransform.localRotation = GroundPlane.YawRotation(wobble + currentSpin);
 
         // --- Vertical Bounce ---
+        // Bounce along ground-north, which the fixed chase camera reads as
+        // screen-up: the same presentation cheat as before the Y-up flip.
         float bounce = Mathf.Abs(Mathf.Sin(time * bounceSpeed)) * bounceAmount * intensity;
-        visualTransform.localPosition = basePosition + new Vector3(0f, bounce, 0f);
+        visualTransform.localPosition = basePosition + new Vector3(0f, 0f, bounce);
     }
 
     /// <summary>

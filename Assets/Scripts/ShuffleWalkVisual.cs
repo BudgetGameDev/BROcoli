@@ -44,10 +44,6 @@ public class ShuffleWalkVisual : MonoBehaviour
 
     private const float DeadZone = 0.05f;
 
-    // Restores the on-screen hop amplitude the curve was tuned for: the old
-    // tilted camera showed hop-up at ~50% strength, the Y-up world's at ~87%.
-    private const float HeightScale = 0.58f;
-
     // Stumble system - slows player after being hit
     private const float StumbleSpeedMultiplier = 0.5f; // 50% speed when stumbling
     private float stumblePenalty = 0f; // 0 = no stumble, 1 = full stumble
@@ -482,15 +478,19 @@ public class ShuffleWalkVisual : MonoBehaviour
         // Visual smoothing
         displayHeight = Mathf.Lerp(displayHeight, targetHeight, 25f * dt);
 
-        transform.localPosition = startLocalPos + Vector3.up * (displayHeight * HeightScale);
+        // Presentation cheat, not a real jump: the hop displaces along ground-
+        // north, which the fixed chase camera reads as screen-up (pre-flip +Y).
+        Vector3 hopOffset = Vector3.forward * displayHeight;
+        transform.localPosition =
+            startLocalPos + transform.parent.InverseTransformDirection(hopOffset);
 
         displaySS = Mathf.Lerp(displaySS, targetSS, 25f * dt);
-        float yScale = 1f + displaySS;
-        float xzScale = 1f - displaySS * 0.5f;
+        float stretch = 1f + displaySS; // along ground-north, like the hop offset
+        float squash = 1f - displaySS * 0.5f;
 
-        displayScale.x = Mathf.Lerp(displayScale.x, startScale.x * xzScale, 25f * dt);
-        displayScale.y = Mathf.Lerp(displayScale.y, startScale.y * yScale, 25f * dt);
-        displayScale.z = Mathf.Lerp(displayScale.z, startScale.z * xzScale, 25f * dt);
+        displayScale.x = Mathf.Lerp(displayScale.x, startScale.x * squash, 25f * dt);
+        displayScale.y = Mathf.Lerp(displayScale.y, startScale.y * squash, 25f * dt);
+        displayScale.z = Mathf.Lerp(displayScale.z, startScale.z * stretch, 25f * dt);
         transform.localScale = displayScale;
     }
 
