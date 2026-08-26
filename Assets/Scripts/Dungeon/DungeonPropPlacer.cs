@@ -11,6 +11,10 @@ public class DungeonPropPlacer : MonoBehaviour
     private const float HalfRoomWidth = DungeonLayout.RoomWidth / 2f;
     private const float HalfRoomDepth = DungeonLayout.RoomDepth / 2f;
 
+    // The modular wall is two units thick, so this lands the torch root on
+    // the room-facing surface while its bracket overlaps the wall slightly.
+    private const float TorchWallInset = 1f;
+
     [Header("Loot")]
     [SerializeField]
     private GameObject chestPrefab;
@@ -98,14 +102,14 @@ public class DungeonPropPlacer : MonoBehaviour
             // the room. Every room gets at least two so it is never fully dark.
             var spots = new (Vector2 pos, float yaw)[]
             {
-                (new Vector2(-8f, HalfRoomDepth - 1.05f), 180f),
-                (new Vector2(8f, HalfRoomDepth - 1.05f), 180f),
-                (new Vector2(-8f, -HalfRoomDepth + 1.05f), 0f),
-                (new Vector2(8f, -HalfRoomDepth + 1.05f), 0f),
-                (new Vector2(HalfRoomWidth - 1.05f, -5f), -90f),
-                (new Vector2(HalfRoomWidth - 1.05f, 5f), -90f),
-                (new Vector2(-HalfRoomWidth + 1.05f, -5f), 90f),
-                (new Vector2(-HalfRoomWidth + 1.05f, 5f), 90f),
+                (new Vector2(-8f, HalfRoomDepth - TorchWallInset), 180f),
+                (new Vector2(8f, HalfRoomDepth - TorchWallInset), 180f),
+                (new Vector2(-8f, -HalfRoomDepth + TorchWallInset), 0f),
+                (new Vector2(8f, -HalfRoomDepth + TorchWallInset), 0f),
+                (new Vector2(HalfRoomWidth - TorchWallInset, -5f), -90f),
+                (new Vector2(HalfRoomWidth - TorchWallInset, 5f), -90f),
+                (new Vector2(-HalfRoomWidth + TorchWallInset, -5f), 90f),
+                (new Vector2(-HalfRoomWidth + TorchWallInset, 5f), 90f),
             };
             Shuffle(spots, random);
             int torchCount = 2 + random.Next(0, 3);

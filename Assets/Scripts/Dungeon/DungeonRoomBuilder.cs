@@ -93,11 +93,9 @@ public class DungeonRoomBuilder : MonoBehaviour
                 }
                 else
                 {
-                    // The wall mesh spans local z in [-2, 0]; offsetting the pivot
-                    // by +1 makes the piece straddle the boundary line evenly.
                     Instantiate(
                         wallPrefab,
-                        new Vector3(x, 0f, boundaryZ + 1f),
+                        new Vector3(x, 0f, boundaryZ),
                         Quaternion.identity,
                         root.transform
                     );
@@ -123,11 +121,9 @@ public class DungeonRoomBuilder : MonoBehaviour
                 }
                 else
                 {
-                    // Rotated 90 degrees, local +z points along world +x, so the
-                    // same +1 pivot offset straddles the vertical boundary.
                     Instantiate(
                         wallPrefab,
-                        new Vector3(boundaryX + 1f, 0f, z),
+                        new Vector3(boundaryX, 0f, z),
                         sideways,
                         root.transform
                     );
