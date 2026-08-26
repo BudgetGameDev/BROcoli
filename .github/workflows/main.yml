@@ -65,6 +65,7 @@ jobs:
           UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
           UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+          BROCOLI_LICENSED_ASSET_KEY: ${{ secrets.BROCOLI_LICENSED_ASSET_KEY }}
         with:
           targetPlatform: WebGL
 
