@@ -76,9 +76,7 @@ public static class EnemyDeathAudio
         {
             if (!warnedAboutMissingClip)
             {
-                Debug.LogWarning(
-                    $"Enemy death SFX is missing at Resources/{ClipResourcePath}."
-                );
+                Debug.LogWarning($"Enemy death SFX is missing at Resources/{ClipResourcePath}.");
                 warnedAboutMissingClip = true;
             }
             return;

@@ -42,7 +42,6 @@ public abstract class EnemyBase : MonoBehaviour
     public float eliteHealthMultiplier = 3f;
     public float eliteScaleMultiplier = 1.3f;
 
-    // Callback for guaranteed powerup drop on elite death
     public event Action<Vector3> OnEliteDeath;
 
     [Header("Physics Tuning")]
@@ -79,7 +78,6 @@ public abstract class EnemyBase : MonoBehaviour
     protected Collider2D bodyCollider;
     private Collider2D playerCollider;
 
-    // Cached references for performance
     protected SpriteRenderer cachedSpriteRenderer;
     protected Color originalSpriteColor;
     protected MeshRenderer cachedMeshRenderer;
@@ -135,8 +133,6 @@ public abstract class EnemyBase : MonoBehaviour
         baseSpeed = Speed;
         baseScoreValue = ScoreValue;
 
-        // Cache renderer for hit flash - enemies may use SpriteRenderer or MeshRenderer (FBX models)
-        // First check for enabled SpriteRenderer
         foreach (var sr in GetComponentsInChildren<SpriteRenderer>(true))
         {
             if (sr.enabled)
@@ -146,7 +142,6 @@ public abstract class EnemyBase : MonoBehaviour
             }
         }
 
-        // If no SpriteRenderer, find MeshRenderer and cache its material for color changes
         if (cachedSpriteRenderer == null)
         {
             foreach (var mr in GetComponentsInChildren<MeshRenderer>(true))
@@ -171,9 +166,7 @@ public abstract class EnemyBase : MonoBehaviour
             walkAudio = GetComponent<ProceduralEnemyWalkAudio>();
     }
 
-    /// <summary>
-    /// Make this enemy an elite variant with increased HP and visual effects.
-    /// </summary>
+    /// <summary>Make this enemy an elite variant with increased HP and visual effects.</summary>
     public void MakeElite()
     {
         if (isElite)
@@ -185,7 +178,6 @@ public abstract class EnemyBase : MonoBehaviour
         ScoreValue = Mathf.RoundToInt(ScoreValue * 2.5f);
         transform.localScale *= eliteScaleMultiplier;
 
-        // Add and apply elite visual effects
         var effects = GetComponent<EliteEnemyEffects>();
         if (effects == null)
             effects = gameObject.AddComponent<EliteEnemyEffects>();
@@ -194,11 +186,7 @@ public abstract class EnemyBase : MonoBehaviour
         alwaysShowHealthBar = true;
     }
 
-    /// <summary>
-    /// Applies a per-wave size without losing the prefab scale used by pooling.
-    /// Because the visual and solid collider live under this root, both resize
-    /// together and the rendered body cannot outgrow its collision footprint.
-    /// </summary>
+    /// <summary>Applies a per-wave size without losing the prefab scale used by pooling.</summary>
     public void ApplyWaveScale(float scaleMultiplier)
     {
         float safeScale = Mathf.Clamp(scaleMultiplier, 0.5f, 1.1f);
@@ -212,7 +200,6 @@ public abstract class EnemyBase : MonoBehaviour
         EnforceSafePhysicsLimits();
         ConfigureSolidBody();
 
-        // Get cached references from GameContext (single lookup, not per-enemy)
         var context = GameContext.Instance;
         if (context != null)
         {
@@ -221,13 +208,11 @@ public abstract class EnemyBase : MonoBehaviour
 
         playerCollider = FindSolidCollider(player);
 
-        // Set linear damping to prevent velocity from persisting too long
         if (rb != null)
         {
             rb.linearDamping = 3f;
         }
 
-        // Register with spatial hash for efficient neighbor queries
         EnemySpatialHash.Instance?.Register(this);
     }
 
@@ -284,11 +269,7 @@ public abstract class EnemyBase : MonoBehaviour
             Physics2D.IgnoreLayerCollision(enemyLayer, enemyLayer, false);
     }
 
-    /// <summary>
-    /// Completely pins the physics body while a visual melee animation plays.
-    /// Zero velocity alone is insufficient because the contact solver can still
-    /// move a dynamic body that is touching the kinematic player.
-    /// </summary>
+    /// <summary>Completely pins the physics body while a visual melee animation plays.</summary>
     protected void LockBodyForAttack()
     {
         if (rb == null || attackBodyLocked)
@@ -328,11 +309,9 @@ public abstract class EnemyBase : MonoBehaviour
     {
         UnlockBodyAfterAttack(false);
 
-        // Skip spatial hash cleanup during scene teardown to prevent creating new singleton
         if (!gameObject.scene.isLoaded)
             return;
 
-        // Unregister from spatial hash
         EnemySpatialHash.Instance?.Unregister(this);
     }
 
@@ -384,10 +363,7 @@ public abstract class EnemyBase : MonoBehaviour
         TakeDamage(damage, knockbackDirection, 1f);
     }
 
-    /// <summary>
-    /// Applies damage and damage-relative knockback. weaponKnockbackMultiplier
-    /// lets individual weapons share this roll while having different impact.
-    /// </summary>
+    /// <summary>Applies damage and damage-relative knockback.</summary>
     public void TakeDamage(
         float damage,
         Vector2 knockbackDirection,
@@ -401,7 +377,6 @@ public abstract class EnemyBase : MonoBehaviour
         Health -= appliedDamage;
         if (Health <= 0f)
         {
-            // Invoke elite death for guaranteed powerup drop
             if (isElite)
             {
                 OnEliteDeath?.Invoke(transform.position);
@@ -411,13 +386,11 @@ public abstract class EnemyBase : MonoBehaviour
             return;
         }
 
-        // Apply knockback
         if (knockbackDirection != Vector2.zero && rb != null)
         {
             TryApplyDamageKnockback(appliedDamage, knockbackDirection, weaponKnockbackMultiplier);
         }
 
-        // Flash effect on hit
         StartCoroutine(HitFlash());
 
         if (alwaysShowHealthBar)
@@ -434,11 +407,7 @@ public abstract class EnemyBase : MonoBehaviour
         ApplyKnockback(direction, enemyKnockbackForce);
     }
 
-    /// <summary>
-    /// Evaluates knockback using a separately accumulated damage amount. Cone
-    /// weapons can apply damage in small ticks, then make one roll using the
-    /// total damage dealt by the complete cone.
-    /// </summary>
+    /// <summary>Evaluates knockback using a separately accumulated damage amount.</summary>
     public bool TryApplyDamageKnockback(
         float accumulatedDamage,
         Vector2 knockbackDirection,
@@ -467,10 +436,7 @@ public abstract class EnemyBase : MonoBehaviour
         return true;
     }
 
-    /// <summary>
-    /// Strengthens an already-running damage knockback as more damage from the
-    /// same cone arrives. This never restarts or extends the recoil timer.
-    /// </summary>
+    /// <summary>Strengthens running knockback as more damage from the same cone arrives.</summary>
     public void StrengthenActiveDamageKnockback(
         float accumulatedDamage,
         Vector2 knockbackDirection,
@@ -497,10 +463,7 @@ public abstract class EnemyBase : MonoBehaviour
             activeKnockbackDirection = knockbackDirection.normalized;
     }
 
-    /// <summary>
-    /// Melee enemies use this to cancel a pinned attack before recoil begins.
-    /// Other enemy types can ignore it and receive knockback immediately.
-    /// </summary>
+    /// <summary>Lets melee enemies cancel a pinned attack before recoil begins.</summary>
     protected virtual void PrepareForIncomingKnockback() { }
 
     public void ApplyKnockback(Vector2 direction, float force)
@@ -592,7 +555,6 @@ public abstract class EnemyBase : MonoBehaviour
         }
         else if (cachedMeshRenderer != null)
         {
-            // MeshRenderer uses material color
             cachedMeshRenderer.material.color = Color.white;
             yield return new WaitForSeconds(0.05f);
             cachedMeshRenderer.material.color = originalMeshColor;
@@ -605,8 +567,6 @@ public abstract class EnemyBase : MonoBehaviour
 
     void Start()
     {
-        // Player reference is set in OnEnable via GameContext
-        // Health bar setup
         if (healthBar == null)
         {
             healthBar = FindFirstObjectByType<Bar>();
@@ -633,7 +593,6 @@ public abstract class EnemyBase : MonoBehaviour
         if (player == null)
             return;
 
-        // Knockback timer
         if (isKnockedBack)
         {
             knockbackTimer -= Time.deltaTime;
@@ -647,7 +606,6 @@ public abstract class EnemyBase : MonoBehaviour
             }
         }
 
-        // Health bar timer logic
         if (healthBarVisable && !alwaysShowHealthBar && healthBar != null)
         {
             healthBarTimer -= Time.deltaTime;
@@ -661,7 +619,6 @@ public abstract class EnemyBase : MonoBehaviour
 
     protected virtual void FixedUpdate()
     {
-        // Update position in spatial hash for efficient neighbor queries
         EnemySpatialHash.Instance?.UpdatePosition(this);
 
         // Contacts with the player or a packed crowd can consume a velocity
@@ -673,13 +630,10 @@ public abstract class EnemyBase : MonoBehaviour
             return;
         }
 
-        // Apply separation from other enemies and player in physics step
         ApplySeparation();
     }
 
-    /// <summary>
-    /// Called when enemy dies. Handles score, XP drop, and pooling.
-    /// </summary>
+    /// <summary>Handles score, XP drop, animation, and pooling when this enemy dies.</summary>
     public virtual void Die()
     {
         if (isQuitting)
@@ -710,17 +664,14 @@ public abstract class EnemyBase : MonoBehaviour
         if (healthBar != null)
             healthBar.HideBar();
 
-        // Add score via GameContext
         var context = GameContext.Instance;
         if (context?.GameStates != null)
         {
             context.GameStates.score += ScoreValue;
         }
 
-        // Spawn experience gain object (use pool if available)
         SpawnExpGain();
 
-        // Invoke death event before returning to pool
         OnDeath?.Invoke(this);
 
         EnemyDeathAudio.Play(transform.position, isElite);
@@ -814,15 +765,12 @@ public abstract class EnemyBase : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Spawn experience orb at death position.
-    /// </summary>
+    /// <summary>Spawns an experience orb at the death position.</summary>
     protected virtual void SpawnExpGain()
     {
         if (expGainPrefab == null)
             return;
 
-        // Try to get from pool first
         ExpGain expGain = PoolManager.Instance?.GetExpGain(transform.position);
         if (expGain != null)
         {
@@ -830,7 +778,6 @@ public abstract class EnemyBase : MonoBehaviour
         }
         else
         {
-            // Fallback to instantiate if pool not available
             GameObject expGainObj = Instantiate(
                 expGainPrefab.gameObject,
                 transform.position,
@@ -844,17 +791,13 @@ public abstract class EnemyBase : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Mark this enemy as pooled (affects death behavior).
-    /// </summary>
+    /// <summary>Marks this enemy as pooled.</summary>
     public void SetPooled(bool pooled)
     {
         _isPooled = pooled;
     }
 
-    /// <summary>
-    /// Reset enemy state for reuse from pool.
-    /// </summary>
+    /// <summary>Resets enemy state for reuse from the pool.</summary>
     public virtual void ResetForPool()
     {
         StopAllCoroutines();
@@ -908,10 +851,7 @@ public abstract class EnemyBase : MonoBehaviour
         isQuitting = true;
     }
 
-    /// <summary>
-    /// Apply separation forces to prevent enemies from overlapping each other and the player.
-    /// Uses spatial hash for O(N) performance instead of O(N²) Physics2D.OverlapCircleAll.
-    /// </summary>
+    /// <summary>Applies spatial-hash separation so enemies do not overlap.</summary>
     protected virtual void ApplySeparation()
     {
         if (rb == null)
@@ -920,7 +860,6 @@ public abstract class EnemyBase : MonoBehaviour
         Vector2 separationVelocity = Vector2.zero;
         Vector2 myPos = rb.position;
 
-        // Separation from other enemies using spatial hash (O(N) instead of O(N²))
         var spatialHash = EnemySpatialHash.Instance;
         if (spatialHash != null)
         {
@@ -938,7 +877,6 @@ public abstract class EnemyBase : MonoBehaviour
 
                 if (dist > 0.001f && dist < separationRadius)
                 {
-                    // Stronger push when closer (quadratic falloff for more pronounced effect)
                     float t = 1f - (dist / separationRadius);
                     float strength = t * t; // Quadratic for stronger close-range push
                     separationVelocity += toMe.normalized * strength * separationForce;
@@ -971,18 +909,13 @@ public abstract class EnemyBase : MonoBehaviour
         rb.linearVelocity = Vector2.ClampMagnitude(rb.linearVelocity, speedLimit);
     }
 
-    /// <summary>
-    /// Returns true when the solid player and enemy colliders are no farther
-    /// apart than the supplied world-space gap.
-    /// </summary>
+    /// <summary>Checks whether the player and enemy colliders are within a world-space gap.</summary>
     protected bool IsPlayerWithinColliderGap(float maxGap)
     {
         return GetPlayerColliderGap() <= Mathf.Max(0f, maxGap);
     }
 
-    /// <summary>
-    /// Current edge-to-edge distance between the solid enemy and player bodies.
-    /// </summary>
+    /// <summary>Returns the edge-to-edge distance between the enemy and player bodies.</summary>
     protected float GetPlayerColliderGap()
     {
         if (bodyCollider == null || player == null)
@@ -998,10 +931,7 @@ public abstract class EnemyBase : MonoBehaviour
         return distance.isOverlapped ? 0f : Mathf.Max(0f, distance.distance);
     }
 
-    /// <summary>
-    /// Validates that the attack's visual lunge can physically reach the player
-    /// and that the player is still in front of the recorded strike direction.
-    /// </summary>
+    /// <summary>Validates the attack lunge's reach and direction.</summary>
     protected bool IsPlayerWithinAttackContact(
         float attackReach,
         Vector2 attackDirection,

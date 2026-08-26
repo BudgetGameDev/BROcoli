@@ -11,7 +11,7 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="application-name" content="{{{ PRODUCT_NAME }}}" id="app-name-meta">
     
-    <!-- Staging/Release manifest detection -->
+    <!-- Staging/production manifest detection -->
     <script>
       (function() {
         try {
@@ -22,7 +22,7 @@
             var manifestLink = document.getElementById('manifest-link');
             if (manifestLink) manifestLink.href = 'manifest-staging.json';
             
-            // Fetch release manifest to get base name, then append " Staging"
+            // Fetch the production manifest to get the base name, then append " Staging"
             fetch('manifest.json')
               .then(function(r) { return r.json(); })
               .then(function(manifest) {

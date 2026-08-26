@@ -6,4 +6,4 @@ cd "$PROJECT_PATH"
 
 git config --local core.hooksPath .githooks
 echo "Git hooks enabled from .githooks."
-echo "The pre-push CI gate applies to main, release, staging, and production."
+echo "The pre-push CI gate applies to staging and production."

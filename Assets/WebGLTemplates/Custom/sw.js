@@ -5,7 +5,7 @@
 // =============================================================================
 const CACHE_VERSION = 'v3';
 
-// Detect if we're on a staging path or the release build (root)
+// Detect if we're on a staging path or the production build (root)
 function detectBuildPath() {
   // Service worker scope tells us where we're registered
   const scope = self.registration ? self.registration.scope : self.location.href;
@@ -21,7 +21,8 @@ function detectBuildPath() {
       cachePrefix: 'staging'
     };
   }
-  // Default to release build
+  // Default to the production build. Keep the historical cache key so existing
+  // clients upgrade without abandoning their previous root-build caches.
   return {
     isStaging: false,
     basePath: '/BROcoli/',
@@ -126,7 +127,7 @@ async function storeVersion(version) {
 }
 
 // Clear this build channel's game caches without evicting unrelated apps or
-// the other BROcoli channel (release versus staging).
+// the other BROcoli channel (production versus staging).
 async function clearAllCaches() {
   console.log('[ServiceWorker] Clearing game caches for:', BUILD_INFO.cachePrefix);
   const cacheNames = await caches.keys();
@@ -139,7 +140,7 @@ async function clearAllCaches() {
 
 // Check for updates and clear caches if new version found
 async function checkForUpdatesAndClearIfNeeded() {
-  const buildType = BUILD_INFO.isStaging ? '[STAGING]' : '[RELEASE]';
+  const buildType = BUILD_INFO.isStaging ? '[STAGING]' : '[PRODUCTION]';
   console.log('[ServiceWorker]', buildType, 'Checking for updates from:', VERSION_CHECK_URL);
   
   const [remoteVersion, storedVersion] = await Promise.all([
@@ -186,7 +187,7 @@ async function checkForUpdatesAndClearIfNeeded() {
 
 // Install event
 self.addEventListener('install', (event) => {
-  console.log('[ServiceWorker]', BUILD_INFO.isStaging ? '[STAGING]' : '[RELEASE]', 'Installing version:', CACHE_VERSION);
+  console.log('[ServiceWorker]', BUILD_INFO.isStaging ? '[STAGING]' : '[PRODUCTION]', 'Installing version:', CACHE_VERSION);
   console.log('[ServiceWorker] Cache name:', CACHE_NAME);
   console.log('[ServiceWorker] Version URL:', VERSION_CHECK_URL);
   event.waitUntil(
@@ -209,7 +210,7 @@ self.addEventListener('activate', (event) => {
   console.log('[ServiceWorker] Activating...');
   event.waitUntil(
     (async () => {
-      // Delete only old caches for this build channel. Release and staging
+      // Delete only old caches for this build channel. Production and staging
       // are separate PWAs and must not continuously evict one another.
       const cacheNames = await caches.keys();
       await Promise.all(

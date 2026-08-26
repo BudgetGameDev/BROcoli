@@ -24,7 +24,7 @@ const VersionChecker = (function() {
     };
   }
   
-  // Detect if we're on a staging path or the release build (root)
+  // Detect if we're on a staging path or the production build (root)
   function detectBuildPath() {
     try {
       const path = window.location.pathname;
@@ -39,7 +39,8 @@ const VersionChecker = (function() {
           cachePrefix: 'staging'
         };
       }
-      // Default to release build
+      // Default to the production build. Keep the historical cache key so existing
+      // clients retain a continuous cache and local-storage namespace.
       return {
         isStaging: false,
         basePath: '/BROcoli/',
@@ -63,7 +64,7 @@ const VersionChecker = (function() {
   const CONFIG = {
     // Remote URL to check for version (GitHub Pages) - dynamically set based on build
     remoteVersionUrl: BUILD_INFO.versionUrl,
-    // Local storage key for cached version - separate for release vs staging
+    // Local storage key for cached version - separate for production vs staging
     localVersionKey: `brocoli_cached_version_${BUILD_INFO.cachePrefix}`,
     // Cache name used by service worker (must match sw.js)
     cacheVersion: 'v3',
@@ -79,7 +80,7 @@ const VersionChecker = (function() {
 
   function log(...args) {
     if (CONFIG.debug) {
-      console.log('[VersionCheck]', `[${CONFIG.buildInfo.isStaging ? 'STAGING' : 'RELEASE'}]`, ...args);
+      console.log('[VersionCheck]', `[${CONFIG.buildInfo.isStaging ? 'STAGING' : 'PRODUCTION'}]`, ...args);
     }
   }
 

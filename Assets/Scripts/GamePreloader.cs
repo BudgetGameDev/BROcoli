@@ -202,7 +202,6 @@ public class GamePreloader : MonoBehaviour
         // Pre-generate player footstep sound
         ProceduralFootstepAudio.PrewarmAll();
 
-        // Pre-generate enemy audio (melee attacks, gun sounds, walk sounds)
         ProceduralEnemyMeleeAudio.PrewarmAll();
         ProceduralEnemyGunAudio.PrewarmAll();
         ProceduralEnemyWalkAudio.PrewarmAll(); // NEW: Pre-warm walk sounds

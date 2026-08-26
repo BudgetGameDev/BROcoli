@@ -2,10 +2,10 @@ name: GameCI
 
 on:
   push:
-    branches: [ "staging", "release" ]
+    branches: [ "staging", "production" ]
 
   pull_request:
-    branches: [ "staging", "release" ]
+    branches: [ "staging", "production" ]
 
   workflow_dispatch:
 
@@ -140,7 +140,7 @@ jobs:
       - name: Generate staging manifest (for staging branch only)
         if: github.ref_name == 'staging'
         run: |
-          # Read the base name from release manifest and append " Staging"
+          # Read the base name from the production manifest and append " Staging"
           BASE_NAME=$(jq -r '.name' build/WebGL/manifest.json)
           SHORT_NAME=$(jq -r '.short_name' build/WebGL/manifest.json)
           
@@ -173,14 +173,14 @@ jobs:
           target-folder: BranchMain
           clean: true
 
-      - name: Deploy release to production root
-        if: github.ref_name == 'release'
+      - name: Deploy production to Pages root
+        if: github.ref_name == 'production'
         uses: JamesIves/github-pages-deploy-action@v4.8.0
         with:
           branch: gh-pages
           folder: build/WebGL
           clean: true
-          # Release owns the root; preserve both staging paths during cleanup.
+          # Production owns the root; preserve both staging paths during cleanup.
           clean-exclude: |
             BranchMain/**
             BranchStaging/**
