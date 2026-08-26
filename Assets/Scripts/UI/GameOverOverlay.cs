@@ -123,7 +123,8 @@ public sealed partial class GameOverOverlay : MonoBehaviour
     public void RestartGame()
     {
         ProceduralUIAudio.PlaySelect();
-        TransitionToScene("Game");
+        // Restart whichever game mode is being played (wave or dungeon scene).
+        TransitionToScene(SceneManager.GetActiveScene().name);
     }
 
     public void GoToMainMenu()

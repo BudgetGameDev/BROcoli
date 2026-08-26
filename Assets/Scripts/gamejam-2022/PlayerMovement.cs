@@ -56,7 +56,7 @@ public class PlayerMovement : MonoBehaviour
         _hopVisual = GetComponentInChildren<ShuffleWalkVisual>();
         _playerStats = GetComponentInChildren<PlayerStats>(); // May be on child prefab
         _inputHandler = GetComponent<PlayerInputHandler>();
-        _enemyLayerMask = LayerMask.GetMask("Enemy");
+        _enemyLayerMask = LayerMask.GetMask("Enemy", "Wall");
 
         // This collider is the player's solid navigation body. Trigger-based
         // pickups and projectiles still work because their own colliders are triggers.
