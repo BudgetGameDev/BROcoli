@@ -35,8 +35,13 @@ public class DungeonRoomBuilder : MonoBehaviour
     [SerializeField, Range(0f, 1f)]
     private float floorVariantChance = 0.18f;
 
-    /// <summary>Builds the 7x5 floor of a room under the given parent.</summary>
-    public void BuildFloor(Transform parent, Vector2Int room, System.Random random)
+    /// <summary>Builds the 7x5 floor with a theme-specific tile pattern.</summary>
+    public void BuildFloor(
+        Transform parent,
+        Vector2Int room,
+        DungeonLayout.RoomArchetype archetype,
+        System.Random random
+    )
     {
         Vector2 center = DungeonLayout.RoomCenter(room);
         for (int i = 0; i < DungeonLayout.RoomTilesX; i++)
@@ -48,14 +53,62 @@ public class DungeonRoomBuilder : MonoBehaviour
                 if (
                     floorVariantPrefabs != null
                     && floorVariantPrefabs.Length > 0
-                    && random.NextDouble() < floorVariantChance
+                    && UsesDetailedFloor(i, j, archetype, random)
                 )
                 {
-                    prefab = floorVariantPrefabs[random.Next(floorVariantPrefabs.Length)];
+                    int pattern = i * 7 + j * 3 + archetype.Variant;
+                    prefab = floorVariantPrefabs[Mathf.Abs(pattern) % floorVariantPrefabs.Length];
                 }
 
                 Instantiate(prefab, tileCenter.ToWorld(), Quaternion.identity, parent);
             }
+        }
+    }
+
+    /// <summary>
+    /// Adds interior wall runs that reshape the fixed grid shell. Every run
+    /// leaves a four-unit opening aligned with an outer doorway, so all four
+    /// neighbouring rooms remain reachable regardless of the chosen shape.
+    /// </summary>
+    public void BuildInterior(
+        Transform parent,
+        Vector2Int room,
+        DungeonLayout.RoomArchetype archetype
+    )
+    {
+        if (wallPrefab == null || archetype.Shape == DungeonLayout.RoomShape.OpenHall)
+            return;
+
+        Vector2 center = DungeonLayout.RoomCenter(room);
+        GameObject root = new GameObject($"Interior - {archetype.Shape}");
+        root.transform.SetParent(parent, false);
+
+        switch (archetype.Shape)
+        {
+            case DungeonLayout.RoomShape.Compact:
+                BuildHorizontalInterior(root.transform, center, 6f, true);
+                BuildHorizontalInterior(root.transform, center, -6f, true);
+                BuildVerticalInterior(root.transform, center, 6f, true);
+                BuildVerticalInterior(root.transform, center, -6f, true);
+                break;
+            case DungeonLayout.RoomShape.LargeSquare:
+                BuildVerticalInterior(root.transform, center, 10f, true);
+                BuildVerticalInterior(root.transform, center, -10f, true);
+                break;
+            case DungeonLayout.RoomShape.LongHorizontal:
+                BuildHorizontalInterior(root.transform, center, 6f, true);
+                BuildHorizontalInterior(root.transform, center, -6f, true);
+                break;
+            case DungeonLayout.RoomShape.LongVertical:
+                BuildVerticalInterior(root.transform, center, 6f, true);
+                BuildVerticalInterior(root.transform, center, -6f, true);
+                break;
+            case DungeonLayout.RoomShape.Divided:
+                if ((archetype.Variant & 1) == 0)
+                    BuildVerticalDivider(root.transform, center);
+                else
+                    BuildHorizontalDivider(root.transform, center);
+                break;
         }
     }
 
@@ -156,5 +209,106 @@ public class DungeonRoomBuilder : MonoBehaviour
             roomCenter.x + (i - DungeonLayout.RoomTilesX / 2) * Tile,
             roomCenter.y + (j - DungeonLayout.RoomTilesZ / 2) * Tile
         );
+    }
+
+    private bool UsesDetailedFloor(
+        int i,
+        int j,
+        DungeonLayout.RoomArchetype archetype,
+        System.Random random
+    )
+    {
+        int x = i - DungeonLayout.RoomTilesX / 2;
+        int z = j - DungeonLayout.RoomTilesZ / 2;
+        bool pattern = archetype.Theme switch
+        {
+            DungeonLayout.RoomTheme.Empty => false,
+            DungeonLayout.RoomTheme.Storage => Mathf.Abs(x) == 3 || Mathf.Abs(z) == 2,
+            DungeonLayout.RoomTheme.Banquet => archetype.Shape
+                == DungeonLayout.RoomShape.LongHorizontal
+                ? z == 0
+                : x == 0,
+            DungeonLayout.RoomTheme.Armory => (i + j + archetype.Variant) % 2 == 0,
+            DungeonLayout.RoomTheme.Shrine => Mathf.Abs(x) == Mathf.Abs(z) || (x == 0 && z == 0),
+            DungeonLayout.RoomTheme.Flooded => (i * 2 + j + archetype.Variant) % 3 == 0,
+            DungeonLayout.RoomTheme.TreasureVault =>
+                Mathf.Abs(x) == 2 || Mathf.Abs(z) == 2 || ((i + j) & 1) == 0,
+            DungeonLayout.RoomTheme.Collapsed =>
+                Mathf.Abs(x - z + archetype.Variant - 1) <= 1,
+            _ => false,
+        };
+
+        float chance = archetype.Theme == DungeonLayout.RoomTheme.Empty
+            ? floorVariantChance * 0.25f
+            : floorVariantChance;
+        return pattern || random.NextDouble() < chance;
+    }
+
+    private void BuildHorizontalInterior(
+        Transform parent,
+        Vector2 center,
+        float localZ,
+        bool leaveCentreGap
+    )
+    {
+        for (int i = -3; i <= 3; i++)
+        {
+            if (leaveCentreGap && i == 0)
+                continue;
+            Instantiate(
+                wallPrefab,
+                new Vector3(center.x + i * Tile, 0f, center.y + localZ),
+                Quaternion.identity,
+                parent
+            );
+        }
+    }
+
+    private void BuildVerticalInterior(
+        Transform parent,
+        Vector2 center,
+        float localX,
+        bool leaveCentreGap
+    )
+    {
+        Quaternion sideways = Quaternion.Euler(0f, 90f, 0f);
+        for (int j = -2; j <= 2; j++)
+        {
+            if (leaveCentreGap && j == 0)
+                continue;
+            Instantiate(
+                wallPrefab,
+                new Vector3(center.x + localX, 0f, center.y + j * Tile),
+                sideways,
+                parent
+            );
+        }
+    }
+
+    private void BuildVerticalDivider(Transform parent, Vector2 center)
+    {
+        Quaternion sideways = Quaternion.Euler(0f, 90f, 0f);
+        foreach (int j in new[] { -2, 0, 2 })
+        {
+            Instantiate(
+                wallPrefab,
+                new Vector3(center.x, 0f, center.y + j * Tile),
+                sideways,
+                parent
+            );
+        }
+    }
+
+    private void BuildHorizontalDivider(Transform parent, Vector2 center)
+    {
+        foreach (int i in new[] { -3, -1, 1, 3 })
+        {
+            Instantiate(
+                wallPrefab,
+                new Vector3(center.x + i * Tile, 0f, center.y),
+                Quaternion.identity,
+                parent
+            );
+        }
     }
 }

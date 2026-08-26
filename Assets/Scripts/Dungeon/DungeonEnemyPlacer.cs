@@ -10,7 +10,6 @@ using UnityEngine;
 /// </summary>
 public static class DungeonEnemyPlacer
 {
-    private const float InnerMargin = 3.5f;
     private const float CenterClearRadius = 4f;
 
     /// <summary>
@@ -20,7 +19,8 @@ public static class DungeonEnemyPlacer
     public static List<EnemyBase> SpawnDormant(
         IReadOnlyList<EnemyBase> prefabs,
         DungeonLayout layout,
-        Vector2Int room
+        Vector2Int room,
+        DungeonLayout.RoomArchetype archetype
     )
     {
         var spawned = new List<EnemyBase>();
@@ -46,10 +46,11 @@ public static class DungeonEnemyPlacer
         float healthScale = layout.EnemyHealthScale(room);
         Vector2 roomCenter = DungeonLayout.RoomCenter(room);
 
-        for (int i = 0; i < population.Count; i++)
+        int spawnCount = Mathf.Min(population.Count, archetype.EnemyCapacity);
+        for (int i = 0; i < spawnCount; i++)
         {
             EnemyBase prefab = allowed[random.Next(allowed.Count)];
-            Vector3 position = PickSpot(roomCenter, random).ToWorld();
+            Vector3 position = PickSpot(roomCenter, archetype, random).ToWorld();
 
             EnemyBase enemy = PoolManager.Instance?.GetEnemy(prefab, position, Quaternion.identity);
             if (enemy != null)
@@ -126,12 +127,16 @@ public static class DungeonEnemyPlacer
             Object.Instantiate(prefab, position, Quaternion.identity);
     }
 
-    private static Vector2 PickSpot(Vector2 roomCenter, System.Random random)
+    private static Vector2 PickSpot(
+        Vector2 roomCenter,
+        DungeonLayout.RoomArchetype archetype,
+        System.Random random
+    )
     {
-        float halfWidth = DungeonLayout.RoomWidth / 2f - InnerMargin;
-        float halfDepth = DungeonLayout.RoomDepth / 2f - InnerMargin;
+        float halfWidth = archetype.HalfWidth;
+        float halfDepth = archetype.HalfDepth;
 
-        for (int attempt = 0; attempt < 12; attempt++)
+        for (int attempt = 0; attempt < 24; attempt++)
         {
             var offset = new Vector2(
                 Mathf.Lerp(-halfWidth, halfWidth, (float)random.NextDouble()),
@@ -139,11 +144,39 @@ public static class DungeonEnemyPlacer
             );
             // Leave the middle of the room clear so the player never walks
             // straight into a spawn through a doorway.
-            if (offset.sqrMagnitude >= CenterClearRadius * CenterClearRadius)
-                return roomCenter + offset;
+            if (offset.sqrMagnitude < CenterClearRadius * CenterClearRadius)
+                continue;
+            if (IsOnDivider(offset, archetype))
+                continue;
+            return roomCenter + offset;
         }
 
         return roomCenter + new Vector2(halfWidth, halfDepth);
+    }
+
+    private static bool IsOnDivider(
+        Vector2 offset,
+        DungeonLayout.RoomArchetype archetype
+    )
+    {
+        if (archetype.Shape != DungeonLayout.RoomShape.Divided)
+            return false;
+
+        if ((archetype.Variant & 1) == 0)
+        {
+            float nearestVerticalSegment = Mathf.Min(
+                Mathf.Abs(offset.y),
+                Mathf.Abs(Mathf.Abs(offset.y) - 8f)
+            );
+            return Mathf.Abs(offset.x) < 1.5f && nearestVerticalSegment < 2.6f;
+        }
+
+        float nearestSegment = Mathf.Min(
+            Mathf.Abs(offset.x - 4f),
+            Mathf.Abs(offset.x + 4f),
+            Mathf.Abs(Mathf.Abs(offset.x) - 12f)
+        );
+        return Mathf.Abs(offset.y) < 1.5f && nearestSegment < 2.6f;
     }
 
     /// <summary>The minimum ring distance at which an enemy type appears.</summary>

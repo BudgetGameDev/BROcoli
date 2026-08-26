@@ -31,7 +31,7 @@ public class DungeonManager : MonoBehaviour
     private sealed class RoomState
     {
         public bool Visited;
-        public bool ChestOpened;
+        public readonly HashSet<int> OpenedChestSlots = new();
     }
 
     private sealed class LoadedRoom
@@ -125,19 +125,30 @@ public class DungeonManager : MonoBehaviour
             return;
 
         RoomState state = GetState(room);
-        var root = new GameObject($"Room ({room.x}, {room.y})");
+        DungeonLayout.RoomArchetype archetype = layout.Archetype(room);
+        var root = new GameObject($"Room ({room.x}, {room.y}) [{archetype}]");
         root.transform.SetParent(transform, false);
 
-        builder.BuildFloor(root.transform, room, layout.RoomRandom(room, 404));
-        LootChest chest = decor.BuildContents(
+        builder.BuildFloor(root.transform, room, archetype, layout.RoomRandom(room, 404));
+        builder.BuildInterior(root.transform, room, archetype);
+        List<DungeonPropPlacer.PlacedChest> chests = decor.BuildContents(
             root.transform,
             room,
+            archetype,
             layout.RoomRandom(room, 505),
-            allowChest: !state.ChestOpened
+            state.OpenedChestSlots
         );
-        if (chest != null)
-            chest.Opened += () => state.ChestOpened = true;
-        decor.BuildAtmosphere(root.transform, room, layout.RoomRandom(room, 707));
+        foreach (DungeonPropPlacer.PlacedChest placed in chests)
+        {
+            int slot = placed.Slot;
+            placed.Chest.Opened += () => state.OpenedChestSlots.Add(slot);
+        }
+        decor.BuildAtmosphere(
+            root.transform,
+            room,
+            archetype,
+            layout.RoomRandom(room, 707)
+        );
 
         for (int direction = 0; direction < 4; direction++)
         {
@@ -159,7 +170,12 @@ public class DungeonManager : MonoBehaviour
         var loaded = new LoadedRoom { Root = root, DormantEnemies = new List<EnemyBase>() };
         if (!state.Visited)
         {
-            loaded.DormantEnemies = DungeonEnemyPlacer.SpawnDormant(enemyPrefabs, layout, room);
+            loaded.DormantEnemies = DungeonEnemyPlacer.SpawnDormant(
+                enemyPrefabs,
+                layout,
+                room,
+                archetype
+            );
         }
 
         loadedRooms[room] = loaded;

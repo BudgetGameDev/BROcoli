@@ -144,6 +144,137 @@ public sealed class DungeonLayout
         }
     }
 
+    public enum RoomShape
+    {
+        OpenHall,
+        Compact,
+        LargeSquare,
+        LongHorizontal,
+        LongVertical,
+        Divided,
+    }
+
+    public enum RoomTheme
+    {
+        Empty,
+        Sparse,
+        Storage,
+        Banquet,
+        Armory,
+        Shrine,
+        Flooded,
+        TreasureVault,
+        Collapsed,
+    }
+
+    /// <summary>
+    /// A room's deterministic visual and gameplay profile. The outer room grid
+    /// never changes (so shared doorways remain compatible), while interior
+    /// walls turn that shell into compact, long, square, or divided spaces.
+    /// </summary>
+    public readonly struct RoomArchetype
+    {
+        public readonly RoomShape Shape;
+        public readonly RoomTheme Theme;
+        public readonly float HalfWidth;
+        public readonly float HalfDepth;
+        public readonly int Variant;
+
+        public RoomArchetype(
+            RoomShape shape,
+            RoomTheme theme,
+            float halfWidth,
+            float halfDepth,
+            int variant
+        )
+        {
+            Shape = shape;
+            Theme = theme;
+            HalfWidth = halfWidth;
+            HalfDepth = halfDepth;
+            Variant = variant;
+        }
+
+        public int EnemyCapacity => Shape switch
+        {
+            RoomShape.Compact => 5,
+            RoomShape.LongHorizontal => 8,
+            RoomShape.LongVertical => 8,
+            RoomShape.Divided => 9,
+            _ => 12,
+        };
+
+        public override string ToString()
+        {
+            return $"{Shape} / {Theme}";
+        }
+    }
+
+    /// <summary>
+    /// Chooses a repeatable room shape and theme. Theme affinities make the
+    /// combinations feel authored: feasts use long halls, vaults use focused
+    /// square chambers, and flooded/collapsed rooms favour broader footprints.
+    /// </summary>
+    public RoomArchetype Archetype(Vector2Int room)
+    {
+        if (Ring(room) == 0)
+            return CreateArchetype(RoomShape.OpenHall, RoomTheme.Sparse, 0);
+
+        System.Random themeRandom = RoomRandom(room, 808);
+        double themeRoll = themeRandom.NextDouble();
+        RoomTheme theme = themeRoll switch
+        {
+            < 0.11 => RoomTheme.Empty,
+            < 0.27 => RoomTheme.Sparse,
+            < 0.43 => RoomTheme.Storage,
+            < 0.55 => RoomTheme.Banquet,
+            < 0.67 => RoomTheme.Armory,
+            < 0.77 => RoomTheme.Shrine,
+            < 0.87 => RoomTheme.Flooded,
+            < 0.93 => RoomTheme.TreasureVault,
+            _ => RoomTheme.Collapsed,
+        };
+
+        System.Random shapeRandom = RoomRandom(room, 809);
+        double shapeRoll = shapeRandom.NextDouble();
+        RoomShape shape;
+        switch (theme)
+        {
+            case RoomTheme.Banquet:
+                shape = shapeRoll < 0.5
+                    ? RoomShape.LongHorizontal
+                    : RoomShape.LongVertical;
+                break;
+            case RoomTheme.Shrine:
+            case RoomTheme.TreasureVault:
+                shape = shapeRoll < 0.46 ? RoomShape.Compact : RoomShape.LargeSquare;
+                break;
+            case RoomTheme.Flooded:
+                shape = shapeRoll < 0.58 ? RoomShape.OpenHall : RoomShape.LargeSquare;
+                break;
+            case RoomTheme.Collapsed:
+                shape = shapeRoll < 0.45
+                    ? RoomShape.Divided
+                    : shapeRoll < 0.72
+                        ? RoomShape.OpenHall
+                        : RoomShape.LargeSquare;
+                break;
+            default:
+                shape = shapeRoll switch
+                {
+                    < 0.24 => RoomShape.OpenHall,
+                    < 0.41 => RoomShape.Compact,
+                    < 0.58 => RoomShape.LargeSquare,
+                    < 0.73 => RoomShape.LongHorizontal,
+                    < 0.88 => RoomShape.LongVertical,
+                    _ => RoomShape.Divided,
+                };
+                break;
+        }
+
+        return CreateArchetype(shape, theme, shapeRandom.Next(0, 4));
+    }
+
     /// <summary>
     /// Rolls a room's population archetype: some rooms are empty, most hold a
     /// small or medium group, a few are packed, and rare rooms are elite dens
@@ -153,6 +284,8 @@ public sealed class DungeonLayout
     {
         int ring = Ring(room);
         if (ring == 0)
+            return new RoomPopulation(0, false);
+        if (Archetype(room).Theme == RoomTheme.Empty)
             return new RoomPopulation(0, false);
 
         System.Random random = RoomRandom(room, 303);
@@ -169,6 +302,23 @@ public sealed class DungeonLayout
                 false
             );
         return new RoomPopulation(2 + random.Next(0, 2), true);
+    }
+
+    private static RoomArchetype CreateArchetype(
+        RoomShape shape,
+        RoomTheme theme,
+        int variant
+    )
+    {
+        return shape switch
+        {
+            RoomShape.Compact => new RoomArchetype(shape, theme, 4.7f, 4.7f, variant),
+            RoomShape.LargeSquare => new RoomArchetype(shape, theme, 8.2f, 6.4f, variant),
+            RoomShape.LongHorizontal => new RoomArchetype(shape, theme, 10.2f, 4.5f, variant),
+            RoomShape.LongVertical => new RoomArchetype(shape, theme, 4.5f, 6.4f, variant),
+            RoomShape.Divided => new RoomArchetype(shape, theme, 10.2f, 6.4f, variant),
+            _ => new RoomArchetype(shape, theme, 10.2f, 6.4f, variant),
+        };
     }
 
     /// <summary>Health multiplier applied to enemies the deeper the player goes.</summary>
