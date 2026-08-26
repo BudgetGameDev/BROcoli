@@ -89,7 +89,7 @@ jobs:
 
           licensed_asset_dir="Assets/Resources/Generated/Licensed"
           if [[ -d "$licensed_asset_dir" ]]; then
-            find "$licensed_asset_dir" -mindepth 1 -delete
+            sudo find "$licensed_asset_dir" -mindepth 1 -delete
           fi
 
       - name: Upload artifacts
