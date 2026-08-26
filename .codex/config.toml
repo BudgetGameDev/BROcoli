@@ -1,4 +1,7 @@
-
 [mcp_servers.unity]
 command = "unity"
 args = ["mcp"]
+
+[[skills.config]]
+path = "../.agents/skills/unity-cli"
+enabled = true

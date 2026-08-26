@@ -1,0 +1,7 @@
+interface:
+  display_name: "Unity CLI"
+  short_description: "Control Unity projects and Editors with the Unity CLI"
+  default_prompt: "Use $unity-cli to work with this Unity project through the CLI and connected Editor."
+
+policy:
+  allow_implicit_invocation: true
