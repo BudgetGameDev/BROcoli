@@ -44,6 +44,10 @@ public class ShuffleWalkVisual : MonoBehaviour
 
     private const float DeadZone = 0.05f;
 
+    // Restores the on-screen hop amplitude the curve was tuned for: the old
+    // tilted camera showed hop-up at ~50% strength, the Y-up world's at ~87%.
+    private const float HeightScale = 0.58f;
+
     // Stumble system - slows player after being hit
     private const float StumbleSpeedMultiplier = 0.5f; // 50% speed when stumbling
     private float stumblePenalty = 0f; // 0 = no stumble, 1 = full stumble
@@ -478,11 +482,7 @@ public class ShuffleWalkVisual : MonoBehaviour
         // Visual smoothing
         displayHeight = Mathf.Lerp(displayHeight, targetHeight, 25f * dt);
 
-        Vector3 localOffset =
-            transform.parent != null
-                ? transform.parent.InverseTransformDirection(Vector3.up * displayHeight)
-                : Vector3.up * displayHeight;
-        transform.localPosition = startLocalPos + localOffset;
+        transform.localPosition = startLocalPos + Vector3.up * (displayHeight * HeightScale);
 
         displaySS = Mathf.Lerp(displaySS, targetSS, 25f * dt);
         float yScale = 1f + displaySS;
