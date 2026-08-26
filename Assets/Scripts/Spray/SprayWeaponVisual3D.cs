@@ -13,10 +13,13 @@ public sealed class SprayWeaponVisual3D : MonoBehaviour
     private const string BottleResourcePath = "ThirdParty/SprayBottle/SprayBottle";
     private const string HandResourcePath = "Generated/Licensed/theHand";
     private const float GripPoseNormalized = 0.55f;
+    private const float PresentationScale = 1.3f;
 
     private static readonly Vector3 BottleScale = Vector3.one * 0.42f;
+    private static readonly Quaternion BottleRotation = Quaternion.Euler(90f, 0f, 0f);
     private static readonly Vector3 HandScale = Vector3.one * 0.26f;
-    private static readonly Vector3 HandPosition = new Vector3(-0.03f, 0.12f, -0.12f);
+    private static readonly Vector3 HandPosition = new Vector3(-0.06f, -0.06f, 0.03f);
+    private static readonly Quaternion HandRotation = Quaternion.Euler(90f, 0f, 0f);
     private static readonly Dictionary<Color32, Material> Materials = new();
 
     private Transform modelRoot;
@@ -55,7 +58,8 @@ public sealed class SprayWeaponVisual3D : MonoBehaviour
         if (modelRoot == null)
             return;
 
-        modelRoot.localScale = new Vector3(facingLeft ? -1f : 1f, 1f, 1f);
+        float horizontalScale = (facingLeft ? -1f : 1f) * PresentationScale;
+        modelRoot.localScale = new Vector3(horizontalScale, PresentationScale, PresentationScale);
         modelRoot.localRotation = Quaternion.Euler(0f, 0f, -aimAngleDegrees + tiltDegrees);
     }
 
@@ -92,7 +96,7 @@ public sealed class SprayWeaponVisual3D : MonoBehaviour
         GameObject bottle = Object.Instantiate(bottlePrefab, modelRoot, false);
         bottle.name = "Upright Sanitizer Bottle";
         bottle.transform.localPosition = Vector3.zero;
-        bottle.transform.localRotation = Quaternion.identity;
+        bottle.transform.localRotation = BottleRotation;
         bottle.transform.localScale = BottleScale;
         PrepareImportedModel(bottle);
 
@@ -118,7 +122,7 @@ public sealed class SprayWeaponVisual3D : MonoBehaviour
         GameObject hand = Object.Instantiate(handPrefab, modelRoot, false);
         hand.name = "Floating Cartoon Hand";
         hand.transform.localPosition = HandPosition;
-        hand.transform.localRotation = Quaternion.identity;
+        hand.transform.localRotation = HandRotation;
         hand.transform.localScale = HandScale;
         PrepareImportedModel(hand);
 
@@ -181,7 +185,8 @@ public sealed class SprayWeaponVisual3D : MonoBehaviour
             return material;
 
         Shader shader =
-            Shader.Find("Universal Render Pipeline/Lit")
+            Shader.Find("Universal Render Pipeline/Unlit")
+            ?? Shader.Find("Universal Render Pipeline/Lit")
             ?? Shader.Find("Standard")
             ?? Shader.Find("Sprites/Default");
         material = new Material(shader)

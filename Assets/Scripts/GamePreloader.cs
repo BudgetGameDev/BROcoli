@@ -206,6 +206,7 @@ public class GamePreloader : MonoBehaviour
         ProceduralEnemyMeleeAudio.PrewarmAll();
         ProceduralEnemyGunAudio.PrewarmAll();
         ProceduralEnemyWalkAudio.PrewarmAll(); // NEW: Pre-warm walk sounds
+        EnemyDeathAudio.PrewarmAll();
 
         // UI audio pre-generates on initialization
         ProceduralUIAudio.PrewarmAll();

@@ -98,9 +98,17 @@ public abstract class EnemyBase : MonoBehaviour
     private Quaternion baseLocalRotation;
 
     [Header("Death Animation")]
-    [Tooltip("Randomized implosion duration keeps groups from disappearing in lockstep.")]
+    [Tooltip("Randomized squash-and-pop duration keeps groups from disappearing in lockstep.")]
     [SerializeField]
-    private Vector2 deathAnimationDurationRange = new Vector2(0.24f, 0.36f);
+    private Vector2 deathAnimationDurationRange = new Vector2(0.32f, 0.42f);
+
+    [Tooltip("How much of the death is spent on the bright anticipation squash.")]
+    [SerializeField, Range(0.1f, 0.4f)]
+    private float deathAnticipationFraction = 0.24f;
+
+    [Tooltip("Local scale multiplier at the end of the anticipation squash.")]
+    [SerializeField]
+    private Vector3 deathSquashScale = new Vector3(1.18f, 0.72f, 1.18f);
 
     [Tooltip("Fraction of deaths that add a small randomized spin while shrinking.")]
     [SerializeField, Range(0f, 1f)]
@@ -715,6 +723,7 @@ public abstract class EnemyBase : MonoBehaviour
         // Invoke death event before returning to pool
         OnDeath?.Invoke(this);
 
+        EnemyDeathAudio.Play(transform.position, isElite);
         StartCoroutine(PlayDeathAnimation());
     }
 
@@ -725,6 +734,8 @@ public abstract class EnemyBase : MonoBehaviour
         float minDuration = Mathf.Max(0.05f, deathAnimationDurationRange.x);
         float maxDuration = Mathf.Max(minDuration, deathAnimationDurationRange.y);
         float duration = UnityEngine.Random.Range(minDuration, maxDuration);
+        float anticipationDuration = duration * Mathf.Clamp(deathAnticipationFraction, 0.1f, 0.4f);
+        float collapseDuration = Mathf.Max(0.05f, duration - anticipationDuration);
         float spin = 0f;
 
         if (UnityEngine.Random.value < deathSpinChance)
@@ -736,18 +747,54 @@ public abstract class EnemyBase : MonoBehaviour
                 * (UnityEngine.Random.value < 0.5f ? -1f : 1f);
         }
 
+        Vector3 squashScale = Vector3.Scale(startScale, deathSquashScale);
         float elapsed = 0f;
-        while (elapsed < duration)
+        while (elapsed < anticipationDuration)
         {
             elapsed += Time.deltaTime;
-            float t = Mathf.Clamp01(elapsed / duration);
-            float eased = 1f - Mathf.Pow(1f - t, 3f);
-            transform.localScale = Vector3.LerpUnclamped(startScale, Vector3.zero, eased);
-            transform.localRotation = startRotation * Quaternion.Euler(0f, 0f, spin * eased);
+            float t = Mathf.Clamp01(elapsed / anticipationDuration);
+            float eased = t * t * (3f - 2f * t);
+            transform.localScale = Vector3.LerpUnclamped(startScale, squashScale, eased);
+            transform.localRotation =
+                startRotation * Quaternion.Euler(0f, 0f, spin * -0.08f * eased);
+            SetDeathFlash(Mathf.Sin(t * Mathf.PI));
             yield return null;
         }
 
+        elapsed = 0f;
+        while (elapsed < collapseDuration)
+        {
+            elapsed += Time.deltaTime;
+            float t = Mathf.Clamp01(elapsed / collapseDuration);
+            float collapse = t * t;
+            float pop = Mathf.Sin(t * Mathf.PI) * (1f - t) * 0.22f;
+            Vector3 scale = Vector3.LerpUnclamped(squashScale, Vector3.zero, collapse);
+            scale += Vector3.Scale(startScale, Vector3.one * pop);
+
+            float spinEase = 1f - Mathf.Pow(1f - t, 3f);
+            transform.localScale = scale;
+            transform.localRotation =
+                startRotation * Quaternion.Euler(0f, 0f, Mathf.Lerp(-spin * 0.08f, spin, spinEase));
+            SetDeathFlash(Mathf.Clamp01(1f - t * 4f));
+            yield return null;
+        }
+
+        transform.localScale = Vector3.zero;
+        SetDeathFlash(0f);
         CompleteDeath();
+    }
+
+    private void SetDeathFlash(float amount)
+    {
+        amount = Mathf.Clamp01(amount);
+        if (cachedSpriteRenderer != null)
+        {
+            cachedSpriteRenderer.color = Color.Lerp(originalSpriteColor, Color.white, amount);
+        }
+        else if (cachedMeshRenderer != null)
+        {
+            cachedMeshRenderer.material.color = Color.Lerp(originalMeshColor, Color.white, amount);
+        }
     }
 
     private void CompleteDeath()
