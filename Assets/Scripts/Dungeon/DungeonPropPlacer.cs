@@ -93,23 +93,28 @@ public class DungeonPropPlacer : MonoBehaviour
 
         if (torchPrefab != null)
         {
-            // Torch candidates sit just inside the four corners; every room
-            // gets at least two so no room is ever fully dark.
-            var corners = new[]
+            // Wall-mounted torch spots: two per wall, clear of the doorway
+            // lanes, each rotated so the sconce leans out of its wall into
+            // the room. Every room gets at least two so it is never fully dark.
+            var spots = new (Vector2 pos, float yaw)[]
             {
-                new Vector2(-HalfRoomWidth + 2.8f, -HalfRoomDepth + 2.8f),
-                new Vector2(HalfRoomWidth - 2.8f, -HalfRoomDepth + 2.8f),
-                new Vector2(-HalfRoomWidth + 2.8f, HalfRoomDepth - 2.8f),
-                new Vector2(HalfRoomWidth - 2.8f, HalfRoomDepth - 2.8f),
+                (new Vector2(-8f, HalfRoomDepth - 1.05f), 180f),
+                (new Vector2(8f, HalfRoomDepth - 1.05f), 180f),
+                (new Vector2(-8f, -HalfRoomDepth + 1.05f), 0f),
+                (new Vector2(8f, -HalfRoomDepth + 1.05f), 0f),
+                (new Vector2(HalfRoomWidth - 1.05f, -5f), -90f),
+                (new Vector2(HalfRoomWidth - 1.05f, 5f), -90f),
+                (new Vector2(-HalfRoomWidth + 1.05f, -5f), 90f),
+                (new Vector2(-HalfRoomWidth + 1.05f, 5f), 90f),
             };
-            Shuffle(corners, random);
+            Shuffle(spots, random);
             int torchCount = 2 + random.Next(0, 3);
-            for (int i = 0; i < torchCount && i < corners.Length; i++)
+            for (int i = 0; i < torchCount && i < spots.Length; i++)
             {
                 Instantiate(
                     torchPrefab,
-                    (center + corners[i]).ToWorld(),
-                    GroundPlane.YawRotation(random.Next(0, 360)),
+                    (center + spots[i].pos).ToWorld(),
+                    Quaternion.Euler(0f, spots[i].yaw, 0f),
                     parent
                 );
             }
@@ -160,7 +165,7 @@ public class DungeonPropPlacer : MonoBehaviour
         return roomCenter + new Vector2(HalfRoomWidth - 4f, HalfRoomDepth - 4f);
     }
 
-    private static void Shuffle(Vector2[] values, System.Random random)
+    private static void Shuffle<T>(T[] values, System.Random random)
     {
         for (int i = values.Length - 1; i > 0; i--)
         {
