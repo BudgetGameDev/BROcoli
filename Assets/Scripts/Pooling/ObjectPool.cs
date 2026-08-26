@@ -82,39 +82,17 @@ namespace Pooling
         /// </summary>
         public T Get()
         {
-            T obj;
-
-            if (_available.Count > 0)
-            {
-                obj = _available.Pop();
-                // Handle destroyed objects
-                while (obj == null && _available.Count > 0)
-                {
-                    obj = _available.Pop();
-                }
-            }
-            else
-            {
-                obj = null;
-            }
+            T obj = TakeAvailable();
 
             if (obj == null)
             {
-                if (_maxSize > 0 && _active.Count >= _maxSize)
-                {
-                    Debug.LogWarning(
-                        $"[ObjectPool] Pool for {_prefab.name} at max capacity ({_maxSize})"
-                    );
+                if (!CanCreate())
                     return null;
-                }
+
                 obj = CreateNew();
             }
 
-            obj.gameObject.SetActive(true);
-            _active.Add(obj);
-            _onGet?.Invoke(obj);
-
-            return obj;
+            return Activate(obj);
         }
 
         /// <summary>
@@ -122,12 +100,26 @@ namespace Pooling
         /// </summary>
         public T Get(Vector3 position, Quaternion rotation)
         {
-            T obj = Get();
-            if (obj != null)
+            T obj = TakeAvailable();
+            if (obj == null)
             {
+                if (!CanCreate())
+                    return null;
+
+                // Instantiate new objects at their requested pose so their first
+                // OnEnable and physics registration never observe the prefab pose.
+                obj = CreateNew(position, rotation);
+            }
+            else
+            {
+                // Reposition recycled objects while inactive. Enabling a pooled
+                // Rigidbody2D at its previous position can leave that stale pose
+                // visible until the next physics sync, causing spawn-time logic
+                // such as pickup attraction to latch from the wrong location.
                 obj.transform.SetPositionAndRotation(position, rotation);
             }
-            return obj;
+
+            return Activate(obj);
         }
 
         /// <summary>
@@ -190,9 +182,42 @@ namespace Pooling
             }
         }
 
+        private T TakeAvailable()
+        {
+            T obj = null;
+            while (_available.Count > 0 && obj == null)
+                obj = _available.Pop();
+
+            return obj;
+        }
+
+        private bool CanCreate()
+        {
+            if (_maxSize <= 0 || _active.Count < _maxSize)
+                return true;
+
+            Debug.LogWarning($"[ObjectPool] Pool for {_prefab.name} at max capacity ({_maxSize})");
+            return false;
+        }
+
+        private T Activate(T obj)
+        {
+            obj.gameObject.SetActive(true);
+            _active.Add(obj);
+            _onGet?.Invoke(obj);
+            return obj;
+        }
+
         private T CreateNew()
         {
             T obj = UnityEngine.Object.Instantiate(_prefab, _poolParent);
+            obj.name = $"{_prefab.name} (Pooled)";
+            return obj;
+        }
+
+        private T CreateNew(Vector3 position, Quaternion rotation)
+        {
+            T obj = UnityEngine.Object.Instantiate(_prefab, position, rotation, _poolParent);
             obj.name = $"{_prefab.name} (Pooled)";
             return obj;
         }
