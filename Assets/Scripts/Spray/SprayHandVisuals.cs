@@ -90,10 +90,10 @@ public class SprayHandVisuals
     {
         if (targetTransform == null)
             return Vector2.zero;
-        Collider2D col = targetTransform.GetComponent<Collider2D>();
+        Collider col = targetTransform.GetComponent<Collider>();
         return (col != null && col.enabled)
-            ? (Vector2)col.bounds.center
-            : (Vector2)targetTransform.position;
+            ? col.bounds.center.ToGround()
+            : targetTransform.position.ToGround();
     }
 
     public bool HasTarget =>
@@ -106,7 +106,7 @@ public class SprayHandVisuals
             if (targetTransform == null || playerTransform == null)
                 return false;
             // Measure distance from player center (consistent with aim calculation)
-            Vector2 playerPos = (Vector2)playerTransform.position;
+            Vector2 playerPos = playerTransform.position.ToGround();
             float dist = Vector2.Distance(playerPos, GetTargetCenter());
             return dist <= maxRange && dist >= SpraySettings.MinTargetDistance;
         }
@@ -138,8 +138,8 @@ public class SprayHandVisuals
             + sprayPushBlend * SpraySettings.HandSprayPushDistance;
         return new Vector3(
             playerPos.x + dir.x * offset,
-            playerPos.y + dir.y * offset,
-            playerPos.z + SpraySettings.VisualZOffset
+            playerPos.y + SpraySettings.VisualHeightOffset,
+            playerPos.z + dir.y * offset
         );
     }
 
@@ -160,7 +160,7 @@ public class SprayHandVisuals
             // Calculate aim direction from PLAYER CENTER to target
             // This is geometrically correct: since nozzle is offset ALONG the aim ray,
             // aiming from player center ensures the spray ray passes through the target
-            Vector2 playerPos = (Vector2)playerTransform.position;
+            Vector2 playerPos = playerTransform.position.ToGround();
             Vector2 toTarget = targetPos - playerPos;
 
             if (toTarget.magnitude > 0.1f)
@@ -185,8 +185,8 @@ public class SprayHandVisuals
         // Rotating this parent moves the hand anchor around the player and yaws
         // the complete 3D hand/bottle assembly continuously. The model child must
         // inherit this rotation instead of cancelling it or flipping at screen left.
-        sprayTransform.localRotation = Quaternion.Euler(0, 0, currentHandAngle);
-        sprayTransform.localPosition = new Vector3(0, 0, SpraySettings.VisualZOffset);
+        sprayTransform.localRotation = GroundPlane.YawRotation(currentHandAngle);
+        sprayTransform.localPosition = new Vector3(0, SpraySettings.VisualHeightOffset, 0);
 
         UpdateSprayPush();
         float movement =

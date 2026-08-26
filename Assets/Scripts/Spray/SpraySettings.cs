@@ -19,7 +19,7 @@ public static class SpraySettings
 
     // ==================== Visual Settings ====================
     public const float HandOffset = 0.7f;
-    public const float VisualZOffset = -0.5f;
+    public const float VisualHeightOffset = 0.5f;
     public const float IsometricYOffset = 0.3f;
     public const float CameraAngle = 60f;
     public static readonly Color SprayColor = new Color(0.7f, 0.9f, 1f, 0.6f);
@@ -57,8 +57,8 @@ public static class SpraySettings
     public const float NoiseFrequency = 4f;
     public const float NoiseScrollSpeed = 0.2f;
     public const float NoiseStrengthX = 0.1f;
-    public const float NoiseStrengthY = 0.1f;
-    public const float NoiseStrengthZ = 0f; // No Z noise - stay on plane
+    public const float NoiseStrengthY = 0f; // No vertical noise - stay on the ground plane
+    public const float NoiseStrengthZ = 0.1f;
 
     // Forward nozzle position shared by visuals, particles, and damage checks.
     public static readonly Vector3 NozzleLocalPos = new Vector3(0.22f, 0.02f, 0);

@@ -142,7 +142,7 @@ public class CameraController : MonoBehaviour
             if (move.sqrMagnitude > 0.1f)
             {
                 // Only drift while moving, but don't reset when stopping
-                targetDrift = new Vector3(move.x, move.y, 0f) * lookAheadAmount;
+                targetDrift = move.ToWorld() * lookAheadAmount;
             }
             else
             {

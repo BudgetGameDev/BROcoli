@@ -74,7 +74,7 @@ public class ProceduralEnemyWalkAudio : MonoBehaviour
 
     private WalkPreset currentPreset;
     private AudioSource audioSource;
-    private Rigidbody2D rb;
+    private Rigidbody rb;
     private int sampleRate;
     private float[] audioBuffer;
 
@@ -471,7 +471,7 @@ public class ProceduralEnemyWalkAudio : MonoBehaviour
         audioSource.playOnAwake = false;
         audioSource.loop = false;
 
-        rb = GetComponent<Rigidbody2D>();
+        rb = GetComponent<Rigidbody>();
 
         sampleRate = AudioSettings.outputSampleRate;
         int maxSamples = Mathf.CeilToInt(0.4f * sampleRate);
@@ -624,7 +624,7 @@ public class ProceduralEnemyWalkAudio : MonoBehaviour
         if (rb == null)
             return;
 
-        float speed = rb.linearVelocity.magnitude;
+        float speed = rb.GroundVelocity().magnitude;
         lastSpeed = speed;
 
         if (speed < minSpeedForSound)
@@ -651,7 +651,7 @@ public class ProceduralEnemyWalkAudio : MonoBehaviour
         float distanceVolume = 1f;
         if (playerTransform != null)
         {
-            float dist = Vector2.Distance(transform.position, playerTransform.position);
+            float dist = GroundPlane.GroundDistance(transform.position, playerTransform.position);
             if (dist > MAX_AUDIBLE_DISTANCE)
             {
                 return; // Too far, don't play

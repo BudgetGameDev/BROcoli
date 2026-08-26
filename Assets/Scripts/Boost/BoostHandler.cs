@@ -64,7 +64,7 @@ public class BoostHandler : MonoBehaviour
         GameObject prefab = _boosters[Random.Range(0, _boosters.Length)];
         Instantiate(
             prefab,
-            position,
+            position.ToWorld(),
             Quaternion.identity,
             _spawnerParent != null ? _spawnerParent : transform
         );
@@ -75,7 +75,7 @@ public class BoostHandler : MonoBehaviour
         float camHeight = _mainCamera.orthographicSize;
         float camWidth = camHeight * _mainCamera.aspect;
 
-        Vector2 playerPos = _player.position;
+        Vector2 playerPos = _player.position.ToGround();
 
         int side = Random.Range(0, 4);
 

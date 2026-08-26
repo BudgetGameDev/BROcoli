@@ -20,7 +20,7 @@ public class PlayerCombat : MonoBehaviour
     private const float DefaultInitialAttackDelay = 0.75f;
     private const float ProjectileSpawnForwardOffset = 0.4f;
     private const float ProjectileSpawnSideOffset = 0.25f;
-    private const float ProjectileVisualHeight = -0.5f;
+    private const float ProjectileVisualHeight = 0.5f;
     private const string ProjectilePrefabPath = "CursedDevolpmentStudioAss Assets/Projectile";
 
     private PlayerStats _playerStats;
@@ -99,7 +99,7 @@ public class PlayerCombat : MonoBehaviour
             detectionRange = _sanitizerSpray.SprayRange;
         }
 
-        Collider2D[] hits = Physics2D.OverlapCircleAll(playerPos, detectionRange, _enemyLayer);
+        Collider[] hits = GroundPlane.OverlapCircleAll(playerPos, detectionRange, _enemyLayer);
         if (hits.Length == 0)
             return;
 
@@ -117,7 +117,7 @@ public class PlayerCombat : MonoBehaviour
         AttackTarget(target);
     }
 
-    private Transform FindTarget(Collider2D[] hits, Vector2 playerPos, float range)
+    private Transform FindTarget(Collider[] hits, Vector2 playerPos, float range)
     {
         // Use smart targeting for spray weapon
         if (_currentWeapon == WeaponType.SanitizerSpray && _sanitizerSpray != null)
@@ -131,19 +131,19 @@ public class PlayerCombat : MonoBehaviour
         return FindClosestEnemy(hits, playerPos);
     }
 
-    private Transform FindClosestEnemy(Collider2D[] hits, Vector2 playerPos)
+    private Transform FindClosestEnemy(Collider[] hits, Vector2 playerPos)
     {
         Transform closestEnemy = null;
         Transform closestProjectile = null;
         float closestEnemySqrDist = float.MaxValue;
         float closestProjectileSqrDist = float.MaxValue;
 
-        foreach (Collider2D hit in hits)
+        foreach (Collider hit in hits)
         {
             if (hit == null)
                 continue;
 
-            float sqrDist = ((Vector2)hit.transform.position - playerPos).sqrMagnitude;
+            float sqrDist = (hit.transform.position.ToGround() - playerPos).sqrMagnitude;
             EnemyBase enemyComponent = hit.GetComponent<EnemyBase>();
 
             if (enemyComponent != null)
@@ -167,7 +167,7 @@ public class PlayerCombat : MonoBehaviour
         return closestEnemy ?? closestProjectile;
     }
 
-    private Transform FindBestSprayTarget(Collider2D[] hits, Vector2 playerPos, float sprayRange)
+    private Transform FindBestSprayTarget(Collider[] hits, Vector2 playerPos, float sprayRange)
     {
         if (hits == null || hits.Length == 0)
             return null;
@@ -181,7 +181,7 @@ public class PlayerCombat : MonoBehaviour
         // Collect enemies with predicted positions using dynamic velocity-based prediction
         var enemies = new List<(Transform t, EnemyBase e, Vector2 predicted, float dist)>();
 
-        foreach (Collider2D hit in hits)
+        foreach (Collider hit in hits)
         {
             if (hit == null)
                 continue;
@@ -189,7 +189,7 @@ public class PlayerCombat : MonoBehaviour
             if (enemy == null)
                 continue;
 
-            Vector2 enemyPos = (Vector2)hit.bounds.center;
+            Vector2 enemyPos = hit.bounds.center.ToGround();
             float dist = Vector2.Distance(playerPos, enemyPos);
 
             if (dist <= sprayRange && dist > 0.1f)
@@ -281,7 +281,7 @@ public class PlayerCombat : MonoBehaviour
         if (enemy.rb == null)
             return currentPos;
 
-        Vector2 velocity = enemy.rb.linearVelocity;
+        Vector2 velocity = enemy.rb.GroundVelocity();
         float enemySpeed = velocity.magnitude;
 
         // Stationary or nearly stationary: aim dead center
@@ -370,12 +370,12 @@ public class PlayerCombat : MonoBehaviour
         if (target == null || _projectilePrefab == null)
             return;
 
-        Collider2D col = target.GetComponent<Collider2D>();
+        Collider col = target.GetComponent<Collider>();
         if (col == null)
             return;
 
-        Vector2 targetPoint = col.bounds.center;
-        Vector2 playerPos = (Vector2)transform.position;
+        Vector2 targetPoint = col.bounds.center.ToGround();
+        Vector2 playerPos = transform.position.ToGround();
         Vector2 direction = (targetPoint - playerPos).normalized;
 
         // Calculate spawn position
@@ -385,7 +385,7 @@ public class PlayerCombat : MonoBehaviour
             + (perpendicular * ProjectileSpawnSideOffset)
             + (direction * ProjectileSpawnForwardOffset);
 
-        Vector3 spawnPos = new Vector3(spawnPos2D.x, spawnPos2D.y, ProjectileVisualHeight);
+        Vector3 spawnPos = spawnPos2D.ToWorld(ProjectileVisualHeight);
 
         GameObject proj = Object.Instantiate(_projectilePrefab, spawnPos, Quaternion.identity);
         Projectile projectile = proj?.GetComponent<Projectile>();

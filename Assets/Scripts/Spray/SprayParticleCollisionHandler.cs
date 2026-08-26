@@ -52,7 +52,7 @@ public class SprayParticleCollisionHandler : MonoBehaviour
         var collision = sprayParticles.collision;
         collision.enabled = true;
         collision.type = ParticleSystemCollisionType.World;
-        collision.mode = ParticleSystemCollisionMode.Collision2D;
+        collision.mode = ParticleSystemCollisionMode.Collision3D;
         collision.sendCollisionMessages = true;
         collision.collidesWith = LayerMask.GetMask("Enemy");
         collision.maxCollisionShapes = 10;

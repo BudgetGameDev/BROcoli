@@ -17,8 +17,8 @@ using UnityEngine;
 [RequireComponent(typeof(PlayerDamageHandler))]
 [RequireComponent(typeof(PlayerAudioHandler))]
 [RequireComponent(typeof(PlayerStats))]
-[RequireComponent(typeof(Rigidbody2D))]
-[RequireComponent(typeof(Collider2D))]
+[RequireComponent(typeof(Rigidbody))]
+[RequireComponent(typeof(Collider))]
 public class PlayerController : MonoBehaviour
 {
     /// <summary>
@@ -141,7 +141,7 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    private void OnTriggerEnter2D(Collider2D other)
+    private void OnTriggerEnter(Collider other)
     {
         Debug.Log("Collided with " + other.name);
         _damageHandler?.HandleCollision(other);
@@ -157,7 +157,7 @@ public class PlayerController : MonoBehaviour
             cameraOffset = mainCam.transform.position - transform.position;
         }
 
-        Vector3 spawnCenter = new Vector3(0f, 0f, transform.position.z);
+        Vector3 spawnCenter = new Vector3(0f, transform.position.y, 0f);
         transform.position = spawnCenter;
 
         if (mainCam != null)

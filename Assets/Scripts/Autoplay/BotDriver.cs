@@ -53,20 +53,9 @@ public class BotDriver : MonoBehaviour
 
     private Transform _player;
     private PlayerStats _stats;
-    private readonly Collider2D[] _projBuf = new Collider2D[64];
-    private ContactFilter2D _projFilter;
+    private readonly Collider[] _projBuf = new Collider[64];
     private int _frame;
     private Vector2 _lastDodge;
-
-    private void Awake()
-    {
-        _projFilter = new ContactFilter2D
-        {
-            useTriggers = true,
-            useLayerMask = false,
-            useDepth = false,
-        };
-    }
 
     private void OnEnable() => Active = true;
 
@@ -90,7 +79,7 @@ public class BotDriver : MonoBehaviour
             _stats = go.GetComponent<PlayerStats>();
         }
 
-        Vector2 pos = _player.position;
+        Vector2 pos = _player.position.ToGround();
 
         // --- enemy cluster sensing ---
         Vector2 centroid = Vector2.zero,
@@ -106,7 +95,7 @@ public class BotDriver : MonoBehaviour
             {
                 if (e == null)
                     continue;
-                Vector2 ep = e.transform.position;
+                Vector2 ep = e.transform.position.ToGround();
                 Vector2 away = pos - ep;
                 float d = away.magnitude;
                 if (d < 0.0001f)
@@ -172,7 +161,7 @@ public class BotDriver : MonoBehaviour
     private Vector2 ComputeDodge(Vector2 pos)
     {
         Vector2 dodge = Vector2.zero;
-        int n = Physics2D.OverlapCircle(pos, projSenseRadius, _projFilter, _projBuf);
+        int n = GroundPlane.OverlapCircle(pos, projSenseRadius, _projBuf);
         for (int i = 0; i < n; i++)
         {
             var col = _projBuf[i];
@@ -181,11 +170,11 @@ public class BotDriver : MonoBehaviour
             var rb = col.attachedRigidbody;
             if (rb == null)
                 continue;
-            Vector2 v = rb.linearVelocity;
+            Vector2 v = rb.GroundVelocity();
             if (v.sqrMagnitude < 0.04f)
                 continue;
 
-            Vector2 pp = col.transform.position;
+            Vector2 pp = col.transform.position.ToGround();
             Vector2 toMe = pos - pp;
             Vector2 vn = v.normalized;
             float along = Vector2.Dot(toMe, vn);

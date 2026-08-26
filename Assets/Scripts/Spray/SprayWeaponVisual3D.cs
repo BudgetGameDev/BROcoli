@@ -50,6 +50,10 @@ public sealed class SprayWeaponVisual3D : MonoBehaviour
             modelRoot.gameObject.SetActive(visible);
     }
 
+    // Bridges the yaw-driven weapon frame (X = aim, Y = up) into the frame the
+    // imported models were authored in.
+    private static readonly Quaternion ModelFrame = Quaternion.Euler(90f, 0f, 0f);
+
     /// <summary>
     /// Adds only the local animated tilt. The parent weapon transform supplies the
     /// continuous orbit and yaw around the player; no counter-rotation or flip is
@@ -61,7 +65,7 @@ public sealed class SprayWeaponVisual3D : MonoBehaviour
             return;
 
         modelRoot.localScale = Vector3.one * PresentationScale;
-        modelRoot.localRotation = Quaternion.Euler(0f, 0f, tiltDegrees);
+        modelRoot.localRotation = ModelFrame * Quaternion.Euler(0f, 0f, tiltDegrees);
     }
 
     private void Initialize()

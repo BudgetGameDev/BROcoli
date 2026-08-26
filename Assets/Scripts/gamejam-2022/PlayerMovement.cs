@@ -2,10 +2,10 @@ using UnityEngine;
 
 /// <summary>
 /// Handles player movement physics, knockback, and animator updates.
-/// Discovers Rigidbody2D, Animator, and Collider2D via GetComponent.
+/// Discovers Rigidbody, Animator, and Collider via GetComponent.
 /// </summary>
-[RequireComponent(typeof(Rigidbody2D))]
-[RequireComponent(typeof(Collider2D))]
+[RequireComponent(typeof(Rigidbody))]
+[RequireComponent(typeof(Collider))]
 public class PlayerMovement : MonoBehaviour
 {
     private const float DefaultKnockbackForce = 2.25f;
@@ -15,15 +15,14 @@ public class PlayerMovement : MonoBehaviour
     private const float EnemyStandOffGap = 0.4f;
     private const int MaxCollisionSlides = 2;
 
-    private Rigidbody2D _body;
+    private Rigidbody _body;
     private Animator _animator;
-    private Collider2D _collider;
+    private Collider _collider;
     private ShuffleWalkVisual _hopVisual;
     private PlayerStats _playerStats;
     private PlayerInputHandler _inputHandler;
     private int _enemyLayerMask;
-    private ContactFilter2D _enemyContactFilter;
-    private readonly RaycastHit2D[] _collisionHits = new RaycastHit2D[16];
+    private readonly RaycastHit[] _collisionHits = new RaycastHit[16];
 
     // Impulse-based knockback - additive velocity that decays naturally
     private Vector2 _knockbackVelocity;
@@ -39,30 +38,25 @@ public class PlayerMovement : MonoBehaviour
     public float KnockbackMagnitude => _knockbackVelocity.magnitude;
 
     /// <summary>
-    /// The Rigidbody2D used for physics.
+    /// The Rigidbody used for physics.
     /// </summary>
-    public Rigidbody2D Body => _body;
+    public Rigidbody Body => _body;
 
     /// <summary>
-    /// Current position of the player.
+    /// Current ground-plane position of the player.
     /// </summary>
-    public Vector2 Position => _body != null ? _body.position : (Vector2)transform.position;
+    public Vector2 Position =>
+        _body != null ? _body.GroundPosition() : transform.position.ToGround();
 
     private void Awake()
     {
-        _body = GetComponent<Rigidbody2D>();
+        _body = GetComponent<Rigidbody>();
         _animator = GetComponent<Animator>();
-        _collider = GetComponent<Collider2D>();
+        _collider = GetComponent<Collider>();
         _hopVisual = GetComponentInChildren<ShuffleWalkVisual>();
         _playerStats = GetComponentInChildren<PlayerStats>(); // May be on child prefab
         _inputHandler = GetComponent<PlayerInputHandler>();
         _enemyLayerMask = LayerMask.GetMask("Enemy");
-        _enemyContactFilter = new ContactFilter2D
-        {
-            useLayerMask = true,
-            layerMask = _enemyLayerMask,
-            useTriggers = false,
-        };
 
         // This collider is the player's solid navigation body. Trigger-based
         // pickups and projectiles still work because their own colliders are triggers.
@@ -71,7 +65,7 @@ public class PlayerMovement : MonoBehaviour
 
         if (_body == null)
         {
-            Debug.LogError("PlayerMovement: No Rigidbody2D found!");
+            Debug.LogError("PlayerMovement: No Rigidbody found!");
         }
         if (_playerStats == null)
         {
@@ -121,7 +115,7 @@ public class PlayerMovement : MonoBehaviour
         Vector2 knockbackDelta = _knockbackVelocity * Time.fixedDeltaTime;
         Vector2 totalDelta = playerDelta + knockbackDelta;
 
-        _body.MovePosition(_body.position + ResolveEnemyCollisions(totalDelta));
+        _body.MoveGroundPosition(_body.GroundPosition() + ResolveEnemyCollisions(totalDelta));
 
         // Update animator
         UpdateAnimator(moveDir);
@@ -138,8 +132,8 @@ public class PlayerMovement : MonoBehaviour
             return desiredDelta;
 
         Bounds bounds = _collider.bounds;
-        Vector2 castCenter = bounds.center;
-        Vector2 castSize = bounds.size;
+        Vector3 castCenter = bounds.center;
+        Vector3 castHalfExtents = bounds.extents;
         Vector2 resolvedDelta = Vector2.zero;
         Vector2 remainingDelta = desiredDelta;
 
@@ -153,10 +147,10 @@ public class PlayerMovement : MonoBehaviour
             if (
                 !TryGetBlockingHit(
                     castCenter,
-                    castSize,
+                    castHalfExtents,
                     direction,
                     distance + CollisionSkin + EnemyStandOffGap,
-                    out RaycastHit2D hit
+                    out RaycastHit hit
                 )
             )
             {
@@ -171,12 +165,13 @@ public class PlayerMovement : MonoBehaviour
             );
             Vector2 travel = direction * travelDistance;
             resolvedDelta += travel;
-            castCenter += travel;
+            castCenter += travel.ToWorld();
 
             Vector2 untraveled = direction * (distance - travelDistance);
-            float intoSurface = Vector2.Dot(untraveled, hit.normal);
+            Vector2 hitNormal = hit.normal.ToGround();
+            float intoSurface = Vector2.Dot(untraveled, hitNormal);
             if (intoSurface < 0f)
-                untraveled -= hit.normal * intoSurface;
+                untraveled -= hitNormal * intoSurface;
 
             remainingDelta = untraveled;
         }
@@ -185,21 +180,22 @@ public class PlayerMovement : MonoBehaviour
     }
 
     private bool TryGetBlockingHit(
-        Vector2 castCenter,
-        Vector2 castSize,
+        Vector3 castCenter,
+        Vector3 castHalfExtents,
         Vector2 direction,
         float distance,
-        out RaycastHit2D closestHit
+        out RaycastHit closestHit
     )
     {
-        int hitCount = Physics2D.BoxCast(
+        int hitCount = Physics.BoxCastNonAlloc(
             castCenter,
-            castSize,
-            _body.rotation,
-            direction,
-            _enemyContactFilter,
+            castHalfExtents,
+            direction.ToWorld(),
             _collisionHits,
-            distance
+            Quaternion.identity,
+            distance,
+            _enemyLayerMask,
+            QueryTriggerInteraction.Ignore
         );
 
         closestHit = default;
@@ -207,7 +203,7 @@ public class PlayerMovement : MonoBehaviour
 
         for (int i = 0; i < hitCount; i++)
         {
-            RaycastHit2D candidate = _collisionHits[i];
+            RaycastHit candidate = _collisionHits[i];
             if (candidate.collider == null || candidate.collider == _collider)
                 continue;
 
@@ -216,7 +212,8 @@ public class PlayerMovement : MonoBehaviour
             // player can always disengage instead of becoming stuck.
             if (candidate.distance <= CollisionSkin)
             {
-                Vector2 awayFromEnemy = castCenter - (Vector2)candidate.collider.bounds.center;
+                Vector2 awayFromEnemy =
+                    castCenter.ToGround() - candidate.collider.bounds.center.ToGround();
                 if (Vector2.Dot(direction, awayFromEnemy) >= 0f)
                     continue;
             }
@@ -279,11 +276,11 @@ public class PlayerMovement : MonoBehaviour
     {
         if (_body != null)
         {
-            _body.position = position;
+            _body.SetGroundPosition(position);
         }
         else
         {
-            transform.position = new Vector3(position.x, position.y, transform.position.z);
+            transform.position = position.ToWorld(transform.position.y);
         }
     }
 
@@ -294,7 +291,7 @@ public class PlayerMovement : MonoBehaviour
     {
         if (_body != null)
         {
-            _body.linearVelocity = Vector2.zero;
+            _body.linearVelocity = Vector3.zero;
         }
         _knockbackVelocity = Vector2.zero;
     }

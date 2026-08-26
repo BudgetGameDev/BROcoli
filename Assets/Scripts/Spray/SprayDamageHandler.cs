@@ -12,7 +12,7 @@ public class SprayDamageHandler
     private readonly Dictionary<EnemyBase, float> coneDamageTotals =
         new Dictionary<EnemyBase, float>();
     private readonly HashSet<EnemyBase> coneKnockbackResolved = new HashSet<EnemyBase>();
-    private readonly Collider2D[] hitBuffer = new Collider2D[SpraySettings.HitBufferSize];
+    private readonly Collider[] hitBuffer = new Collider[SpraySettings.HitBufferSize];
 
     private float nextDamageTick = 0f;
     private PlayerStats playerStats;
@@ -118,7 +118,8 @@ public class SprayDamageHandler
                 Vector2 knockbackDirection =
                     playerTransform != null
                         ? (
-                            (Vector2)enemy.transform.position - (Vector2)playerTransform.position
+                            enemy.transform.position.ToGround()
+                            - playerTransform.position.ToGround()
                         ).normalized
                         : lastConeDirection;
                 if (knockbackDirection.sqrMagnitude < 0.0001f)
@@ -170,7 +171,7 @@ public class SprayDamageHandler
             Vector2 direction =
                 playerTransform != null
                     ? (
-                        (Vector2)enemy.transform.position - (Vector2)playerTransform.position
+                        enemy.transform.position.ToGround() - playerTransform.position.ToGround()
                     ).normalized
                     : lastConeDirection;
             if (direction.sqrMagnitude < 0.0001f)
@@ -204,21 +205,17 @@ public class SprayDamageHandler
         // Gameplay cone begins at the player, while particles still render from
         // the nozzle. This bridges the near field so a close enemy cannot sit
         // behind the visual emission point and be skipped by the cone angle.
-        Vector2 origin = playerTransform != null ? (Vector2)playerTransform.position : nozzleOrigin;
+        Vector2 origin =
+            playerTransform != null ? playerTransform.position.ToGround() : nozzleOrigin;
 
         float halfAngle = currentWidth * 0.5f;
 
         // Detection still uses a circle around nozzle for initial broad-phase
-        int hitCount = Physics2D.OverlapCircle(
-            origin,
-            currentRange,
-            ContactFilter2D.noFilter,
-            hitBuffer
-        );
+        int hitCount = GroundPlane.OverlapCircle(origin, currentRange, hitBuffer);
 
         for (int i = 0; i < hitCount; i++)
         {
-            Collider2D hit = hitBuffer[i];
+            Collider hit = hitBuffer[i];
             if (hit == null || !hit.CompareTag("Enemy"))
                 continue;
 
@@ -227,12 +224,12 @@ public class SprayDamageHandler
                 continue;
 
             // Use predicted position for fast-moving enemies
-            Vector2 enemyPos = (Vector2)hit.bounds.center;
-            if (enemy.rb != null && enemy.rb.linearVelocity.sqrMagnitude > 0.1f)
+            Vector2 enemyPos = hit.bounds.center.ToGround();
+            if (enemy.rb != null && enemy.rb.GroundVelocity().sqrMagnitude > 0.1f)
             {
                 float dist = Vector2.Distance(origin, enemyPos);
                 float travelTime = dist / particleSpeed;
-                enemyPos += enemy.rb.linearVelocity * travelTime;
+                enemyPos += enemy.rb.GroundVelocity() * travelTime;
             }
 
             Vector2 toEnemy = (enemyPos - origin);
@@ -287,7 +284,7 @@ public class SprayDamageHandler
             Vector3 particlePos = enter[i].position;
 
             // Find enemy at this position
-            Collider2D hit = Physics2D.OverlapPoint(particlePos);
+            Collider hit = GroundPlane.OverlapPoint(particlePos);
             if (hit != null && hit.CompareTag("Enemy"))
             {
                 EnemyBase enemy = hit.GetComponent<EnemyBase>();

@@ -113,7 +113,7 @@ namespace Pooling
             else
             {
                 // Reposition recycled objects while inactive. Enabling a pooled
-                // Rigidbody2D at its previous position can leave that stale pose
+                // Rigidbody at its previous position can leave that stale pose
                 // visible until the next physics sync, causing spawn-time logic
                 // such as pickup attraction to latch from the wrong location.
                 obj.transform.SetPositionAndRotation(position, rotation);

@@ -175,7 +175,7 @@ public class EnemySpawner : MonoBehaviour
 
         // Calculate spawn position
         Vector2 offset = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * distance;
-        Vector2 spawnPos = (Vector2)player.position + offset;
+        Vector3 spawnPos = (player.position.ToGround() + offset).ToWorld();
 
         // Try to get from pool first
         EnemyBase enemyPrefabComponent = prefab.GetComponent<EnemyBase>();

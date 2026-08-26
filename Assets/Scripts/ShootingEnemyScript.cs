@@ -1,8 +1,8 @@
 using Pooling;
 using UnityEngine;
 
-[RequireComponent(typeof(Rigidbody2D))]
-[RequireComponent(typeof(Collider2D))]
+[RequireComponent(typeof(Rigidbody))]
+[RequireComponent(typeof(Collider))]
 public class ShootingEnemyScript : EnemyBase
 {
     [Header("Shooting")]
@@ -20,7 +20,7 @@ public class ShootingEnemyScript : EnemyBase
     private float projectileSpawnSideOffset = 0.2f; // Side offset from body
 
     [SerializeField]
-    private float projectileVisualHeight = -0.5f; // Z offset for visual "height"
+    private float projectileVisualHeight = 0.5f; // Y offset for visual height
 
     [Header("Audio")]
     [SerializeField]
@@ -61,7 +61,7 @@ public class ShootingEnemyScript : EnemyBase
             return;
         }
 
-        Vector2 toPlayer = (Vector2)player.position - rb.position;
+        Vector2 toPlayer = player.position.ToGround() - rb.GroundPosition();
         float dist = toPlayer.magnitude;
 
         // If far away -> move towards player
@@ -74,11 +74,7 @@ public class ShootingEnemyScript : EnemyBase
             Vector2 targetVel = dir * Speed * EnemyTimeScale;
 
             // Smooth acceleration towards target velocity
-            rb.linearVelocity = Vector2.MoveTowards(
-                rb.linearVelocity,
-                targetVel,
-                acceleration * EnemyTimeScale * Time.fixedDeltaTime
-            );
+            AccelerateTowards(targetVel);
         }
         else if (dist < playerSeparationRadius)
         {
@@ -86,20 +82,12 @@ public class ShootingEnemyScript : EnemyBase
             Vector2 dir = -toPlayer / dist; // away from player
             float urgency = 1f - (dist / playerSeparationRadius);
             Vector2 targetVel = dir * Speed * urgency * EnemyTimeScale;
-            rb.linearVelocity = Vector2.MoveTowards(
-                rb.linearVelocity,
-                targetVel,
-                acceleration * EnemyTimeScale * Time.fixedDeltaTime
-            );
+            AccelerateTowards(targetVel);
         }
         else
         {
             // Within stop range but not too close -> stop moving
-            rb.linearVelocity = Vector2.MoveTowards(
-                rb.linearVelocity,
-                Vector2.zero,
-                acceleration * EnemyTimeScale * Time.fixedDeltaTime
-            );
+            AccelerateTowards(Vector2.zero);
         }
 
         // Apply separation AFTER movement
@@ -112,7 +100,7 @@ public class ShootingEnemyScript : EnemyBase
             return;
 
         // Shooting logic (only shoot when within stop distance)
-        float distToPlayer = Vector2.Distance(transform.position, player.position);
+        float distToPlayer = GroundPlane.GroundDistance(transform.position, player.position);
         if (distToPlayer <= stopDistance)
         {
             TryShoot();
@@ -133,10 +121,12 @@ public class ShootingEnemyScript : EnemyBase
         nextShootTime = Time.time + (1f / fireRate) / Mathf.Max(0.1f, EnemyTimeScale);
 
         // Calculate direction to player
-        Vector2 direction = ((Vector2)player.position - (Vector2)shootPoint.position).normalized;
+        Vector2 direction = (
+            player.position.ToGround() - shootPoint.position.ToGround()
+        ).normalized;
 
         // Calculate spawn position with offset (similar to player projectile spawning)
-        Vector2 spawnPos2D = (Vector2)shootPoint.position;
+        Vector2 spawnPos2D = shootPoint.position.ToGround();
 
         // Offset to the side (perpendicular to firing direction)
         Vector2 perpendicular = new Vector2(-direction.y, direction.x);
@@ -145,8 +135,8 @@ public class ShootingEnemyScript : EnemyBase
         // Offset forward in the firing direction (away from body)
         spawnPos2D += direction * projectileSpawnForwardOffset;
 
-        // Use Z position for visual "height" - this doesn't affect 2D collision
-        Vector3 spawnPos = new Vector3(spawnPos2D.x, spawnPos2D.y, projectileVisualHeight);
+        // Lift the projectile off the ground for its visual height.
+        Vector3 spawnPos = spawnPos2D.ToWorld(projectileVisualHeight);
 
         // Try to get projectile from pool first
         EnemyProjectile ep = null;

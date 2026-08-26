@@ -106,7 +106,7 @@ public static class EnemyDeathAudio
         if (player == null)
             return 1f;
 
-        float distance = Vector2.Distance(worldPosition, player.position);
+        float distance = GroundPlane.GroundDistance(worldPosition, player.position);
         return Mathf.Lerp(1f, 0.25f, Mathf.InverseLerp(4f, 22f, distance));
     }
 }

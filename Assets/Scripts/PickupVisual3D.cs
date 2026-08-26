@@ -4,8 +4,8 @@ using UnityEngine.Rendering;
 
 /// <summary>
 /// Builds lightweight, shared low-poly meshes for XP and boost pickups.
-/// The gameplay remains 2D: these objects are visual children only and add no
-/// physics colliders, so collection and magnet movement keep using Rigidbody2D.
+/// These objects are visual children only and add no physics colliders, so
+/// collection and magnet movement keep using the pickup's own Rigidbody.
 /// </summary>
 [DisallowMultipleComponent]
 public sealed class PickupVisual3D : MonoBehaviour
@@ -26,11 +26,14 @@ public sealed class PickupVisual3D : MonoBehaviour
     }
 
     private const string ModelRootName = "PickupModel3D";
+
+    // Bridges the Y-up pickup frame into the frame the meshes were authored in.
+    private static readonly Quaternion ModelFrame = Quaternion.Euler(90f, 0f, 0f);
     private const int RadialSegments = 16;
     private const float ExperienceVisualScale = 0.3f;
     private const float BoostVisualScale = 0.8f;
-    private const float ExperienceBaseDepth = -0.28f;
-    private const float BoostBaseDepth = -0.62f;
+    private const float ExperienceBaseHeight = 0.28f;
+    private const float BoostBaseHeight = 0.62f;
 
     private static readonly Dictionary<Color32, Material> Materials =
         new Dictionary<Color32, Material>();
@@ -127,11 +130,8 @@ public sealed class PickupVisual3D : MonoBehaviour
             kind == ModelKind.Experience
                 ? new Vector3(0.25f, 0.5f, 1f).normalized
                 : Vector3.forward;
-        modelBasePosition = new Vector3(
-            0f,
-            0f,
-            kind == ModelKind.Experience ? ExperienceBaseDepth : BoostBaseDepth
-        );
+        modelBasePosition =
+            Vector3.up * (kind == ModelKind.Experience ? ExperienceBaseHeight : BoostBaseHeight);
         modelBaseScale =
             Vector3.one * (kind == ModelKind.Experience ? ExperienceVisualScale : BoostVisualScale);
 
@@ -144,7 +144,7 @@ public sealed class PickupVisual3D : MonoBehaviour
             modelRoot = existingRoot;
             modelRoot.localPosition = modelBasePosition;
             modelRoot.localScale = modelBaseScale;
-            modelBaseRotation = Quaternion.identity;
+            modelBaseRotation = ModelFrame;
             modelRoot.localRotation = modelBaseRotation;
             spinTarget = kind == ModelKind.Experience ? modelRoot : modelRoot.Find("Token Face");
             spinBaseRotation =
@@ -158,7 +158,7 @@ public sealed class PickupVisual3D : MonoBehaviour
         rootObject.layer = gameObject.layer;
         modelRoot = rootObject.transform;
         modelRoot.SetParent(transform, false);
-        modelBaseRotation = Quaternion.identity;
+        modelBaseRotation = ModelFrame;
         modelRoot.localPosition = modelBasePosition;
         modelRoot.localRotation = modelBaseRotation;
         modelRoot.localScale = modelBaseScale;
@@ -190,7 +190,7 @@ public sealed class PickupVisual3D : MonoBehaviour
         float angle = Mathf.Repeat(time * spinSpeed + magneticWobble, 360f);
         float pullScale = Mathf.Lerp(1f, 0.72f, attractionBlend);
 
-        modelRoot.localPosition = modelBasePosition + Vector3.back * bob;
+        modelRoot.localPosition = modelBasePosition + Vector3.up * bob;
         modelRoot.localRotation = modelBaseRotation;
         modelRoot.localScale = modelBaseScale * pulse * pullScale;
         if (spinTarget != null)

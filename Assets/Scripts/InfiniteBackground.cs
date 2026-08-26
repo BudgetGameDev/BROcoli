@@ -58,6 +58,7 @@ public class InfiniteBackground : MonoBehaviour
                     // Create clone tiles
                     var tileObj = new GameObject($"BackgroundTile_{x}_{y}");
                     tileObj.transform.SetParent(transform.parent);
+                    tileObj.transform.rotation = transform.rotation;
                     tileObj.transform.localScale = transform.localScale;
 
                     var tileSR = tileObj.AddComponent<SpriteRenderer>();
@@ -81,7 +82,7 @@ public class InfiniteBackground : MonoBehaviour
         // Calculate which tile the player is on
         Vector3 targetPos = _target.position;
         float centerX = Mathf.Floor(targetPos.x / _tileSize.x) * _tileSize.x;
-        float centerY = Mathf.Floor(targetPos.y / _tileSize.y) * _tileSize.y;
+        float centerZ = Mathf.Floor(targetPos.z / _tileSize.y) * _tileSize.y;
 
         // Position all tiles in 3x3 grid around player
         for (int y = 0; y < GridSize; y++)
@@ -90,9 +91,9 @@ public class InfiniteBackground : MonoBehaviour
             {
                 int index = y * GridSize + x;
                 float tileX = centerX + (x - 1) * _tileSize.x;
-                float tileY = centerY + (y - 1) * _tileSize.y;
+                float tileZ = centerZ + (y - 1) * _tileSize.y;
 
-                _tiles[index].transform.position = new Vector3(tileX, tileY, transform.position.z);
+                _tiles[index].transform.position = new Vector3(tileX, transform.position.y, tileZ);
             }
         }
     }

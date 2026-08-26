@@ -62,7 +62,7 @@ public class SprayParticleController
     {
         GameObject particleObj = new GameObject("SprayParticlesLegacy");
         particleObj.transform.SetParent(parentTransform);
-        particleObj.transform.localPosition = new Vector3(0, 0, -0.5f);
+        particleObj.transform.localPosition = new Vector3(0, 0.5f, 0);
         particleObj.transform.localRotation = Quaternion.identity;
         particleObj.SetActive(false); // Disabled, just for reference
 
@@ -217,7 +217,7 @@ public class SprayParticleController
 
     /// <summary>
     /// Set the spray direction and origin position.
-    /// Direction is 2D only (XY plane), particles stay at z=-0.5.
+    /// Direction is ground-plane only, particles stay at height y=0.5.
     /// Unity's Cone shape emits along local +Z axis by default.
     /// </summary>
     public void SetSprayDirectionAndPosition(
@@ -250,13 +250,13 @@ public class SprayParticleController
         shape.angle = currentWidth * 0.5f;
 
         // Position the particle system at the nozzle world position
-        sprayParticles.transform.position = new Vector3(nozzleWorldPos.x, nozzleWorldPos.y, -0.5f);
+        sprayParticles.transform.position = new Vector3(nozzleWorldPos.x, 0.5f, nozzleWorldPos.z);
 
-        // Unity cone emits along local +Z. For 2D on XY plane, use LookRotation to point +Z
-        // toward the spray direction. Vector3.back as up keeps the spray flat on the XY plane.
-        Vector3 sprayDir3D = new Vector3(direction.x, direction.y, 0f).normalized;
+        // Unity cone emits along local +Z. Use LookRotation to point +Z toward the
+        // spray direction. Vector3.up as up keeps the spray flat on the ground plane.
+        Vector3 sprayDir3D = direction.normalized.ToWorld();
         if (sprayDir3D.sqrMagnitude > 0.001f)
-            sprayParticles.transform.rotation = Quaternion.LookRotation(sprayDir3D, Vector3.back);
+            sprayParticles.transform.rotation = Quaternion.LookRotation(sprayDir3D, Vector3.up);
 
         // Reset shape position/rotation - transform handles everything
         shape.position = Vector3.zero;
@@ -288,9 +288,9 @@ public class SprayParticleController
         shape.angle = currentWidth * 0.5f;
 
         // Unity's Cone shape emits particles along the local +Z axis.
-        // For 2D gameplay on the XY plane, rotate the transform so +Z points in the spray direction.
-        Vector3 sprayDir3D = new Vector3(sprayDirection.x, sprayDirection.y, 0f);
-        sprayParticles.transform.rotation = Quaternion.LookRotation(sprayDir3D, Vector3.back);
+        // Rotate the transform so +Z points in the spray direction on the ground plane.
+        Vector3 sprayDir3D = sprayDirection.ToWorld();
+        sprayParticles.transform.rotation = Quaternion.LookRotation(sprayDir3D, Vector3.up);
 
         // Reset shape rotation - transform handles direction
         shape.rotation = Vector3.zero;
@@ -307,11 +307,7 @@ public class SprayParticleController
         // Position the spawn point at the nozzle location relative to player
         // The nozzle moves with the hand which rotates around the player
         var shape = sprayParticles.shape;
-        Vector3 nozzleOffset = new Vector3(
-            currentDirection.x * SpraySettings.NozzleOffset,
-            currentDirection.y * SpraySettings.NozzleOffset,
-            0
-        );
+        Vector3 nozzleOffset = (currentDirection * SpraySettings.NozzleOffset).ToWorld();
         shape.position = nozzleOffset;
     }
 

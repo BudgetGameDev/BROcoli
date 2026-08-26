@@ -1,7 +1,7 @@
 using UnityEngine;
 
 /// <summary>
-/// Rotates the pivot around the Z-axis so a 2D/2.5D model faces the movement direction.
+/// Yaws the pivot around the vertical axis so the model faces the movement direction.
 /// Attach to a parent pivot (e.g., YawPivot) above the model.
 /// For a model pointing "down" at rest, movement down = 0°, right = 90°, up = 180°, left = -90°.
 /// </summary>
@@ -42,7 +42,7 @@ public class Face2DMovementDirection : MonoBehaviour
         // Calculate facing angle
         float targetAngle = Mathf.Atan2(lastDir.x, -lastDir.y) * Mathf.Rad2Deg + angleOffsetDegrees;
 
-        float currentAngle = transform.localEulerAngles.z;
+        float currentAngle = GroundPlane.YawDegrees(transform);
 
         // Get idle sway from hop visual
         float idleSway = 0f;
@@ -73,7 +73,7 @@ public class Face2DMovementDirection : MonoBehaviour
             smoothTime
         );
 
-        // Rotate around Z-axis for 2D facing direction + idle sway + bhop twist
-        transform.localRotation = Quaternion.Euler(0f, 0f, newAngle);
+        // Yaw toward the facing direction + idle sway + bhop twist
+        transform.localRotation = GroundPlane.YawRotation(newAngle);
     }
 }

@@ -1,14 +1,14 @@
 using Pooling;
 using UnityEngine;
 
-[RequireComponent(typeof(Rigidbody2D))]
-[RequireComponent(typeof(Collider2D))]
+[RequireComponent(typeof(Rigidbody))]
+[RequireComponent(typeof(Collider))]
 public class ExpGain : MonoBehaviour
 {
     public float lifeTime = 30f;
     public int expAmountGain;
-    private Rigidbody2D rb;
-    private Collider2D col;
+    private Rigidbody rb;
+    private Collider col;
     private PickupVisual3D _pickupVisual;
     private float _currentSpeed = 0f;
     private bool _localAttractionLocked;
@@ -20,12 +20,12 @@ public class ExpGain : MonoBehaviour
 
     void Awake()
     {
-        rb = GetComponent<Rigidbody2D>();
-        col = GetComponent<Collider2D>();
+        rb = GetComponent<Rigidbody>();
+        col = GetComponent<Collider>();
         _pickupVisual = PickupVisual3D.AttachExperience(gameObject);
-        rb.gravityScale = 0f;
-        rb.constraints = RigidbodyConstraints2D.FreezeRotation;
-        rb.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
+        rb.useGravity = false;
+        rb.constraints = RigidbodyConstraints.FreezeRotation | RigidbodyConstraints.FreezePositionY;
+        rb.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
 
         col.isTrigger = true;
     }
@@ -78,7 +78,7 @@ public class ExpGain : MonoBehaviour
         );
     }
 
-    void OnTriggerEnter2D(Collider2D other)
+    void OnTriggerEnter(Collider other)
     {
         if (_isCollected)
             return;

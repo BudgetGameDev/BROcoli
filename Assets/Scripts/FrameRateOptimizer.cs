@@ -164,11 +164,7 @@ public class FrameRateOptimizer : MonoBehaviour
         // Disable auto-sync for deterministic timing
         // This prevents Unity from syncing transforms mid-frame
         // Note: Use Physics.SyncTransforms() manually if needed after moving objects
-        Physics2D.simulationMode = SimulationMode2D.FixedUpdate;
-
-        // Optimize 2D physics for responsiveness
-        Physics2D.velocityIterations = 8; // Default is 8, keep it
-        Physics2D.positionIterations = 3; // Default is 3, keep it
+        Physics.simulationMode = SimulationMode.FixedUpdate;
 
         Debug.Log("[FrameRateOptimizer] Physics: 120Hz, auto-sync OFF, deterministic");
     }

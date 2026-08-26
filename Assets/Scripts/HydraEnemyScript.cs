@@ -7,8 +7,8 @@ using Random = UnityEngine.Random;
 /// Hydra enemy that splits into smaller copies when killed.
 /// Each generation is smaller and weaker until minimum generation is reached.
 /// </summary>
-[RequireComponent(typeof(Rigidbody2D))]
-[RequireComponent(typeof(Collider2D))]
+[RequireComponent(typeof(Rigidbody))]
+[RequireComponent(typeof(Collider))]
 public class HydraEnemyScript : EnemyBase
 {
     private const float MaxAttackLungeDistance = 0.42f;
@@ -162,7 +162,7 @@ public class HydraEnemyScript : EnemyBase
 
         if (isAttacking)
         {
-            rb.linearVelocity = Vector2.zero;
+            rb.SetGroundVelocity(Vector2.zero);
             EnemySpatialHash.Instance?.UpdatePosition(this);
             return;
         }
@@ -173,7 +173,7 @@ public class HydraEnemyScript : EnemyBase
             return;
         }
 
-        Vector2 dir = (Vector2)player.position - rb.position;
+        Vector2 dir = player.position.ToGround() - rb.GroundPosition();
         float distToPlayer = dir.magnitude;
 
         if (distToPlayer < 0.0001f)
@@ -201,11 +201,7 @@ public class HydraEnemyScript : EnemyBase
         {
             targetVel = Vector2.zero;
         }
-        rb.linearVelocity = Vector2.MoveTowards(
-            rb.linearVelocity,
-            targetVel,
-            acceleration * EnemyTimeScale * Time.fixedDeltaTime
-        );
+        AccelerateTowards(targetVel);
 
         base.FixedUpdate();
     }
@@ -295,7 +291,7 @@ public class HydraEnemyScript : EnemyBase
                 new Vector2(Mathf.Cos(angle * Mathf.Deg2Rad), Mathf.Sin(angle * Mathf.Deg2Rad))
                 * splitSpawnRadius;
 
-            Vector3 spawnPos = transform.position + (Vector3)offset;
+            Vector3 spawnPos = transform.position + offset.ToWorld();
 
             // Try to get from pool first (use this as prefab template)
             HydraEnemyScript childHydra = null;
@@ -337,7 +333,7 @@ public class HydraEnemyScript : EnemyBase
                 // Give child a small impulse away from spawn point
                 if (childHydra.rb != null)
                 {
-                    childHydra.rb.linearVelocity = offset.normalized * splitImpulse;
+                    childHydra.rb.SetGroundVelocity(offset.normalized * splitImpulse);
                 }
             }
         }
@@ -389,18 +385,18 @@ public class HydraEnemyScript : EnemyBase
         attackPhase = 1;
         attackTimer = 0f;
         nextMeleeAttackTime = Time.time + meleeAttackCooldown / Mathf.Max(0.1f, EnemyTimeScale);
-        attackDirection = ((Vector2)player.position - (Vector2)transform.position).normalized;
+        attackDirection = (player.position.ToGround() - transform.position.ToGround()).normalized;
         activeAttackReach = GetAttackReach();
 
         if (visualTransform != null)
         {
             attackStartPos = visualTransform.localPosition;
             attackStartRotation = visualTransform.localRotation;
-            Vector3 worldLunge = (Vector3)(attackDirection * activeAttackReach);
-            Vector3 worldPullBack = (Vector3)(
+            Vector3 worldLunge = (attackDirection * activeAttackReach).ToWorld();
+            Vector3 worldPullBack = (
                 -attackDirection
                 * Mathf.Clamp(attackPullBackDistance, 0f, MaxAttackPullBackDistance)
-            );
+            ).ToWorld();
             Vector3 localLunge =
                 visualTransform.parent != null
                     ? visualTransform.parent.InverseTransformVector(worldLunge)
@@ -591,7 +587,7 @@ public class HydraEnemyScript : EnemyBase
         if (playerController != null)
         {
             Vector2 knockbackDir = (
-                (Vector2)player.position - (Vector2)transform.position
+                player.position.ToGround() - transform.position.ToGround()
             ).normalized;
 
             if (playerController.TakeMeleeDamage(Damage, knockbackDir))

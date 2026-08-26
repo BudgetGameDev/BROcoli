@@ -9,7 +9,7 @@ using UnityEngine;
 /// it changes.
 ///
 /// JSON keys (omit any you don't want to change):
-///   { "worldLightIntensity": 250, "fillFactor": 0.6, "lightHeightZ": -8, "ambientIntensity": 1 }
+///   { "worldLightIntensity": 250, "fillFactor": 0.6, "lightHeightY": 8, "ambientIntensity": 1 }
 ///
 /// Pair with scripts/autoplay-tune.sh (a long, real-time session) to tune lighting
 /// by editing the file while watching captured frames.
@@ -23,7 +23,7 @@ public class RuntimeTuning : MonoBehaviour
     {
         public float worldLightIntensity = Unset;
         public float fillFactor = Unset;
-        public float lightHeightZ = Unset;
+        public float lightHeightY = Unset;
         public float ambientIntensity = Unset;
     }
 
@@ -93,12 +93,12 @@ public class RuntimeTuning : MonoBehaviour
         if (world != null && Set(d.worldLightIntensity))
             world.intensity = d.worldLightIntensity;
 
-        if (Set(d.lightHeightZ))
+        if (Set(d.lightHeightY))
         {
             if (world != null)
-                SetLocalZ(world.transform, d.lightHeightZ);
+                SetLocalY(world.transform, d.lightHeightY);
             if (fill != null)
-                SetLocalZ(fill.transform, d.lightHeightZ);
+                SetLocalY(fill.transform, d.lightHeightY);
         }
 
         if (world != null && fill != null)
@@ -109,17 +109,17 @@ public class RuntimeTuning : MonoBehaviour
 
         Debug.Log(
             $"[RuntimeTuning] applied worldI={(world != null ? world.intensity : 0f)} "
-                + $"fillFactor={_fillFactor} z={(world != null ? world.transform.localPosition.z : 0f)} "
+                + $"fillFactor={_fillFactor} y={(world != null ? world.transform.localPosition.y : 0f)} "
                 + $"ambient={RenderSettings.ambientIntensity}"
         );
     }
 
     private static bool Set(float v) => v > Unset + 1f;
 
-    private static void SetLocalZ(Transform t, float z)
+    private static void SetLocalY(Transform t, float y)
     {
         var p = t.localPosition;
-        p.z = z;
+        p.y = y;
         t.localPosition = p;
     }
 }

@@ -16,10 +16,10 @@ public abstract class BoostBase : MonoBehaviour
     public virtual float Duration => 20f;
 
     [SerializeField]
-    private Rigidbody2D _body;
+    private Rigidbody _body;
 
     [SerializeField]
-    private Collider2D _collider;
+    private Collider _collider;
 
     [SerializeField]
     private float _lifetime = 30f;
@@ -72,7 +72,7 @@ public abstract class BoostBase : MonoBehaviour
             if (camera == null)
             {
                 if (
-                    ((Vector2)pickup.transform.position - (Vector2)position).sqrMagnitude
+                    (pickup.transform.position.ToGround() - position.ToGround()).sqrMagnitude
                     <= fallbackWorldSize * fallbackWorldSize
                 )
                 {
@@ -103,15 +103,16 @@ public abstract class BoostBase : MonoBehaviour
     private void ConfigureMagnetBody()
     {
         if (_body == null)
-            _body = GetComponent<Rigidbody2D>();
+            _body = GetComponent<Rigidbody>();
         if (_collider == null)
-            _collider = GetComponent<Collider2D>();
+            _collider = GetComponent<Collider>();
 
         if (_body != null)
         {
-            _body.gravityScale = 0f;
-            _body.constraints = RigidbodyConstraints2D.FreezeRotation;
-            _body.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
+            _body.useGravity = false;
+            _body.constraints =
+                RigidbodyConstraints.FreezeRotation | RigidbodyConstraints.FreezePositionY;
+            _body.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
         }
 
         if (_collider != null)
@@ -128,7 +129,7 @@ public abstract class BoostBase : MonoBehaviour
         );
     }
 
-    private void OnTriggerEnter2D(Collider2D other)
+    private void OnTriggerEnter(Collider other)
     {
         if (_isCollected)
             return;

@@ -179,7 +179,7 @@ public class SanitizerSpray : MonoBehaviour
 
             // Use cone-based damage detection (instant, no delay)
             // This detects enemies in the spray cone and deals damage immediately
-            damageHandler?.ProcessDamage(dir, currentRange, currentWidth, (Vector2)nozzle);
+            damageHandler?.ProcessDamage(dir, currentRange, currentWidth, nozzle.ToGround());
         }
     }
 
@@ -258,12 +258,12 @@ public class SanitizerSpray : MonoBehaviour
         // Range check before starting to aim - use collider bounds center for consistency
         if (playerTransform != null)
         {
-            Collider2D col = target.GetComponent<Collider2D>();
+            Collider col = target.GetComponent<Collider>();
             Vector2 targetPos =
                 (col != null && col.enabled)
-                    ? (Vector2)col.bounds.center
-                    : (Vector2)target.position;
-            float dist = Vector2.Distance(playerTransform.position, targetPos);
+                    ? col.bounds.center.ToGround()
+                    : target.position.ToGround();
+            float dist = Vector2.Distance(playerTransform.position.ToGround(), targetPos);
             if (dist > currentRange || dist < SpraySettings.MinTargetDistance)
                 return false;
         }
@@ -348,8 +348,8 @@ public class SanitizerSpray : MonoBehaviour
 
         Gizmos.color = new Color(0.5f, 0.8f, 1f, 0.5f);
         Vector3 dir = transform.right;
-        Vector3 left = Quaternion.Euler(0, 0, drawWidth * 0.5f) * dir;
-        Vector3 right = Quaternion.Euler(0, 0, -drawWidth * 0.5f) * dir;
+        Vector3 left = GroundPlane.YawRotation(drawWidth * 0.5f) * dir;
+        Vector3 right = GroundPlane.YawRotation(-drawWidth * 0.5f) * dir;
 
         Gizmos.DrawLine(origin, origin + left * drawRange);
         Gizmos.DrawLine(origin, origin + right * drawRange);

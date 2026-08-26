@@ -164,7 +164,7 @@ public class PlayerDamageHandler : MonoBehaviour
     /// Handle collision with enemy or projectile.
     /// Note: Enemy collision does NOT deal damage - damage comes from enemy attack animations.
     /// </summary>
-    public void HandleCollision(Collider2D other)
+    public void HandleCollision(Collider other)
     {
         if (_gameOver)
             return;
@@ -182,7 +182,7 @@ public class PlayerDamageHandler : MonoBehaviour
         }
     }
 
-    private void HandleProjectileCollision(Collider2D other)
+    private void HandleProjectileCollision(Collider other)
     {
         EnemyBase enemy = other.GetComponent<EnemyBase>();
         float damage = enemy?.Damage ?? 0f;
@@ -244,15 +244,13 @@ public class PlayerDamageHandler : MonoBehaviour
 
     private void StopPlayerSimulation()
     {
-        foreach (Collider2D playerCollider in GetComponents<Collider2D>())
+        foreach (Collider playerCollider in GetComponents<Collider>())
             playerCollider.enabled = false;
 
-        Rigidbody2D body = GetComponent<Rigidbody2D>();
+        Rigidbody body = GetComponent<Rigidbody>();
         if (body != null)
         {
-            body.linearVelocity = Vector2.zero;
-            body.angularVelocity = 0f;
-            body.simulated = false;
+            body.SetSimulated(false);
         }
 
         _deathVisual?.Prepare();

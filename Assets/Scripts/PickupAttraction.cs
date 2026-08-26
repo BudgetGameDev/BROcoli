@@ -17,7 +17,7 @@ public static class PickupAttraction
     private const float GlobalAcceleration = 120f;
 
     public static void Reset(
-        Rigidbody2D body,
+        Rigidbody body,
         ref float currentSpeed,
         ref bool localAttractionLocked,
         PickupVisual3D visual
@@ -27,11 +27,11 @@ public static class PickupAttraction
         localAttractionLocked = false;
         visual?.ResetAttraction();
         if (body != null)
-            body.linearVelocity = Vector2.zero;
+            body.linearVelocity = Vector3.zero;
     }
 
     public static void UpdateMotion(
-        Rigidbody2D body,
+        Rigidbody body,
         ref float currentSpeed,
         ref bool localAttractionLocked,
         PickupVisual3D visual
@@ -48,7 +48,7 @@ public static class PickupAttraction
             target = PlayerStats.ActivePlayerTarget;
             if (target != null && !localAttractionLocked)
             {
-                Vector2 toPlayer = (Vector2)target.position - body.position;
+                Vector2 toPlayer = target.position.ToGround() - body.GroundPosition();
                 localAttractionLocked = toPlayer.sqrMagnitude <= LocalRadius * LocalRadius;
             }
 
@@ -64,11 +64,11 @@ public static class PickupAttraction
             return;
         }
 
-        Vector2 offset = (Vector2)target.position - body.position;
+        Vector2 offset = target.position.ToGround() - body.GroundPosition();
         float distance = offset.magnitude;
         if (distance <= 0.001f)
         {
-            body.linearVelocity = Vector2.zero;
+            body.linearVelocity = Vector3.zero;
             return;
         }
 
@@ -93,10 +93,10 @@ public static class PickupAttraction
         );
         float arrivalSpeed = distance * 0.75f / Mathf.Max(Time.fixedDeltaTime, 0.001f);
         body.WakeUp();
-        body.linearVelocity = offset / distance * Mathf.Min(currentSpeed, arrivalSpeed);
+        body.SetGroundVelocity(offset / distance * Mathf.Min(currentSpeed, arrivalSpeed));
     }
 
-    private static void SlowToRest(Rigidbody2D body, ref float currentSpeed)
+    private static void SlowToRest(Rigidbody body, ref float currentSpeed)
     {
         if (currentSpeed <= 0f)
             return;
@@ -108,7 +108,7 @@ public static class PickupAttraction
         );
         if (currentSpeed <= 0.1f)
         {
-            body.linearVelocity = Vector2.zero;
+            body.linearVelocity = Vector3.zero;
             currentSpeed = 0f;
         }
     }

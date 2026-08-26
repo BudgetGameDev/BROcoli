@@ -124,7 +124,7 @@ public class RunTelemetry : MonoBehaviour
         {
             if (e == null)
                 continue;
-            float d = Vector2.Distance(pos, e.transform.position);
+            float d = Vector2.Distance(pos, e.transform.position.ToGround());
             if (best < 0f || d < best)
                 best = d;
         }

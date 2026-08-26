@@ -80,6 +80,6 @@ public class EnemySpawnerOld : MonoBehaviour
         // Random direction on a circle
         Vector2 direction = Random.insideUnitCircle.normalized;
 
-        return (Vector2)player.position + direction * spawnDistance;
+        return player.position.ToGround() + direction * spawnDistance;
     }
 }

@@ -13,10 +13,10 @@ public class Projectile : MonoBehaviour
     private float _lifetime = 3f;
 
     [SerializeField]
-    Rigidbody2D _body;
+    Rigidbody _body;
 
     [SerializeField]
-    Collider2D _collider;
+    Collider _collider;
 
     [Tooltip("Multiplies the shared damage-relative enemy knockback roll.")]
     [SerializeField, Min(0f)]
@@ -31,7 +31,7 @@ public class Projectile : MonoBehaviour
         // Player projectiles are hit sensors, not physical bodies. Keeping the
         // collider as a trigger prevents them from imparting force to enemies.
         if (_collider == null)
-            _collider = GetComponent<Collider2D>();
+            _collider = GetComponent<Collider>();
         if (_collider != null)
             _collider.isTrigger = true;
 
@@ -56,10 +56,10 @@ public class Projectile : MonoBehaviour
 
     private void Update()
     {
-        transform.position += (Vector3)(direction * _speed * Time.deltaTime);
+        transform.position += (direction * _speed * Time.deltaTime).ToWorld();
     }
 
-    private void OnTriggerEnter2D(Collider2D other)
+    private void OnTriggerEnter(Collider other)
     {
         Debug.Log("Projectile hit: " + other.name);
         if (other.CompareTag("Enemy") == false)

@@ -78,13 +78,13 @@ public class SprayParticleLayers
         if (containerObj == null)
             return;
 
-        containerObj.transform.position = new Vector3(position.x, position.y, -0.5f);
+        containerObj.transform.position = new Vector3(position.x, 0.5f, position.z);
 
-        // Unity cone emits along local +Z. For 2D on XY plane, use LookRotation to point +Z
-        // toward the spray direction. Vector3.back as up keeps the spray flat on the XY plane.
-        Vector3 sprayDir3D = new Vector3(direction.x, direction.y, 0f).normalized;
+        // Unity cone emits along local +Z. Use LookRotation to point +Z toward the
+        // spray direction. Vector3.up as up keeps the spray flat on the ground plane.
+        Vector3 sprayDir3D = direction.normalized.ToWorld();
         if (sprayDir3D.sqrMagnitude > 0.001f)
-            containerObj.transform.rotation = Quaternion.LookRotation(sprayDir3D, Vector3.back);
+            containerObj.transform.rotation = Quaternion.LookRotation(sprayDir3D, Vector3.up);
     }
 
     /// <summary>

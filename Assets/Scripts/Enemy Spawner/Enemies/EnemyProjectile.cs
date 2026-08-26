@@ -1,7 +1,7 @@
 using UnityEngine;
 
-[RequireComponent(typeof(Collider2D))]
-[RequireComponent(typeof(Rigidbody2D))]
+[RequireComponent(typeof(Collider))]
+[RequireComponent(typeof(Rigidbody))]
 public class EnemyProjectile : MonoBehaviour
 {
     public float damage = 10f;
@@ -18,18 +18,18 @@ public class EnemyProjectile : MonoBehaviour
     [SerializeField]
     private float spinSpeed = 180f; // Rotation speed in degrees/second
 
-    private Rigidbody2D rb;
-    private Collider2D col;
+    private Rigidbody rb;
+    private Collider col;
     private float spawnTime;
     private Vector3 initialScale;
     private Vector2 travelDirection;
 
     void Awake()
     {
-        rb = GetComponent<Rigidbody2D>();
-        col = GetComponent<Collider2D>();
-        rb.gravityScale = 0f;
-        rb.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
+        rb = GetComponent<Rigidbody>();
+        col = GetComponent<Collider>();
+        rb.useGravity = false;
+        rb.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
 
         col.isTrigger = true;
 
@@ -40,7 +40,7 @@ public class EnemyProjectile : MonoBehaviour
     public void Init(Vector2 direction)
     {
         travelDirection = direction.normalized;
-        rb.linearVelocity = travelDirection * speed * PlayerStats.ActiveEnemyTimeScale;
+        rb.SetGroundVelocity(travelDirection * speed * PlayerStats.ActiveEnemyTimeScale);
         spawnTime = Time.time;
 
         // Capture initial scale if not already done
@@ -54,7 +54,7 @@ public class EnemyProjectile : MonoBehaviour
     {
         if (rb != null && travelDirection != Vector2.zero)
         {
-            rb.linearVelocity = travelDirection * speed * PlayerStats.ActiveEnemyTimeScale;
+            rb.SetGroundVelocity(travelDirection * speed * PlayerStats.ActiveEnemyTimeScale);
         }
 
         // Spin the visual
@@ -80,7 +80,7 @@ public class EnemyProjectile : MonoBehaviour
         }
     }
 
-    void OnTriggerEnter2D(Collider2D other)
+    void OnTriggerEnter(Collider other)
     {
         // Check if hit player
         if (other.CompareTag("Player"))

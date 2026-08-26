@@ -11,7 +11,7 @@ public abstract class EnemyBase : MonoBehaviour
     private const float MaxSafeKnockbackForce = 3f;
     private const float MaxSafeKnockbackDuration = 0.16f;
     private const float MinSafeKnockbackCooldown = 0.2f;
-    private static PhysicsMaterial2D sharedEnemyBodyMaterial;
+    private static PhysicsMaterial sharedEnemyBodyMaterial;
 
     [SerializeField]
     Bar healthBar;
@@ -73,10 +73,10 @@ public abstract class EnemyBase : MonoBehaviour
 
     public Transform player;
 
-    public Rigidbody2D rb;
+    public Rigidbody rb;
     protected float EnemyTimeScale => PlayerStats.ActiveEnemyTimeScale;
-    protected Collider2D bodyCollider;
-    private Collider2D playerCollider;
+    protected Collider bodyCollider;
+    private Collider playerCollider;
 
     protected SpriteRenderer cachedSpriteRenderer;
     protected Color originalSpriteColor;
@@ -84,7 +84,7 @@ public abstract class EnemyBase : MonoBehaviour
     protected Color originalMeshColor;
     private bool _isPooled = false;
     private bool attackBodyLocked = false;
-    private RigidbodyConstraints2D constraintsBeforeAttack;
+    private RigidbodyConstraints constraintsBeforeAttack;
     private bool hasQueuedKnockback;
     private Vector2 queuedKnockbackDirection;
     private float queuedKnockbackForce;
@@ -120,8 +120,8 @@ public abstract class EnemyBase : MonoBehaviour
 
     protected virtual void Awake()
     {
-        rb = GetComponent<Rigidbody2D>();
-        bodyCollider = GetComponent<Collider2D>();
+        rb = GetComponent<Rigidbody>();
+        bodyCollider = GetComponent<Collider>();
         EnforceSafePhysicsLimits();
 
         ConfigureSolidBody();
@@ -239,7 +239,7 @@ public abstract class EnemyBase : MonoBehaviour
     private void ConfigureSolidBody()
     {
         if (bodyCollider == null)
-            bodyCollider = GetComponent<Collider2D>();
+            bodyCollider = GetComponent<Collider>();
 
         // Enemy body colliders are for navigation/blocking. Combat damage is
         // validated separately by the attack animation at its impact frame.
@@ -251,10 +251,13 @@ public abstract class EnemyBase : MonoBehaviour
             // convert tangential movement into a shove.
             if (sharedEnemyBodyMaterial == null)
             {
-                sharedEnemyBodyMaterial = new PhysicsMaterial2D("Enemy Body - No Bounce")
+                sharedEnemyBodyMaterial = new PhysicsMaterial("Enemy Body - No Bounce")
                 {
-                    friction = 0f,
+                    dynamicFriction = 0f,
+                    staticFriction = 0f,
                     bounciness = 0f,
+                    frictionCombine = PhysicsMaterialCombine.Minimum,
+                    bounceCombine = PhysicsMaterialCombine.Minimum,
                     hideFlags = HideFlags.HideAndDontSave,
                 };
             }
@@ -265,8 +268,8 @@ public abstract class EnemyBase : MonoBehaviour
         // Explicitly restore this because older play sessions may still have
         // the Enemy/Enemy layer pair disabled by the previous workaround.
         int enemyLayer = LayerMask.NameToLayer("Enemy");
-        if (enemyLayer >= 0 && Physics2D.GetIgnoreLayerCollision(enemyLayer, enemyLayer))
-            Physics2D.IgnoreLayerCollision(enemyLayer, enemyLayer, false);
+        if (enemyLayer >= 0 && Physics.GetIgnoreLayerCollision(enemyLayer, enemyLayer))
+            Physics.IgnoreLayerCollision(enemyLayer, enemyLayer, false);
     }
 
     /// <summary>Completely pins the physics body while a visual melee animation plays.</summary>
@@ -277,9 +280,9 @@ public abstract class EnemyBase : MonoBehaviour
 
         constraintsBeforeAttack = rb.constraints;
         attackBodyLocked = true;
-        rb.linearVelocity = Vector2.zero;
-        rb.angularVelocity = 0f;
-        rb.constraints = RigidbodyConstraints2D.FreezeAll;
+        rb.linearVelocity = Vector3.zero;
+        rb.angularVelocity = Vector3.zero;
+        rb.constraints = RigidbodyConstraints.FreezeAll;
     }
 
     protected void UnlockBodyAfterAttack(bool releaseQueuedKnockback = true)
@@ -288,8 +291,8 @@ public abstract class EnemyBase : MonoBehaviour
             return;
 
         rb.constraints = constraintsBeforeAttack;
-        rb.linearVelocity = Vector2.zero;
-        rb.angularVelocity = 0f;
+        rb.linearVelocity = Vector3.zero;
+        rb.angularVelocity = Vector3.zero;
         attackBodyLocked = false;
 
         if (releaseQueuedKnockback && hasQueuedKnockback && isActiveAndEnabled)
@@ -506,7 +509,7 @@ public abstract class EnemyBase : MonoBehaviour
         isKnockedBack = true;
         knockbackTimer = enemyKnockbackDuration;
         activeKnockbackForce = force;
-        rb.linearVelocity = activeKnockbackDirection * force;
+        rb.SetGroundVelocity(activeKnockbackDirection * force);
     }
 
     private float CalculateDamageKnockbackForce(float damage, float roll)
@@ -626,7 +629,7 @@ public abstract class EnemyBase : MonoBehaviour
         // window so a qualifying hit produces real, visible displacement.
         if (isKnockedBack && rb != null)
         {
-            rb.linearVelocity = activeKnockbackDirection * activeKnockbackForce;
+            rb.SetGroundVelocity(activeKnockbackDirection * activeKnockbackForce);
             return;
         }
 
@@ -657,9 +660,7 @@ public abstract class EnemyBase : MonoBehaviour
             bodyCollider.enabled = false;
         if (rb != null)
         {
-            rb.linearVelocity = Vector2.zero;
-            rb.angularVelocity = 0f;
-            rb.simulated = false;
+            rb.SetSimulated(false);
         }
         if (healthBar != null)
             healthBar.HideBar();
@@ -707,7 +708,7 @@ public abstract class EnemyBase : MonoBehaviour
             float eased = t * t * (3f - 2f * t);
             transform.localScale = Vector3.LerpUnclamped(startScale, squashScale, eased);
             transform.localRotation =
-                startRotation * Quaternion.Euler(0f, 0f, spin * -0.08f * eased);
+                startRotation * Quaternion.Euler(0f, spin * 0.08f * eased, 0f);
             SetDeathFlash(Mathf.Sin(t * Mathf.PI));
             yield return null;
         }
@@ -725,7 +726,8 @@ public abstract class EnemyBase : MonoBehaviour
             float spinEase = 1f - Mathf.Pow(1f - t, 3f);
             transform.localScale = scale;
             transform.localRotation =
-                startRotation * Quaternion.Euler(0f, 0f, Mathf.Lerp(-spin * 0.08f, spin, spinEase));
+                startRotation
+                * Quaternion.Euler(0f, -Mathf.Lerp(-spin * 0.08f, spin, spinEase), 0f);
             SetDeathFlash(Mathf.Clamp01(1f - t * 4f));
             yield return null;
         }
@@ -851,6 +853,18 @@ public abstract class EnemyBase : MonoBehaviour
         isQuitting = true;
     }
 
+    /// <summary>Accelerates the ground velocity toward the target chase velocity.</summary>
+    protected void AccelerateTowards(Vector2 targetVelocity)
+    {
+        rb.SetGroundVelocity(
+            Vector2.MoveTowards(
+                rb.GroundVelocity(),
+                targetVelocity,
+                acceleration * EnemyTimeScale * Time.fixedDeltaTime
+            )
+        );
+    }
+
     /// <summary>Applies spatial-hash separation so enemies do not overlap.</summary>
     protected virtual void ApplySeparation()
     {
@@ -858,7 +872,7 @@ public abstract class EnemyBase : MonoBehaviour
             return;
 
         Vector2 separationVelocity = Vector2.zero;
-        Vector2 myPos = rb.position;
+        Vector2 myPos = rb.GroundPosition();
 
         var spatialHash = EnemySpatialHash.Instance;
         if (spatialHash != null)
@@ -871,7 +885,9 @@ public abstract class EnemyBase : MonoBehaviour
                     continue;
 
                 Vector2 otherPos =
-                    other.rb != null ? other.rb.position : (Vector2)other.transform.position;
+                    other.rb != null
+                        ? other.rb.GroundPosition()
+                        : other.transform.position.ToGround();
                 Vector2 toMe = myPos - otherPos;
                 float dist = toMe.magnitude;
 
@@ -898,7 +914,7 @@ public abstract class EnemyBase : MonoBehaviour
             {
                 separationVelocity = separationVelocity.normalized * maxSeparationSpeed;
             }
-            rb.linearVelocity += separationVelocity;
+            rb.SetGroundVelocity(rb.GroundVelocity() + separationVelocity);
         }
 
         // Never allow steering or a collision correction to accumulate into a
@@ -906,7 +922,7 @@ public abstract class EnemyBase : MonoBehaviour
         float speedLimit = isKnockedBack
             ? Mathf.Max(activeKnockbackForce, Speed)
             : Mathf.Max(maxSeparationSpeed, Speed);
-        rb.linearVelocity = Vector2.ClampMagnitude(rb.linearVelocity, speedLimit);
+        rb.SetGroundVelocity(Vector2.ClampMagnitude(rb.GroundVelocity(), speedLimit));
     }
 
     /// <summary>Checks whether the player and enemy colliders are within a world-space gap.</summary>
@@ -927,8 +943,7 @@ public abstract class EnemyBase : MonoBehaviour
         if (playerCollider == null)
             return float.PositiveInfinity;
 
-        ColliderDistance2D distance = bodyCollider.Distance(playerCollider);
-        return distance.isOverlapped ? 0f : Mathf.Max(0f, distance.distance);
+        return GroundPlane.ColliderGap(bodyCollider, playerCollider);
     }
 
     /// <summary>Validates the attack lunge's reach and direction.</summary>
@@ -942,22 +957,22 @@ public abstract class EnemyBase : MonoBehaviour
             return false;
 
         Vector2 toPlayer =
-            (Vector2)playerCollider.bounds.center - (Vector2)bodyCollider.bounds.center;
+            playerCollider.bounds.center.ToGround() - bodyCollider.bounds.center.ToGround();
         if (toPlayer.sqrMagnitude < 0.0001f || attackDirection.sqrMagnitude < 0.0001f)
             return true;
 
         return Vector2.Dot(attackDirection.normalized, toPlayer.normalized) >= minimumFacingDot;
     }
 
-    private static Collider2D FindSolidCollider(Transform target)
+    private static Collider FindSolidCollider(Transform target)
     {
         if (target == null)
             return null;
 
-        Collider2D[] colliders = target.GetComponentsInChildren<Collider2D>(true);
+        Collider[] colliders = target.GetComponentsInChildren<Collider>(true);
         for (int i = 0; i < colliders.Length; i++)
         {
-            Collider2D candidate = colliders[i];
+            Collider candidate = colliders[i];
             if (candidate != null && candidate.enabled && !candidate.isTrigger)
                 return candidate;
         }

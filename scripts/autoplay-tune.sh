@@ -15,7 +15,7 @@ if [ ! -f "$TUNING" ]; then
 {
   "worldLightIntensity": 250,
   "fillFactor": 0.6,
-  "lightHeightZ": -8,
+  "lightHeightY": 8,
   "ambientIntensity": 1
 }
 JSON

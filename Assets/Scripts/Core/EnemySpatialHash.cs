@@ -4,7 +4,7 @@ using UnityEngine.SceneManagement;
 
 /// <summary>
 /// Spatial hash grid for efficient enemy neighbor queries.
-/// Replaces O(N²) Physics2D.OverlapCircleAll calls with O(N) grid lookups.
+/// Replaces O(N²) physics overlap queries with O(N) grid lookups.
 /// </summary>
 public class EnemySpatialHash : MonoBehaviour
 {
@@ -113,7 +113,7 @@ public class EnemySpatialHash : MonoBehaviour
         if (enemy == null || _enemyCells.ContainsKey(enemy))
             return;
 
-        Vector2 pos = enemy.transform.position;
+        Vector2 pos = enemy.transform.position.ToGround();
         long cellHash = GetCellHash(pos);
 
         if (!_grid.TryGetValue(cellHash, out var cellList))
@@ -157,7 +157,7 @@ public class EnemySpatialHash : MonoBehaviour
         if (enemy == null || !_enemyCells.TryGetValue(enemy, out long oldHash))
             return;
 
-        Vector2 pos = enemy.transform.position;
+        Vector2 pos = enemy.transform.position.ToGround();
         long newHash = GetCellHash(pos);
 
         // If still in same cell, no update needed
@@ -214,7 +214,9 @@ public class EnemySpatialHash : MonoBehaviour
                         if (enemy == null)
                             continue;
 
-                        float distSqr = ((Vector2)enemy.transform.position - position).sqrMagnitude;
+                        float distSqr = (
+                            enemy.transform.position.ToGround() - position
+                        ).sqrMagnitude;
                         if (distSqr <= radiusSqr)
                         {
                             _queryResults.Add(enemy);

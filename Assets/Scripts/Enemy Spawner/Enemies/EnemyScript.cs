@@ -1,7 +1,7 @@
 using UnityEngine;
 
-[RequireComponent(typeof(Rigidbody2D))]
-[RequireComponent(typeof(Collider2D))]
+[RequireComponent(typeof(Rigidbody))]
+[RequireComponent(typeof(Collider))]
 public class EnemyScript : EnemyBase
 {
     private const float MaxAttackLungeDistance = 0.42f;
@@ -133,7 +133,7 @@ public class EnemyScript : EnemyBase
             // Update spatial hash but don't move or apply separation during attack
             EnemySpatialHash.Instance?.UpdatePosition(this);
             // Zero out velocity during attack to prevent drift
-            rb.linearVelocity = Vector2.zero;
+            rb.SetGroundVelocity(Vector2.zero);
             return;
         }
 
@@ -144,7 +144,7 @@ public class EnemyScript : EnemyBase
             return;
         }
 
-        Vector2 dir = (Vector2)player.position - rb.position;
+        Vector2 dir = player.position.ToGround() - rb.GroundPosition();
         float distToPlayer = dir.magnitude;
 
         if (distToPlayer < 0.0001f)
@@ -175,11 +175,7 @@ public class EnemyScript : EnemyBase
         }
 
         // Smooth acceleration towards target velocity
-        rb.linearVelocity = Vector2.MoveTowards(
-            rb.linearVelocity,
-            targetVel,
-            acceleration * EnemyTimeScale * Time.fixedDeltaTime
-        );
+        AccelerateTowards(targetVel);
 
         // Apply separation AFTER movement (so it can push away)
         base.FixedUpdate();
@@ -213,7 +209,7 @@ public class EnemyScript : EnemyBase
         attackTimer = 0f;
         nextMeleeAttackTime = Time.time + meleeAttackCooldown / Mathf.Max(0.1f, EnemyTimeScale);
         // Calculate lunge direction toward player
-        attackDirection = ((Vector2)player.position - (Vector2)transform.position).normalized;
+        attackDirection = (player.position.ToGround() - transform.position.ToGround()).normalized;
         activeAttackReach = GetAttackReach();
 
         if (visualTransform != null)
@@ -224,11 +220,11 @@ public class EnemyScript : EnemyBase
             // attackDirection and attackLungeDistance are world-space values.
             // Convert them through the renderer's parent before changing its
             // localPosition; imported FBX scales otherwise magnify the lunge.
-            Vector3 worldLunge = (Vector3)(attackDirection * activeAttackReach);
-            Vector3 worldPullBack = (Vector3)(
+            Vector3 worldLunge = (attackDirection * activeAttackReach).ToWorld();
+            Vector3 worldPullBack = (
                 -attackDirection
                 * Mathf.Clamp(attackPullBackDistance, 0f, MaxAttackPullBackDistance)
-            );
+            ).ToWorld();
             Vector3 localLunge =
                 visualTransform.parent != null
                     ? visualTransform.parent.InverseTransformVector(worldLunge)
@@ -401,7 +397,7 @@ public class EnemyScript : EnemyBase
         {
             // Calculate knockback direction (away from enemy)
             Vector2 knockbackDir = (
-                (Vector2)player.position - (Vector2)transform.position
+                player.position.ToGround() - transform.position.ToGround()
             ).normalized;
 
             if (playerController.TakeMeleeDamage(Damage, knockbackDir))

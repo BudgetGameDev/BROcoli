@@ -219,8 +219,8 @@ public class GamePreloader : MonoBehaviour
         LayerMask.GetMask("Enemy");
         LayerMask.GetMask("Player");
         LayerMask.GetMask("Default");
-        Physics2D.OverlapCircleAll(Vector2.zero, 0.1f);
-        Physics2D.OverlapBoxAll(Vector2.zero, Vector2.one * 0.1f, 0f);
+        GroundPlane.OverlapCircleAll(Vector2.zero, 0.1f);
+        Physics.OverlapBox(Vector3.zero, Vector3.one * 0.1f);
     }
 
     /// <summary>
@@ -340,11 +340,11 @@ public class GamePreloader : MonoBehaviour
         if (enemy != null)
             enemy.enabled = false;
 
-        Rigidbody2D rb = go.GetComponent<Rigidbody2D>();
+        Rigidbody rb = go.GetComponent<Rigidbody>();
         if (rb != null)
-            rb.simulated = false;
+            rb.SetSimulated(false);
 
-        foreach (Collider2D col in go.GetComponents<Collider2D>())
+        foreach (Collider col in go.GetComponents<Collider>())
             col.enabled = false;
 
         ExpGain exp = go.GetComponent<ExpGain>();

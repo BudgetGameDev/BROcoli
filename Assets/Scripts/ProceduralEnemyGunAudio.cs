@@ -336,7 +336,7 @@ public class ProceduralEnemyGunAudio : MonoBehaviour
         if (playerTransform == null)
             return 1f;
 
-        float dist = Vector2.Distance(transform.position, playerTransform.position);
+        float dist = GroundPlane.GroundDistance(transform.position, playerTransform.position);
         if (dist > MAX_AUDIBLE_DISTANCE)
             return 0f;
 

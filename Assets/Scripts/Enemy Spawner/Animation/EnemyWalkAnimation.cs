@@ -41,7 +41,7 @@ public class EnemyWalkAnimation : MonoBehaviour
 
     private Vector3 baseScale;
     private Vector3 basePosition;
-    private Rigidbody2D rb;
+    private Rigidbody rb;
     private float timeOffset;
     private float currentSpin = 0f;
     private bool isInitialized = false;
@@ -70,9 +70,9 @@ public class EnemyWalkAnimation : MonoBehaviour
         if (isInitialized)
             return;
 
-        rb = GetComponentInParent<Rigidbody2D>();
+        rb = GetComponentInParent<Rigidbody>();
         if (rb == null)
-            rb = GetComponent<Rigidbody2D>();
+            rb = GetComponent<Rigidbody>();
 
         // If no visual transform specified, try to find a child or use self
         if (visualTransform == null)
@@ -107,10 +107,10 @@ public class EnemyWalkAnimation : MonoBehaviour
 
         basePosition = visualTransform.localPosition;
 
-        // Ensure Z offset for 3D models to prevent clipping into background
-        if (Mathf.Approximately(basePosition.z, 0f))
+        // Ensure a height offset for 3D models to prevent clipping into the ground
+        if (Mathf.Approximately(basePosition.y, 0f))
         {
-            basePosition.z = -0.5f;
+            basePosition.y = 0.5f;
         }
 
         isInitialized = true;
@@ -122,7 +122,7 @@ public class EnemyWalkAnimation : MonoBehaviour
             return;
 
         float time = Time.time + timeOffset;
-        float speed = rb != null ? rb.linearVelocity.magnitude : 0f;
+        float speed = rb != null ? rb.GroundVelocity().magnitude : 0f;
 
         // Intensity scales with movement speed (0.5 to 1.5 range)
         float intensity = Mathf.Clamp(0.5f + speed * 0.15f, 0.5f, 1.5f);
@@ -155,7 +155,7 @@ public class EnemyWalkAnimation : MonoBehaviour
             currentSpin = Mathf.Lerp(currentSpin, 0f, Time.deltaTime * 3f);
         }
 
-        visualTransform.localRotation = Quaternion.Euler(0f, 0f, wobble + currentSpin);
+        visualTransform.localRotation = GroundPlane.YawRotation(wobble + currentSpin);
 
         // --- Vertical Bounce ---
         float bounce = Mathf.Abs(Mathf.Sin(time * bounceSpeed)) * bounceAmount * intensity;

@@ -198,11 +198,11 @@ namespace Pooling
             var rb = enemy.rb;
             if (rb != null)
             {
-                rb.simulated = true;
-                rb.linearVelocity = Vector2.zero;
+                rb.SetSimulated(true);
+                rb.linearVelocity = Vector3.zero;
             }
 
-            foreach (var col in enemy.GetComponents<Collider2D>())
+            foreach (var col in enemy.GetComponents<Collider>())
             {
                 col.enabled = true;
             }
@@ -220,10 +220,10 @@ namespace Pooling
             var rb = enemy.rb;
             if (rb != null)
             {
-                rb.simulated = false;
+                rb.SetSimulated(false);
             }
 
-            foreach (var col in enemy.GetComponents<Collider2D>())
+            foreach (var col in enemy.GetComponents<Collider>())
             {
                 col.enabled = false;
             }
@@ -263,14 +263,14 @@ namespace Pooling
         private void OnExpGainGet(ExpGain exp)
         {
             // Reset state
-            var rb = exp.GetComponent<Rigidbody2D>();
+            var rb = exp.GetComponent<Rigidbody>();
             if (rb != null)
             {
-                rb.simulated = true;
-                rb.linearVelocity = Vector2.zero;
+                rb.SetSimulated(true);
+                rb.linearVelocity = Vector3.zero;
             }
 
-            var col = exp.GetComponent<Collider2D>();
+            var col = exp.GetComponent<Collider>();
             if (col != null)
             {
                 col.enabled = true;
@@ -279,13 +279,13 @@ namespace Pooling
 
         private void OnExpGainReturn(ExpGain exp)
         {
-            var rb = exp.GetComponent<Rigidbody2D>();
+            var rb = exp.GetComponent<Rigidbody>();
             if (rb != null)
             {
-                rb.simulated = false;
+                rb.SetSimulated(false);
             }
 
-            var col = exp.GetComponent<Collider2D>();
+            var col = exp.GetComponent<Collider>();
             if (col != null)
             {
                 col.enabled = false;
@@ -350,14 +350,14 @@ namespace Pooling
 
         private void OnProjectileGet(EnemyProjectile proj)
         {
-            var rb = proj.GetComponent<Rigidbody2D>();
+            var rb = proj.GetComponent<Rigidbody>();
             if (rb != null)
             {
-                rb.simulated = true;
-                rb.linearVelocity = Vector2.zero;
+                rb.SetSimulated(true);
+                rb.linearVelocity = Vector3.zero;
             }
 
-            foreach (var col in proj.GetComponents<Collider2D>())
+            foreach (var col in proj.GetComponents<Collider>())
             {
                 col.enabled = true;
             }
@@ -365,13 +365,13 @@ namespace Pooling
 
         private void OnProjectileReturn(EnemyProjectile proj)
         {
-            var rb = proj.GetComponent<Rigidbody2D>();
+            var rb = proj.GetComponent<Rigidbody>();
             if (rb != null)
             {
-                rb.simulated = false;
+                rb.SetSimulated(false);
             }
 
-            foreach (var col in proj.GetComponents<Collider2D>())
+            foreach (var col in proj.GetComponents<Collider>())
             {
                 col.enabled = false;
             }
