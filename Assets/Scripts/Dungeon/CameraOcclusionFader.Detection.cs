@@ -46,6 +46,7 @@ public sealed partial class CameraOcclusionFader
         if (!TryGetPlayerViewportRect(out Rect playerRect, out Bounds playerBounds))
             return;
 
+        Vector3 playerPosition = target.position;
         GeometryUtility.CalculateFrustumPlanes(gameplayCamera, frustumPlanes);
         float playerDepth = Vector3.Dot(
             playerBounds.center - gameplayCamera.transform.position,
@@ -65,12 +66,17 @@ public sealed partial class CameraOcclusionFader
             if (forwardAmount <= 0.0001f)
                 continue;
 
-            ScanPlayerRay(ray, maximumDepth / forwardAmount, playerRect);
-            ScanVisualVolumes(ray, maximumDepth / forwardAmount, playerRect);
+            ScanPlayerRay(ray, maximumDepth / forwardAmount, playerRect, playerPosition);
+            ScanVisualVolumes(ray, maximumDepth / forwardAmount, playerRect, playerPosition);
         }
     }
 
-    private void ScanVisualVolumes(Ray ray, float distance, Rect playerRect)
+    private void ScanVisualVolumes(
+        Ray ray,
+        float distance,
+        Rect playerRect,
+        Vector3 playerPosition
+    )
     {
         foreach (DungeonOcclusionVolume volume in DungeonOcclusionVolume.Active)
         {
@@ -82,6 +88,7 @@ public sealed partial class CameraOcclusionFader
             if (
                 (gameplayCamera.cullingMask & layerMask) == 0
                 || !GeometryUtility.TestPlanesAABB(frustumPlanes, bounds)
+                || !IsOnCameraSideOfPlayer(bounds, playerPosition)
                 || !bounds.IntersectRay(ray, out float hitDistance)
                 || hitDistance > distance
             )
@@ -98,6 +105,7 @@ public sealed partial class CameraOcclusionFader
                 volume,
                 gameplayCamera,
                 frustumPlanes,
+                playerPosition,
                 currentSections,
                 currentOccluders,
                 hitRenderers
@@ -105,7 +113,12 @@ public sealed partial class CameraOcclusionFader
         }
     }
 
-    private void ScanPlayerRay(Ray ray, float distance, Rect playerRect)
+    private void ScanPlayerRay(
+        Ray ray,
+        float distance,
+        Rect playerRect,
+        Vector3 playerPosition
+    )
     {
         int hitCount = Physics.RaycastNonAlloc(
             ray,
@@ -117,7 +130,10 @@ public sealed partial class CameraOcclusionFader
         for (int i = 0; i < hitCount; i++)
         {
             Collider candidate = castHits[i].collider;
-            if (!IsVisibleCandidate(candidate))
+            if (
+                !IsVisibleCandidate(candidate, playerPosition)
+                || !IsStructuralOccluder(candidate)
+            )
                 continue;
 
             float coverage = PlayerCoverage(candidate.bounds, playerRect);
@@ -132,6 +148,7 @@ public sealed partial class CameraOcclusionFader
                     candidate,
                     gameplayCamera,
                     frustumPlanes,
+                    playerPosition,
                     currentSections,
                     currentOccluders,
                     hitRenderers
@@ -143,19 +160,45 @@ public sealed partial class CameraOcclusionFader
                 candidate.transform,
                 gameplayCamera,
                 frustumPlanes,
+                playerPosition,
                 currentOccluders,
                 hitRenderers
             );
         }
     }
 
-    private bool IsVisibleCandidate(Collider candidate)
+    private static bool IsStructuralOccluder(Collider candidate)
+    {
+        if (candidate.GetComponentInParent<DungeonOcclusionSection>() != null)
+            return true;
+
+        // Freestanding columns are full-height architecture. Other objects on
+        // the Wall layer (barrels, chests, rocks, and similar low props) do not
+        // obscure the player enough to justify fading.
+        return candidate.name.StartsWith("DungeonColumn", System.StringComparison.Ordinal);
+    }
+
+    private bool IsVisibleCandidate(Collider candidate, Vector3 playerPosition)
     {
         if (candidate == null || !candidate.enabled || !candidate.gameObject.activeInHierarchy)
             return false;
         int layerMask = 1 << candidate.gameObject.layer;
         return (gameplayCamera.cullingMask & layerMask) != 0
-            && GeometryUtility.TestPlanesAABB(frustumPlanes, candidate.bounds);
+            && GeometryUtility.TestPlanesAABB(frustumPlanes, candidate.bounds)
+            && IsOnCameraSideOfPlayer(candidate.bounds, playerPosition);
+    }
+
+    private bool IsOnCameraSideOfPlayer(Bounds bounds, Vector3 playerPosition)
+    {
+        // Compare both objects on the player's ground-height plane. Renderer
+        // height and player animation therefore cannot make a wall flicker
+        // between the camera-side and far-side classifications.
+        Vector3 candidatePosition = bounds.center;
+        candidatePosition.y = playerPosition.y;
+        Vector3 candidateViewport = gameplayCamera.WorldToViewportPoint(candidatePosition);
+        Vector3 playerViewport = gameplayCamera.WorldToViewportPoint(playerPosition);
+        return candidateViewport.z > gameplayCamera.nearClipPlane
+            && candidateViewport.y <= playerViewport.y;
     }
 
     private float PlayerCoverage(Bounds occluder, Rect playerRect)

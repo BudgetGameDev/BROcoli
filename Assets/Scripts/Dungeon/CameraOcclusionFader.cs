@@ -28,9 +28,6 @@ public sealed partial class CameraOcclusionFader : MonoBehaviour
     [SerializeField, Min(0.1f)]
     private float fadeSpeed = 6f;
 
-    [SerializeField, Range(0.15f, 0.65f)]
-    private float visibleWallBaseFraction = 0.4f;
-
     [SerializeField, Range(0.02f, 0.35f)]
     private float wallFadeFeatherFraction = 0.12f;
 
@@ -50,7 +47,6 @@ public sealed partial class CameraOcclusionFader : MonoBehaviour
         public FadeState(
             Renderer renderer,
             Shader fadeShader,
-            float visibleBaseFraction,
             float featherFraction
         )
         {
@@ -59,12 +55,12 @@ public sealed partial class CameraOcclusionFader : MonoBehaviour
             FadedMaterials = new Material[OriginalMaterials.Length];
             BaseColors = new Color[OriginalMaterials.Length];
             bool structural = renderer.GetComponentInParent<DungeonOcclusionSection>() != null;
-            float fadeStart = structural
-                ? renderer.bounds.min.y + renderer.bounds.size.y * visibleBaseFraction
-                : renderer.bounds.min.y - 0.02f;
             float fadeFeather = structural
                 ? Mathf.Max(0.02f, renderer.bounds.size.y * featherFraction)
                 : 0.02f;
+            // Start the feather below the mesh so an occluded wall disappears
+            // as one complete unit instead of leaving a changing half-wall.
+            float fadeStart = renderer.bounds.min.y - fadeFeather;
 
             for (int i = 0; i < OriginalMaterials.Length; i++)
             {
@@ -155,7 +151,6 @@ public sealed partial class CameraOcclusionFader : MonoBehaviour
                 state = new FadeState(
                     renderer,
                     fadeShader,
-                    visibleWallBaseFraction,
                     wallFadeFeatherFraction
                 );
                 fadeStates.Add(renderer, state);
