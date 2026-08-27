@@ -104,7 +104,7 @@ jobs:
 
       - name: Smoke test built WebGL player
         timeout-minutes: 5
-        run: ./scripts/webgl-smoke.sh build/WebGL
+        run: ./scripts/webgl-smoke.sh build/WebGL/WebGL
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
