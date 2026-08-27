@@ -43,6 +43,9 @@ public class ShuffleWalkVisual : MonoBehaviour
     private const float BhopTwistMax = 5f; // Reduced - subtle rotation only
 
     private const float DeadZone = 0.05f;
+    private const float WallVisualSkin = 0.02f;
+    private const float WallAnimationClearance = 0.3f;
+    private const float VerticalHopFallbackScale = 0.9f;
 
     // Stumble system - slows player after being hit
     private const float StumbleSpeedMultiplier = 0.5f; // 50% speed when stumbling
@@ -50,6 +53,9 @@ public class ShuffleWalkVisual : MonoBehaviour
 
     Vector3 startLocalPos;
     Vector3 startScale;
+    Collider playerCollider;
+    int wallLayerMask;
+    readonly RaycastHit[] wallHits = new RaycastHit[8];
 
     public enum HopState
     {
@@ -92,11 +98,13 @@ public class ShuffleWalkVisual : MonoBehaviour
     float bhopTwistAngle;
     float currentBounceTime; // Varies based on landing quality
     float leanMultiplier = 1f;
+    float wallPoseFactor = 1f;
 
     // Output for other scripts
     public float IdleLeanAngle => idleSwayAngle;
     public float BhopTwistAngle => bhopTwistAngle;
-    public float LeanMultiplier => leanMultiplier;
+    public float LeanMultiplier => leanMultiplier * wallPoseFactor;
+    public float WallPoseFactor => wallPoseFactor;
 
     // Smoothed output for PlayerController
     Vector2 smoothedMovement;
@@ -114,7 +122,13 @@ public class ShuffleWalkVisual : MonoBehaviour
         if (controller != null)
         {
             _playerStats = controller.GetComponent<PlayerStats>();
+            playerCollider = controller.GetComponent<Collider>();
         }
+
+        if (playerCollider == null)
+            playerCollider = GetComponentInParent<Collider>();
+
+        wallLayerMask = LayerMask.GetMask("Wall");
     }
 
     /// <summary>
@@ -480,18 +494,133 @@ public class ShuffleWalkVisual : MonoBehaviour
 
         // Presentation cheat, not a real jump: the hop displaces along ground-
         // north, which the fixed chase camera reads as screen-up (pre-flip +Y).
-        Vector3 hopOffset = Vector3.forward * displayHeight;
+        // The screen-space hop is implemented as a real world-Z presentation
+        // offset. Keep that visual-only displacement inside the same footprint
+        // that blocks the player's physics root, otherwise the mesh can cross a
+        // wall even though movement has stopped correctly.
+        float visibleHopHeight = ClampHopOffsetAgainstWalls(displayHeight);
+        Vector2 poseDirection = targetMovement.sqrMagnitude > DeadZone * DeadZone
+            ? targetMovement.normalized
+            : committedDirection;
+        wallPoseFactor = GetWallPoseFactor(poseDirection);
+
+        // Preserve the bounce when its ground-north presentation offset is
+        // blocked. World-up projects to the same screen-up direction with this
+        // fixed chase camera, without moving the mesh through the wall.
+        float blockedPositiveHop = Mathf.Max(0f, displayHeight - visibleHopHeight);
+        Vector3 hopOffset =
+            Vector3.forward * visibleHopHeight
+            + Vector3.up * (blockedPositiveHop * VerticalHopFallbackScale);
         transform.localPosition =
             startLocalPos + transform.parent.InverseTransformDirection(hopOffset);
 
         displaySS = Mathf.Lerp(displaySS, targetSS, 25f * dt);
-        float stretch = 1f + displaySS; // along ground-north, like the hop offset
-        float squash = 1f - displaySS * 0.5f;
+        float visibleSS = displaySS * wallPoseFactor;
+        float stretch = 1f + visibleSS; // along ground-north, like the hop offset
+        float squash = 1f - visibleSS * 0.5f;
 
         displayScale.x = Mathf.Lerp(displayScale.x, startScale.x * squash, 25f * dt);
         displayScale.y = Mathf.Lerp(displayScale.y, startScale.y * squash, 25f * dt);
         displayScale.z = Mathf.Lerp(displayScale.z, startScale.z * stretch, 25f * dt);
         transform.localScale = displayScale;
+    }
+
+    private float ClampHopOffsetAgainstWalls(float desiredOffset)
+    {
+        float distance = Mathf.Abs(desiredOffset);
+        if (
+            distance <= Mathf.Epsilon
+            || playerCollider == null
+            || wallLayerMask == 0
+        )
+            return desiredOffset;
+
+        Bounds playerBounds = playerCollider.bounds;
+        Vector3 castCenter = new(
+            playerCollider.transform.position.x,
+            playerBounds.center.y,
+            playerCollider.transform.position.z
+        );
+        Vector3 castHalfExtents = new(
+            PlayerMovement.WallCollisionRadius,
+            playerBounds.extents.y,
+            PlayerMovement.WallCollisionRadius
+        );
+        Vector3 direction = desiredOffset > 0f ? Vector3.forward : Vector3.back;
+        int hitCount = Physics.BoxCastNonAlloc(
+            castCenter,
+            castHalfExtents,
+            direction,
+            wallHits,
+            Quaternion.identity,
+            distance + WallVisualSkin,
+            wallLayerMask,
+            QueryTriggerInteraction.Ignore
+        );
+
+        float closestDistance = float.PositiveInfinity;
+        for (int i = 0; i < hitCount; i++)
+        {
+            RaycastHit hit = wallHits[i];
+            if (hit.collider != null && hit.collider != playerCollider)
+                closestDistance = Mathf.Min(closestDistance, hit.distance);
+        }
+
+        if (float.IsPositiveInfinity(closestDistance))
+            return desiredOffset;
+
+        float allowedDistance = Mathf.Clamp(
+            closestDistance - WallVisualSkin,
+            0f,
+            distance
+        );
+        return Mathf.Sign(desiredOffset) * allowedDistance;
+    }
+
+    private float GetWallPoseFactor(Vector2 poseDirection)
+    {
+        if (
+            playerCollider == null
+            || wallLayerMask == 0
+            || poseDirection.sqrMagnitude <= DeadZone * DeadZone
+        )
+            return 1f;
+
+        Bounds playerBounds = playerCollider.bounds;
+        Vector3 castCenter = new(
+            playerCollider.transform.position.x,
+            playerBounds.center.y,
+            playerCollider.transform.position.z
+        );
+        Vector3 castHalfExtents = new(
+            PlayerMovement.WallCollisionRadius,
+            playerBounds.extents.y,
+            PlayerMovement.WallCollisionRadius
+        );
+        int hitCount = Physics.BoxCastNonAlloc(
+            castCenter,
+            castHalfExtents,
+            poseDirection.normalized.ToWorld(),
+            wallHits,
+            Quaternion.identity,
+            WallAnimationClearance + WallVisualSkin,
+            wallLayerMask,
+            QueryTriggerInteraction.Ignore
+        );
+        float closestDistance = float.PositiveInfinity;
+        for (int i = 0; i < hitCount; i++)
+        {
+            RaycastHit hit = wallHits[i];
+            if (hit.collider != null && hit.collider != playerCollider)
+                closestDistance = Mathf.Min(closestDistance, hit.distance);
+        }
+
+        if (float.IsPositiveInfinity(closestDistance))
+            return 1f;
+
+        return Mathf.Clamp01(
+            (closestDistance - WallVisualSkin) / WallAnimationClearance
+        );
     }
 
     /// <summary>

@@ -20,7 +20,7 @@ public sealed partial class CameraOcclusionFader
 
     [Header("Occlusion Detection")]
     [SerializeField, Range(0.05f, 0.9f)]
-    private float minimumPlayerCoverage = 0.3f;
+    private float minimumPlayerCoverage = 0.5f;
 
     [SerializeField, Min(0f)]
     private float releaseDelay = 0.2f;
@@ -92,7 +92,11 @@ public sealed partial class CameraOcclusionFader
                 || (
                     !playerInside
                     && (
-                        !IsOnCameraSideOfPlayer(bounds, playerPosition)
+                        !DungeonOcclusionGeometry.IsFullyOnCameraSideOfPlayer(
+                            bounds,
+                            gameplayCamera,
+                            playerPosition
+                        )
                         || !bounds.IntersectRay(ray, out float hitDistance)
                         || hitDistance > distance
                     )
@@ -199,20 +203,11 @@ public sealed partial class CameraOcclusionFader
         int layerMask = 1 << candidate.gameObject.layer;
         return (gameplayCamera.cullingMask & layerMask) != 0
             && GeometryUtility.TestPlanesAABB(frustumPlanes, candidate.bounds)
-            && IsOnCameraSideOfPlayer(candidate.bounds, playerPosition);
-    }
-
-    private bool IsOnCameraSideOfPlayer(Bounds bounds, Vector3 playerPosition)
-    {
-        // Compare both objects on the player's ground-height plane. Renderer
-        // height and player animation therefore cannot make a wall flicker
-        // between the camera-side and far-side classifications.
-        Vector3 candidatePosition = bounds.center;
-        candidatePosition.y = playerPosition.y;
-        Vector3 candidateViewport = gameplayCamera.WorldToViewportPoint(candidatePosition);
-        Vector3 playerViewport = gameplayCamera.WorldToViewportPoint(playerPosition);
-        return candidateViewport.z > gameplayCamera.nearClipPlane
-            && candidateViewport.y <= playerViewport.y;
+            && DungeonOcclusionGeometry.IsFullyOnCameraSideOfPlayer(
+                candidate.bounds,
+                gameplayCamera,
+                playerPosition
+            );
     }
 
     private float PlayerCoverage(Bounds occluder, Rect playerRect)

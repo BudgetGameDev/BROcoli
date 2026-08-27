@@ -17,12 +17,14 @@ public partial class DungeonRoomBuilder
         {
             if (leaveCentreGap && i == 0)
                 continue;
-            Instantiate(
+            GameObject wall = Instantiate(
                 wallPrefab,
                 new Vector3(center.x + i * Tile, 0f, center.y + localZ),
                 Quaternion.identity,
                 i < 0 ? left : right
             );
+            if (i == -3 || i == 3)
+                TrimBoundaryOverlap(wall, i < 0 ? 1f : -1f);
         }
     }
 
@@ -42,12 +44,17 @@ public partial class DungeonRoomBuilder
         {
             if (leaveCentreGap && j == 0)
                 continue;
-            Instantiate(
+            GameObject wall = Instantiate(
                 wallPrefab,
                 new Vector3(center.x + localX, 0f, center.y + j * Tile),
                 sideways,
                 j < 0 ? lower : upper
             );
+            if (j == -2 || j == 2)
+            {
+                // A +90-degree wall maps local -X toward world +Z.
+                TrimBoundaryOverlap(wall, j < 0 ? -1f : 1f);
+            }
         }
     }
 
@@ -89,5 +96,47 @@ public partial class DungeonRoomBuilder
         section.transform.SetParent(parent, false);
         section.AddComponent<DungeonOcclusionSection>();
         return section.transform;
+    }
+
+    private static void TrimBoundaryOverlap(GameObject wall, float inwardLocalX)
+    {
+        MeshFilter meshFilter = wall.GetComponentInChildren<MeshFilter>();
+        if (meshFilter == null || meshFilter.sharedMesh == null)
+            return;
+
+        Transform visual = meshFilter.transform;
+        Bounds meshBounds = meshFilter.sharedMesh.bounds;
+        float visualLength = meshBounds.size.x * Mathf.Abs(visual.localScale.x);
+        float boundaryOverlap = meshBounds.extents.z * Mathf.Abs(visual.localScale.z);
+        if (visualLength <= 0.0001f || boundaryOverlap <= 0f)
+            return;
+
+        // The perpendicular shell wall occupies one visual half-depth inside
+        // the room. Shorten the endpoint mesh and its navigation collider by
+        // that amount. The collider is wider than the mesh, so the two walls
+        // still overlap slightly at the corner without leaving an invisible
+        // extension that blocks movement along the shell wall.
+        float retainedFraction = Mathf.Clamp01(
+            (visualLength - boundaryOverlap) / visualLength
+        );
+        Vector3 scale = visual.localScale;
+        scale.x *= retainedFraction;
+        visual.localScale = scale;
+
+        Vector3 position = visual.localPosition;
+        position.x += inwardLocalX * boundaryOverlap * 0.5f;
+        visual.localPosition = position;
+
+        BoxCollider wallCollider = wall.GetComponent<BoxCollider>();
+        if (wallCollider == null)
+            return;
+
+        Vector3 colliderSize = wallCollider.size;
+        colliderSize.x = Mathf.Max(0f, colliderSize.x - boundaryOverlap);
+        wallCollider.size = colliderSize;
+
+        Vector3 colliderCenter = wallCollider.center;
+        colliderCenter.x += inwardLocalX * boundaryOverlap * 0.5f;
+        wallCollider.center = colliderCenter;
     }
 }

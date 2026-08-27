@@ -62,14 +62,27 @@ public sealed partial class CameraOcclusionFader : MonoBehaviour
             DungeonOcclusionSection section =
                 renderer.GetComponentInParent<DungeonOcclusionSection>();
             bool structural = section != null;
+            float fadeReferenceMinY = renderer.bounds.min.y;
+            float fadeReferenceHeight = renderer.bounds.size.y;
+            if (
+                section != null
+                && section.TryGetGatewayFadeReference(
+                    renderer,
+                    out float gatewayMinimumY,
+                    out float gatewayHeight
+                )
+            )
+            {
+                fadeReferenceMinY = gatewayMinimumY;
+                fadeReferenceHeight = gatewayHeight;
+            }
             float fadeFeather = structural
-                ? Mathf.Max(0.02f, renderer.bounds.size.y * featherFraction)
+                ? Mathf.Max(0.02f, fadeReferenceHeight * featherFraction)
                 : 0.02f;
-            // Every grouped wall, gateway, and endpoint post retains the same
-            // stable base height so a fading run never mixes half walls with
-            // completely missing pieces.
+            // Gateway crowns and grates use their adjoining wall's absolute
+            // cutoff instead of a fraction of their different renderer heights.
             float fadeStart = structural
-                ? renderer.bounds.min.y + renderer.bounds.size.y * visibleBaseFraction
+                ? fadeReferenceMinY + fadeReferenceHeight * visibleBaseFraction
                 : renderer.bounds.min.y - fadeFeather;
 
             for (int i = 0; i < OriginalMaterials.Length; i++)

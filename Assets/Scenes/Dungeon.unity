@@ -1899,10 +1899,10 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 512
   fadeSpeed: 6
-  visibleWallBaseFraction: 0.4
   wallFadeFeatherFraction: 0.12
+  visibleWallBaseFraction: 0.4
   targetHeight: 0.65
-  minimumPlayerCoverage: 0.3
+  minimumPlayerCoverage: 0.5
   releaseDelay: 0.2
 --- !u!1 &777000001
 GameObject:

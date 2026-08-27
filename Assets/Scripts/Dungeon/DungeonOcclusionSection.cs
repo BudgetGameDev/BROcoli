@@ -3,8 +3,8 @@ using UnityEngine;
 
 /// <summary>
 /// Marks one contiguous piece of dungeon architecture as an occlusion unit.
-/// Wall runs link to their endpoint posts so each run, gateway, and adjoining
-/// post fades as one visual unit.
+/// Wall runs link to their endpoint posts and straight continuations so each
+/// visible run, gateway, and adjoining post fades as one visual unit.
 /// </summary>
 [DisallowMultipleComponent]
 public sealed class DungeonOcclusionSection : MonoBehaviour
@@ -15,6 +15,8 @@ public sealed class DungeonOcclusionSection : MonoBehaviour
     private readonly HashSet<DungeonOcclusionSection> linkedSections = new();
     private Transform excludedRoot;
     private Transform gatewayRoot;
+    private float gatewayFadeReferenceMinY;
+    private float gatewayFadeReferenceHeight;
     private Vector3 firstEndpoint;
     private Vector3 secondEndpoint;
     private Vector3 junctionPosition;
@@ -41,9 +43,23 @@ public sealed class DungeonOcclusionSection : MonoBehaviour
         excludedRoot = root;
     }
 
-    public void ConfigureOpenGateway(Transform root)
+    public void ConfigureGateway(Transform root)
     {
         gatewayRoot = root;
+        CacheGatewayFadeReference();
+    }
+
+    public bool TryGetGatewayFadeReference(
+        Renderer renderer,
+        out float minimumY,
+        out float height
+    )
+    {
+        minimumY = gatewayFadeReferenceMinY;
+        height = gatewayFadeReferenceHeight;
+        return renderer != null
+            && IsGateway(renderer.transform)
+            && gatewayFadeReferenceHeight > 0f;
     }
 
     public static bool TryCollectForHit(
@@ -122,7 +138,6 @@ public sealed class DungeonOcclusionSection : MonoBehaviour
     {
         rendererBuffer.Clear();
         root.GetComponentsInChildren(false, rendererBuffer);
-        Vector3 playerViewport = camera.WorldToViewportPoint(playerPosition);
         foreach (Renderer candidate in rendererBuffer)
         {
             if (
@@ -137,14 +152,12 @@ public sealed class DungeonOcclusionSection : MonoBehaviour
             if (!GeometryUtility.TestPlanesAABB(frustumPlanes, candidate.bounds))
                 continue;
 
-            Vector3 candidatePosition = candidate.bounds.center;
-            candidatePosition.y = playerPosition.y;
-            Vector3 viewportCenter = camera.WorldToViewportPoint(candidatePosition);
             if (
                 IsWithinRoot(candidate.transform, alwaysIncludeRoot)
-                || (
-                    viewportCenter.z > camera.nearClipPlane
-                    && viewportCenter.y <= playerViewport.y
+                || DungeonOcclusionGeometry.IsFullyOnCameraSideOfPlayer(
+                    candidate.bounds,
+                    camera,
+                    playerPosition
                 )
             )
                 results.Add(candidate);
@@ -195,25 +208,38 @@ public sealed class DungeonOcclusionSection : MonoBehaviour
             this,
             gatewayRoot
         );
-        foreach (DungeonOcclusionSection linkedSection in linkedSections)
-        {
-            if (linkedSection == null)
-                continue;
-            CollectSection(
-                linkedSection,
-                camera,
-                frustumPlanes,
-                playerPosition,
-                collectedSections,
-                results,
-                rendererBuffer
-            );
-        }
+        CollectLinkedJunctions(
+            camera,
+            frustumPlanes,
+            playerPosition,
+            collectedSections,
+            results,
+            rendererBuffer
+        );
     }
 
     private static bool IsWithinRoot(Transform candidate, Transform root)
     {
         return root != null && (candidate == root || candidate.IsChildOf(root));
+    }
+
+    private void CacheGatewayFadeReference()
+    {
+        gatewayFadeReferenceMinY = 0f;
+        gatewayFadeReferenceHeight = 0f;
+        foreach (Renderer candidate in GetComponentsInChildren<Renderer>(false))
+        {
+            if (
+                candidate == null
+                || IsGateway(candidate.transform)
+                || IsExcluded(candidate.transform)
+                || candidate.bounds.size.y <= gatewayFadeReferenceHeight
+            )
+                continue;
+
+            gatewayFadeReferenceMinY = candidate.bounds.min.y;
+            gatewayFadeReferenceHeight = candidate.bounds.size.y;
+        }
     }
 
     private void CollectWithLinks(
@@ -225,6 +251,10 @@ public sealed class DungeonOcclusionSection : MonoBehaviour
         List<Renderer> rendererBuffer
     )
     {
+        // The directly occluding run and its gateway are one visual unit.
+        // Keep the gateway included when the player is close enough for its
+        // bounds to straddle the player's ground depth; linked runs still use
+        // the stricter camera-side test in CollectSection below.
         CollectSection(
             this,
             camera,
@@ -232,14 +262,35 @@ public sealed class DungeonOcclusionSection : MonoBehaviour
             playerPosition,
             collectedSections,
             results,
+            rendererBuffer,
+            gatewayRoot
+        );
+        CollectLinkedJunctions(
+            camera,
+            frustumPlanes,
+            playerPosition,
+            collectedSections,
+            results,
             rendererBuffer
         );
-        foreach (DungeonOcclusionSection linkedSection in linkedSections)
+    }
+
+    private void CollectLinkedJunctions(
+        Camera camera,
+        Plane[] frustumPlanes,
+        Vector3 playerPosition,
+        HashSet<DungeonOcclusionSection> collectedSections,
+        HashSet<Renderer> results,
+        List<Renderer> rendererBuffer
+    )
+    {
+        foreach (DungeonOcclusionSection junction in linkedSections)
         {
-            if (linkedSection == null)
+            if (junction == null)
                 continue;
+
             CollectSection(
-                linkedSection,
+                junction,
                 camera,
                 frustumPlanes,
                 playerPosition,
@@ -247,7 +298,52 @@ public sealed class DungeonOcclusionSection : MonoBehaviour
                 results,
                 rendererBuffer
             );
+
+            // Shared boundary runs are generated once per room-width segment.
+            // At their common post, the first mesh of the neighbouring segment
+            // overlaps the same visual seam. Include only a straight continuation
+            // so that mesh cannot poke through a lowered run, without fading the
+            // unrelated perpendicular walls that also meet at the post.
+            if (!junction.isJunction || !isEdge)
+                continue;
+            foreach (DungeonOcclusionSection continuation in junction.linkedSections)
+            {
+                if (
+                    continuation == null
+                    || continuation == this
+                    || !IsCollinearWith(continuation)
+                )
+                    continue;
+
+                CollectSection(
+                    continuation,
+                    camera,
+                    frustumPlanes,
+                    playerPosition,
+                    collectedSections,
+                    results,
+                    rendererBuffer,
+                    continuation.gatewayRoot
+                );
+            }
         }
+    }
+
+    private bool IsCollinearWith(DungeonOcclusionSection other)
+    {
+        if (!isEdge || other == null || !other.isEdge)
+            return false;
+
+        Vector3 direction = secondEndpoint - firstEndpoint;
+        Vector3 otherDirection = other.secondEndpoint - other.firstEndpoint;
+        direction.y = 0f;
+        otherDirection.y = 0f;
+        if (direction.sqrMagnitude <= 0.0001f || otherDirection.sqrMagnitude <= 0.0001f)
+            return false;
+
+        direction.Normalize();
+        otherDirection.Normalize();
+        return Mathf.Abs(Vector3.Dot(direction, otherDirection)) >= 0.999f;
     }
 
     private static void CollectSection(
@@ -257,7 +353,8 @@ public sealed class DungeonOcclusionSection : MonoBehaviour
         Vector3 playerPosition,
         HashSet<DungeonOcclusionSection> collectedSections,
         HashSet<Renderer> results,
-        List<Renderer> rendererBuffer
+        List<Renderer> rendererBuffer,
+        Transform alwaysIncludeRoot = null
     )
     {
         if (!collectedSections.Add(section))
@@ -270,7 +367,8 @@ public sealed class DungeonOcclusionSection : MonoBehaviour
             playerPosition,
             results,
             rendererBuffer,
-            section
+            section,
+            alwaysIncludeRoot
         );
     }
 
@@ -323,5 +421,45 @@ public sealed class DungeonOcclusionSection : MonoBehaviour
         foreach (DungeonOcclusionSection section in ConfiguredSections)
             section.linkedSections.Remove(this);
         linkedSections.Clear();
+    }
+}
+
+internal static class DungeonOcclusionGeometry
+{
+    public static bool IsFullyOnCameraSideOfPlayer(
+        Bounds bounds,
+        Camera camera,
+        Vector3 playerPosition
+    )
+    {
+        // A wall that reaches beside or behind the player is not an occluder,
+        // even when its centre is slightly camera-side. Compare the rear-most
+        // point of its ground footprint so linked wall runs cannot shorten a
+        // neighbouring full-height piece that merely straddles the player.
+        Vector3 groundForward = Vector3.ProjectOnPlane(
+            camera.transform.forward,
+            Vector3.up
+        );
+        if (groundForward.sqrMagnitude <= 0.0001f)
+        {
+            Vector3 candidatePosition = bounds.center;
+            candidatePosition.y = playerPosition.y;
+            Vector3 candidateViewport = camera.WorldToViewportPoint(candidatePosition);
+            Vector3 playerViewport = camera.WorldToViewportPoint(playerPosition);
+            return candidateViewport.z > camera.nearClipPlane
+                && candidateViewport.y <= playerViewport.y;
+        }
+
+        groundForward.Normalize();
+        Vector3 fromCamera = bounds.center - camera.transform.position;
+        float playerDepth = Vector3.Dot(
+            playerPosition - camera.transform.position,
+            groundForward
+        );
+        float rearDepth =
+            Vector3.Dot(fromCamera, groundForward)
+            + Mathf.Abs(groundForward.x) * bounds.extents.x
+            + Mathf.Abs(groundForward.z) * bounds.extents.z;
+        return rearDepth <= playerDepth;
     }
 }

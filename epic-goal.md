@@ -1,31 +1,20 @@
-/goal Complete GitHub epic https://github.com/BudgetGameDev/BROcoli/issues/52 by fully implementing exactly issues #53 through #76 inclusive. The goal is complete only when every acceptance criterion in those issues is verified and checked, all relevant automated tests and Unity validation pass, each issue has its own commit on `dev`, every issue remains open with GitHub Project status **In review**, every issue has exactly one completion-evidence comment containing its commit hash and uploaded screenshots or video, and the final `dev` worktree is clean.
+/goal Complete epic https://github.com/BudgetGameDev/BROcoli/issues/52 by implementing issues #53–#76. Done means every criterion is checked, autoplay E2E passes, commits are story-scoped on `dev`, every issue is open and **In review**, every implementation/rework pass has its own preserved evidence comment with commit hash(es) and autoplay media, no human feedback is unresolved, and the worktree is clean.
 
-You are the manager agent. You must run as Claude Fable 5 at high effort. Work through the stories sequentially in dependency order derived from each issue's **Dependencies** section. Never work on more than one story at a time and never have more than one subagent active.
+You are the manager, running as Claude Fable 5 at high effort. Work sequentially in dependency order with exactly one active story and one active subagent. Never interrupt the current story to start another.
 
-Before beginning, verify that:
+Before starting, verify `dev`, a clean worktree, satisfied accessible prerequisites, writable Project statuses, and working Unity/E2E tools. Report external blockers; never guess, bypass, expand scope, or claim false completion.
 
-- The current branch is `dev`.
-- The worktree is clean and contains no unrelated changes.
-- Issues #53 through #76 and all their external prerequisites are accessible and satisfied.
-- GitHub Project statuses can be read and updated.
-- The required Unity tools and tests are available.
+At every story boundary and before completion, refresh statuses and comments for #53–#76. If I returned a processed story from **In review** to **In progress** with feedback, finish the active story, then prioritize the returned one. Address every new human comment and revalidate before restoring **In review**. Never run rework in parallel or skip it for a new story. Otherwise choose the next dependency-ready story.
 
-If a prerequisite, permission, or other external requirement is unavailable, report the exact blocker with evidence. Do not guess, bypass it, expand scope, or falsely mark work complete.
+For each selected story:
 
-For each story:
+1. Read the full issue, all comments, dependencies, `CLAUDE.md`, and `AGENTS.md`. If it is not already **In progress**, move it there. Never close it.
+2. Invoke exactly one project-scoped `epic-worker` using Claude Opus 4.8 at xhigh effort. Use no other implementation subagent and wait for it to finish.
+3. Require use and extension of the authoritative harness at repository-root `./scripts/autoplay-run.sh`, with game-side code under `Assets/Scripts/Autoplay/`. Add or update a deterministic scenario for this story that exercises real gameplay, fails nonzero on regression, and preserves diagnostics/artifacts. Never replace or bypass this harness.
+4. Review code/assertions. Run `./scripts/autoplay-run.sh --build --scenario smoke`, then `./scripts/autoplay-run.sh --scenario <story-scenario>`. Both must pass with results, telemetry, logs, and visuals. If the interface evolves, update commands/docs but retain this entry point. Also run focused tests, Unity compilation, and required Play Mode validation. Reject missing, weakened, flaky, inconclusive, or failing coverage.
+5. Select screenshots/video produced by that same passing story-specific autoplay run that visibly prove the feature. Reject manual, generic, or unrelated-run evidence.
+6. Check only verified criteria. Commit only this story on `dev` using `Refs #NN`, never an auto-closing keyword. Rework may use additional story-scoped commits.
+7. After every initial implementation or correction pass, add a new evidence comment; never edit or delete earlier evidence comments. Label it as the initial pass or correction pass, reference the feedback addressed, and include that pass's commit hash(es), exact E2E command/scenario/assertions/results, other validation, and uploaded autoplay screenshots/video. For corrections, compare the new evidence with the previous evidence so progress is visible.
+8. Verify the evidence comment and completion boxes, resolve all current review feedback, then move the issue to **In review**. Refresh every story's status/comments before choosing the next one.
 
-1. Read the complete issue, its dependencies, `CLAUDE.md`, and `AGENTS.md`.
-2. Move only that issue to GitHub Project status **In progress**. Do not close it.
-3. Invoke exactly one project-scoped `epic-worker` subagent for that single issue. It must run as Claude Opus 4.8 at xhigh effort. Do not use Explore, Plan, general-purpose, or another subagent for implementation. Wait for it to finish before reviewing its work or beginning another story.
-4. Review the worker's changes against every acceptance criterion. Run the relevant automated tests, verify Unity compilation, and perform the Play Mode or runtime validation required by the story. If anything is incomplete, continue correcting only the current story before proceeding.
-5. Confirm that suitable screenshots or a short video visibly demonstrate the implemented behavior. Prefer video when still images cannot clearly prove it.
-6. Check only acceptance-criteria boxes that have actually been verified. Leave unverified boxes unchecked.
-7. Commit only that story's changes directly on `dev`. Use a commit message containing `Refs #NN`; never use `Closes`, `Fixes`, or another auto-closing keyword.
-8. Post exactly one completion-evidence comment on that individual issue. The comment must contain the exact implementing commit hash, the validation performed and its results, and the uploaded screenshots or video with a brief explanation of what each attachment demonstrates.
-9. Verify that the evidence comment is accessible and complete, then check the issue's required completion-evidence boxes.
-10. Move the issue to GitHub Project status **In review**, leaving it open.
-11. Only then select the next dependency-ready story.
-
-Do not create feature branches, worktrees, pull requests, or parallel implementation tasks. Do not overwrite, discard, or include unrelated pre-existing changes. Do not post progress, completion, or summary comments on epic issue #52. All implementation evidence belongs only on the relevant individual issue.
-
-After every story is complete, run the complete relevant test suite and final Unity validation, verify all individual evidence comments and project statuses, and confirm that `git status` is clean. Do not close epic #52 or any child issue, and do not add a summary comment to epic #52.
+Do not create branches, worktrees, PRs, parallel tasks, or disturb unrelated changes. Do not close/comment on #52 or close child issues. At apparent completion, refresh all statuses/comments; resume the sequential loop for anything returned to **In progress**. Otherwise run every maintained baseline and story scenario through `./scripts/autoplay-run.sh`, the full relevant suite, and final Unity validation; verify evidence/statuses and a clean worktree.

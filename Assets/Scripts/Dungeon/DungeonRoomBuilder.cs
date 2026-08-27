@@ -166,7 +166,7 @@ public partial class DungeonRoomBuilder : MonoBehaviour
                     );
                 }
             }
-            ConfigureGatewayOcclusion(gate, wallRun, open);
+            ConfigureGatewayOcclusion(gate, wallRun);
         }
         else
         {
@@ -200,7 +200,7 @@ public partial class DungeonRoomBuilder : MonoBehaviour
                     );
                 }
             }
-            ConfigureGatewayOcclusion(gate, wallRun, open);
+            ConfigureGatewayOcclusion(gate, wallRun);
         }
 
         return root;
@@ -223,19 +223,10 @@ public partial class DungeonRoomBuilder : MonoBehaviour
         return corner;
     }
 
-    private static void ConfigureGatewayOcclusion(GameObject gate, Transform section, bool open)
+    private static void ConfigureGatewayOcclusion(GameObject gate, Transform section)
     {
         DungeonOcclusionSection occlusionSection = section.GetComponent<DungeonOcclusionSection>();
-        if (!open)
-        {
-            // A blocked gateway is solid architecture, not a passage the
-            // player can walk beneath. Keep its arch and bars visible even
-            // when an adjoining wall in the same visual unit fades.
-            occlusionSection.Exclude(gate.transform);
-            return;
-        }
-
-        occlusionSection.ConfigureOpenGateway(gate.transform);
+        occlusionSection.ConfigureGateway(gate.transform);
 
         var volume = new GameObject("Gateway Top Occlusion Volume");
         volume.transform.SetParent(gate.transform, false);

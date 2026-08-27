@@ -13,6 +13,7 @@ public class PlayerMovement : MonoBehaviour
     private const float MaxKnockbackForce = 2.75f;
     private const float CollisionSkin = 0.02f;
     private const float EnemyStandOffGap = 0.4f;
+    internal const float WallCollisionRadius = 0.68f;
     private const int MaxCollisionSlides = 2;
 
     private Rigidbody _body;
@@ -22,6 +23,7 @@ public class PlayerMovement : MonoBehaviour
     private PlayerStats _playerStats;
     private PlayerInputHandler _inputHandler;
     private int _enemyLayerMask;
+    private int _wallLayerMask;
     private readonly RaycastHit[] _collisionHits = new RaycastHit[16];
 
     // Impulse-based knockback - additive velocity that decays naturally
@@ -56,7 +58,8 @@ public class PlayerMovement : MonoBehaviour
         _hopVisual = GetComponentInChildren<ShuffleWalkVisual>();
         _playerStats = GetComponentInChildren<PlayerStats>(); // May be on child prefab
         _inputHandler = GetComponent<PlayerInputHandler>();
-        _enemyLayerMask = LayerMask.GetMask("Enemy", "Wall");
+        _enemyLayerMask = LayerMask.GetMask("Enemy");
+        _wallLayerMask = LayerMask.GetMask("Wall");
 
         // This collider is the player's solid navigation body. Trigger-based
         // pickups and projectiles still work because their own colliders are triggers.
@@ -115,25 +118,36 @@ public class PlayerMovement : MonoBehaviour
         Vector2 knockbackDelta = _knockbackVelocity * Time.fixedDeltaTime;
         Vector2 totalDelta = playerDelta + knockbackDelta;
 
-        _body.MoveGroundPosition(_body.GroundPosition() + ResolveEnemyCollisions(totalDelta));
+        _body.MoveGroundPosition(_body.GroundPosition() + ResolveNavigationCollisions(totalDelta));
 
         // Update animator
         UpdateAnimator(moveDir);
     }
 
     /// <summary>
-    /// Cast the player's body before moving and slide along enemies on contact.
-    /// This prevents the kinematic player from transferring solver velocity to
-    /// dynamic enemies while still allowing smooth movement around them.
+    /// Cast the player's body before moving and slide along obstacles on contact.
+    /// Enemies retain their extra stand-off gap, while walls use a body-sized
+    /// footprint so diagonal approaches cannot push the visible model through
+    /// the architecture.
     /// </summary>
-    private Vector2 ResolveEnemyCollisions(Vector2 desiredDelta)
+    private Vector2 ResolveNavigationCollisions(Vector2 desiredDelta)
     {
-        if (_collider == null || _enemyLayerMask == 0 || desiredDelta.sqrMagnitude < 0.000001f)
+        if (
+            _collider == null
+            || (_enemyLayerMask | _wallLayerMask) == 0
+            || desiredDelta.sqrMagnitude < 0.000001f
+        )
             return desiredDelta;
 
         Bounds bounds = _collider.bounds;
-        Vector3 castCenter = bounds.center;
-        Vector3 castHalfExtents = bounds.extents;
+        Vector3 enemyCastCenter = bounds.center;
+        Vector3 enemyCastHalfExtents = bounds.extents;
+        Vector3 wallCastCenter = new(_body.position.x, bounds.center.y, _body.position.z);
+        Vector3 wallCastHalfExtents = new(
+            WallCollisionRadius,
+            bounds.extents.y,
+            WallCollisionRadius
+        );
         Vector2 resolvedDelta = Vector2.zero;
         Vector2 remainingDelta = desiredDelta;
 
@@ -144,28 +158,46 @@ public class PlayerMovement : MonoBehaviour
                 break;
 
             Vector2 direction = remainingDelta / distance;
-            if (
-                !TryGetBlockingHit(
-                    castCenter,
-                    castHalfExtents,
-                    direction,
-                    distance + CollisionSkin + EnemyStandOffGap,
-                    out RaycastHit hit
-                )
-            )
+            bool hasEnemyHit = TryGetBlockingHit(
+                enemyCastCenter,
+                enemyCastHalfExtents,
+                direction,
+                distance + CollisionSkin + EnemyStandOffGap,
+                _enemyLayerMask,
+                out RaycastHit enemyHit
+            );
+            bool hasWallHit = TryGetBlockingHit(
+                wallCastCenter,
+                wallCastHalfExtents,
+                direction,
+                distance + CollisionSkin,
+                _wallLayerMask,
+                out RaycastHit wallHit
+            );
+            if (!hasEnemyHit && !hasWallHit)
             {
                 resolvedDelta += remainingDelta;
                 break;
             }
 
+            float enemyTravelDistance = hasEnemyHit
+                ? enemyHit.distance - CollisionSkin - EnemyStandOffGap
+                : float.PositiveInfinity;
+            float wallTravelDistance = hasWallHit
+                ? wallHit.distance - CollisionSkin
+                : float.PositiveInfinity;
+            bool wallBlocksFirst = wallTravelDistance <= enemyTravelDistance;
+            RaycastHit hit = wallBlocksFirst ? wallHit : enemyHit;
             float travelDistance = Mathf.Clamp(
-                hit.distance - CollisionSkin - EnemyStandOffGap,
+                wallBlocksFirst ? wallTravelDistance : enemyTravelDistance,
                 0f,
                 distance
             );
             Vector2 travel = direction * travelDistance;
             resolvedDelta += travel;
-            castCenter += travel.ToWorld();
+            Vector3 worldTravel = travel.ToWorld();
+            enemyCastCenter += worldTravel;
+            wallCastCenter += worldTravel;
 
             Vector2 untraveled = direction * (distance - travelDistance);
             Vector2 hitNormal = hit.normal.ToGround();
@@ -184,9 +216,16 @@ public class PlayerMovement : MonoBehaviour
         Vector3 castHalfExtents,
         Vector2 direction,
         float distance,
+        int layerMask,
         out RaycastHit closestHit
     )
     {
+        if (layerMask == 0)
+        {
+            closestHit = default;
+            return false;
+        }
+
         int hitCount = Physics.BoxCastNonAlloc(
             castCenter,
             castHalfExtents,
@@ -194,7 +233,7 @@ public class PlayerMovement : MonoBehaviour
             _collisionHits,
             Quaternion.identity,
             distance,
-            _enemyLayerMask,
+            layerMask,
             QueryTriggerInteraction.Ignore
         );
 
@@ -212,9 +251,9 @@ public class PlayerMovement : MonoBehaviour
             // player can always disengage instead of becoming stuck.
             if (candidate.distance <= CollisionSkin)
             {
-                Vector2 awayFromEnemy =
-                    castCenter.ToGround() - candidate.collider.bounds.center.ToGround();
-                if (Vector2.Dot(direction, awayFromEnemy) >= 0f)
+                Vector2 closestPoint = candidate.collider.ClosestPoint(castCenter).ToGround();
+                Vector2 awayFromObstacle = castCenter.ToGround() - closestPoint;
+                if (Vector2.Dot(direction, awayFromObstacle) >= 0f)
                     continue;
             }
 
