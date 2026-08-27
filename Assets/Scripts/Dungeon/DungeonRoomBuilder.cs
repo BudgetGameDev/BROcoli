@@ -144,8 +144,6 @@ public partial class DungeonRoomBuilder : MonoBehaviour
             );
             int gateIndex = DungeonLayout.RoomTilesX / 2;
             GameObject gate = null;
-            Transform firstAdjacentWall = null;
-            Transform secondAdjacentWall = null;
             for (int i = 0; i < DungeonLayout.RoomTilesX; i++)
             {
                 float x = roomCenter.x + (i - gateIndex) * Tile;
@@ -160,25 +158,15 @@ public partial class DungeonRoomBuilder : MonoBehaviour
                 }
                 else
                 {
-                    GameObject wall = Instantiate(
+                    Instantiate(
                         wallPrefab,
                         new Vector3(x, 0f, boundaryZ),
                         Quaternion.identity,
                         wallRun
                     );
-                    if (i == gateIndex - 1)
-                        firstAdjacentWall = wall.transform;
-                    else if (i == gateIndex + 1)
-                        secondAdjacentWall = wall.transform;
                 }
             }
-            ConfigureGatewayOcclusion(
-                gate,
-                wallRun,
-                open,
-                firstAdjacentWall,
-                secondAdjacentWall
-            );
+            ConfigureGatewayOcclusion(gate, wallRun, open);
         }
         else
         {
@@ -190,8 +178,6 @@ public partial class DungeonRoomBuilder : MonoBehaviour
             int gateIndex = DungeonLayout.RoomTilesZ / 2;
             Quaternion sideways = Quaternion.Euler(0f, 90f, 0f);
             GameObject gate = null;
-            Transform firstAdjacentWall = null;
-            Transform secondAdjacentWall = null;
             for (int j = 0; j < DungeonLayout.RoomTilesZ; j++)
             {
                 float z = roomCenter.y + (j - gateIndex) * Tile;
@@ -206,25 +192,15 @@ public partial class DungeonRoomBuilder : MonoBehaviour
                 }
                 else
                 {
-                    GameObject wall = Instantiate(
+                    Instantiate(
                         wallPrefab,
                         new Vector3(boundaryX, 0f, z),
                         sideways,
                         wallRun
                     );
-                    if (j == gateIndex - 1)
-                        firstAdjacentWall = wall.transform;
-                    else if (j == gateIndex + 1)
-                        secondAdjacentWall = wall.transform;
                 }
             }
-            ConfigureGatewayOcclusion(
-                gate,
-                wallRun,
-                open,
-                firstAdjacentWall,
-                secondAdjacentWall
-            );
+            ConfigureGatewayOcclusion(gate, wallRun, open);
         }
 
         return root;
@@ -247,13 +223,7 @@ public partial class DungeonRoomBuilder : MonoBehaviour
         return corner;
     }
 
-    private static void ConfigureGatewayOcclusion(
-        GameObject gate,
-        Transform section,
-        bool open,
-        Transform firstAdjacentWall,
-        Transform secondAdjacentWall
-    )
+    private static void ConfigureGatewayOcclusion(GameObject gate, Transform section, bool open)
     {
         DungeonOcclusionSection occlusionSection = section.GetComponent<DungeonOcclusionSection>();
         if (!open)
@@ -265,11 +235,7 @@ public partial class DungeonRoomBuilder : MonoBehaviour
             return;
         }
 
-        occlusionSection.ConfigureOpenGateway(
-            gate.transform,
-            firstAdjacentWall,
-            secondAdjacentWall
-        );
+        occlusionSection.ConfigureOpenGateway(gate.transform);
 
         var volume = new GameObject("Gateway Top Occlusion Volume");
         volume.transform.SetParent(gate.transform, false);

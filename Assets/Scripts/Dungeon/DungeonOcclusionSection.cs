@@ -13,7 +13,6 @@ public sealed class DungeonOcclusionSection : MonoBehaviour
     private static readonly HashSet<DungeonOcclusionSection> ConfiguredSections = new();
 
     private readonly HashSet<DungeonOcclusionSection> linkedSections = new();
-    private readonly HashSet<Transform> gatewayAdjacentRoots = new();
     private Transform excludedRoot;
     private Transform gatewayRoot;
     private Vector3 firstEndpoint;
@@ -42,30 +41,9 @@ public sealed class DungeonOcclusionSection : MonoBehaviour
         excludedRoot = root;
     }
 
-    public void ConfigureOpenGateway(
-        Transform root,
-        Transform firstAdjacentRoot,
-        Transform secondAdjacentRoot
-    )
+    public void ConfigureOpenGateway(Transform root)
     {
         gatewayRoot = root;
-        gatewayAdjacentRoots.Clear();
-        if (firstAdjacentRoot != null)
-            gatewayAdjacentRoots.Add(firstAdjacentRoot);
-        if (secondAdjacentRoot != null)
-            gatewayAdjacentRoots.Add(secondAdjacentRoot);
-    }
-
-    public bool UsesPartialGatewayFade(Transform candidate)
-    {
-        if (IsWithinRoot(candidate, gatewayRoot))
-            return true;
-        foreach (Transform adjacentRoot in gatewayAdjacentRoots)
-        {
-            if (IsWithinRoot(candidate, adjacentRoot))
-                return true;
-        }
-        return false;
     }
 
     public static bool TryCollectForHit(
@@ -208,7 +186,7 @@ public sealed class DungeonOcclusionSection : MonoBehaviour
 
         collectedSections.Add(this);
         CollectVisibleRenderers(
-            gatewayRoot,
+            transform,
             camera,
             frustumPlanes,
             playerPosition,
@@ -217,18 +195,18 @@ public sealed class DungeonOcclusionSection : MonoBehaviour
             this,
             gatewayRoot
         );
-        foreach (Transform adjacentRoot in gatewayAdjacentRoots)
+        foreach (DungeonOcclusionSection linkedSection in linkedSections)
         {
-            if (adjacentRoot == null)
+            if (linkedSection == null)
                 continue;
-            CollectVisibleRenderers(
-                adjacentRoot,
+            CollectSection(
+                linkedSection,
                 camera,
                 frustumPlanes,
                 playerPosition,
+                collectedSections,
                 results,
-                rendererBuffer,
-                this
+                rendererBuffer
             );
         }
     }
@@ -345,6 +323,5 @@ public sealed class DungeonOcclusionSection : MonoBehaviour
         foreach (DungeonOcclusionSection section in ConfiguredSections)
             section.linkedSections.Remove(this);
         linkedSections.Clear();
-        gatewayAdjacentRoots.Clear();
     }
 }
