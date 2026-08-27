@@ -18,6 +18,23 @@ public partial class DungeonPropPlacer : MonoBehaviour
     // Mount wall props on the slab faces, not on the moulding's outer bounds.
     private const float WallFrontFaceOffset = 0.4f;
     private const float WallBackFaceOffset = 1f;
+    private const float BannerMeshDepthOffset = 1.05f;
+    private const float PropGap = 0.12f;
+    private const float LargePropSeparation = 3.8f;
+
+    private readonly struct OccupiedSpot
+    {
+        public readonly Vector2 Position;
+        public readonly float Radius;
+        public readonly bool Large;
+
+        public OccupiedSpot(Vector2 position, float radius, bool large)
+        {
+            Position = position;
+            Radius = radius;
+            Large = large;
+        }
+    }
 
     public readonly struct PlacedChest
     {
@@ -61,6 +78,8 @@ public partial class DungeonPropPlacer : MonoBehaviour
     [SerializeField, Range(0f, 1f)]
     private float waterChance = 0.45f;
 
+    private readonly Dictionary<GameObject, float> footprintRadii = new();
+
     /// <summary>
     /// Places deterministic chest slots and the room's prop pattern. Opened
     /// slots still reserve their positions so rebuilt rooms never rearrange.
@@ -75,7 +94,7 @@ public partial class DungeonPropPlacer : MonoBehaviour
     {
         Vector2 center = DungeonLayout.RoomCenter(room);
         var placedChests = new List<PlacedChest>();
-        var occupied = new List<Vector2>();
+        var occupied = new List<OccupiedSpot>();
 
         int chestCount = ChestCount(room, archetype, random);
         for (int slot = 0; slot < chestCount; slot++)
@@ -87,13 +106,14 @@ public partial class DungeonPropPlacer : MonoBehaviour
                         ? slot == archetype.Variant % chestCount
                         : random.NextDouble() < goldenChestChance
                 );
+            GameObject prefab = golden ? goldenChestPrefab : chestPrefab;
             Vector2 local = ChestSpot(slot, chestCount, archetype);
-            occupied.Add(local);
+            float radius = FootprintRadius(prefab);
+            occupied.Add(new OccupiedSpot(local, radius, radius >= 1.1f));
 
             if (openedChestSlots != null && openedChestSlots.Contains(slot))
                 continue;
 
-            GameObject prefab = golden ? goldenChestPrefab : chestPrefab;
             if (prefab == null)
                 continue;
             GameObject spawned = Instantiate(
@@ -227,18 +247,33 @@ public partial class DungeonPropPlacer : MonoBehaviour
         {
             float x = archetype.HalfWidth - 1.4f;
             float z = archetype.HalfDepth - 1.4f;
+            float xSign = (archetype.Variant & 1) == 0 ? 1f : -1f;
+            if (
+                archetype.Shape == DungeonLayout.RoomShape.Compact
+                && archetype.Theme == DungeonLayout.RoomTheme.Shrine
+            )
+            {
+                return new Vector2(xSign * 2f, xSign * -2f);
+            }
+            if (archetype.Theme == DungeonLayout.RoomTheme.Armory)
+            {
+                float armoryZ = Mathf.Min(2f, z);
+                return new Vector2(xSign * x, xSign * -armoryZ);
+            }
             return new Vector2(
-                (archetype.Variant & 1) == 0 ? x : -x,
+                xSign * x,
                 (archetype.Variant & 2) == 0 ? z : -z
             );
         }
 
+        float vaultX = archetype.Shape == DungeonLayout.RoomShape.Compact ? 2.3f : 3.3f;
+        float vaultZ = archetype.Shape == DungeonLayout.RoomShape.Compact ? 2.3f : 3f;
         var vaultSpots = new[]
         {
-            new Vector2(-3.3f, -3f),
-            new Vector2(3.3f, -3f),
-            new Vector2(-3.3f, 3f),
-            new Vector2(3.3f, 3f),
+            new Vector2(-vaultX, -vaultZ),
+            new Vector2(vaultX, -vaultZ),
+            new Vector2(-vaultX, vaultZ),
+            new Vector2(vaultX, vaultZ),
         };
         return RotateQuarterTurns(vaultSpots[slot % vaultSpots.Length], archetype.Variant);
     }

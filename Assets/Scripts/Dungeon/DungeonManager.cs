@@ -42,7 +42,7 @@ public class DungeonManager : MonoBehaviour
 
     private readonly Dictionary<Vector2Int, LoadedRoom> loadedRooms = new();
     private readonly Dictionary<DungeonEdge, GameObject> loadedEdges = new();
-    private readonly Dictionary<Vector2Int, GameObject> loadedCorners = new();
+    private readonly Dictionary<Vector2Int, GameObject> loadedJunctions = new();
     private readonly Dictionary<Vector2Int, RoomState> roomStates = new();
     private readonly List<EnemyBase> enemyPrefabs = new();
 
@@ -158,8 +158,8 @@ public class DungeonManager : MonoBehaviour
 
         foreach (Vector2Int vertex in RoomVertices(room))
         {
-            if (!loadedCorners.ContainsKey(vertex))
-                loadedCorners[vertex] = builder.BuildCorner(transform, vertex);
+            if (!loadedJunctions.ContainsKey(vertex))
+                loadedJunctions[vertex] = builder.BuildJunction(transform, vertex);
         }
 
         var loaded = new LoadedRoom { Root = root, DormantEnemies = new List<EnemyBase>() };
@@ -220,21 +220,21 @@ public class DungeonManager : MonoBehaviour
             }
         }
 
-        List<Vector2Int> deadCorners = null;
-        foreach (KeyValuePair<Vector2Int, GameObject> pair in loadedCorners)
+        List<Vector2Int> deadJunctions = null;
+        foreach (KeyValuePair<Vector2Int, GameObject> pair in loadedJunctions)
         {
             bool anyLoaded = false;
             foreach (Vector2Int room in VertexRooms(pair.Key))
                 anyLoaded |= loadedRooms.ContainsKey(room);
             if (!anyLoaded)
-                (deadCorners ??= new List<Vector2Int>()).Add(pair.Key);
+                (deadJunctions ??= new List<Vector2Int>()).Add(pair.Key);
         }
-        if (deadCorners != null)
+        if (deadJunctions != null)
         {
-            foreach (Vector2Int vertex in deadCorners)
+            foreach (Vector2Int vertex in deadJunctions)
             {
-                Destroy(loadedCorners[vertex]);
-                loadedCorners.Remove(vertex);
+                Destroy(loadedJunctions[vertex]);
+                loadedJunctions.Remove(vertex);
             }
         }
     }

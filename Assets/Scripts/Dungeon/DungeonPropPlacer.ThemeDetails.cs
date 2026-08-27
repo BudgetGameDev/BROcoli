@@ -8,7 +8,7 @@ public partial class DungeonPropPlacer
         Vector2 center,
         DungeonLayout.RoomArchetype archetype,
         System.Random random,
-        List<Vector2> occupied
+        List<OccupiedSpot> occupied
     )
     {
         float x = Mathf.Min(4.5f, archetype.HalfWidth - 0.7f);
@@ -43,31 +43,19 @@ public partial class DungeonPropPlacer
         Vector2 center,
         DungeonLayout.RoomArchetype archetype,
         System.Random random,
-        List<Vector2> occupied
+        List<OccupiedSpot> occupied
     )
     {
-        int count = Mathf.Min(maxPropsPerRoom, 9 + random.Next(0, 7));
-        for (int i = 0; i < count; i++)
-        {
-            float t = count <= 1 ? 0.5f : i / (float)(count - 1);
-            float x = Mathf.Lerp(-archetype.HalfWidth + 1f, archetype.HalfWidth - 1f, t);
-            float z = (archetype.Variant & 1) == 0 ? x * 0.45f : -x * 0.45f;
-            z += Mathf.Lerp(-1.4f, 1.4f, (float)random.NextDouble());
-            z = Mathf.Clamp(z, -archetype.HalfDepth + 0.8f, archetype.HalfDepth - 0.8f);
-            string token =
-                i % 3 == 0 ? "Rocks"
-                : i % 3 == 1 ? "Stones"
-                : "Dirt";
-            PlaceNamed(
-                parent,
-                center,
-                token,
-                new Vector2(x, z),
-                random.Next(0, 360),
-                occupied,
-                Mathf.Lerp(0.75f, 1.25f, (float)random.NextDouble())
-            );
-        }
+        Scatter(
+            parent,
+            center,
+            archetype,
+            random,
+            occupied,
+            5 + random.Next(0, 4),
+            "Rocks",
+            "Stones"
+        );
     }
 
     private void Scatter(
@@ -75,7 +63,7 @@ public partial class DungeonPropPlacer
         Vector2 center,
         DungeonLayout.RoomArchetype archetype,
         System.Random random,
-        List<Vector2> occupied,
+        List<OccupiedSpot> occupied,
         int requested,
         params string[] tokens
     )
@@ -87,8 +75,9 @@ public partial class DungeonPropPlacer
             if (prefab == null)
                 continue;
 
-            float clearance = Clearance(prefab.name);
-            if (!TryRandomSpot(archetype, random, occupied, clearance, out Vector2 local))
+            float radius = FootprintRadius(prefab);
+            bool large = IsLargeProp(prefab.name);
+            if (!TryRandomSpot(archetype, random, occupied, radius, large, out Vector2 local))
                 continue;
             Instantiate(
                 prefab,
@@ -96,7 +85,64 @@ public partial class DungeonPropPlacer
                 GroundPlane.YawRotation(random.Next(0, 360)),
                 parent
             );
-            occupied.Add(local);
+            occupied.Add(new OccupiedSpot(local, radius, large));
+        }
+    }
+
+    private void PlaceSmallClusters(
+        Transform parent,
+        Vector2 center,
+        DungeonLayout.RoomArchetype archetype,
+        System.Random random,
+        List<OccupiedSpot> occupied,
+        int clusterCount,
+        int minGroupSize,
+        int maxGroupSize,
+        params string[] tokens
+    )
+    {
+        if (tokens == null || tokens.Length == 0)
+            return;
+
+        int minimum = Mathf.Max(3, minGroupSize);
+        int maximum = Mathf.Max(minimum, maxGroupSize);
+        for (int cluster = 0; cluster < clusterCount; cluster++)
+        {
+            GameObject prefab = FindProp(tokens[random.Next(tokens.Length)]);
+            if (prefab == null)
+                continue;
+
+            int groupSize = random.Next(minimum, maximum + 1);
+            float propRadius = FootprintRadius(prefab);
+            float neighbourDistance = propRadius * 2f + PropGap;
+            float ringRadius =
+                neighbourDistance / (2f * Mathf.Sin(Mathf.PI / groupSize));
+            float clusterRadius = ringRadius + propRadius;
+            if (
+                !TryClusterSpot(
+                    archetype,
+                    random,
+                    occupied,
+                    clusterRadius,
+                    out Vector2 clusterSpot
+                )
+            )
+                continue;
+
+            float phase = Mathf.Lerp(0f, Mathf.PI * 2f, (float)random.NextDouble());
+            for (int i = 0; i < groupSize; i++)
+            {
+                float angle = phase + i * Mathf.PI * 2f / groupSize;
+                Vector2 local =
+                    clusterSpot + new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * ringRadius;
+                Instantiate(
+                    prefab,
+                    (center + local).ToWorld(),
+                    GroundPlane.YawRotation(random.Next(0, 360)),
+                    parent
+                );
+                occupied.Add(new OccupiedSpot(local, propRadius, false));
+            }
         }
     }
 
@@ -106,7 +152,7 @@ public partial class DungeonPropPlacer
         string token,
         Vector2 local,
         float yaw,
-        List<Vector2> occupied,
+        List<OccupiedSpot> occupied,
         float scale = 1f,
         float height = 0f
     )
@@ -121,7 +167,8 @@ public partial class DungeonPropPlacer
             parent
         );
         prop.transform.localScale *= scale;
-        occupied.Add(local);
+        float radius = FootprintRadius(prefab) * scale;
+        occupied.Add(new OccupiedSpot(local, radius, IsLargeProp(prefab.name)));
     }
 
     private void PlaceWallBanner(
@@ -153,19 +200,31 @@ public partial class DungeonPropPlacer
         switch ((side % 4 + 4) % 4)
         {
             case 0:
-                local = new Vector2(-3.5f, wallZ);
+                local = new Vector2(
+                    -3.5f,
+                    PositiveWallFace(wallZ) + BannerMeshDepthOffset
+                );
                 yaw = 0f;
                 break;
             case 1:
-                local = new Vector2(wallX, -3f);
+                local = new Vector2(
+                    PositiveWallFace(wallX) + BannerMeshDepthOffset,
+                    -3f
+                );
                 yaw = 90f;
                 break;
             case 2:
-                local = new Vector2(3.5f, -wallZ);
+                local = new Vector2(
+                    3.5f,
+                    NegativeWallFace(-wallZ) - BannerMeshDepthOffset
+                );
                 yaw = 180f;
                 break;
             default:
-                local = new Vector2(-wallX, 3f);
+                local = new Vector2(
+                    NegativeWallFace(-wallX) - BannerMeshDepthOffset,
+                    3f
+                );
                 yaw = -90f;
                 break;
         }

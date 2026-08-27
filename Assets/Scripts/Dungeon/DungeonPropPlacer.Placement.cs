@@ -6,24 +6,91 @@ public partial class DungeonPropPlacer
     private static bool TryRandomSpot(
         DungeonLayout.RoomArchetype archetype,
         System.Random random,
-        List<Vector2> occupied,
-        float clearance,
+        List<OccupiedSpot> occupied,
+        float radius,
+        bool large,
         out Vector2 result
     )
     {
+        float edgeMargin = Mathf.Max(0.65f, radius + 0.2f);
         for (int attempt = 0; attempt < 28; attempt++)
         {
             var candidate = new Vector2(
-                Mathf.Lerp(-archetype.HalfWidth, archetype.HalfWidth, (float)random.NextDouble()),
-                Mathf.Lerp(-archetype.HalfDepth, archetype.HalfDepth, (float)random.NextDouble())
+                Mathf.Lerp(
+                    -archetype.HalfWidth + edgeMargin,
+                    archetype.HalfWidth - edgeMargin,
+                    (float)random.NextDouble()
+                ),
+                Mathf.Lerp(
+                    -archetype.HalfDepth + edgeMargin,
+                    archetype.HalfDepth - edgeMargin,
+                    (float)random.NextDouble()
+                )
             );
             if (Mathf.Abs(candidate.x) < 1.55f || Mathf.Abs(candidate.y) < 1.55f)
                 continue;
             if (IsOnDivider(candidate, archetype))
                 continue;
             bool clear = true;
-            foreach (Vector2 other in occupied)
-                clear &= (candidate - other).sqrMagnitude >= clearance * clearance;
+            foreach (OccupiedSpot other in occupied)
+            {
+                float separation = radius + other.Radius + PropGap;
+                if (large && other.Large)
+                    separation = Mathf.Max(separation, LargePropSeparation);
+                clear &=
+                    (candidate - other.Position).sqrMagnitude >= separation * separation;
+            }
+            if (!clear)
+                continue;
+            result = candidate;
+            return true;
+        }
+        result = default;
+        return false;
+    }
+
+    private static bool TryClusterSpot(
+        DungeonLayout.RoomArchetype archetype,
+        System.Random random,
+        List<OccupiedSpot> occupied,
+        float radius,
+        out Vector2 result
+    )
+    {
+        for (int attempt = 0; attempt < 48; attempt++)
+        {
+            var candidate = new Vector2(
+                Mathf.Lerp(
+                    -archetype.HalfWidth + radius,
+                    archetype.HalfWidth - radius,
+                    (float)random.NextDouble()
+                ),
+                Mathf.Lerp(
+                    -archetype.HalfDepth + radius,
+                    archetype.HalfDepth - radius,
+                    (float)random.NextDouble()
+                )
+            );
+            if (Mathf.Abs(candidate.x) < 1.55f)
+                continue;
+            if (Mathf.Abs(candidate.y) < 1.55f)
+                continue;
+            if (
+                IsOnDivider(candidate, archetype)
+                || IsOnDivider(candidate + Vector2.right * radius, archetype)
+                || IsOnDivider(candidate + Vector2.left * radius, archetype)
+                || IsOnDivider(candidate + Vector2.up * radius, archetype)
+                || IsOnDivider(candidate + Vector2.down * radius, archetype)
+            )
+                continue;
+
+            bool clear = true;
+            foreach (OccupiedSpot other in occupied)
+            {
+                float separation = radius + other.Radius + PropGap;
+                clear &=
+                    (candidate - other.Position).sqrMagnitude >= separation * separation;
+            }
             if (!clear)
                 continue;
             result = candidate;
@@ -51,13 +118,78 @@ public partial class DungeonPropPlacer
         return Mathf.Abs(point.y) < 1.5f && nearestHorizontal < 2.6f;
     }
 
-    private static float Clearance(string prefabName)
+    private float FootprintRadius(GameObject prefab)
     {
-        if (prefabName.Contains("Rocks") || prefabName.Contains("Structure"))
-            return 2.6f;
-        if (prefabName.Contains("Table") || prefabName.Contains("Stairs"))
-            return 2.2f;
-        return 1.45f;
+        if (prefab == null)
+            return 0.5f;
+        if (footprintRadii.TryGetValue(prefab, out float cached))
+            return cached;
+
+        float radiusSquared = 0.25f;
+        Transform root = prefab.transform;
+        foreach (MeshFilter meshFilter in prefab.GetComponentsInChildren<MeshFilter>(true))
+        {
+            if (meshFilter.sharedMesh == null)
+                continue;
+
+            Matrix4x4 toRoot = root.worldToLocalMatrix * meshFilter.transform.localToWorldMatrix;
+            radiusSquared = IncludeFootprintBounds(
+                radiusSquared,
+                meshFilter.sharedMesh.bounds,
+                toRoot
+            );
+        }
+        foreach (BoxCollider collider in prefab.GetComponentsInChildren<BoxCollider>(true))
+        {
+            if (collider.isTrigger)
+                continue;
+            Matrix4x4 toRoot = root.worldToLocalMatrix * collider.transform.localToWorldMatrix;
+            radiusSquared = IncludeFootprintBounds(
+                radiusSquared,
+                new Bounds(collider.center, collider.size),
+                toRoot
+            );
+        }
+
+        float radius = Mathf.Sqrt(radiusSquared);
+        footprintRadii[prefab] = radius;
+        return radius;
+    }
+
+    private static float IncludeFootprintBounds(
+        float radiusSquared,
+        Bounds bounds,
+        Matrix4x4 toRoot
+    )
+    {
+        Vector3 min = bounds.min;
+        Vector3 max = bounds.max;
+        for (int x = 0; x < 2; x++)
+        for (int y = 0; y < 2; y++)
+        for (int z = 0; z < 2; z++)
+        {
+            Vector3 point = toRoot.MultiplyPoint3x4(
+                new Vector3(
+                    x == 0 ? min.x : max.x,
+                    y == 0 ? min.y : max.y,
+                    z == 0 ? min.z : max.z
+                )
+            );
+            radiusSquared = Mathf.Max(
+                radiusSquared,
+                point.x * point.x + point.z * point.z
+            );
+        }
+        return radiusSquared;
+    }
+
+    private static bool IsLargeProp(string prefabName)
+    {
+        return prefabName.Contains("Rocks")
+            || prefabName.Contains("Stones")
+            || prefabName.Contains("Structure")
+            || prefabName.Contains("Support")
+            || prefabName.Contains("Table");
     }
 
     private static (Vector2 pos, float yaw)[] TorchSpots(DungeonLayout.RoomArchetype archetype)
@@ -67,8 +199,8 @@ public partial class DungeonPropPlacer
             {
                 (new Vector2(-3.5f, PositiveWallFace(6f)), 180f),
                 (new Vector2(3.5f, PositiveWallFace(6f)), 180f),
-                (new Vector2(-3.5f, NegativeWallFace(-6f)), 0f),
-                (new Vector2(3.5f, NegativeWallFace(-6f)), 0f),
+                BottomWallTorch(-3.5f, -6f),
+                BottomWallTorch(3.5f, -6f),
                 (new Vector2(PositiveWallFace(6f), -3.5f), -90f),
                 (new Vector2(PositiveWallFace(6f), 3.5f), -90f),
                 (new Vector2(NegativeWallFace(-6f), -3.5f), 90f),
@@ -79,8 +211,8 @@ public partial class DungeonPropPlacer
             {
                 (new Vector2(-8f, PositiveWallFace(6f)), 180f),
                 (new Vector2(8f, PositiveWallFace(6f)), 180f),
-                (new Vector2(-8f, NegativeWallFace(-6f)), 0f),
-                (new Vector2(8f, NegativeWallFace(-6f)), 0f),
+                BottomWallTorch(-8f, -6f),
+                BottomWallTorch(8f, -6f),
             };
         if (archetype.Shape == DungeonLayout.RoomShape.LongVertical)
             return new[]
@@ -95,8 +227,8 @@ public partial class DungeonPropPlacer
             {
                 (new Vector2(-6f, PositiveWallFace(HalfRoomDepth)), 180f),
                 (new Vector2(6f, PositiveWallFace(HalfRoomDepth)), 180f),
-                (new Vector2(-6f, NegativeWallFace(-HalfRoomDepth)), 0f),
-                (new Vector2(6f, NegativeWallFace(-HalfRoomDepth)), 0f),
+                BottomWallTorch(-6f, -HalfRoomDepth),
+                BottomWallTorch(6f, -HalfRoomDepth),
                 (new Vector2(PositiveWallFace(10f), -4f), -90f),
                 (new Vector2(PositiveWallFace(10f), 4f), -90f),
                 (new Vector2(NegativeWallFace(-10f), -4f), 90f),
@@ -106,8 +238,8 @@ public partial class DungeonPropPlacer
         {
             (new Vector2(-8f, PositiveWallFace(HalfRoomDepth)), 180f),
             (new Vector2(8f, PositiveWallFace(HalfRoomDepth)), 180f),
-            (new Vector2(-8f, NegativeWallFace(-HalfRoomDepth)), 0f),
-            (new Vector2(8f, NegativeWallFace(-HalfRoomDepth)), 0f),
+            BottomWallTorch(-8f, -HalfRoomDepth),
+            BottomWallTorch(8f, -HalfRoomDepth),
             (new Vector2(PositiveWallFace(HalfRoomWidth), -5f), -90f),
             (new Vector2(PositiveWallFace(HalfRoomWidth), 5f), -90f),
             (new Vector2(NegativeWallFace(-HalfRoomWidth), -5f), 90f),
@@ -123,6 +255,14 @@ public partial class DungeonPropPlacer
     private static float NegativeWallFace(float wallCoordinate)
     {
         return wallCoordinate + WallBackFaceOffset;
+    }
+
+    private static (Vector2 pos, float yaw) BottomWallTorch(float x, float wallCoordinate)
+    {
+        // Bottom walls become half walls from the gameplay camera. Keep their
+        // torches on the world-downward face so the bracket remains visibly
+        // attached to the wall instead of hovering above its faded top.
+        return (new Vector2(x, PositiveWallFace(wallCoordinate)), 180f);
     }
 
     private static Vector2 PoolSpot(DungeonLayout.RoomArchetype archetype, System.Random random)

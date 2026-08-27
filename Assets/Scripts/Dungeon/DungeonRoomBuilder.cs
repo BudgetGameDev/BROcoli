@@ -2,8 +2,8 @@ using UnityEngine;
 
 /// <summary>
 /// Instantiates the physical pieces of a dungeon room: floor tiles, shared
-/// wall runs with open or blocked gateways, corner posts, decorative props,
-/// and loot chests. Pure construction; the layout decisions come from
+/// wall runs with open or blocked gateways, decorative props, and loot
+/// chests. Pure construction; the layout decisions come from
 /// <see cref="DungeonLayout"/> and the per-room random streams handed in by
 /// <see cref="DungeonManager"/>.
 /// </summary>
@@ -27,9 +27,6 @@ public partial class DungeonRoomBuilder : MonoBehaviour
 
     [SerializeField]
     private GameObject wallPrefab;
-
-    [SerializeField]
-    private GameObject cornerPrefab;
 
     [SerializeField]
     private GameObject gateOpenPrefab;
@@ -207,20 +204,21 @@ public partial class DungeonRoomBuilder : MonoBehaviour
     }
 
     /// <summary>
-    /// Builds the post that caps the vertex where four rooms meet, hiding the
-    /// spot where perpendicular wall runs cross.
+    /// Keeps perpendicular wall runs linked for coordinated occlusion fading
+    /// without placing a visible wall-corner mesh at their shared vertex.
     /// </summary>
-    public GameObject BuildCorner(Transform parent, Vector2Int vertex)
+    public GameObject BuildJunction(Transform parent, Vector2Int vertex)
     {
         Vector3 position = new Vector3(
             vertex.x * DungeonLayout.RoomWidth + HalfRoomWidth,
             0f,
             vertex.y * DungeonLayout.RoomDepth + HalfRoomDepth
         );
-        GameObject corner = Instantiate(cornerPrefab, position, Quaternion.identity, parent);
-        corner.name = $"Corner ({vertex.x}, {vertex.y})";
-        corner.AddComponent<DungeonOcclusionSection>().ConfigureJunction(position);
-        return corner;
+        var junction = new GameObject($"Wall Junction ({vertex.x}, {vertex.y})");
+        junction.transform.SetParent(parent, false);
+        junction.transform.position = position;
+        junction.AddComponent<DungeonOcclusionSection>().ConfigureJunction(position);
+        return junction;
     }
 
     private static void ConfigureGatewayOcclusion(GameObject gate, Transform section)

@@ -8,7 +8,7 @@ public partial class DungeonPropPlacer
         Vector2 center,
         DungeonLayout.RoomArchetype archetype,
         System.Random random,
-        List<Vector2> occupied
+        List<OccupiedSpot> occupied
     )
     {
         switch (archetype.Theme)
@@ -22,12 +22,23 @@ public partial class DungeonPropPlacer
                     archetype,
                     random,
                     occupied,
-                    random.Next(0, 4),
-                    "Barrel",
-                    "Pot",
+                    random.Next(0, 3),
                     "Chair",
                     "Stones"
                 );
+                if (random.NextDouble() < 0.55)
+                    PlaceSmallClusters(
+                        parent,
+                        center,
+                        archetype,
+                        random,
+                        occupied,
+                        1,
+                        3,
+                        4,
+                        "Barrel",
+                        "Pot"
+                    );
                 break;
             case DungeonLayout.RoomTheme.Storage:
                 Scatter(
@@ -36,12 +47,22 @@ public partial class DungeonPropPlacer
                     archetype,
                     random,
                     occupied,
-                    9 + random.Next(0, 6),
-                    "Barrel",
-                    "Pot",
+                    3 + random.Next(0, 3),
                     "WoodSupport",
                     "WoodStructure",
                     "Table"
+                );
+                PlaceSmallClusters(
+                    parent,
+                    center,
+                    archetype,
+                    random,
+                    occupied,
+                    1 + random.Next(0, 2),
+                    3,
+                    5,
+                    "Barrel",
+                    "Pot"
                 );
                 PlaceWallBanner(parent, center, archetype, archetype.Variant);
                 break;
@@ -61,10 +82,9 @@ public partial class DungeonPropPlacer
                     archetype,
                     random,
                     occupied,
-                    3 + random.Next(0, 4),
+                    3 + random.Next(0, 3),
                     "Rocks",
-                    "Stones",
-                    "Dirt"
+                    "Stones"
                 );
                 break;
             case DungeonLayout.RoomTheme.TreasureVault:
@@ -81,7 +101,7 @@ public partial class DungeonPropPlacer
         Vector2 center,
         DungeonLayout.RoomArchetype archetype,
         System.Random random,
-        List<Vector2> occupied
+        List<OccupiedSpot> occupied
     )
     {
         bool horizontal = archetype.Shape == DungeonLayout.RoomShape.LongHorizontal;
@@ -96,13 +116,15 @@ public partial class DungeonPropPlacer
         }
         PlaceWallBanner(parent, center, archetype, archetype.Variant);
         PlaceWallBanner(parent, center, archetype, archetype.Variant + 2);
-        Scatter(
+        PlaceSmallClusters(
             parent,
             center,
             archetype,
             random,
             occupied,
-            2 + random.Next(0, 3),
+            1,
+            3,
+            5,
             "Pot",
             "Potion",
             "Barrel"
@@ -114,7 +136,7 @@ public partial class DungeonPropPlacer
         Vector2 center,
         DungeonLayout.RoomArchetype archetype,
         System.Random random,
-        List<Vector2> occupied
+        List<OccupiedSpot> occupied
     )
     {
         float w = Mathf.Max(3.3f, archetype.HalfWidth - 1.2f);
@@ -133,26 +155,38 @@ public partial class DungeonPropPlacer
                 occupied
             );
         }
-        PlaceNamed(parent, center, "Trap", new Vector2(-2.8f, -2.4f), 45f, occupied);
-        PlaceNamed(parent, center, "Trap", new Vector2(2.8f, 2.4f), 45f, occupied);
+        PlaceNamed(parent, center, "Trap", new Vector2(-2.8f, -1.5f), 45f, occupied);
+        PlaceNamed(parent, center, "Trap", new Vector2(2.8f, 1.5f), 45f, occupied);
         Scatter(
             parent,
             center,
             archetype,
             random,
             occupied,
-            2 + random.Next(0, 4),
+            1 + random.Next(0, 3),
             "WoodSupport",
-            "Barrel",
             "Stones"
         );
+        if (random.NextDouble() < 0.5)
+            PlaceSmallClusters(
+                parent,
+                center,
+                archetype,
+                random,
+                occupied,
+                1,
+                3,
+                4,
+                "Barrel",
+                "Pot"
+            );
     }
 
     private void BuildShrine(
         Transform parent,
         Vector2 center,
         DungeonLayout.RoomArchetype archetype,
-        List<Vector2> occupied
+        List<OccupiedSpot> occupied
     )
     {
         float x = Mathf.Min(3.6f, archetype.HalfWidth - 0.9f);
@@ -168,7 +202,6 @@ public partial class DungeonPropPlacer
         )
             PlaceNamed(parent, center, "Column", p, 0f, occupied);
 
-        PlaceNamed(parent, center, "Stairs", Vector2.zero, archetype.Variant * 90f, occupied, 1.2f);
         string offering = (archetype.Variant % 3) switch
         {
             0 => "Potion",
@@ -182,8 +215,7 @@ public partial class DungeonPropPlacer
             Vector2.zero,
             archetype.Variant * 90f,
             occupied,
-            1f,
-            2.42f
+            1f
         );
         PlaceWallBanner(parent, center, archetype, archetype.Variant);
     }
