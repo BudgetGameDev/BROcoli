@@ -154,10 +154,7 @@ public static class DungeonEnemyPlacer
         return roomCenter + new Vector2(halfWidth, halfDepth);
     }
 
-    private static bool IsOnDivider(
-        Vector2 offset,
-        DungeonLayout.RoomArchetype archetype
-    )
+    private static bool IsOnDivider(Vector2 offset, DungeonLayout.RoomArchetype archetype)
     {
         if (archetype.Shape != DungeonLayout.RoomShape.Divided)
             return false;

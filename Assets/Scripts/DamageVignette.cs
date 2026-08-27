@@ -29,6 +29,10 @@ public class DamageVignette : MonoBehaviour
     private void Awake()
     {
         _instance = this;
+    }
+
+    private void Start()
+    {
         CreateVignetteOverlay();
     }
 
@@ -148,6 +152,9 @@ public class DamageVignette : MonoBehaviour
     /// <param name="intensity">Pulse intensity from 0 (subtle) to 1 (maximum).</param>
     public void TriggerPulse(float intensity)
     {
+        if (_vignetteImage == null)
+            CreateVignetteOverlay();
+
         intensity = Mathf.Clamp01(intensity);
 
         _targetAlpha = Mathf.Lerp(BaseAlpha, MaxAlpha, intensity);

@@ -126,7 +126,7 @@ public sealed class GameOverCTAManager : MonoBehaviour
         labelRect.offsetMax = Vector2.zero;
 
         TextMeshProUGUI label = labelObject.GetComponent<TextMeshProUGUI>();
-        label.text = "★  STAR ON GITHUB";
+        label.text = "*  STAR ON GITHUB";
         label.fontSize = 18f;
         label.fontStyle = FontStyles.Bold;
         label.alignment = TextAlignmentOptions.Center;

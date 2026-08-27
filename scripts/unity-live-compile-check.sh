@@ -15,18 +15,31 @@ done
 parse_result() {
     # The response can transiently be null right after a recompile triggers a
     # domain reload; treat that as an empty result so the caller retries.
-    python3 -c 'import json,sys; d=json.load(sys.stdin) or {}; r=d.get("data",{}).get("result",{}) or {}; print(r if isinstance(r,str) else json.dumps(r))'
+    python3 -c 'import json,sys; d=json.load(sys.stdin) or {}; data=d.get("data") or {}; r=data.get("result") or {}; print(r if isinstance(r,str) else json.dumps(r))'
 }
 
-unity command clear_console --format json >/dev/null
-unity command recompile --format json >/dev/null
+retry_editor_command() {
+    local command_name="$1"
+    for _attempt in $(seq 1 30); do
+        if unity command "$command_name" --timeout 5 --format json >/dev/null 2>&1; then
+            return 0
+        fi
+        sleep 1
+    done
+
+    echo "unity-live-compile: '$command_name' remained unavailable during domain reload" >&2
+    return 1
+}
+
+retry_editor_command clear_console
+retry_editor_command recompile
 
 status="compiling"
 failed="false"
 for _attempt in $(seq 1 120); do
     result="$(unity command recompile_status --format json | parse_result)"
     status="$(printf '%s' "$result" | python3 -c 'import json,sys; print((json.load(sys.stdin) or {}).get("status","compiling"))')"
-    failed="$(printf '%s' "$result" | python3 -c 'import json,sys; print(str(json.load(sys.stdin).get("failed",False)).lower())')"
+    failed="$(printf '%s' "$result" | python3 -c 'import json,sys; print(str((json.load(sys.stdin) or {}).get("failed",False)).lower())')"
     case "$status" in
         completed | up_to_date)
             break
@@ -59,7 +72,9 @@ warnings_json="$(unity command get_console_logs --severity warning --limit 1000 
 warning_count="$(printf '%s' "$warnings_json" | python3 -c '
 import json, re, sys
 d = json.load(sys.stdin)
-logs = d.get("data", {}).get("result", {}).get("logs", [])
+data = d.get("data") or {}
+result = data.get("result") or {}
+logs = result.get("logs", [])
 messages = [x.get("message", "") for x in logs]
 warnings = [m for m in messages if re.search(r"Assets/(Scripts|Editor)/.*warning [A-Z]+[0-9]+", m)]
 for warning in warnings:

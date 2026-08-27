@@ -196,12 +196,8 @@ def main() -> None:
 
     bpy.context.view_layer.update()
     final_bounds = [model.matrix_world @ Vector(corner) for corner in model.bound_box]
-    final_minimum = Vector(
-        tuple(min(corner[axis] for corner in final_bounds) for axis in range(3))
-    )
-    final_maximum = Vector(
-        tuple(max(corner[axis] for corner in final_bounds) for axis in range(3))
-    )
+    final_minimum = Vector(tuple(min(corner[axis] for corner in final_bounds) for axis in range(3)))
+    final_maximum = Vector(tuple(max(corner[axis] for corner in final_bounds) for axis in range(3)))
     report = {
         "source": str(source),
         "blenderVersion": bpy.app.version_string,

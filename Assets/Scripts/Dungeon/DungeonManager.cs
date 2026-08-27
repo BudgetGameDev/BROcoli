@@ -143,12 +143,7 @@ public class DungeonManager : MonoBehaviour
             int slot = placed.Slot;
             placed.Chest.Opened += () => state.OpenedChestSlots.Add(slot);
         }
-        decor.BuildAtmosphere(
-            root.transform,
-            room,
-            archetype,
-            layout.RoomRandom(room, 707)
-        );
+        decor.BuildAtmosphere(root.transform, room, archetype, layout.RoomRandom(room, 707));
 
         for (int direction = 0; direction < 4; direction++)
         {

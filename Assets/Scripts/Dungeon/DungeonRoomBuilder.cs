@@ -7,11 +7,16 @@ using UnityEngine;
 /// <see cref="DungeonLayout"/> and the per-room random streams handed in by
 /// <see cref="DungeonManager"/>.
 /// </summary>
-public class DungeonRoomBuilder : MonoBehaviour
+public partial class DungeonRoomBuilder : MonoBehaviour
 {
     private const float Tile = DungeonLayout.TileSize;
     private const float HalfRoomWidth = DungeonLayout.RoomWidth / 2f;
     private const float HalfRoomDepth = DungeonLayout.RoomDepth / 2f;
+
+    // The wall prefab's upright slab is centred at local Z 0.7 rather than at
+    // its root. Shift the complete gate assembly to the same depth so its
+    // arch, bars, and colliders stay aligned with the adjoining wall pieces.
+    private const float WallSlabCenterOffset = 0.7f;
 
     [Header("Modular Dungeon Kit pieces")]
     [SerializeField]
@@ -136,10 +141,9 @@ public class DungeonRoomBuilder : MonoBehaviour
                 float x = roomCenter.x + (i - gateIndex) * Tile;
                 if (i == gateIndex)
                 {
-                    // The gate mesh is centred on its pivot; place it on the line.
                     Instantiate(
                         gatePrefab,
-                        new Vector3(x, 0f, boundaryZ),
+                        new Vector3(x, 0f, boundaryZ + WallSlabCenterOffset),
                         Quaternion.identity,
                         root.transform
                     );
@@ -167,7 +171,7 @@ public class DungeonRoomBuilder : MonoBehaviour
                 {
                     Instantiate(
                         gatePrefab,
-                        new Vector3(boundaryX, 0f, z),
+                        new Vector3(boundaryX + WallSlabCenterOffset, 0f, z),
                         sideways,
                         root.transform
                     );
@@ -225,90 +229,23 @@ public class DungeonRoomBuilder : MonoBehaviour
             DungeonLayout.RoomTheme.Empty => false,
             DungeonLayout.RoomTheme.Storage => Mathf.Abs(x) == 3 || Mathf.Abs(z) == 2,
             DungeonLayout.RoomTheme.Banquet => archetype.Shape
-                == DungeonLayout.RoomShape.LongHorizontal
+            == DungeonLayout.RoomShape.LongHorizontal
                 ? z == 0
                 : x == 0,
             DungeonLayout.RoomTheme.Armory => (i + j + archetype.Variant) % 2 == 0,
             DungeonLayout.RoomTheme.Shrine => Mathf.Abs(x) == Mathf.Abs(z) || (x == 0 && z == 0),
             DungeonLayout.RoomTheme.Flooded => (i * 2 + j + archetype.Variant) % 3 == 0,
-            DungeonLayout.RoomTheme.TreasureVault =>
-                Mathf.Abs(x) == 2 || Mathf.Abs(z) == 2 || ((i + j) & 1) == 0,
-            DungeonLayout.RoomTheme.Collapsed =>
-                Mathf.Abs(x - z + archetype.Variant - 1) <= 1,
+            DungeonLayout.RoomTheme.TreasureVault => Mathf.Abs(x) == 2
+                || Mathf.Abs(z) == 2
+                || ((i + j) & 1) == 0,
+            DungeonLayout.RoomTheme.Collapsed => Mathf.Abs(x - z + archetype.Variant - 1) <= 1,
             _ => false,
         };
 
-        float chance = archetype.Theme == DungeonLayout.RoomTheme.Empty
-            ? floorVariantChance * 0.25f
-            : floorVariantChance;
+        float chance =
+            archetype.Theme == DungeonLayout.RoomTheme.Empty
+                ? floorVariantChance * 0.25f
+                : floorVariantChance;
         return pattern || random.NextDouble() < chance;
-    }
-
-    private void BuildHorizontalInterior(
-        Transform parent,
-        Vector2 center,
-        float localZ,
-        bool leaveCentreGap
-    )
-    {
-        for (int i = -3; i <= 3; i++)
-        {
-            if (leaveCentreGap && i == 0)
-                continue;
-            Instantiate(
-                wallPrefab,
-                new Vector3(center.x + i * Tile, 0f, center.y + localZ),
-                Quaternion.identity,
-                parent
-            );
-        }
-    }
-
-    private void BuildVerticalInterior(
-        Transform parent,
-        Vector2 center,
-        float localX,
-        bool leaveCentreGap
-    )
-    {
-        Quaternion sideways = Quaternion.Euler(0f, 90f, 0f);
-        for (int j = -2; j <= 2; j++)
-        {
-            if (leaveCentreGap && j == 0)
-                continue;
-            Instantiate(
-                wallPrefab,
-                new Vector3(center.x + localX, 0f, center.y + j * Tile),
-                sideways,
-                parent
-            );
-        }
-    }
-
-    private void BuildVerticalDivider(Transform parent, Vector2 center)
-    {
-        Quaternion sideways = Quaternion.Euler(0f, 90f, 0f);
-        foreach (int j in new[] { -2, 0, 2 })
-        {
-            Instantiate(
-                wallPrefab,
-                new Vector3(center.x, 0f, center.y + j * Tile),
-                sideways,
-                parent
-            );
-        }
-    }
-
-    private void BuildHorizontalDivider(Transform parent, Vector2 center)
-    {
-        foreach (int i in new[] { -3, -1, 1, 3 })
-        {
-            Instantiate(
-                wallPrefab,
-                new Vector3(center.x + i * Tile, 0f, center.y),
-                Quaternion.identity,
-                parent
-            );
-        }
     }
 }
