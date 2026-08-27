@@ -9,11 +9,15 @@ using UnityEngine.Rendering;
 [DisallowMultipleComponent]
 [RequireComponent(typeof(Camera))]
 [DefaultExecutionOrder(100)]
-public sealed class CameraOcclusionFader : MonoBehaviour
+public sealed partial class CameraOcclusionFader : MonoBehaviour
 {
     private const int MaxCastHits = 32;
+    private const string FadeShaderResource = "Shaders/DungeonOcclusionFade";
     private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
     private static readonly int ColorId = Shader.PropertyToID("_Color");
+    private static readonly int OcclusionFadeId = Shader.PropertyToID("_OcclusionFade");
+    private static readonly int FadeStartYId = Shader.PropertyToID("_FadeStartY");
+    private static readonly int FadeFeatherId = Shader.PropertyToID("_FadeFeather");
 
     [SerializeField]
     private Transform target;
@@ -21,14 +25,14 @@ public sealed class CameraOcclusionFader : MonoBehaviour
     [SerializeField]
     private LayerMask occluderMask = 1 << 9;
 
-    [SerializeField, Range(0.1f, 0.8f)]
-    private float occludedAlpha = 0.3f;
-
     [SerializeField, Min(0.1f)]
     private float fadeSpeed = 6f;
 
-    [SerializeField, Range(0f, 2f)]
-    private float castRadius = 0.8f;
+    [SerializeField, Range(0.15f, 0.65f)]
+    private float visibleWallBaseFraction = 0.4f;
+
+    [SerializeField, Range(0.02f, 0.35f)]
+    private float wallFadeFeatherFraction = 0.12f;
 
     [SerializeField, Min(0f)]
     private float targetHeight = 0.65f;
@@ -39,15 +43,28 @@ public sealed class CameraOcclusionFader : MonoBehaviour
         public readonly Material[] OriginalMaterials;
         public readonly Material[] FadedMaterials;
         public readonly Color[] BaseColors;
-        public float Alpha = 1f;
+        public float Visibility = 1f;
+        public float LastOccludedTime = float.NegativeInfinity;
         public bool UsingFadedMaterials;
 
-        public FadeState(Renderer renderer)
+        public FadeState(
+            Renderer renderer,
+            Shader fadeShader,
+            float visibleBaseFraction,
+            float featherFraction
+        )
         {
             Renderer = renderer;
             OriginalMaterials = renderer.sharedMaterials;
             FadedMaterials = new Material[OriginalMaterials.Length];
             BaseColors = new Color[OriginalMaterials.Length];
+            bool structural = renderer.GetComponentInParent<DungeonOcclusionSection>() != null;
+            float fadeStart = structural
+                ? renderer.bounds.min.y + renderer.bounds.size.y * visibleBaseFraction
+                : renderer.bounds.min.y - 0.02f;
+            float fadeFeather = structural
+                ? Mathf.Max(0.02f, renderer.bounds.size.y * featherFraction)
+                : 0.02f;
 
             for (int i = 0; i < OriginalMaterials.Length; i++)
             {
@@ -55,12 +72,25 @@ public sealed class CameraOcclusionFader : MonoBehaviour
                 if (original == null)
                     continue;
 
-                var faded = new Material(original)
+                Material faded;
+                if (fadeShader != null)
                 {
-                    name = $"{original.name} (Occlusion Fade)",
-                    hideFlags = HideFlags.DontSave,
-                };
-                ConfigureTransparent(faded);
+                    faded = new Material(fadeShader);
+                    faded.CopyMatchingPropertiesFromMaterial(original);
+                    faded.renderQueue = original.renderQueue;
+                    faded.enableInstancing = original.enableInstancing;
+                    faded.SetFloat(FadeStartYId, fadeStart);
+                    faded.SetFloat(FadeFeatherId, fadeFeather);
+                    faded.SetFloat(OcclusionFadeId, 0f);
+                    faded.SetShaderPassEnabled("ShadowCaster", false);
+                }
+                else
+                {
+                    faded = new Material(original);
+                    ConfigureTransparent(faded);
+                }
+                faded.name = $"{original.name} (Occlusion Fade)";
+                faded.hideFlags = HideFlags.DontSave;
                 FadedMaterials[i] = faded;
                 BaseColors[i] = ReadColor(original);
             }
@@ -69,15 +99,18 @@ public sealed class CameraOcclusionFader : MonoBehaviour
 
     private readonly RaycastHit[] castHits = new RaycastHit[MaxCastHits];
     private readonly List<Renderer> hitRenderers = new();
+    private readonly HashSet<DungeonOcclusionSection> currentSections = new();
     private readonly HashSet<Renderer> currentOccluders = new();
     private readonly Dictionary<Renderer, FadeState> fadeStates = new();
     private readonly List<Renderer> statesToRemove = new();
+    private Shader fadeShader;
 
     public int ActiveOccluderCount { get; private set; }
 
     private void Awake()
     {
         ResolveTarget();
+        fadeShader = Resources.Load<Shader>(FadeShaderResource);
         if (occluderMask.value == 0)
             occluderMask = LayerMask.GetMask("Wall");
     }
@@ -85,10 +118,11 @@ public sealed class CameraOcclusionFader : MonoBehaviour
     private void LateUpdate()
     {
         ResolveTarget();
+        currentSections.Clear();
         currentOccluders.Clear();
 
         if (target != null)
-            FindOccludingWalls();
+            FindOccludingGeometry();
 
         ActiveOccluderCount = currentOccluders.Count;
         UpdateFades();
@@ -111,53 +145,22 @@ public sealed class CameraOcclusionFader : MonoBehaviour
             target = player.transform;
     }
 
-    private void FindOccludingWalls()
-    {
-        Vector3 origin = transform.position;
-        Vector3 targetPoint = target.position + Vector3.up * targetHeight;
-        Vector3 toTarget = targetPoint - origin;
-        float distance = toTarget.magnitude;
-        if (distance <= Mathf.Epsilon)
-            return;
-
-        int hitCount = Physics.SphereCastNonAlloc(
-            origin,
-            castRadius,
-            toTarget / distance,
-            castHits,
-            distance,
-            occluderMask,
-            QueryTriggerInteraction.Ignore
-        );
-        for (int i = 0; i < hitCount; i++)
-        {
-            Collider wall = castHits[i].collider;
-            if (wall == null || !IsStructuralOccluder(wall.name))
-                continue;
-
-            hitRenderers.Clear();
-            wall.GetComponentsInChildren(false, hitRenderers);
-            foreach (Renderer wallRenderer in hitRenderers)
-            {
-                if (wallRenderer != null && wallRenderer.enabled)
-                    currentOccluders.Add(wallRenderer);
-            }
-        }
-    }
-
-    private static bool IsStructuralOccluder(string objectName)
-    {
-        return objectName.StartsWith("DungeonWall", System.StringComparison.Ordinal)
-            || objectName.StartsWith("DungeonCorner", System.StringComparison.Ordinal)
-            || objectName.StartsWith("DungeonGate", System.StringComparison.Ordinal);
-    }
-
     private void UpdateFades()
     {
+        float now = Time.unscaledTime;
         foreach (Renderer renderer in currentOccluders)
         {
-            if (!fadeStates.ContainsKey(renderer))
-                fadeStates.Add(renderer, new FadeState(renderer));
+            if (!fadeStates.TryGetValue(renderer, out FadeState state))
+            {
+                state = new FadeState(
+                    renderer,
+                    fadeShader,
+                    visibleWallBaseFraction,
+                    wallFadeFeatherFraction
+                );
+                fadeStates.Add(renderer, state);
+            }
+            state.LastOccludedTime = now;
         }
 
         statesToRemove.Clear();
@@ -172,11 +175,11 @@ public sealed class CameraOcclusionFader : MonoBehaviour
                 continue;
             }
 
-            bool occluded = currentOccluders.Contains(renderer);
-            float desiredAlpha = occluded ? occludedAlpha : 1f;
-            state.Alpha = Mathf.MoveTowards(
-                state.Alpha,
-                desiredAlpha,
+            bool occluded = now - state.LastOccludedTime <= releaseDelay;
+            float desiredVisibility = occluded ? 0f : 1f;
+            state.Visibility = Mathf.MoveTowards(
+                state.Visibility,
+                desiredVisibility,
                 fadeSpeed * Time.unscaledDeltaTime
             );
 
@@ -187,9 +190,9 @@ public sealed class CameraOcclusionFader : MonoBehaviour
             }
 
             if (state.UsingFadedMaterials)
-                ApplyAlpha(state);
+                ApplyVisibility(state);
 
-            if (!occluded && state.Alpha >= 0.999f)
+            if (!occluded && state.Visibility >= 0.999f)
             {
                 renderer.sharedMaterials = state.OriginalMaterials;
                 state.UsingFadedMaterials = false;
@@ -200,7 +203,7 @@ public sealed class CameraOcclusionFader : MonoBehaviour
             fadeStates.Remove(renderer);
     }
 
-    private static void ApplyAlpha(FadeState state)
+    private static void ApplyVisibility(FadeState state)
     {
         for (int i = 0; i < state.FadedMaterials.Length; i++)
         {
@@ -208,8 +211,14 @@ public sealed class CameraOcclusionFader : MonoBehaviour
             if (material == null)
                 continue;
 
+            if (material.HasProperty(OcclusionFadeId))
+            {
+                material.SetFloat(OcclusionFadeId, 1f - state.Visibility);
+                continue;
+            }
+
             Color color = state.BaseColors[i];
-            color.a *= state.Alpha;
+            color.a *= state.Visibility;
             if (material.HasProperty(BaseColorId))
                 material.SetColor(BaseColorId, color);
             else if (material.HasProperty(ColorId))
@@ -257,7 +266,9 @@ public sealed class CameraOcclusionFader : MonoBehaviour
             DestroyFadedMaterials(state);
         }
         fadeStates.Clear();
+        currentSections.Clear();
         currentOccluders.Clear();
+        ResetDetection();
         ActiveOccluderCount = 0;
     }
 

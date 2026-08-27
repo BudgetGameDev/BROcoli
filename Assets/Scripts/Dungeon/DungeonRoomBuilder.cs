@@ -128,6 +128,9 @@ public partial class DungeonRoomBuilder : MonoBehaviour
             $"Edge ({edge.X}, {edge.Y}, {(edge.Horizontal ? "H" : "V")})"
         );
         root.transform.SetParent(parent, false);
+        Transform beforeGate = CreateOcclusionSection(root.transform, "Before Gateway");
+        Transform gateway = CreateOcclusionSection(root.transform, "Gateway");
+        Transform afterGate = CreateOcclusionSection(root.transform, "After Gateway");
 
         Vector2 roomCenter = DungeonLayout.RoomCenter(new Vector2Int(edge.X, edge.Y));
         GameObject gatePrefab = open ? gateOpenPrefab : gateBlockedPrefab;
@@ -141,12 +144,13 @@ public partial class DungeonRoomBuilder : MonoBehaviour
                 float x = roomCenter.x + (i - gateIndex) * Tile;
                 if (i == gateIndex)
                 {
-                    Instantiate(
+                    GameObject gate = Instantiate(
                         gatePrefab,
                         new Vector3(x, 0f, boundaryZ + WallSlabCenterOffset),
                         Quaternion.identity,
-                        root.transform
+                        gateway
                     );
+                    AddGatewayOcclusionVolume(gate);
                 }
                 else
                 {
@@ -154,7 +158,7 @@ public partial class DungeonRoomBuilder : MonoBehaviour
                         wallPrefab,
                         new Vector3(x, 0f, boundaryZ),
                         Quaternion.identity,
-                        root.transform
+                        i < gateIndex ? beforeGate : afterGate
                     );
                 }
             }
@@ -169,12 +173,13 @@ public partial class DungeonRoomBuilder : MonoBehaviour
                 float z = roomCenter.y + (j - gateIndex) * Tile;
                 if (j == gateIndex)
                 {
-                    Instantiate(
+                    GameObject gate = Instantiate(
                         gatePrefab,
                         new Vector3(boundaryX + WallSlabCenterOffset, 0f, z),
                         sideways,
-                        root.transform
+                        gateway
                     );
+                    AddGatewayOcclusionVolume(gate);
                 }
                 else
                 {
@@ -182,7 +187,7 @@ public partial class DungeonRoomBuilder : MonoBehaviour
                         wallPrefab,
                         new Vector3(boundaryX, 0f, z),
                         sideways,
-                        root.transform
+                        j < gateIndex ? beforeGate : afterGate
                     );
                 }
             }
@@ -204,7 +209,19 @@ public partial class DungeonRoomBuilder : MonoBehaviour
         );
         GameObject corner = Instantiate(cornerPrefab, position, Quaternion.identity, parent);
         corner.name = $"Corner ({vertex.x}, {vertex.y})";
+        corner.AddComponent<DungeonOcclusionSection>();
         return corner;
+    }
+
+    private static void AddGatewayOcclusionVolume(GameObject gate)
+    {
+        var volume = new GameObject("Gateway Top Occlusion Volume");
+        volume.transform.SetParent(gate.transform, false);
+        int wallLayer = LayerMask.NameToLayer("Wall");
+        volume.layer = wallLayer >= 0 ? wallLayer : gate.layer;
+        volume
+            .AddComponent<DungeonOcclusionVolume>()
+            .Configure(new Vector3(0f, 2.15f, 0f), new Vector3(3.1f, 1f, 2f));
     }
 
     private static Vector2 TileCenter(Vector2 roomCenter, int i, int j)
