@@ -38,7 +38,7 @@ cleanup() {
         kill "$SERVER_PID"
         wait "$SERVER_PID" 2>/dev/null || true
     fi
-    rm -rf "$SMOKE_TEMP_DIR"
+    rm -rf "$SMOKE_TEMP_DIR" 2>/dev/null || true
 }
 trap cleanup EXIT
 
