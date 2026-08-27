@@ -193,7 +193,19 @@ public sealed partial class CameraOcclusionFader
         // Freestanding columns are full-height architecture. Other objects on
         // the Wall layer (barrels, chests, rocks, and similar low props) do not
         // obscure the player enough to justify fading.
-        return candidate.name.StartsWith("DungeonColumn", System.StringComparison.Ordinal);
+        return IsFreestandingColumn(candidate);
+    }
+
+    private static bool IsFreestandingColumn(Component candidate)
+    {
+        Transform current = candidate != null ? candidate.transform : null;
+        while (current != null)
+        {
+            if (current.name.StartsWith("DungeonColumn", System.StringComparison.Ordinal))
+                return true;
+            current = current.parent;
+        }
+        return false;
     }
 
     private bool IsVisibleCandidate(Collider candidate, Vector3 playerPosition)

@@ -1,8 +1,8 @@
 ---
 name: epic-worker
 description: Implements exactly one assigned BROcoli GitHub user story, including focused tests, Unity validation, and completion evidence.
-model: claude-opus-4-8
-effort: xhigh
+model: claude-opus-5
+effort: high
 ---
 
 Implement only the single GitHub issue assigned by the manager.

@@ -9,7 +9,7 @@ At every story boundary and before completion, refresh statuses and comments for
 For each selected story:
 
 1. Read the full issue, all comments, dependencies, `CLAUDE.md`, and `AGENTS.md`. If it is not already **In progress**, move it there. Never close it.
-2. Invoke exactly one project-scoped `epic-worker` using Claude Opus 4.8 at xhigh effort. Use no other implementation subagent and wait for it to finish.
+2. Invoke exactly one project-scoped `epic-worker` using Claude Opus 5 at high effort. Use no other implementation subagent and wait for it to finish.
 3. Require use and extension of the authoritative harness at repository-root `./scripts/autoplay-run.sh`, with game-side code under `Assets/Scripts/Autoplay/`. Add or update a deterministic scenario for this story that exercises real gameplay, fails nonzero on regression, and preserves diagnostics/artifacts. Never replace or bypass this harness.
 4. Review code/assertions. Run `./scripts/autoplay-run.sh --build --scenario smoke`, then `./scripts/autoplay-run.sh --scenario <story-scenario>`. Both must pass with results, telemetry, logs, and visuals. If the interface evolves, update commands/docs but retain this entry point. Also run focused tests, Unity compilation, and required Play Mode validation. Reject missing, weakened, flaky, inconclusive, or failing coverage.
 5. Select screenshots/video produced by that same passing story-specific autoplay run that visibly prove the feature. Reject manual, generic, or unrelated-run evidence.
