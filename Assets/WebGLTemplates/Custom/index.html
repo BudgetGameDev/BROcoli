@@ -62,6 +62,9 @@
     <!-- PWA Install Wizard Styles -->
     <link rel="stylesheet" href="pwa-install.css">
     
+    <!-- Shared platform detection must load before the PWA UI and Unity loader. -->
+    <script src="platform-detection.js"></script>
+
     <!-- Version Check Script (must load early) -->
     <script src="version-check.js"></script>
     
@@ -441,39 +444,19 @@
       var isStandalone = false;
       
       try {
-        isiOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-        isMacWithTouch = (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-        isiOSDevice = isiOS || isMacWithTouch;
-        isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-        isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || isiOSDevice;
-        isStandalone = window.matchMedia('(display-mode: standalone)').matches || 
-                       window.matchMedia('(display-mode: fullscreen)').matches ||
-                       window.navigator.standalone === true;
+        var platformInfo = window.BroccoliPlatform.current();
+        isiOS = platformInfo.isIOS;
+        isMacWithTouch = platformInfo.isIPadOS;
+        isiOSDevice = platformInfo.isAppleMobile;
+        isSafari = platformInfo.isSafari;
+        isMobile = platformInfo.isMobile;
+        isStandalone = platformInfo.isStandalone;
       } catch (e) {
         // Platform detection failed - use safe defaults
       }
       
       // Audio context reference for Unity's audio (not running background oscillator)
       var audioKeepAlive = null;
-      
-      // Patch canvas.getContext for high-performance GPU before Unity loads
-      try {
-        (function() {
-          var originalGetContext = HTMLCanvasElement.prototype.getContext;
-          HTMLCanvasElement.prototype.getContext = function(type, attributes) {
-            if (type === 'webgl' || type === 'webgl2' || type === 'experimental-webgl') {
-              attributes = attributes || {};
-              attributes.powerPreference = 'high-performance';
-              attributes.preserveDrawingBuffer = false;
-              attributes.desynchronized = true;
-              if (typeof attributes.failIfMajorPerformanceCaveat !== 'boolean') {
-                attributes.failIfMajorPerformanceCaveat = false;
-              }
-            }
-            return originalGetContext.call(this, type, attributes);
-          };
-        })();
-      } catch (e) { /* getContext patch failed - continue */ }
       
       // ProMotion frame monitoring removed - was consuming background CPU
       
@@ -487,34 +470,17 @@
         }
       }
       
-      // Visibility API - force canvas wake on tab visibility change
+      // Visibility API - resize without detaching the canvas. Toggling display
+      // can discard Safari's WebGL context and leave a permanent black frame.
       document.addEventListener('visibilitychange', function() {
         if (!document.hidden) {
-          // Re-acquire wake lock
           if (wakeLock === null) requestWakeLock();
-          // Force style recalc to wake up rendering pipeline
-          var c = document.getElementById('unity-canvas');
-          if (c) {
-            c.style.display = 'none';
-            c.offsetHeight;
-            c.style.display = 'block';
-          }
+          window.requestAnimationFrame(function() {
+            updateCanvasSize();
+            window.dispatchEvent(new Event('resize'));
+          });
         }
       });
-      
-      // Experimental Scheduler API - request high priority for main thread tasks
-      // This is a hint to the browser that our tasks are user-blocking
-      try {
-        if ('scheduler' in window && 'postTask' in window.scheduler) {
-          // Wrap requestAnimationFrame to use high priority scheduling
-          var originalRAF = window.requestAnimationFrame;
-          window.requestAnimationFrame = function(callback) {
-            return window.scheduler.postTask(function() {
-              return originalRAF(callback);
-            }, { priority: 'user-blocking' });
-          };
-        }
-      } catch (e) { /* Scheduler API patch failed - continue */ }
       
       // Keep-alive removed - was consuming background CPU
       
@@ -531,6 +497,13 @@
         if (!canvas) return;
         canvas.addEventListener('webglcontextlost', function(e) {
           e.preventDefault();
+          setUnityStartupState('failed');
+          showStartupError(
+            'Graphics interrupted',
+            'The browser lost the WebGL graphics context. Reload the game to create a fresh one.',
+            null,
+            false
+          );
         });
         canvas.addEventListener('webglcontextrestored', function() {
           // Unity should auto-recover but we force a resize to help
@@ -628,8 +601,18 @@
       var loadingScreen = document.getElementById('loading-screen');
       var progressBar = document.getElementById('loading-progress-bar');
       var gameUIOverlay = document.getElementById('game-ui-overlay');
+      var unityStartupState = 'idle';
 
-      function showStartupError(title, message, steps) {
+      function setUnityStartupState(state) {
+        unityStartupState = state;
+        if (document.body) {
+          document.body.setAttribute('data-unity-state', state);
+        }
+      }
+
+      setUnityStartupState('idle');
+
+      function showStartupError(title, message, steps, clearGameCache) {
         if (!loadingScreen) return;
 
         loadingScreen.classList.remove('hidden');
@@ -668,7 +651,15 @@
         retry.type = 'button';
         retry.textContent = 'Retry';
         retry.addEventListener('click', function() {
-          window.location.reload();
+          retry.disabled = true;
+          retry.textContent = 'Reloading...';
+          if (clearGameCache &&
+              window.VersionChecker &&
+              typeof window.VersionChecker.forceUpdate === 'function') {
+            window.VersionChecker.forceUpdate();
+          } else {
+            window.location.reload();
+          }
         });
         card.appendChild(retry);
         loadingScreen.appendChild(card);
@@ -933,6 +924,12 @@
         try {
           navigator.serviceWorker.addEventListener('message', function(event) {
             if (event.data && event.data.type === 'NEW_VERSION_AVAILABLE') {
+              // VersionChecker owns the pre-start update flow. Never interrupt a
+              // WASM instance that is already starting or running.
+              if (unityStartupState !== 'idle') {
+                console.log('[ServiceWorker] Update deferred until the next page load');
+                return;
+              }
               var loadingText = document.querySelector('.loading-text');
               if (loadingText) {
                 loadingText.textContent = 'New version found! Updating...';
@@ -942,22 +939,27 @@
               }, 500);
             }
           });
-          
-          // Only reload on controller change if game hasn't started yet
-          var gameStarted = false;
-          window.addEventListener('unity-game-started', function() { gameStarted = true; });
+
+          // A service-worker handoff may occur while Unity is compiling WASM.
+          // Reloading here tears down a partially-created player and can leave
+          // a black canvas or a second createUnityInstance call.
           navigator.serviceWorker.addEventListener('controllerchange', function() {
-            if (!gameStarted) {
-              window.location.reload(true);
-            }
+            console.log('[ServiceWorker] Controller changed; using it on the next navigation');
           });
         } catch (e) { /* ignore */ }
       }
 
       // Function to start the Unity game
       function startUnityGame() {
+        if (unityStartupState !== 'idle') {
+          console.warn('[Unity] Ignoring duplicate startup request in state:', unityStartupState);
+          return;
+        }
+
+        setUnityStartupState('starting');
         var graphicsSupport = checkGraphicsSupport();
         if (!graphicsSupport.ok) {
+          setUnityStartupState('failed');
           showHardwareAccelerationError(graphicsSupport.reason);
           return;
         }
@@ -994,6 +996,7 @@
           }
         }).then(function(unityInstance) {
           window.unityInstance = unityInstance;
+          setUnityStartupState('started');
           
           // Signal that game has started (prevents service worker reload interrupts)
           window.dispatchEvent(new Event('unity-game-started'));
@@ -1025,6 +1028,7 @@
 #endif
                     './index.html',
                     './manifest.json',
+                    './platform-detection.js',
                     './version-check.js',
                     './pwa-install.js',
                     './pwa-install.css'
@@ -1048,28 +1052,12 @@
             }
           } catch (e) { /* ignore */ };
         }).catch(function(error) {
+          setUnityStartupState('failed');
           console.warn('[Unity] createUnityInstance failed:', error);
-          
-          // iOS Safari edge case: Sometimes fetch fails on first try after force-close
-          // but cache is actually available. Auto-retry once before showing error.
-          if (!window._unityRetryAttempted) {
-            window._unityRetryAttempted = true;
-            console.log('[Unity] First load failed, auto-retrying in 1 second...');
-            
-            var loadingText = document.querySelector('.loading-text');
-            if (loadingText) {
-              loadingText.textContent = 'Retrying...';
-            }
-            
-            // Wait a moment for service worker to fully initialize
-            setTimeout(function() {
-              console.log('[Unity] Retrying game load...');
-              startUnityGame();
-            }, 1000);
-            return;
-          }
-          
-          // Second attempt also failed - show a readable, actionable message.
+
+          // A partially-created Unity/WASM runtime cannot safely be reused.
+          // Offer a full cache-clearing page reload instead of starting a second
+          // instance in the same JavaScript context.
           if (loadingScreen) {
             var errorMessage = (error && error.message) ? error.message : 'Could not load game files.';
             var normalizedError = String(errorMessage).toLowerCase();
@@ -1092,7 +1080,7 @@
               }
             }
             
-            showStartupError('Failed to load game', errorMessage);
+            showStartupError('Failed to load game', errorMessage, null, true);
           }
         });
       }

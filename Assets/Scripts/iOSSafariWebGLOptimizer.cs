@@ -24,9 +24,6 @@ public class iOSSafariWebGLOptimizer : MonoBehaviour
 #if UNITY_WEBGL && !UNITY_EDITOR
     [DllImport("__Internal")]
     private static extern int IsiOSMobile();
-
-    [DllImport("__Internal")]
-    private static extern int IsSafariBrowser();
 #endif
 
     private static bool _optimizationsApplied = false;
@@ -44,16 +41,15 @@ public class iOSSafariWebGLOptimizer : MonoBehaviour
 
     private void ApplyOptimizationsIfNeeded()
     {
-        bool isiOSSafariWebGL = false;
+        bool isiOSWebGL = false;
 
 #if UNITY_WEBGL && !UNITY_EDITOR
         try
         {
             bool isiOS = IsiOSMobile() == 1;
-            bool isSafari = IsSafariBrowser() == 1;
-            isiOSSafariWebGL = isiOS || isSafari; // Safari on any device or iOS
+            isiOSWebGL = isiOS;
 
-            Debug.Log($"[iOSSafariOptimizer] Detection - iOS: {isiOS}, Safari: {isSafari}");
+            Debug.Log($"[iOSSafariOptimizer] Detection - iOS/iPadOS device: {isiOS}");
         }
         catch (System.Exception e)
         {
@@ -62,9 +58,11 @@ public class iOSSafariWebGLOptimizer : MonoBehaviour
         }
 #endif
 
-        if (!isiOSSafariWebGL)
+        if (!isiOSWebGL)
         {
-            Debug.Log("[iOSSafariOptimizer] Not iOS Safari WebGL - skipping optimizations");
+            Debug.Log(
+                "[iOSSafariOptimizer] Not an iOS/iPadOS WebGL device - skipping optimizations"
+            );
             return;
         }
 

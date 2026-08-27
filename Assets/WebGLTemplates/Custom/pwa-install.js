@@ -18,27 +18,30 @@
   // Platform detection
   const Platform = {
     isIOS: function() {
-      return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+      return window.BroccoliPlatform ? window.BroccoliPlatform.isIOS() : false;
     },
     isIPadOS: function() {
-      return navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1;
+      return window.BroccoliPlatform ? window.BroccoliPlatform.isIPadOS() : false;
     },
     isAndroid: function() {
-      return /Android/.test(navigator.userAgent);
+      return window.BroccoliPlatform
+        ? window.BroccoliPlatform.isAndroid()
+        : /Android/i.test(navigator.userAgent);
     },
     isMobile: function() {
-      return this.isIOS() || this.isIPadOS() || this.isAndroid() || 
-             /webOS|BlackBerry|Opera Mini|IEMobile/i.test(navigator.userAgent);
+      return window.BroccoliPlatform
+        ? window.BroccoliPlatform.isMobile()
+        : this.isAndroid();
     },
     isStandalone: function() {
-      // Check if running as installed PWA
-      return window.matchMedia('(display-mode: standalone)').matches ||
-             window.matchMedia('(display-mode: fullscreen)').matches ||
-             window.navigator.standalone === true || // iOS Safari
-             document.referrer.includes('android-app://');
+      return window.BroccoliPlatform
+        ? window.BroccoliPlatform.isStandalone()
+        : false;
     },
     isSafari: function() {
-      return /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+      return window.BroccoliPlatform
+        ? window.BroccoliPlatform.isSafari()
+        : false;
     },
     isChrome: function() {
       return /Chrome/.test(navigator.userAgent) && /Google Inc/.test(navigator.vendor);

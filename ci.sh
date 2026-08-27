@@ -52,6 +52,7 @@ raise SystemExit(not connected)
 
 require_tool dotnet
 require_tool python3
+require_tool node
 require_tool uv
 require_tool shellcheck
 require_tool shfmt
@@ -63,6 +64,8 @@ run_gate "Restore pinned .NET tools" dotnet tool restore
 run_gate "C# formatting" dotnet csharpier check Assets/Scripts Assets/Editor
 run_gate "Python lint" uvx ruff@0.12.11 check scripts
 run_gate "Python formatting" uvx ruff@0.12.11 format --check scripts
+run_gate "WebGL platform detection" node scripts/test-webgl-platform.cjs
+run_gate "WebGL smoke probe syntax" node --check scripts/webgl-smoke.cjs
 run_gate "Shell lint" shellcheck ci.sh format.sh scripts/*.sh .githooks/pre-push
 run_gate "Shell formatting" shfmt -d -i 4 -ci ci.sh format.sh scripts/*.sh .githooks/pre-push
 run_gate \

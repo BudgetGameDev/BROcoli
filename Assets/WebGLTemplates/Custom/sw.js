@@ -3,7 +3,7 @@
 // IMPORTANT: Change CACHE_VERSION to force ALL clients to get fresh content!
 // This is the nuclear option - change this string and deploy to bust all caches.
 // =============================================================================
-const CACHE_VERSION = 'v3';
+const CACHE_VERSION = 'v4';
 
 // Detect if we're on a staging path or the production build (root)
 function detectBuildPath() {
@@ -60,6 +60,7 @@ const PRECACHE_ASSETS = [
   './index.html',
   './manifest.json',
   './manifest-staging.json',
+  './platform-detection.js',
   './version-check.js',
   './icons/icon-192x192.png',
   './icons/icon-512x512.png'
@@ -205,7 +206,7 @@ self.addEventListener('install', (event) => {
   );
 });
 
-// Activate event - clean up old caches AND check for version updates
+// Activate event - clean up old caches and claim clients without reloading them
 self.addEventListener('activate', (event) => {
   console.log('[ServiceWorker] Activating...');
   event.waitUntil(
@@ -221,9 +222,6 @@ self.addEventListener('activate', (event) => {
           }
         })
       );
-      
-      // Check for version updates
-      await checkForUpdatesAndClearIfNeeded();
       
       // Take control of all clients immediately
       await self.clients.claim();

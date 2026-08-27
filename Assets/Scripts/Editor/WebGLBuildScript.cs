@@ -1,0 +1,76 @@
+#if UNITY_EDITOR
+using System;
+using System.Linq;
+using UnityEditor;
+using UnityEditor.Build;
+using UnityEditor.Build.Reporting;
+using UnityEngine;
+
+/// <summary>
+/// Reproducible WebGL build entry point for local diagnostics and CI.
+/// </summary>
+public static class WebGLBuildScript
+{
+    private const string DefaultOutputPath = "build/WebGL";
+
+    public static void Build()
+    {
+        string[] arguments = Environment.GetCommandLineArgs();
+        string outputPath = ReadArgument(arguments, "-buildOutput") ?? DefaultOutputPath;
+        bool development = arguments.Contains("-development", StringComparer.OrdinalIgnoreCase);
+        string[] scenes = EditorBuildSettings
+            .scenes.Where(scene => scene.enabled)
+            .Select(scene => scene.path)
+            .ToArray();
+
+        if (scenes.Length == 0)
+        {
+            throw new BuildFailedException("No enabled scenes are configured for the WebGL build.");
+        }
+
+        BuildOptions buildOptions = BuildOptions.None;
+        if (development)
+        {
+            buildOptions |= BuildOptions.Development | BuildOptions.AllowDebugging;
+        }
+
+        Debug.Log(
+            $"[WebGLBuild] Building {outputPath} (development={development}, scenes={scenes.Length})"
+        );
+
+        BuildReport report = BuildPipeline.BuildPlayer(
+            new BuildPlayerOptions
+            {
+                scenes = scenes,
+                locationPathName = outputPath,
+                target = BuildTarget.WebGL,
+                options = buildOptions,
+            }
+        );
+
+        if (report.summary.result != BuildResult.Succeeded)
+        {
+            throw new BuildFailedException(
+                $"WebGL build {report.summary.result} with {report.summary.totalErrors} errors."
+            );
+        }
+
+        Debug.Log(
+            $"[WebGLBuild] Succeeded ({report.summary.totalSize} bytes, warnings={report.summary.totalWarnings})"
+        );
+    }
+
+    private static string ReadArgument(string[] arguments, string name)
+    {
+        for (int index = 0; index < arguments.Length - 1; index++)
+        {
+            if (string.Equals(arguments[index], name, StringComparison.OrdinalIgnoreCase))
+            {
+                return arguments[index + 1];
+            }
+        }
+
+        return null;
+    }
+}
+#endif

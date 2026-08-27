@@ -3,12 +3,20 @@ mergeInto(LibraryManager.library, {
   // Detect if running on iOS (iPhone/iPad) via Safari or WebView
   IsiOSMobile: function() {
     var userAgent = navigator.userAgent || navigator.vendor || window.opera;
+
+    if (window.BroccoliPlatform) {
+      var sharedResult = window.BroccoliPlatform.shouldUseIOSOptimizations();
+      console.log('[MobileDetection] Shared iOS result: ' + sharedResult);
+      return sharedResult ? 1 : 0;
+    }
     
     // Check for iOS
     var isiOS = /iPad|iPhone|iPod/.test(userAgent) && !window.MSStream;
     
     // Also check for iPad on iOS 13+ which reports as Mac
-    var isMacWithTouch = (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    var isMacWithTouch = navigator.platform === 'MacIntel' &&
+                         navigator.maxTouchPoints > 1 &&
+                         /Mobile\//i.test(userAgent);
     
     // Additional check for iOS WebView
     var isiOSWebView = /(iPhone|iPod|iPad).*AppleWebKit(?!.*Safari)/i.test(userAgent);
@@ -24,6 +32,10 @@ mergeInto(LibraryManager.library, {
   
   // Detect if running on Android mobile browser
   IsAndroidMobile: function() {
+    if (window.BroccoliPlatform) {
+      return window.BroccoliPlatform.isAndroid() ? 1 : 0;
+    }
+
     var userAgent = navigator.userAgent || navigator.vendor || window.opera;
     var result = /android/i.test(userAgent);
     
@@ -34,11 +46,19 @@ mergeInto(LibraryManager.library, {
   
   // Combined check for any mobile browser
   IsMobileBrowser: function() {
+    if (window.BroccoliPlatform) {
+      var sharedResult = window.BroccoliPlatform.isMobile();
+      console.log('[MobileDetection] Shared mobile result: ' + sharedResult);
+      return sharedResult ? 1 : 0;
+    }
+
     var userAgent = navigator.userAgent || navigator.vendor || window.opera;
     
     // iOS detection
     var isiOS = /iPad|iPhone|iPod/.test(userAgent) && !window.MSStream;
-    var isMacWithTouch = (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    var isMacWithTouch = navigator.platform === 'MacIntel' &&
+                         navigator.maxTouchPoints > 1 &&
+                         /Mobile\//i.test(userAgent);
     var isiOSWebView = /(iPhone|iPod|iPad).*AppleWebKit(?!.*Safari)/i.test(userAgent);
     
     // Android detection  
@@ -67,6 +87,10 @@ mergeInto(LibraryManager.library, {
   
   // Check if running in Safari browser
   IsSafariBrowser: function() {
+    if (window.BroccoliPlatform) {
+      return window.BroccoliPlatform.isSafari() ? 1 : 0;
+    }
+
     var userAgent = navigator.userAgent;
     var isSafari = /^((?!chrome|android).)*safari/i.test(userAgent);
     
