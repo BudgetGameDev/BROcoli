@@ -85,16 +85,22 @@ public sealed partial class CameraOcclusionFader
 
             int layerMask = 1 << volume.gameObject.layer;
             Bounds bounds = volume.WorldBounds;
+            bool playerInside = IsInsideGroundFootprint(bounds, playerPosition);
             if (
                 (gameplayCamera.cullingMask & layerMask) == 0
                 || !GeometryUtility.TestPlanesAABB(frustumPlanes, bounds)
-                || !IsOnCameraSideOfPlayer(bounds, playerPosition)
-                || !bounds.IntersectRay(ray, out float hitDistance)
-                || hitDistance > distance
+                || (
+                    !playerInside
+                    && (
+                        !IsOnCameraSideOfPlayer(bounds, playerPosition)
+                        || !bounds.IntersectRay(ray, out float hitDistance)
+                        || hitDistance > distance
+                    )
+                )
             )
                 continue;
 
-            float coverage = PlayerCoverage(bounds, playerRect);
+            float coverage = playerInside ? 1f : PlayerCoverage(bounds, playerRect);
             MaximumDetectedCoverage = Mathf.Max(MaximumDetectedCoverage, coverage);
             if (coverage < minimumPlayerCoverage)
                 continue;
@@ -111,6 +117,14 @@ public sealed partial class CameraOcclusionFader
                 hitRenderers
             );
         }
+    }
+
+    private static bool IsInsideGroundFootprint(Bounds bounds, Vector3 playerPosition)
+    {
+        return playerPosition.x >= bounds.min.x
+            && playerPosition.x <= bounds.max.x
+            && playerPosition.z >= bounds.min.z
+            && playerPosition.z <= bounds.max.z;
     }
 
     private void ScanPlayerRay(

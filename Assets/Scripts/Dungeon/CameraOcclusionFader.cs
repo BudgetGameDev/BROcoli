@@ -31,6 +31,9 @@ public sealed partial class CameraOcclusionFader : MonoBehaviour
     [SerializeField, Range(0.02f, 0.35f)]
     private float wallFadeFeatherFraction = 0.12f;
 
+    [SerializeField, Range(0.25f, 0.65f)]
+    private float gatewayVisibleBaseFraction = 0.45f;
+
     [SerializeField, Min(0f)]
     private float targetHeight = 0.65f;
 
@@ -47,20 +50,29 @@ public sealed partial class CameraOcclusionFader : MonoBehaviour
         public FadeState(
             Renderer renderer,
             Shader fadeShader,
-            float featherFraction
+            float featherFraction,
+            float gatewayBaseFraction
         )
         {
             Renderer = renderer;
             OriginalMaterials = renderer.sharedMaterials;
             FadedMaterials = new Material[OriginalMaterials.Length];
             BaseColors = new Color[OriginalMaterials.Length];
-            bool structural = renderer.GetComponentInParent<DungeonOcclusionSection>() != null;
+            DungeonOcclusionSection section =
+                renderer.GetComponentInParent<DungeonOcclusionSection>();
+            bool structural = section != null;
+            bool partialGatewayFade =
+                section != null && section.UsesPartialGatewayFade(renderer.transform);
             float fadeFeather = structural
                 ? Mathf.Max(0.02f, renderer.bounds.size.y * featherFraction)
                 : 0.02f;
-            // Start the feather below the mesh so an occluded wall disappears
-            // as one complete unit instead of leaving a changing half-wall.
-            float fadeStart = renderer.bounds.min.y - fadeFeather;
+            // Normal walls disappear as complete units. Open archways and
+            // their immediately adjoining wall pieces retain a stable base so
+            // the passage remains visually grounded while its top clears the
+            // player.
+            float fadeStart = partialGatewayFade
+                ? renderer.bounds.min.y + renderer.bounds.size.y * gatewayBaseFraction
+                : renderer.bounds.min.y - fadeFeather;
 
             for (int i = 0; i < OriginalMaterials.Length; i++)
             {
@@ -151,7 +163,8 @@ public sealed partial class CameraOcclusionFader : MonoBehaviour
                 state = new FadeState(
                     renderer,
                     fadeShader,
-                    wallFadeFeatherFraction
+                    wallFadeFeatherFraction,
+                    gatewayVisibleBaseFraction
                 );
                 fadeStates.Add(renderer, state);
             }

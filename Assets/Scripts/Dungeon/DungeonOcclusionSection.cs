@@ -13,7 +13,9 @@ public sealed class DungeonOcclusionSection : MonoBehaviour
     private static readonly HashSet<DungeonOcclusionSection> ConfiguredSections = new();
 
     private readonly HashSet<DungeonOcclusionSection> linkedSections = new();
+    private readonly HashSet<Transform> gatewayAdjacentRoots = new();
     private Transform excludedRoot;
+    private Transform gatewayRoot;
     private Vector3 firstEndpoint;
     private Vector3 secondEndpoint;
     private Vector3 junctionPosition;
@@ -40,6 +42,32 @@ public sealed class DungeonOcclusionSection : MonoBehaviour
         excludedRoot = root;
     }
 
+    public void ConfigureOpenGateway(
+        Transform root,
+        Transform firstAdjacentRoot,
+        Transform secondAdjacentRoot
+    )
+    {
+        gatewayRoot = root;
+        gatewayAdjacentRoots.Clear();
+        if (firstAdjacentRoot != null)
+            gatewayAdjacentRoots.Add(firstAdjacentRoot);
+        if (secondAdjacentRoot != null)
+            gatewayAdjacentRoots.Add(secondAdjacentRoot);
+    }
+
+    public bool UsesPartialGatewayFade(Transform candidate)
+    {
+        if (IsWithinRoot(candidate, gatewayRoot))
+            return true;
+        foreach (Transform adjacentRoot in gatewayAdjacentRoots)
+        {
+            if (IsWithinRoot(candidate, adjacentRoot))
+                return true;
+        }
+        return false;
+    }
+
     public static bool TryCollectForHit(
         Collider hit,
         Camera camera,
@@ -56,6 +84,19 @@ public sealed class DungeonOcclusionSection : MonoBehaviour
 
         if (section.IsExcluded(hit.transform))
             return true;
+
+        if (section.IsGateway(hit.transform))
+        {
+            section.CollectGatewayUnit(
+                camera,
+                frustumPlanes,
+                playerPosition,
+                collectedSections,
+                results,
+                rendererBuffer
+            );
+            return true;
+        }
 
         section.CollectWithLinks(
             camera,
@@ -80,7 +121,7 @@ public sealed class DungeonOcclusionSection : MonoBehaviour
     {
         DungeonOcclusionSection section = volume.GetComponentInParent<DungeonOcclusionSection>();
         if (section != null)
-            section.CollectWithLinks(
+            section.CollectGatewayUnit(
                 camera,
                 frustumPlanes,
                 playerPosition,
@@ -97,7 +138,8 @@ public sealed class DungeonOcclusionSection : MonoBehaviour
         Vector3 playerPosition,
         HashSet<Renderer> results,
         List<Renderer> rendererBuffer,
-        DungeonOcclusionSection section = null
+        DungeonOcclusionSection section = null,
+        Transform alwaysIncludeRoot = null
     )
     {
         rendererBuffer.Clear();
@@ -121,8 +163,11 @@ public sealed class DungeonOcclusionSection : MonoBehaviour
             candidatePosition.y = playerPosition.y;
             Vector3 viewportCenter = camera.WorldToViewportPoint(candidatePosition);
             if (
-                viewportCenter.z > camera.nearClipPlane
-                && viewportCenter.y <= playerViewport.y
+                IsWithinRoot(candidate.transform, alwaysIncludeRoot)
+                || (
+                    viewportCenter.z > camera.nearClipPlane
+                    && viewportCenter.y <= playerViewport.y
+                )
             )
                 results.Add(candidate);
         }
@@ -132,6 +177,65 @@ public sealed class DungeonOcclusionSection : MonoBehaviour
     {
         return excludedRoot != null
             && (candidate == excludedRoot || candidate.IsChildOf(excludedRoot));
+    }
+
+    private bool IsGateway(Transform candidate)
+    {
+        return IsWithinRoot(candidate, gatewayRoot);
+    }
+
+    private void CollectGatewayUnit(
+        Camera camera,
+        Plane[] frustumPlanes,
+        Vector3 playerPosition,
+        HashSet<DungeonOcclusionSection> collectedSections,
+        HashSet<Renderer> results,
+        List<Renderer> rendererBuffer
+    )
+    {
+        if (gatewayRoot == null)
+        {
+            CollectWithLinks(
+                camera,
+                frustumPlanes,
+                playerPosition,
+                collectedSections,
+                results,
+                rendererBuffer
+            );
+            return;
+        }
+
+        collectedSections.Add(this);
+        CollectVisibleRenderers(
+            gatewayRoot,
+            camera,
+            frustumPlanes,
+            playerPosition,
+            results,
+            rendererBuffer,
+            this,
+            gatewayRoot
+        );
+        foreach (Transform adjacentRoot in gatewayAdjacentRoots)
+        {
+            if (adjacentRoot == null)
+                continue;
+            CollectVisibleRenderers(
+                adjacentRoot,
+                camera,
+                frustumPlanes,
+                playerPosition,
+                results,
+                rendererBuffer,
+                this
+            );
+        }
+    }
+
+    private static bool IsWithinRoot(Transform candidate, Transform root)
+    {
+        return root != null && (candidate == root || candidate.IsChildOf(root));
     }
 
     private void CollectWithLinks(
@@ -241,5 +345,6 @@ public sealed class DungeonOcclusionSection : MonoBehaviour
         foreach (DungeonOcclusionSection section in ConfiguredSections)
             section.linkedSections.Remove(this);
         linkedSections.Clear();
+        gatewayAdjacentRoots.Clear();
     }
 }
