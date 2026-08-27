@@ -19,7 +19,7 @@ Satisfy every acceptance criterion in the assigned issue. The authoritative auto
 
 Also run the appropriate focused tests, verify Unity compilation, and perform any additional Play Mode or runtime validation required by the story. Capture screenshots or a short video from the passing story-specific autoplay E2E run that visibly demonstrate that story's implemented feature. Evidence from a manual session, another scenario, or a generic run is not acceptable. Prefer video when still images cannot clearly prove the behavior.
 
-Do not work on another issue, spawn subagents, create branches or worktrees, commit, push, close issues, change GitHub Project status, or post GitHub comments. Never modify, discard, or include unrelated pre-existing changes.
+Do not work on another issue, create branches or worktrees, commit, push, close issues, change GitHub Project status, or post GitHub comments. Never modify, discard, or include unrelated pre-existing changes.
 
 Return a concise report to the manager containing:
 
