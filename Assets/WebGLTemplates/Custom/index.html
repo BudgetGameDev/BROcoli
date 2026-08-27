@@ -491,7 +491,9 @@
         }
       }
       
-      // WebGL context loss handling - iOS Safari has hard limits on WebGL contexts
+      // Surface context loss on every platform. Unity can keep processing input for a
+      // short time after the drawing context is lost, which otherwise looks like a
+      // responsive but permanently black game.
       function setupContextLossHandling() {
         var canvas = document.getElementById('unity-canvas');
         if (!canvas) return;
@@ -555,10 +557,12 @@
       //   };
       // }
       
+      // Context loss is not platform-specific (Chrome/ANGLE can lose it too).
+      try { setupContextLossHandling(); } catch (e) {}
+
       // Start iOS optimizations (all wrapped for safety)
       if (isiOSDevice) {
         try { requestWakeLock(); } catch (e) {}
-        try { setupContextLossHandling(); } catch (e) {}
         try { checkBatteryStatus(); } catch (e) {}
         try { setupTouchHints(); } catch (e) {}
         // Request device motion on first touch (requires user gesture)
@@ -672,10 +676,9 @@
 
         try {
           var probe = document.createElement('canvas');
-          var options = {
-            powerPreference: 'high-performance',
-            failIfMajorPerformanceCaveat: true
-          };
+          // Use the browser's default adapter selection. Forcing the discrete GPU can
+          // select an incompatible ANGLE path on Windows multi-GPU systems.
+          var options = { failIfMajorPerformanceCaveat: false };
           var context = probe.getContext('webgl2', options) ||
                         probe.getContext('webgl', options) ||
                         probe.getContext('experimental-webgl', options);
@@ -777,9 +780,10 @@
         return window.innerHeight > window.innerWidth;
       }
       
-      // Function to update canvas resolution to match window size
+      // Update only the canvas's DOM/CSS size. Unity owns the WebGL drawing-buffer
+      // size because matchWebGLToCanvasSize is enabled below. Writing canvas.width or
+      // canvas.height here would reset the drawing buffer behind Unity's renderer.
       function updateCanvasSize() {
-        var dpr = window.devicePixelRatio || 1;
         var width = window.innerWidth;
         var height = window.innerHeight;
         
@@ -797,10 +801,6 @@
           width = Math.max(width, document.documentElement.clientWidth);
           height = Math.max(height, document.documentElement.clientHeight);
         }
-        
-        // Set the canvas drawing buffer size (actual resolution Unity renders at)
-        canvas.width = Math.floor(width * dpr);
-        canvas.height = Math.floor(height * dpr);
         
         // Set CSS size to fill screen completely
         canvas.style.width = width + 'px';
@@ -980,14 +980,9 @@
           companyName: {{{ JSON.stringify(COMPANY_NAME) }}},
           productName: {{{ JSON.stringify(PRODUCT_NAME) }}},
           productVersion: {{{ JSON.stringify(PRODUCT_VERSION) }}},
-          matchWebGLToCanvasSize: true, // Enable dynamic resolution to match canvas size
-          devicePixelRatio: window.devicePixelRatio || 1, // Use device pixel ratio for sharp rendering
-          // WebGL context attributes for performance
-          webglContextAttributes: {
-            powerPreference: 'high-performance',
-            preserveDrawingBuffer: false,
-            failIfMajorPerformanceCaveat: false
-          },
+          // Unity synchronizes its drawing buffer to the CSS size and current DPR.
+          // Do not also assign canvas.width/height from page JavaScript.
+          matchWebGLToCanvasSize: true,
           // Progress callback
           onProgress: function(progress) {
             if (progressBar) {

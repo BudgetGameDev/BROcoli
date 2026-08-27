@@ -142,7 +142,14 @@ public sealed class SprayWeaponVisual3D : MonoBehaviour
 
         AnimationClip grip = FindClip("GrabHold");
         if (grip != null)
+        {
+            // Non-legacy clips require an Animator on the sampled root at runtime.
+            // The imported hand has clips but no Animator, which made WebGL log a
+            // warning and skip the static grip pose.
+            Animator poseAnimator = hand.AddComponent<Animator>();
             grip.SampleAnimation(hand, grip.length * GripPoseNormalized);
+            poseAnimator.enabled = false;
+        }
         else
             Debug.LogWarning("Licensed hand is missing its GrabHold animation clip.");
     }

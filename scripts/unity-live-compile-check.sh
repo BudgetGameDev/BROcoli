@@ -37,7 +37,14 @@ retry_editor_command recompile
 status="compiling"
 failed="false"
 for _attempt in $(seq 1 120); do
-    result="$(unity command recompile_status --format json | parse_result)"
+    # The Pipeline endpoint can briefly disconnect while Unity reloads the
+    # scripting domain. A failed poll is not a failed compilation; wait for the
+    # editor connection to return and then inspect the authoritative status.
+    if ! status_json="$(unity command recompile_status --format json 2>/dev/null)"; then
+        sleep 1
+        continue
+    fi
+    result="$(printf '%s' "$status_json" | parse_result)"
     status="$(printf '%s' "$result" | python3 -c 'import json,sys; print((json.load(sys.stdin) or {}).get("status","compiling"))')"
     failed="$(printf '%s' "$result" | python3 -c 'import json,sys; print(str((json.load(sys.stdin) or {}).get("failed",False)).lower())')"
     case "$status" in
