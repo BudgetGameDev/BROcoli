@@ -115,17 +115,10 @@ public partial class DungeonPropPlacer
             int groupSize = random.Next(minimum, maximum + 1);
             float propRadius = FootprintRadius(prefab);
             float neighbourDistance = propRadius * 2f + PropGap;
-            float ringRadius =
-                neighbourDistance / (2f * Mathf.Sin(Mathf.PI / groupSize));
+            float ringRadius = neighbourDistance / (2f * Mathf.Sin(Mathf.PI / groupSize));
             float clusterRadius = ringRadius + propRadius;
             if (
-                !TryClusterSpot(
-                    archetype,
-                    random,
-                    occupied,
-                    clusterRadius,
-                    out Vector2 clusterSpot
-                )
+                !TryClusterSpot(archetype, random, occupied, clusterRadius, out Vector2 clusterSpot)
             )
                 continue;
 
@@ -200,31 +193,19 @@ public partial class DungeonPropPlacer
         switch ((side % 4 + 4) % 4)
         {
             case 0:
-                local = new Vector2(
-                    -3.5f,
-                    PositiveWallFace(wallZ) + BannerMeshDepthOffset
-                );
+                local = new Vector2(-3.5f, PositiveWallFace(wallZ) + BannerMeshDepthOffset);
                 yaw = 0f;
                 break;
             case 1:
-                local = new Vector2(
-                    PositiveWallFace(wallX) + BannerMeshDepthOffset,
-                    -3f
-                );
+                local = new Vector2(PositiveWallFace(wallX) + BannerMeshDepthOffset, -3f);
                 yaw = 90f;
                 break;
             case 2:
-                local = new Vector2(
-                    3.5f,
-                    NegativeWallFace(-wallZ) - BannerMeshDepthOffset
-                );
+                local = new Vector2(3.5f, NegativeWallFace(-wallZ) - BannerMeshDepthOffset);
                 yaw = 180f;
                 break;
             default:
-                local = new Vector2(
-                    NegativeWallFace(-wallX) - BannerMeshDepthOffset,
-                    3f
-                );
+                local = new Vector2(NegativeWallFace(-wallX) - BannerMeshDepthOffset, 3f);
                 yaw = -90f;
                 break;
         }

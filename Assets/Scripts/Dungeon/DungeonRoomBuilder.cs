@@ -126,8 +126,7 @@ public partial class DungeonRoomBuilder : MonoBehaviour
         );
         root.transform.SetParent(parent, false);
         Transform wallRun = CreateOcclusionSection(root.transform, "Wall Run");
-        DungeonOcclusionSection wallRunSection =
-            wallRun.GetComponent<DungeonOcclusionSection>();
+        DungeonOcclusionSection wallRunSection = wallRun.GetComponent<DungeonOcclusionSection>();
 
         Vector2 roomCenter = DungeonLayout.RoomCenter(new Vector2Int(edge.X, edge.Y));
         GameObject gatePrefab = open ? gateOpenPrefab : gateBlockedPrefab;
@@ -189,12 +188,7 @@ public partial class DungeonRoomBuilder : MonoBehaviour
                 }
                 else
                 {
-                    Instantiate(
-                        wallPrefab,
-                        new Vector3(boundaryX, 0f, z),
-                        sideways,
-                        wallRun
-                    );
+                    Instantiate(wallPrefab, new Vector3(boundaryX, 0f, z), sideways, wallRun);
                 }
             }
             ConfigureGatewayOcclusion(gate, wallRun);

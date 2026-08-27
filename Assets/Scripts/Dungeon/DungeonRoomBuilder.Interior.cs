@@ -116,9 +116,7 @@ public partial class DungeonRoomBuilder
         // that amount. The collider is wider than the mesh, so the two walls
         // still overlap slightly at the corner without leaving an invisible
         // extension that blocks movement along the shell wall.
-        float retainedFraction = Mathf.Clamp01(
-            (visualLength - boundaryOverlap) / visualLength
-        );
+        float retainedFraction = Mathf.Clamp01((visualLength - boundaryOverlap) / visualLength);
         Vector3 scale = visual.localScale;
         scale.x *= retainedFraction;
         visual.localScale = scale;

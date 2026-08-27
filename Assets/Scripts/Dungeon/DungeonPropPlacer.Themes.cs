@@ -208,15 +208,7 @@ public partial class DungeonPropPlacer
             1 => "Coin",
             _ => "Key",
         };
-        PlaceNamed(
-            parent,
-            center,
-            offering,
-            Vector2.zero,
-            archetype.Variant * 90f,
-            occupied,
-            1f
-        );
+        PlaceNamed(parent, center, offering, Vector2.zero, archetype.Variant * 90f, occupied, 1f);
         PlaceWallBanner(parent, center, archetype, archetype.Variant);
     }
 }

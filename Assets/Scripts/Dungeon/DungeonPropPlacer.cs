@@ -260,10 +260,7 @@ public partial class DungeonPropPlacer : MonoBehaviour
                 float armoryZ = Mathf.Min(2f, z);
                 return new Vector2(xSign * x, xSign * -armoryZ);
             }
-            return new Vector2(
-                xSign * x,
-                (archetype.Variant & 2) == 0 ? z : -z
-            );
+            return new Vector2(xSign * x, (archetype.Variant & 2) == 0 ? z : -z);
         }
 
         float vaultX = archetype.Shape == DungeonLayout.RoomShape.Compact ? 2.3f : 3.3f;

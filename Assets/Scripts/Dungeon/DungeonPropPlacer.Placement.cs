@@ -37,8 +37,7 @@ public partial class DungeonPropPlacer
                 float separation = radius + other.Radius + PropGap;
                 if (large && other.Large)
                     separation = Mathf.Max(separation, LargePropSeparation);
-                clear &=
-                    (candidate - other.Position).sqrMagnitude >= separation * separation;
+                clear &= (candidate - other.Position).sqrMagnitude >= separation * separation;
             }
             if (!clear)
                 continue;
@@ -88,8 +87,7 @@ public partial class DungeonPropPlacer
             foreach (OccupiedSpot other in occupied)
             {
                 float separation = radius + other.Radius + PropGap;
-                clear &=
-                    (candidate - other.Position).sqrMagnitude >= separation * separation;
+                clear &= (candidate - other.Position).sqrMagnitude >= separation * separation;
             }
             if (!clear)
                 continue;
@@ -169,16 +167,9 @@ public partial class DungeonPropPlacer
         for (int z = 0; z < 2; z++)
         {
             Vector3 point = toRoot.MultiplyPoint3x4(
-                new Vector3(
-                    x == 0 ? min.x : max.x,
-                    y == 0 ? min.y : max.y,
-                    z == 0 ? min.z : max.z
-                )
+                new Vector3(x == 0 ? min.x : max.x, y == 0 ? min.y : max.y, z == 0 ? min.z : max.z)
             );
-            radiusSquared = Mathf.Max(
-                radiusSquared,
-                point.x * point.x + point.z * point.z
-            );
+            radiusSquared = Mathf.Max(radiusSquared, point.x * point.x + point.z * point.z);
         }
         return radiusSquared;
     }
