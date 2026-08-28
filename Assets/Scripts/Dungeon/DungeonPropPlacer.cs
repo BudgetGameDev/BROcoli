@@ -19,7 +19,14 @@ public partial class DungeonPropPlacer : MonoBehaviour
     private const float WallFrontFaceOffset = 0.4f;
     private const float WallBackFaceOffset = 1f;
     private const float BannerMeshDepthOffset = 1.05f;
-    private const float PropGap = 0.12f;
+
+    // Independent obstacles reserve a lane wider than the player's 0.86-unit
+    // capsule. This prevents procedural placement from creating tempting gaps
+    // that are too narrow to traverse reliably. Deliberate clutter clusters
+    // use TightClusterGap instead and read as one impassable obstacle group.
+    private const float PropGap = 1.05f;
+    private const float TightClusterGap = 0.08f;
+    private const float WallSealGap = 0.18f;
     private const float LargePropSeparation = 3.8f;
 
     private readonly struct OccupiedSpot

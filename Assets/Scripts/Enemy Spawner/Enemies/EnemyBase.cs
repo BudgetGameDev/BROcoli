@@ -27,8 +27,6 @@ public abstract class EnemyBase : MonoBehaviour
     public float TimeToEndSpawning = 60f;
     public int ScoreValue = 100;
     public float Damage = 0f;
-    float healthBarTimer = 0f;
-    float healthBarDisplayDuration = 2f;
 
     private static bool isQuitting = false;
 
@@ -164,6 +162,8 @@ public abstract class EnemyBase : MonoBehaviour
 
         if (walkAudio == null)
             walkAudio = GetComponent<ProceduralEnemyWalkAudio>();
+
+        DisableWorldHealthBar();
     }
 
     /// <summary>Make this enemy an elite variant with increased HP and visual effects.</summary>
@@ -214,6 +214,8 @@ public abstract class EnemyBase : MonoBehaviour
         }
 
         EnemySpatialHash.Instance?.Register(this);
+        DisableWorldHealthBar();
+        DiabloHud.EnsurePresent();
     }
 
     private void EnforceSafePhysicsLimits()
@@ -311,6 +313,7 @@ public abstract class EnemyBase : MonoBehaviour
     protected virtual void OnDisable()
     {
         UnlockBodyAfterAttack(false);
+        DiabloHud.NotifyEnemyUnavailable(this);
 
         if (!gameObject.scene.isLoaded)
             return;
@@ -377,7 +380,8 @@ public abstract class EnemyBase : MonoBehaviour
             return;
 
         float appliedDamage = Mathf.Max(0f, damage);
-        Health -= appliedDamage;
+        Health = Mathf.Max(0f, Health - appliedDamage);
+        DiabloHud.ReportEnemyHealth(this);
         if (Health <= 0f)
         {
             if (isElite)
@@ -395,14 +399,6 @@ public abstract class EnemyBase : MonoBehaviour
         }
 
         StartCoroutine(HitFlash());
-
-        if (alwaysShowHealthBar)
-            return;
-
-        healthBar.UpdateBar(Health, MaxHealth);
-        healthBarVisable = true;
-        healthBarTimer = healthBarDisplayDuration;
-        healthBar.ShowBar();
     }
 
     public void ApplyKnockback(Vector2 direction)
@@ -570,25 +566,8 @@ public abstract class EnemyBase : MonoBehaviour
 
     void Start()
     {
-        if (healthBar == null)
-        {
-            healthBar = FindFirstObjectByType<Bar>();
-        }
-
-        if (healthBar != null)
-        {
-            healthBar.UpdateBar(Health, MaxHealth);
-            if (alwaysShowHealthBar)
-            {
-                healthBarVisable = true;
-                healthBar.ShowBar();
-            }
-            else
-            {
-                healthBarVisable = false;
-                healthBar.HideBar();
-            }
-        }
+        DisableWorldHealthBar();
+        DiabloHud.EnsurePresent();
     }
 
     public virtual void Update()
@@ -608,15 +587,38 @@ public abstract class EnemyBase : MonoBehaviour
                 activeDamageKnockbackMultiplier = 1f;
             }
         }
+    }
 
-        if (healthBarVisable && !alwaysShowHealthBar && healthBar != null)
+    private void DisableWorldHealthBar()
+    {
+        if (healthBar == null)
         {
-            healthBarTimer -= Time.deltaTime;
-            if (healthBarTimer <= 0f)
+            foreach (Bar candidate in GetComponentsInChildren<Bar>(true))
             {
-                healthBarVisable = false;
-                healthBar.HideBar();
+                if (candidate.gameObject.name != "HealthBar")
+                    continue;
+
+                healthBar = candidate;
+                break;
             }
+        }
+
+        healthBarVisable = false;
+        if (healthBar == null)
+            return;
+
+        Canvas worldCanvas = healthBar.GetComponentInParent<Canvas>(true);
+        if (
+            worldCanvas != null
+            && worldCanvas.renderMode == RenderMode.WorldSpace
+            && worldCanvas.transform.IsChildOf(transform)
+        )
+        {
+            worldCanvas.gameObject.SetActive(false);
+        }
+        else
+        {
+            healthBar.HideBar();
         }
     }
 
@@ -648,6 +650,7 @@ public abstract class EnemyBase : MonoBehaviour
 
         isDying = true;
         Health = 0f;
+        DiabloHud.NotifyEnemyDefeated(this);
         PrepareForIncomingKnockback();
         ClearQueuedKnockback();
         UnlockBodyAfterAttack(false);
@@ -846,6 +849,7 @@ public abstract class EnemyBase : MonoBehaviour
             healthBar.UpdateBar(Health, MaxHealth);
             healthBar.HideBar();
         }
+        DisableWorldHealthBar();
     }
 
     void OnApplicationQuit()

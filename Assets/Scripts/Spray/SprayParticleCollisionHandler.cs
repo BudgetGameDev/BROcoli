@@ -54,13 +54,13 @@ public class SprayParticleCollisionHandler : MonoBehaviour
         collision.type = ParticleSystemCollisionType.World;
         collision.mode = ParticleSystemCollisionMode.Collision3D;
         collision.sendCollisionMessages = true;
-        collision.collidesWith = LayerMask.GetMask("Enemy");
+        collision.collidesWith = LayerMask.GetMask("Enemy", "Wall");
         collision.maxCollisionShapes = 10;
         collision.quality = ParticleSystemCollisionQuality.Medium;
         collision.radiusScale = 1f;
         collision.dampen = 0f;
         collision.bounce = 0f;
-        collision.lifetimeLoss = 1f; // Particle dies on hit
+        collision.lifetimeLoss = 1f; // Particle dies on enemy or wall impact
     }
 
     /// <summary>

@@ -118,8 +118,8 @@ public partial class DungeonRoomBuilder
 
         // Move the endpoint by one visual half-depth so perpendicular wall
         // meshes intersect instead of exposing their beveled end faces. The
-        // collider follows the same adjustment and keeps its authored 0.2-unit
-        // overhang beyond the visible wall.
+        // collider follows the same adjustment so it stays aligned with the
+        // visible wall all the way to the junction.
         float lengthAdjustment = extend ? boundaryOverlap : -boundaryOverlap;
         float adjustedLength = Mathf.Max(0.0001f, visualLength + lengthAdjustment);
         Vector3 scale = visual.localScale;

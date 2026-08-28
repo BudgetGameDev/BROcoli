@@ -8,7 +8,12 @@ public class Bar : MonoBehaviour
 
     public void UpdateBar(float current, float total)
     {
-        slider.value = current / total;
+        ResolveSlider();
+        if (slider == null)
+            return;
+
+        float value = total > 0f ? Mathf.Clamp01(current / total) : 0f;
+        slider.SetValueWithoutNotify(value);
     }
 
     public void ShowBar()
@@ -19,5 +24,11 @@ public class Bar : MonoBehaviour
     public void HideBar()
     {
         gameObject.SetActive(false);
+    }
+
+    private void ResolveSlider()
+    {
+        if (slider == null)
+            slider = GetComponent<Slider>();
     }
 }

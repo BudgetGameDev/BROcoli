@@ -13,7 +13,6 @@ public partial class PlayerMovement : MonoBehaviour
     private const float MaxKnockbackForce = 2.75f;
     private const float CollisionSkin = 0.02f;
     private const float EnemyStandOffGap = 0.4f;
-    internal const float WallCollisionRadius = 0.68f;
     private const int MaxCollisionSlides = 2;
 
     private Rigidbody _body;

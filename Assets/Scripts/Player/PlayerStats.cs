@@ -115,6 +115,7 @@ public partial class PlayerStats : MonoBehaviour
         RegisterPickupTarget();
         WarnOnDuplicateStats();
         DiscoverUIComponents();
+        DiabloHud.EnsurePresent();
     }
 
     private void OnEnable()

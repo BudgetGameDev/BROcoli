@@ -4,7 +4,7 @@ using UnityEngine;
 public partial class DungeonPropPlacer
 {
     private const float AlleyChestChance = 0.52f;
-    private const float ChestWallGap = 0.18f;
+    private const float ChestWallGap = WallSealGap;
 
     private static Vector2 ChestSpot(
         DungeonLayout.RoomArchetype archetype,

@@ -4,9 +4,9 @@ public partial class PlayerMovement
 {
     /// <summary>
     /// Cast the player's body before moving and slide along obstacles on contact.
-    /// Enemies retain their extra stand-off gap, while walls use a body-sized
-    /// footprint so diagonal approaches cannot push the visible model through
-    /// the architecture.
+    /// Enemies retain their extra stand-off gap. Both enemy and wall checks use
+    /// the player's vertical capsule, giving the body the same circular
+    /// footprint from every approach direction.
     /// </summary>
     private Vector2 ResolveNavigationCollisions(Vector2 desiredDelta)
     {
@@ -17,15 +17,16 @@ public partial class PlayerMovement
         )
             return desiredDelta;
 
-        Bounds bounds = _collider.bounds;
-        Vector3 enemyCastCenter = bounds.center;
-        Vector3 enemyCastHalfExtents = bounds.extents;
-        Vector3 wallCastCenter = new(_body.position.x, bounds.center.y, _body.position.z);
-        Vector3 wallCastHalfExtents = new(
-            WallCollisionRadius,
-            bounds.extents.y,
-            WallCollisionRadius
-        );
+        if (
+            !TryGetNavigationCapsule(
+                _collider,
+                out Vector3 castTop,
+                out Vector3 castBottom,
+                out float castRadius
+            )
+        )
+            return desiredDelta;
+
         Vector2 resolvedDelta = Vector2.zero;
         Vector2 remainingDelta = desiredDelta;
 
@@ -37,16 +38,18 @@ public partial class PlayerMovement
 
             Vector2 direction = remainingDelta / distance;
             bool hasEnemyHit = TryGetBlockingHit(
-                enemyCastCenter,
-                enemyCastHalfExtents,
+                castTop,
+                castBottom,
+                castRadius,
                 direction,
                 distance + CollisionSkin + EnemyStandOffGap,
                 _enemyLayerMask,
                 out RaycastHit enemyHit
             );
             bool hasWallHit = TryGetBlockingHit(
-                wallCastCenter,
-                wallCastHalfExtents,
+                castTop,
+                castBottom,
+                castRadius,
                 direction,
                 distance + CollisionSkin,
                 _wallLayerMask,
@@ -74,8 +77,8 @@ public partial class PlayerMovement
             Vector2 travel = direction * travelDistance;
             resolvedDelta += travel;
             Vector3 worldTravel = travel.ToWorld();
-            enemyCastCenter += worldTravel;
-            wallCastCenter += worldTravel;
+            castTop += worldTravel;
+            castBottom += worldTravel;
 
             Vector2 untraveled = direction * (distance - travelDistance);
             Vector2 hitNormal = hit.normal.ToGround();
@@ -90,8 +93,9 @@ public partial class PlayerMovement
     }
 
     private bool TryGetBlockingHit(
-        Vector3 castCenter,
-        Vector3 castHalfExtents,
+        Vector3 castTop,
+        Vector3 castBottom,
+        float castRadius,
         Vector2 direction,
         float distance,
         int layerMask,
@@ -104,12 +108,12 @@ public partial class PlayerMovement
             return false;
         }
 
-        int hitCount = Physics.BoxCastNonAlloc(
-            castCenter,
-            castHalfExtents,
+        int hitCount = Physics.CapsuleCastNonAlloc(
+            castTop,
+            castBottom,
+            castRadius,
             direction.ToWorld(),
             _collisionHits,
-            Quaternion.identity,
             distance,
             layerMask,
             QueryTriggerInteraction.Ignore
@@ -129,6 +133,7 @@ public partial class PlayerMovement
             // player can always disengage instead of becoming stuck.
             if (candidate.distance <= CollisionSkin)
             {
+                Vector3 castCenter = (castTop + castBottom) * 0.5f;
                 Vector2 closestPoint = candidate.collider.ClosestPoint(castCenter).ToGround();
                 Vector2 awayFromObstacle = castCenter.ToGround() - closestPoint;
                 if (Vector2.Dot(direction, awayFromObstacle) >= 0f)
@@ -143,5 +148,39 @@ public partial class PlayerMovement
         }
 
         return closestHit.collider != null;
+    }
+
+    /// <summary>
+    /// Converts the player's authored collider bounds into the upright capsule
+    /// used by predictive movement and hop-visual collision checks.
+    /// </summary>
+    internal static bool TryGetNavigationCapsule(
+        Collider collider,
+        out Vector3 top,
+        out Vector3 bottom,
+        out float radius
+    )
+    {
+        if (collider == null || !collider.enabled)
+        {
+            top = default;
+            bottom = default;
+            radius = 0f;
+            return false;
+        }
+
+        Bounds bounds = collider.bounds;
+        radius = Mathf.Min(bounds.extents.x, bounds.extents.z);
+        if (radius <= 0.0001f)
+        {
+            top = default;
+            bottom = default;
+            return false;
+        }
+
+        float capOffset = Mathf.Max(0f, bounds.extents.y - radius);
+        top = bounds.center + Vector3.up * capOffset;
+        bottom = bounds.center - Vector3.up * capOffset;
+        return true;
     }
 }

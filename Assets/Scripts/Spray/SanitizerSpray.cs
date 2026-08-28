@@ -173,7 +173,7 @@ public class SanitizerSpray : MonoBehaviour
 
             // Use cone-based damage detection (instant, no delay)
             // This detects enemies in the spray cone and deals damage immediately
-            damageHandler?.ProcessDamage(dir, currentRange, currentWidth, nozzle.ToGround());
+            damageHandler?.ProcessDamage(dir, currentRange, currentWidth, nozzle);
         }
     }
 

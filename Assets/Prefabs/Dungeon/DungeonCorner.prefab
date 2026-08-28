@@ -99,7 +99,8 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2754206020585190998}
-  - component: {fileID: 5761701375927974785}
+  - component: {fileID: 6605161413416076155}
+  - component: {fileID: 5206556091000368271}
   m_Layer: 9
   m_Name: DungeonCorner
   m_TagString: Untagged
@@ -123,7 +124,7 @@ Transform:
   - {fileID: 2723628489426173541}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!65 &5761701375927974785
+--- !u!65 &6605161413416076155
 BoxCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -142,5 +143,26 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 2.2043893, y: 2.3611498, z: 2.2043893}
-  m_Center: {x: 0, y: 1.1805749, z: 0}
+  m_Size: {x: 0.6, y: 2.36115, z: 2.2}
+  m_Center: {x: -0.8, y: 1.180575, z: 0}
+--- !u!65 &5206556091000368271
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1060817209860657698}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 2.2, y: 2.36115, z: 0.6}
+  m_Center: {x: 0, y: 1.180575, z: 0.8}

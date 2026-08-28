@@ -66,7 +66,7 @@ public static class SprayLayerCore
         );
 
         // Enable collision for particle-based hit detection
-        SprayLayerFactory.SetupCollision(ps);
+        SprayLayerFactory.SetupCollision(ps, sendCollisionMessages: true);
 
         // Add collision handler component for damage dealing
         ps.gameObject.AddComponent<SprayParticleCollisionHandler>();

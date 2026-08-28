@@ -53,6 +53,7 @@ public static class SprayLayerDroplet
             SprayMaterialCreator.GetSprayDropletMaterial(),
             1
         );
+        SprayLayerFactory.SetupCollision(ps);
 
         return ps;
     }

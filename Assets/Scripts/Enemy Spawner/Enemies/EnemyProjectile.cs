@@ -80,6 +80,20 @@ public class EnemyProjectile : MonoBehaviour
         }
     }
 
+    void FixedUpdate()
+    {
+        if (travelDirection == Vector2.zero)
+            return;
+
+        Vector3 displacement = (
+            travelDirection * speed * PlayerStats.ActiveEnemyTimeScale * Time.fixedDeltaTime
+        ).ToWorld();
+        if (!ProjectileWallCollision.Sweep(col, transform, displacement, out _))
+            return;
+
+        DestroyOnWall();
+    }
+
     void OnTriggerEnter(Collider other)
     {
         // Check if hit player
@@ -101,7 +115,17 @@ public class EnemyProjectile : MonoBehaviour
         // Destroy on hitting walls/obstacles (but not other enemies)
         else if (!other.CompareTag("Enemy") && !other.isTrigger)
         {
-            Destroy(gameObject);
+            DestroyOnWall();
         }
+    }
+
+    private void DestroyOnWall()
+    {
+        travelDirection = Vector2.zero;
+        if (rb != null)
+            rb.linearVelocity = Vector3.zero;
+        if (col != null)
+            col.enabled = false;
+        Destroy(gameObject);
     }
 }

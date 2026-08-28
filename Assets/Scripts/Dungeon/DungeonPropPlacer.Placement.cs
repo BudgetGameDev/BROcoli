@@ -12,7 +12,7 @@ public partial class DungeonPropPlacer
         out Vector2 result
     )
     {
-        float edgeMargin = Mathf.Max(0.65f, radius + 0.2f);
+        float edgeMargin = Mathf.Max(0.65f, radius + WallSealGap);
         for (int attempt = 0; attempt < 28; attempt++)
         {
             var candidate = new Vector2(
@@ -29,7 +29,7 @@ public partial class DungeonPropPlacer
             );
             if (Mathf.Abs(candidate.x) < 1.55f || Mathf.Abs(candidate.y) < 1.55f)
                 continue;
-            if (IsOnDivider(candidate, archetype))
+            if (OverlapsInteriorWall(candidate, radius, archetype))
                 continue;
             bool clear = true;
             foreach (OccupiedSpot other in occupied)
@@ -60,13 +60,13 @@ public partial class DungeonPropPlacer
         {
             var candidate = new Vector2(
                 Mathf.Lerp(
-                    -archetype.HalfWidth + radius,
-                    archetype.HalfWidth - radius,
+                    -archetype.HalfWidth + radius + WallSealGap,
+                    archetype.HalfWidth - radius - WallSealGap,
                     (float)random.NextDouble()
                 ),
                 Mathf.Lerp(
-                    -archetype.HalfDepth + radius,
-                    archetype.HalfDepth - radius,
+                    -archetype.HalfDepth + radius + WallSealGap,
+                    archetype.HalfDepth - radius - WallSealGap,
                     (float)random.NextDouble()
                 )
             );
@@ -74,13 +74,7 @@ public partial class DungeonPropPlacer
                 continue;
             if (Mathf.Abs(candidate.y) < 1.55f)
                 continue;
-            if (
-                IsOnDivider(candidate, archetype)
-                || IsOnDivider(candidate + Vector2.right * radius, archetype)
-                || IsOnDivider(candidate + Vector2.left * radius, archetype)
-                || IsOnDivider(candidate + Vector2.up * radius, archetype)
-                || IsOnDivider(candidate + Vector2.down * radius, archetype)
-            )
+            if (OverlapsInteriorWall(candidate, radius, archetype))
                 continue;
 
             bool clear = true;

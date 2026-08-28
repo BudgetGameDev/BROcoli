@@ -5,7 +5,7 @@ using UnityEngine;
 /// Handles damage calculation and enemy detection for the sanitizer spray.
 /// Damage is delayed based on particle travel time to sync with visuals.
 /// </summary>
-public class SprayDamageHandler
+public partial class SprayDamageHandler
 {
     private readonly Dictionary<EnemyBase, int> particleHitCounts =
         new Dictionary<EnemyBase, int>();
@@ -70,12 +70,12 @@ public class SprayDamageHandler
     /// <param name="sprayDirection">Direction the spray is aimed</param>
     /// <param name="currentRange">Current spray range</param>
     /// <param name="currentWidth">Current spray cone width in degrees</param>
-    /// <param name="nozzleOrigin">Origin point for damage cone (nozzle position)</param>
+    /// <param name="nozzleOrigin">World-space origin of the spray nozzle</param>
     public void ProcessDamage(
         Vector2 sprayDirection,
         float currentRange,
         float currentWidth,
-        Vector2 nozzleOrigin
+        Vector3 nozzleOrigin
     )
     {
         if (Time.time < nextDamageTick)
@@ -194,21 +194,22 @@ public class SprayDamageHandler
     /// - Distance: closer = more particles hit (particles fizzle over lifetime)
     /// - Angle: center = denser spray (cone spreads at edges)
     /// </summary>
-    /// <param name="nozzleOrigin">Origin point for damage cone (where spray emits from)</param>
+    /// <param name="nozzleOrigin">World-space origin of the spray nozzle</param>
     private void DetectEnemiesInCone(
         Vector2 sprayDirection,
         float currentRange,
         float currentWidth,
-        Vector2 nozzleOrigin
+        Vector3 nozzleOrigin
     )
     {
         // Gameplay cone begins at the player, while particles still render from
         // the nozzle. This bridges the near field so a close enemy cannot sit
         // behind the visual emission point and be skipped by the cone angle.
         Vector2 origin =
-            playerTransform != null ? playerTransform.position.ToGround() : nozzleOrigin;
+            playerTransform != null ? playerTransform.position.ToGround() : nozzleOrigin.ToGround();
 
         float halfAngle = currentWidth * 0.5f;
+        int wallLayerMask = LayerMask.GetMask("Wall");
 
         // Detection still uses a circle around nozzle for initial broad-phase
         int hitCount = GroundPlane.OverlapCircle(origin, currentRange, hitBuffer);
@@ -242,6 +243,16 @@ public class SprayDamageHandler
 
             if (angleToEnemy <= halfAngle)
             {
+                if (
+                    Physics.Linecast(
+                        nozzleOrigin,
+                        hit.bounds.center,
+                        wallLayerMask,
+                        QueryTriggerInteraction.Ignore
+                    )
+                )
+                    continue;
+
                 // Physics-based damage: particles fizzle over distance, spread over angle
                 float distanceRatio = distance / currentRange;
                 float distanceFalloff = 1f - Mathf.Pow(distanceRatio, 0.7f);
@@ -257,54 +268,6 @@ public class SprayDamageHandler
                     RegisterParticleHit(enemy);
                 }
             }
-        }
-    }
-
-    /// <summary>
-    /// Process particle trigger events, register hits, and kill particles on impact.
-    /// Particles stop when they hit enemies (no piercing).
-    /// </summary>
-    /// <param name="sprayParticles">The particle system to check</param>
-    public void ProcessParticleTrigger(ParticleSystem sprayParticles)
-    {
-        if (sprayParticles == null)
-            return;
-
-        // Get particles that entered triggers
-        List<ParticleSystem.Particle> enter = new List<ParticleSystem.Particle>();
-        int numEnter = sprayParticles.GetTriggerParticles(
-            ParticleSystemTriggerEventType.Enter,
-            enter
-        );
-
-        bool anyKilled = false;
-
-        for (int i = 0; i < numEnter; i++)
-        {
-            Vector3 particlePos = enter[i].position;
-
-            // Find enemy at this position
-            Collider hit = GroundPlane.OverlapPoint(particlePos);
-            if (hit != null && hit.CompareTag("Enemy"))
-            {
-                EnemyBase enemy = hit.GetComponent<EnemyBase>();
-                if (enemy != null)
-                {
-                    RegisterParticleHit(enemy);
-
-                    // Kill particle on impact - no piercing through enemies
-                    var particle = enter[i];
-                    particle.remainingLifetime = 0f;
-                    enter[i] = particle;
-                    anyKilled = true;
-                }
-            }
-        }
-
-        // Write back modified particles
-        if (anyKilled)
-        {
-            sprayParticles.SetTriggerParticles(ParticleSystemTriggerEventType.Enter, enter);
         }
     }
 

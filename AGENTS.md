@@ -6,9 +6,9 @@
 
 Prefer finding a suitable existing asset from the sources below over creating or
 procedurally generating one yourself. Do not start by building a model in Blender/code
-or synthesizing audio in Unity merely because that is faster for the agent. First make a
-reasonable search, inspect viable candidates, and verify that their licenses and source
-formats work for this project.
+or synthesizing audio, shaders, effects, or other content in Unity merely because that
+is faster for the agent. First make a reasonable search, inspect viable candidates, and
+verify that their licenses, dependencies, and source formats work for this project.
 
 Only fall back to making an asset procedurally in Unity/code after the applicable
 preferred sources and acquisition workflows have been tried and no suitable, legally
@@ -16,9 +16,69 @@ compatible asset can be acquired. If the user explicitly asks for a procedurally
 generated model, sound, or other asset, follow that request directly and skip the
 acquisition-first requirement for that asset.
 
-### 3D models: Sketchfab, then Openverse and SAM 3D
+### Unity Asset Store: search free assets first
 
-Follow this acquisition order before creating a 3D model yourself:
+Before using the category-specific sources below, search the
+[Unity Asset Store](https://assetstore.unity.com/) and filter the results to assets that
+are free at the time of acquisition. Prefer it especially for Unity-native content such
+as URP-compatible shaders, water, fire, weather and particle effects, VFX, materials,
+rendering tools, editor extensions, controllers, frameworks, and other packages whose
+Unity integration would otherwise need to be recreated. Also consider it first for 2D
+and 3D art, animation, audio, UI, environments, and any other category where a suitable
+free Asset Store package may exist.
+
+Make a reasonable search across relevant terms and categories, inspect promising
+candidates, and prefer assets that are maintained, documented, compatible with the
+project's Unity editor version, active render pipeline, target platforms, visual style,
+and runtime budget, and do not require paid dependencies or services. Import only the
+files and samples the project actually needs and verify the asset in Play Mode through
+the real gameplay camera and target platform settings.
+
+An Asset Store price of `Free` does not mean the asset is public domain or freely
+redistributable. Before downloading or importing an asset, inspect its exact store page
+and linked terms and verify all of the following:
+
+- Its current price is free; do not acquire a paid asset, subscription, or paid
+  dependency without explicit user approval.
+- Its license permits the game's intended commercial use, modification when needed,
+  and embedding and distribution in the built game.
+- Whether it uses the Standard Unity Asset Store EULA, is a Restricted Asset, or has a
+  separate provider license. Read and comply with any provider-specific terms; reject
+  assets whose terms are unclear or incompatible.
+- Its license type and seat requirements work for this repository and team. In
+  particular, Extension Assets generally require a license for each user or seat that
+  works with them.
+- Its source files can be handled by this repository's distribution model. The
+  [Unity Asset Store EULA](https://unity.com/legal/as-terms) generally permits eligible
+  assets to be embedded in a substantial game, but does not grant permission to
+  redistribute the stand-alone asset or plaintext source package. Store Asset Store
+  packages and their imported source files through the repository's existing encrypted
+  licensed-asset pipeline and shared key, as is done for other restricted third-party
+  assets. Commit only encrypted payloads and their metadata sidecars; never commit the
+  download archive, plaintext source files, `.env`, or generated decrypted files. For a
+  multi-file package, preserve its folder structure and Unity `.meta` files in the
+  encrypted payload and extend the decryptor when necessary so it is restored only into
+  an ignored generated location.
+
+Encryption prevents the repository from exposing a usable stand-alone source package;
+it does not create license rights or override the Asset Store EULA or provider terms.
+Every collaborator must still obtain any license, entitlement, or seat required for
+their use. If a license prohibits the intended commercial use, modification, embedding,
+encrypted storage workflow, or team access—or is unclear—do not use the asset. Read
+`docs/licensed-assets.md` before importing, encrypting, replacing, decrypting, or
+re-encrypting any Asset Store package or other restricted third-party asset.
+
+For every acquired Unity Asset Store asset, record its title, publisher, exact store-page
+URL, asset version, acquired format or package, acquisition date, free price, exact EULA
+or provider license, license type and seat requirements, required attribution, and any
+external dependencies. Preserve required license and attribution files. Do not rely on
+the store's general reputation or on an asset being free as a substitute for checking
+the exact listing and terms.
+
+### 3D models: Unity Asset Store, then Sketchfab, Openverse, and SAM 3D
+
+After completing the Unity Asset Store search above, follow this acquisition order
+before creating a 3D model yourself:
 
 1. Search [Sketchfab](https://sketchfab.com/) for a suitable downloadable model. Prefer
    one that fits the requested art direction, animation needs, and runtime polygon
@@ -71,8 +131,9 @@ If the imported model still looks flat, overly dark, or self-illuminated, diagno
 shader, normals, material values, renderer shadow settings, layer, and scene-light setup
 before changing its geometry or accepting the asset.
 
-Only fall back to procedural model generation after both the Sketchfab search and the
-Openverse-to-SAM-3D workflow fail to produce a suitable, legally compatible result.
+Only fall back to procedural model generation after the Unity Asset Store and Sketchfab
+searches and the Openverse-to-SAM-3D workflow fail to produce a suitable, legally
+compatible result.
 
 Before adding a model, verify and record its title, author, exact model-page URL,
 downloadable formats, and exact license. For an image-derived model, record the source
@@ -91,15 +152,15 @@ Read `docs/licensed-assets.md` before importing, replacing, decrypting, or re-en
 any licensed model. Never commit `.env` or anything under
 `Assets/Resources/Generated/Licensed/`.
 
-### Other game assets: search Kenney first
+### Other game assets: Unity Asset Store, then Kenney
 
-For general-purpose game assets, search the
-[Kenney asset catalog](https://kenney.nl/assets) before creating replacements yourself.
-This includes sprites, UI elements, icons, fonts, tiles, textures, environment kits,
-props, particles, and other reusable 2D or 3D game content. Make a reasonable search
-across relevant asset packs, inspect promising candidates, and prefer assets that match
-the project's established visual style, required dimensions, render pipeline, runtime
-budget, and target platforms.
+For general-purpose game assets, search the Unity Asset Store first as described above,
+then search the [Kenney asset catalog](https://kenney.nl/assets) before creating
+replacements yourself. This includes sprites, UI elements, icons, fonts, tiles,
+textures, environment kits, props, particles, and other reusable 2D or 3D game content.
+Make a reasonable search across relevant asset packs, inspect promising candidates, and
+prefer assets that match the project's established visual style, required dimensions,
+render pipeline, runtime budget, and target platforms.
 
 When a suitable asset exists, download it and use it in the project: import only the
 needed runtime files and required license or attribution material, configure the Unity
@@ -113,10 +174,11 @@ of assuming that every asset on the site has identical terms. Only fall back to 
 source or procedural creation after a reasonable Kenney search finds no suitable,
 legally compatible asset.
 
-### Audio and SFX: search Freesound first
+### Audio and SFX: Unity Asset Store, then Freesound
 
-Search [Freesound](https://freesound.org/) before synthesizing audio yourself, especially
-for these categories:
+After completing the Unity Asset Store search above, search
+[Freesound](https://freesound.org/) before synthesizing audio yourself, especially for
+these categories:
 
 - Footsteps, impacts, weapons, doors, and UI sounds.
 - Forests, rain, cities, machinery, and other ambience.
@@ -128,6 +190,7 @@ title, creator, source URL, and attribution requirements. Prefer legally compati
 or CC BY audio. Do not use encryption or transformation as a workaround for a license
 that prohibits the game's intended commercial use, modification, or distribution.
 
-If a reasonable Freesound search produces no suitable compatible asset, procedural
-generation in Unity/code becomes the fallback. Keep procedural audio reproducible and
-document why acquisition was not suitable when the reason is not obvious from the task.
+If reasonable Unity Asset Store and Freesound searches produce no suitable compatible
+asset, procedural generation in Unity/code becomes the fallback. Keep procedural audio
+reproducible and document why acquisition was not suitable when the reason is not
+obvious from the task.

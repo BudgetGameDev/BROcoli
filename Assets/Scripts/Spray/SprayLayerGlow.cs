@@ -61,6 +61,7 @@ public static class SprayLayerGlow
             SprayMaterialCreator.GetSprayGlowMaterial(),
             2
         );
+        SprayLayerFactory.SetupCollision(ps);
 
         return ps;
     }

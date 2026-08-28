@@ -190,21 +190,24 @@ public static class SprayLayerFactory
 
     /// <summary>
     /// Setup collision module for particle-based hit detection.
-    /// Particles will collide with enemies and trigger damage on impact.
+    /// Particles stop at dungeon walls. The core layer also requests collision
+    /// messages so its handler can apply enemy damage.
     /// </summary>
-    public static void SetupCollision(ParticleSystem ps)
+    public static void SetupCollision(ParticleSystem ps, bool sendCollisionMessages = false)
     {
         var collision = ps.collision;
         collision.enabled = true;
         collision.type = ParticleSystemCollisionType.World;
         collision.mode = ParticleSystemCollisionMode.Collision3D;
-        collision.sendCollisionMessages = true;
-        collision.collidesWith = LayerMask.GetMask("Enemy");
+        collision.sendCollisionMessages = sendCollisionMessages;
+        collision.collidesWith = LayerMask.GetMask("Enemy", "Wall");
         collision.maxCollisionShapes = 20;
-        collision.quality = ParticleSystemCollisionQuality.High;
+        collision.quality = sendCollisionMessages
+            ? ParticleSystemCollisionQuality.High
+            : ParticleSystemCollisionQuality.Medium;
         collision.radiusScale = 1.5f; // Slightly larger collision radius for better hit detection
         collision.dampen = 0f;
         collision.bounce = 0f;
-        collision.lifetimeLoss = 0.5f; // Particle loses 50% life on hit (can still hit others)
+        collision.lifetimeLoss = 1f;
     }
 }

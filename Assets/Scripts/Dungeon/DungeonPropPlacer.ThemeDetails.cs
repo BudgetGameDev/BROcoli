@@ -114,7 +114,7 @@ public partial class DungeonPropPlacer
 
             int groupSize = random.Next(minimum, maximum + 1);
             float propRadius = FootprintRadius(prefab);
-            float neighbourDistance = propRadius * 2f + PropGap;
+            float neighbourDistance = propRadius * 2f + TightClusterGap;
             float ringRadius = neighbourDistance / (2f * Mathf.Sin(Mathf.PI / groupSize));
             float clusterRadius = ringRadius + propRadius;
             if (

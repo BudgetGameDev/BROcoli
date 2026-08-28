@@ -63,6 +63,7 @@ public static class SprayLayerMist
             SprayMaterialCreator.GetSprayMistMaterial(),
             -1
         );
+        SprayLayerFactory.SetupCollision(ps);
 
         return ps;
     }

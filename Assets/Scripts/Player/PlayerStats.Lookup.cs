@@ -46,8 +46,14 @@ public partial class PlayerStats
     /// </summary>
     private void DiscoverUIComponents()
     {
-        // Find bars by name in scene
-        var allBars = FindObjectsByType<Bar>(FindObjectsSortMode.None);
+        // Only inspect the screen HUD. Enemy prefabs also contain Bar components
+        // on world-space canvases, and binding one of those makes player health or
+        // XP appear to stop updating depending on spawn order.
+        Canvas screenCanvas = ScreenCanvasLocator.Find();
+        Bar[] allBars =
+            screenCanvas != null
+                ? screenCanvas.GetComponentsInChildren<Bar>(true)
+                : FindObjectsByType<Bar>(FindObjectsSortMode.None);
 
         foreach (var bar in allBars)
         {

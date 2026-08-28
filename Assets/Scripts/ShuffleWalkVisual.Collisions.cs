@@ -8,24 +8,23 @@ public partial class ShuffleWalkVisual
         if (distance <= Mathf.Epsilon || playerCollider == null || wallLayerMask == 0)
             return desiredOffset;
 
-        Bounds playerBounds = playerCollider.bounds;
-        Vector3 castCenter = new(
-            playerCollider.transform.position.x,
-            playerBounds.center.y,
-            playerCollider.transform.position.z
-        );
-        Vector3 castHalfExtents = new(
-            PlayerMovement.WallCollisionRadius,
-            playerBounds.extents.y,
-            PlayerMovement.WallCollisionRadius
-        );
+        if (
+            !PlayerMovement.TryGetNavigationCapsule(
+                playerCollider,
+                out Vector3 castTop,
+                out Vector3 castBottom,
+                out float castRadius
+            )
+        )
+            return desiredOffset;
+
         Vector3 direction = desiredOffset > 0f ? Vector3.forward : Vector3.back;
-        int hitCount = Physics.BoxCastNonAlloc(
-            castCenter,
-            castHalfExtents,
+        int hitCount = Physics.CapsuleCastNonAlloc(
+            castTop,
+            castBottom,
+            castRadius,
             direction,
             wallHits,
-            Quaternion.identity,
             distance + WallVisualSkin,
             wallLayerMask,
             QueryTriggerInteraction.Ignore
@@ -55,23 +54,22 @@ public partial class ShuffleWalkVisual
         )
             return 1f;
 
-        Bounds playerBounds = playerCollider.bounds;
-        Vector3 castCenter = new(
-            playerCollider.transform.position.x,
-            playerBounds.center.y,
-            playerCollider.transform.position.z
-        );
-        Vector3 castHalfExtents = new(
-            PlayerMovement.WallCollisionRadius,
-            playerBounds.extents.y,
-            PlayerMovement.WallCollisionRadius
-        );
-        int hitCount = Physics.BoxCastNonAlloc(
-            castCenter,
-            castHalfExtents,
+        if (
+            !PlayerMovement.TryGetNavigationCapsule(
+                playerCollider,
+                out Vector3 castTop,
+                out Vector3 castBottom,
+                out float castRadius
+            )
+        )
+            return 1f;
+
+        int hitCount = Physics.CapsuleCastNonAlloc(
+            castTop,
+            castBottom,
+            castRadius,
             poseDirection.normalized.ToWorld(),
             wallHits,
-            Quaternion.identity,
             WallAnimationClearance + WallVisualSkin,
             wallLayerMask,
             QueryTriggerInteraction.Ignore

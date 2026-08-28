@@ -37,6 +37,19 @@ public sealed partial class CameraOcclusionFader : MonoBehaviour
     [SerializeField, Min(0f)]
     private float targetHeight = 0.65f;
 
+    [Header("Occlusion Stability")]
+    [Tooltip(
+        "A wall that disappears from detection and returns within this interval is treated as boundary jitter."
+    )]
+    [SerializeField, Min(0f)]
+    private float flickerReacquireWindow = 0.45f;
+
+    [Tooltip(
+        "How long a rapidly reacquired wall remains lowered. Initial lowering and ordinary releases are unaffected."
+    )]
+    [SerializeField, Min(0f)]
+    private float flickerStabilityHold = 0.65f;
+
     private sealed class FadeState
     {
         public readonly Renderer Renderer;
@@ -45,6 +58,9 @@ public sealed partial class CameraOcclusionFader : MonoBehaviour
         public readonly Color[] BaseColors;
         public float Visibility = 1f;
         public float LastOccludedTime = float.NegativeInfinity;
+        public float DetectionLostTime = float.NegativeInfinity;
+        public float StabilityHoldUntil = float.NegativeInfinity;
+        public bool DirectlyOccludedLastFrame;
         public bool UsingFadedMaterials;
 
         public FadeState(
@@ -177,7 +193,6 @@ public sealed partial class CameraOcclusionFader : MonoBehaviour
                 );
                 fadeStates.Add(renderer, state);
             }
-            state.LastOccludedTime = now;
         }
 
         statesToRemove.Clear();
@@ -192,7 +207,30 @@ public sealed partial class CameraOcclusionFader : MonoBehaviour
                 continue;
             }
 
-            bool occluded = now - state.LastOccludedTime <= releaseDelay;
+            bool directlyOccluded = currentOccluders.Contains(renderer);
+            if (directlyOccluded)
+            {
+                if (
+                    !state.DirectlyOccludedLastFrame
+                    && now - state.DetectionLostTime <= flickerReacquireWindow
+                )
+                {
+                    state.StabilityHoldUntil = Mathf.Max(
+                        state.StabilityHoldUntil,
+                        now + flickerStabilityHold
+                    );
+                }
+
+                state.LastOccludedTime = now;
+            }
+            else if (state.DirectlyOccludedLastFrame)
+                state.DetectionLostTime = now;
+
+            state.DirectlyOccludedLastFrame = directlyOccluded;
+            bool occluded =
+                directlyOccluded
+                || now <= state.StabilityHoldUntil
+                || now - state.LastOccludedTime <= releaseDelay;
             float desiredVisibility = occluded ? 0f : 1f;
             state.Visibility = Mathf.MoveTowards(
                 state.Visibility,

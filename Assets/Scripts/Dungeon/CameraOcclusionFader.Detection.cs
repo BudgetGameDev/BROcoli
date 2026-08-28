@@ -9,19 +9,32 @@ public sealed partial class CameraOcclusionFader
     private static readonly Vector2[] TargetRaySamples =
     {
         new(0.5f, 0.5f),
-        new(0.2f, 0.25f),
-        new(0.5f, 0.25f),
-        new(0.8f, 0.25f),
-        new(0.2f, 0.55f),
-        new(0.8f, 0.55f),
-        new(0.2f, 0.82f),
-        new(0.5f, 0.82f),
-        new(0.8f, 0.82f),
+        new(0.025f, 0.2f),
+        new(0.25f, 0.2f),
+        new(0.5f, 0.2f),
+        new(0.75f, 0.2f),
+        new(0.975f, 0.2f),
+        new(0.025f, 0.5f),
+        new(0.25f, 0.5f),
+        new(0.75f, 0.5f),
+        new(0.975f, 0.5f),
+        new(0.025f, 0.8f),
+        new(0.25f, 0.8f),
+        new(0.5f, 0.8f),
+        new(0.75f, 0.8f),
+        new(0.975f, 0.8f),
     };
 
     [Header("Occlusion Detection")]
     [SerializeField, Range(0.05f, 0.9f)]
     private float minimumPlayerCoverage = 0.5f;
+
+    [Tooltip(
+        "Minimum fraction of a visible enemy that a wall must cover before the wall is lowered. "
+            + "This is intentionally lower than the player threshold so even a partly hidden enemy stays readable."
+    )]
+    [SerializeField, Range(0.01f, 0.5f)]
+    private float minimumEnemyCoverage = 0.05f;
 
     [SerializeField, Min(0f)]
     private float releaseDelay = 0.2f;
@@ -53,11 +66,16 @@ public sealed partial class CameraOcclusionFader
             target != null
             && TryGetPlayerViewportRect(out Rect playerRect, out Bounds playerBounds)
         )
-            ScanOcclusionTarget(playerRect, playerBounds, target.position);
+            ScanOcclusionTarget(playerRect, playerBounds, target.position, minimumPlayerCoverage);
         FindEnemyOccludingGeometry();
     }
 
-    private void ScanOcclusionTarget(Rect targetRect, Bounds targetBounds, Vector3 targetPosition)
+    private void ScanOcclusionTarget(
+        Rect targetRect,
+        Bounds targetBounds,
+        Vector3 targetPosition,
+        float minimumCoverage
+    )
     {
         float targetDepth = Vector3.Dot(
             targetBounds.center - gameplayCamera.transform.position,
@@ -77,12 +95,30 @@ public sealed partial class CameraOcclusionFader
             if (forwardAmount <= 0.0001f)
                 continue;
 
-            ScanTargetRay(ray, maximumDepth / forwardAmount, targetRect, targetPosition);
-            ScanVisualVolumes(ray, maximumDepth / forwardAmount, targetRect, targetPosition);
+            ScanTargetRay(
+                ray,
+                maximumDepth / forwardAmount,
+                targetRect,
+                targetPosition,
+                minimumCoverage
+            );
+            ScanVisualVolumes(
+                ray,
+                maximumDepth / forwardAmount,
+                targetRect,
+                targetPosition,
+                minimumCoverage
+            );
         }
     }
 
-    private void ScanVisualVolumes(Ray ray, float distance, Rect playerRect, Vector3 playerPosition)
+    private void ScanVisualVolumes(
+        Ray ray,
+        float distance,
+        Rect targetRect,
+        Vector3 targetPosition,
+        float minimumCoverage
+    )
     {
         foreach (DungeonOcclusionVolume volume in DungeonOcclusionVolume.Active)
         {
@@ -91,17 +127,17 @@ public sealed partial class CameraOcclusionFader
 
             int layerMask = 1 << volume.gameObject.layer;
             Bounds bounds = volume.WorldBounds;
-            bool playerInside = IsInsideGroundFootprint(bounds, playerPosition);
+            bool targetInside = IsInsideGroundFootprint(bounds, targetPosition);
             if (
                 (gameplayCamera.cullingMask & layerMask) == 0
                 || !GeometryUtility.TestPlanesAABB(frustumPlanes, bounds)
                 || (
-                    !playerInside
+                    !targetInside
                     && (
                         !DungeonOcclusionGeometry.IsFullyOnCameraSideOfPlayer(
                             bounds,
                             gameplayCamera,
-                            playerPosition
+                            targetPosition
                         )
                         || !bounds.IntersectRay(ray, out float hitDistance)
                         || hitDistance > distance
@@ -110,9 +146,9 @@ public sealed partial class CameraOcclusionFader
             )
                 continue;
 
-            float coverage = playerInside ? 1f : TargetCoverage(bounds, playerRect);
+            float coverage = targetInside ? 1f : TargetCoverage(bounds, targetRect);
             MaximumDetectedCoverage = Mathf.Max(MaximumDetectedCoverage, coverage);
-            if (coverage < minimumPlayerCoverage)
+            if (coverage < minimumCoverage)
                 continue;
 
             if (qualifyingVolumes.Add(volume))
@@ -121,7 +157,7 @@ public sealed partial class CameraOcclusionFader
                 volume,
                 gameplayCamera,
                 frustumPlanes,
-                playerPosition,
+                targetPosition,
                 currentSections,
                 currentOccluders,
                 hitRenderers
@@ -129,15 +165,21 @@ public sealed partial class CameraOcclusionFader
         }
     }
 
-    private static bool IsInsideGroundFootprint(Bounds bounds, Vector3 playerPosition)
+    private static bool IsInsideGroundFootprint(Bounds bounds, Vector3 targetPosition)
     {
-        return playerPosition.x >= bounds.min.x
-            && playerPosition.x <= bounds.max.x
-            && playerPosition.z >= bounds.min.z
-            && playerPosition.z <= bounds.max.z;
+        return targetPosition.x >= bounds.min.x
+            && targetPosition.x <= bounds.max.x
+            && targetPosition.z >= bounds.min.z
+            && targetPosition.z <= bounds.max.z;
     }
 
-    private void ScanTargetRay(Ray ray, float distance, Rect playerRect, Vector3 playerPosition)
+    private void ScanTargetRay(
+        Ray ray,
+        float distance,
+        Rect targetRect,
+        Vector3 targetPosition,
+        float minimumCoverage
+    )
     {
         int hitCount = Physics.RaycastNonAlloc(
             ray,
@@ -149,12 +191,12 @@ public sealed partial class CameraOcclusionFader
         for (int i = 0; i < hitCount; i++)
         {
             Collider candidate = castHits[i].collider;
-            if (!IsVisibleCandidate(candidate, playerPosition) || !IsStructuralOccluder(candidate))
+            if (!IsVisibleCandidate(candidate, targetPosition) || !IsStructuralOccluder(candidate))
                 continue;
 
-            float coverage = TargetCoverage(candidate.bounds, playerRect);
+            float coverage = TargetCoverage(candidate.bounds, targetRect);
             MaximumDetectedCoverage = Mathf.Max(MaximumDetectedCoverage, coverage);
-            if (coverage < minimumPlayerCoverage)
+            if (coverage < minimumCoverage)
                 continue;
 
             if (qualifyingColliders.Add(candidate))
@@ -164,7 +206,7 @@ public sealed partial class CameraOcclusionFader
                     candidate,
                     gameplayCamera,
                     frustumPlanes,
-                    playerPosition,
+                    targetPosition,
                     currentSections,
                     currentOccluders,
                     hitRenderers
@@ -176,63 +218,11 @@ public sealed partial class CameraOcclusionFader
                 candidate.transform,
                 gameplayCamera,
                 frustumPlanes,
-                playerPosition,
+                targetPosition,
                 currentOccluders,
                 hitRenderers
             );
         }
-    }
-
-    private void FindEnemyOccludingGeometry()
-    {
-        if (Time.unscaledTime >= nextEnemyTargetRefreshTime)
-        {
-            enemyTargets = Object.FindObjectsByType<EnemyBase>(
-                FindObjectsInactive.Exclude,
-                FindObjectsSortMode.None
-            );
-            nextEnemyTargetRefreshTime = Time.unscaledTime + EnemyTargetRefreshInterval;
-        }
-
-        foreach (EnemyBase enemy in enemyTargets)
-        {
-            if (
-                enemy == null
-                || !enemy.gameObject.activeInHierarchy
-                || enemy.IsDying
-                || !TryGetEnemyViewportRect(enemy, out Rect enemyRect, out Bounds enemyBounds)
-            )
-                continue;
-
-            VisibleEnemyTargetCount++;
-            ScanOcclusionTarget(enemyRect, enemyBounds, enemy.transform.position);
-        }
-    }
-
-    private bool TryGetEnemyViewportRect(
-        EnemyBase enemy,
-        out Rect viewportRect,
-        out Bounds enemyBounds
-    )
-    {
-        targetRenderers.Clear();
-        enemy.GetComponentsInChildren(false, targetRenderers);
-        bool hasBounds = false;
-        enemyBounds = default;
-        foreach (Renderer enemyRenderer in targetRenderers)
-        {
-            if (!IsPlayerBodyRenderer(enemyRenderer))
-                continue;
-            if (!hasBounds)
-            {
-                enemyBounds = enemyRenderer.bounds;
-                hasBounds = true;
-            }
-            else
-                enemyBounds.Encapsulate(enemyRenderer.bounds);
-        }
-        viewportRect = default;
-        return hasBounds && TryProjectBounds(enemyBounds, out viewportRect);
     }
 
     private static bool IsStructuralOccluder(Collider candidate)

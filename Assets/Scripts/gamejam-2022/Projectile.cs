@@ -34,6 +34,8 @@ public class Projectile : MonoBehaviour
             _collider = GetComponent<Collider>();
         if (_collider != null)
             _collider.isTrigger = true;
+        if (_body == null)
+            _body = GetComponent<Rigidbody>();
 
         _activeKnockbackMultiplier = _baseKnockbackMultiplier;
     }
@@ -56,12 +58,25 @@ public class Projectile : MonoBehaviour
 
     private void Update()
     {
-        transform.position += (direction * _speed * Time.deltaTime).ToWorld();
+        Vector3 displacement = (direction * _speed * Time.deltaTime).ToWorld();
+        if (ProjectileWallCollision.Sweep(_collider, transform, displacement, out _))
+        {
+            DestroyOnImpact();
+            return;
+        }
+
+        transform.position += displacement;
     }
 
     private void OnTriggerEnter(Collider other)
     {
         Debug.Log("Projectile hit: " + other.name);
+        if (ProjectileWallCollision.IsWall(other))
+        {
+            DestroyOnImpact();
+            return;
+        }
+
         if (other.CompareTag("Enemy") == false)
         {
             return;
@@ -81,5 +96,14 @@ public class Projectile : MonoBehaviour
 
             Destroy(gameObject);
         }
+    }
+
+    private void DestroyOnImpact()
+    {
+        if (_collider != null)
+            _collider.enabled = false;
+        if (_body != null)
+            _body.linearVelocity = Vector3.zero;
+        Destroy(gameObject);
     }
 }
