@@ -157,6 +157,10 @@ Shader "BROcoli/Dungeon Occlusion Fade"
             }
             ENDHLSL
         }
+
+        // Occlusion fading is camera-only. The wall remains physically present,
+        // so its complete geometry must continue to cast its normal shadow.
+        UsePass "Universal Render Pipeline/Lit/ShadowCaster"
     }
 
     FallBack Off

@@ -5,7 +5,8 @@ public sealed partial class CameraOcclusionFader
 {
     private const float FallbackPlayerWidth = 1.4f;
     private const float FallbackPlayerHeight = 2.2f;
-    private static readonly Vector2[] PlayerRaySamples =
+    private const float EnemyTargetRefreshInterval = 0.25f;
+    private static readonly Vector2[] TargetRaySamples =
     {
         new(0.5f, 0.5f),
         new(0.2f, 0.25f),
@@ -30,9 +31,12 @@ public sealed partial class CameraOcclusionFader
     private readonly HashSet<Collider> qualifyingColliders = new();
     private readonly HashSet<DungeonOcclusionVolume> qualifyingVolumes = new();
     private Camera gameplayCamera;
+    private EnemyBase[] enemyTargets = System.Array.Empty<EnemyBase>();
+    private float nextEnemyTargetRefreshTime;
 
     public float MaximumDetectedCoverage { get; private set; }
     public int QualifyingColliderCount { get; private set; }
+    public int VisibleEnemyTargetCount { get; private set; }
 
     private void FindOccludingGeometry()
     {
@@ -40,25 +44,32 @@ public sealed partial class CameraOcclusionFader
             gameplayCamera = GetComponent<Camera>();
         MaximumDetectedCoverage = 0f;
         QualifyingColliderCount = 0;
+        VisibleEnemyTargetCount = 0;
         qualifyingColliders.Clear();
         qualifyingVolumes.Clear();
 
-        if (!TryGetPlayerViewportRect(out Rect playerRect, out Bounds playerBounds))
-            return;
-
-        Vector3 playerPosition = target.position;
         GeometryUtility.CalculateFrustumPlanes(gameplayCamera, frustumPlanes);
-        float playerDepth = Vector3.Dot(
-            playerBounds.center - gameplayCamera.transform.position,
+        if (
+            target != null
+            && TryGetPlayerViewportRect(out Rect playerRect, out Bounds playerBounds)
+        )
+            ScanOcclusionTarget(playerRect, playerBounds, target.position);
+        FindEnemyOccludingGeometry();
+    }
+
+    private void ScanOcclusionTarget(Rect targetRect, Bounds targetBounds, Vector3 targetPosition)
+    {
+        float targetDepth = Vector3.Dot(
+            targetBounds.center - gameplayCamera.transform.position,
             gameplayCamera.transform.forward
         );
-        float maximumDepth = Mathf.Max(gameplayCamera.nearClipPlane, playerDepth);
+        float maximumDepth = Mathf.Max(gameplayCamera.nearClipPlane, targetDepth);
 
-        foreach (Vector2 sample in PlayerRaySamples)
+        foreach (Vector2 sample in TargetRaySamples)
         {
             Vector3 viewportPoint = new(
-                Mathf.Lerp(playerRect.xMin, playerRect.xMax, sample.x),
-                Mathf.Lerp(playerRect.yMin, playerRect.yMax, sample.y),
+                Mathf.Lerp(targetRect.xMin, targetRect.xMax, sample.x),
+                Mathf.Lerp(targetRect.yMin, targetRect.yMax, sample.y),
                 0f
             );
             Ray ray = gameplayCamera.ViewportPointToRay(viewportPoint);
@@ -66,8 +77,8 @@ public sealed partial class CameraOcclusionFader
             if (forwardAmount <= 0.0001f)
                 continue;
 
-            ScanPlayerRay(ray, maximumDepth / forwardAmount, playerRect, playerPosition);
-            ScanVisualVolumes(ray, maximumDepth / forwardAmount, playerRect, playerPosition);
+            ScanTargetRay(ray, maximumDepth / forwardAmount, targetRect, targetPosition);
+            ScanVisualVolumes(ray, maximumDepth / forwardAmount, targetRect, targetPosition);
         }
     }
 
@@ -99,7 +110,7 @@ public sealed partial class CameraOcclusionFader
             )
                 continue;
 
-            float coverage = playerInside ? 1f : PlayerCoverage(bounds, playerRect);
+            float coverage = playerInside ? 1f : TargetCoverage(bounds, playerRect);
             MaximumDetectedCoverage = Mathf.Max(MaximumDetectedCoverage, coverage);
             if (coverage < minimumPlayerCoverage)
                 continue;
@@ -126,7 +137,7 @@ public sealed partial class CameraOcclusionFader
             && playerPosition.z <= bounds.max.z;
     }
 
-    private void ScanPlayerRay(Ray ray, float distance, Rect playerRect, Vector3 playerPosition)
+    private void ScanTargetRay(Ray ray, float distance, Rect playerRect, Vector3 playerPosition)
     {
         int hitCount = Physics.RaycastNonAlloc(
             ray,
@@ -141,7 +152,7 @@ public sealed partial class CameraOcclusionFader
             if (!IsVisibleCandidate(candidate, playerPosition) || !IsStructuralOccluder(candidate))
                 continue;
 
-            float coverage = PlayerCoverage(candidate.bounds, playerRect);
+            float coverage = TargetCoverage(candidate.bounds, playerRect);
             MaximumDetectedCoverage = Mathf.Max(MaximumDetectedCoverage, coverage);
             if (coverage < minimumPlayerCoverage)
                 continue;
@@ -170,6 +181,58 @@ public sealed partial class CameraOcclusionFader
                 hitRenderers
             );
         }
+    }
+
+    private void FindEnemyOccludingGeometry()
+    {
+        if (Time.unscaledTime >= nextEnemyTargetRefreshTime)
+        {
+            enemyTargets = Object.FindObjectsByType<EnemyBase>(
+                FindObjectsInactive.Exclude,
+                FindObjectsSortMode.None
+            );
+            nextEnemyTargetRefreshTime = Time.unscaledTime + EnemyTargetRefreshInterval;
+        }
+
+        foreach (EnemyBase enemy in enemyTargets)
+        {
+            if (
+                enemy == null
+                || !enemy.gameObject.activeInHierarchy
+                || enemy.IsDying
+                || !TryGetEnemyViewportRect(enemy, out Rect enemyRect, out Bounds enemyBounds)
+            )
+                continue;
+
+            VisibleEnemyTargetCount++;
+            ScanOcclusionTarget(enemyRect, enemyBounds, enemy.transform.position);
+        }
+    }
+
+    private bool TryGetEnemyViewportRect(
+        EnemyBase enemy,
+        out Rect viewportRect,
+        out Bounds enemyBounds
+    )
+    {
+        targetRenderers.Clear();
+        enemy.GetComponentsInChildren(false, targetRenderers);
+        bool hasBounds = false;
+        enemyBounds = default;
+        foreach (Renderer enemyRenderer in targetRenderers)
+        {
+            if (!IsPlayerBodyRenderer(enemyRenderer))
+                continue;
+            if (!hasBounds)
+            {
+                enemyBounds = enemyRenderer.bounds;
+                hasBounds = true;
+            }
+            else
+                enemyBounds.Encapsulate(enemyRenderer.bounds);
+        }
+        viewportRect = default;
+        return hasBounds && TryProjectBounds(enemyBounds, out viewportRect);
     }
 
     private static bool IsStructuralOccluder(Collider candidate)
@@ -209,7 +272,7 @@ public sealed partial class CameraOcclusionFader
             );
     }
 
-    private float PlayerCoverage(Bounds occluder, Rect playerRect)
+    private float TargetCoverage(Bounds occluder, Rect playerRect)
     {
         if (!TryProjectBounds(occluder, out Rect occluderRect))
             return 0f;

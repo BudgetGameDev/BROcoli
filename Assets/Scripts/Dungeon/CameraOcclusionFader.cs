@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// Fades dungeon walls that sit between the gameplay camera and the player.
+/// Fades dungeon walls that sit between the gameplay camera and a visible character.
 /// Runtime material copies keep the shared wall material unchanged.
 /// </summary>
 [DisallowMultipleComponent]
@@ -100,7 +100,7 @@ public sealed partial class CameraOcclusionFader : MonoBehaviour
                     faded.SetFloat(FadeStartYId, fadeStart);
                     faded.SetFloat(FadeFeatherId, fadeFeather);
                     faded.SetFloat(OcclusionFadeId, 0f);
-                    faded.SetShaderPassEnabled("ShadowCaster", false);
+                    faded.SetShaderPassEnabled("ShadowCaster", true);
                 }
                 else
                 {
@@ -139,8 +139,7 @@ public sealed partial class CameraOcclusionFader : MonoBehaviour
         currentSections.Clear();
         currentOccluders.Clear();
 
-        if (target != null)
-            FindOccludingGeometry();
+        FindOccludingGeometry();
 
         ActiveOccluderCount = currentOccluders.Count;
         UpdateFades();

@@ -47,7 +47,7 @@ public sealed partial class CameraOcclusionFader
         material.DisableKeyword("_ALPHATEST_ON");
         material.DisableKeyword("_ALPHAPREMULTIPLY_ON");
         material.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
-        material.SetShaderPassEnabled("ShadowCaster", false);
+        material.SetShaderPassEnabled("ShadowCaster", true);
         material.renderQueue = (int)RenderQueue.Transparent;
     }
 

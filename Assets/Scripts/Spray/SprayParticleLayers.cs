@@ -66,8 +66,12 @@ public class SprayParticleLayers
             return;
         ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
         var emission = ps.emission;
-        emission.SetBursts(new ParticleSystem.Burst[] { new ParticleSystem.Burst(0f, count) });
+        emission.SetBursts(System.Array.Empty<ParticleSystem.Burst>());
+        int initialCount = Mathf.Max(1, Mathf.RoundToInt(count * 0.2f));
+        emission.rateOverTime =
+            (count - initialCount) / Mathf.Max(0.01f, SpraySettings.BurstDuration);
         ps.Play();
+        ps.Emit(initialCount);
     }
 
     /// <summary>
@@ -78,7 +82,7 @@ public class SprayParticleLayers
         if (containerObj == null)
             return;
 
-        containerObj.transform.position = new Vector3(position.x, 0.5f, position.z);
+        containerObj.transform.position = position;
 
         // Unity cone emits along local +Z. Use LookRotation to point +Z toward the
         // spray direction. Vector3.up as up keeps the spray flat on the ground plane.

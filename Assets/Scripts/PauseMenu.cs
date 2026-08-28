@@ -10,7 +10,7 @@ using UnityEngine.UI;
 /// Handles pause menu functionality.
 /// CRITICAL: This script ensures EventSystem is enabled - without it, NO UI buttons work!
 /// </summary>
-public class PauseMenu : MonoBehaviour
+public partial class PauseMenu : MonoBehaviour
 {
     [Header("UI References")]
     public GameObject pauseMenuUI;
@@ -380,63 +380,6 @@ public class PauseMenu : MonoBehaviour
         }
     }
 
-    private void SetupMenuNavigation()
-    {
-        if (pauseMenuUI == null)
-            return;
-
-        // Get all buttons in pause menu
-        Button[] allButtons = pauseMenuUI.GetComponentsInChildren<Button>(true);
-        var buttonList = new System.Collections.Generic.List<Button>();
-
-        foreach (var btn in allButtons)
-        {
-            if (btn != null && btn.interactable)
-            {
-                buttonList.Add(btn);
-            }
-        }
-
-        menuButtons = buttonList.ToArray();
-        buttonOutlines = new Outline[menuButtons.Length];
-        originalScales = new Vector3[menuButtons.Length];
-
-        for (int i = 0; i < menuButtons.Length; i++)
-        {
-            if (menuButtons[i] == null)
-                continue;
-
-            RectTransform rt = menuButtons[i].GetComponent<RectTransform>();
-            if (rt != null)
-            {
-                originalScales[i] = rt.localScale;
-            }
-
-            // Add outline
-            Outline outline = menuButtons[i].GetComponent<Outline>();
-            if (outline == null)
-            {
-                outline = menuButtons[i].gameObject.AddComponent<Outline>();
-            }
-            outline.effectColor = new Color(1f, 0.9f, 0.2f, 1f);
-            outline.effectDistance = new Vector2(6f, 6f);
-            outline.enabled = false;
-            buttonOutlines[i] = outline;
-
-            // Setup hover
-            int index = i;
-            EventTrigger trigger = menuButtons[i].GetComponent<EventTrigger>();
-            if (trigger == null)
-            {
-                trigger = menuButtons[i].gameObject.AddComponent<EventTrigger>();
-            }
-
-            var enterEntry = new EventTrigger.Entry { eventID = EventTriggerType.PointerEnter };
-            enterEntry.callback.AddListener((data) => SelectMenuButton(index));
-            trigger.triggers.Add(enterEntry);
-        }
-    }
-
     public void TogglePause()
     {
         if (isPaused)
@@ -518,6 +461,8 @@ public class PauseMenu : MonoBehaviour
         }
 
         ProceduralUIAudio.PlaySelect();
+
+        ResetMenuNavigation();
 
         // Hide menu
         pauseMenuUI.SetActive(false);

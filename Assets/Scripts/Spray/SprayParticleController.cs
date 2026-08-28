@@ -217,7 +217,7 @@ public class SprayParticleController
 
     /// <summary>
     /// Set the spray direction and origin position.
-    /// Direction is ground-plane only, particles stay at height y=0.5.
+    /// Direction is ground-plane only; the origin retains the modeled nozzle height.
     /// Unity's Cone shape emits along local +Z axis by default.
     /// </summary>
     public void SetSprayDirectionAndPosition(
@@ -250,7 +250,7 @@ public class SprayParticleController
         shape.angle = currentWidth * 0.5f;
 
         // Position the particle system at the nozzle world position
-        sprayParticles.transform.position = new Vector3(nozzleWorldPos.x, 0.5f, nozzleWorldPos.z);
+        sprayParticles.transform.position = nozzleWorldPos;
 
         // Unity cone emits along local +Z. Use LookRotation to point +Z toward the
         // spray direction. Vector3.up as up keeps the spray flat on the ground plane.

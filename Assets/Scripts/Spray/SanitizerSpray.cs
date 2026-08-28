@@ -139,25 +139,20 @@ public class SanitizerSpray : MonoBehaviour
 
     void Update()
     {
-        // Periodically refresh stats
         if (Time.frameCount % 30 == 0)
             UpdateStatsFromPlayer();
 
         damageHandler?.SetWeaponKnockbackMultiplier(weaponKnockbackMultiplier);
 
-        // Keep hand's range in sync
         handVisuals?.SetRange(currentRange);
 
-        // Hand ALWAYS tracks target (no freezing)
         handVisuals?.Update();
 
-        // Handle pending spray
         if (hasPendingSpray)
         {
             HandlePendingSpray();
         }
 
-        // Check if burst ended
         if (isInBurst && Time.time >= currentBurstEndTime)
         {
             damageHandler?.ResolveConeKnockback();
@@ -165,7 +160,6 @@ public class SanitizerSpray : MonoBehaviour
             handVisuals?.ClearTarget();
         }
 
-        // During spray: use hand's CurrentDirection for EVERYTHING
         if (isSpraying || isInBurst)
         {
             Vector2 dir = handVisuals?.CurrentDirection ?? Vector2.right;
@@ -316,12 +310,18 @@ public class SanitizerSpray : MonoBehaviour
             return;
 
         hasPendingSpray = false;
-        // Hand keeps tracking during burst - no freeze
-
         lastBurstTime = Time.time;
         currentBurstEndTime = Time.time + SpraySettings.BurstDuration;
         isInBurst = true;
 
+        Vector2 direction = handVisuals?.CurrentDirection ?? Vector2.right;
+        Vector3 nozzle = handVisuals?.GetNozzleWorldPosition() ?? transform.position;
+        particleController?.SetSprayDirectionAndPosition(
+            direction,
+            nozzle,
+            currentRange,
+            currentWidth
+        );
         particleController?.PlayBurst();
         sprayAudio?.PlaySprayBurst();
 

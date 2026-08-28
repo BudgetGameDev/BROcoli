@@ -11,6 +11,7 @@ using UnityEngine.Rendering;
 public sealed class SprayWeaponVisual3D : MonoBehaviour
 {
     private const string ModelRootName = "SanitizerModel3D";
+    private const string NozzleAnchorName = "SprayNozzle";
     private const string BottleResourcePath = "ThirdParty/SprayBottle/SprayBottle";
     private const string HandResourcePath = "Generated/Licensed/theHand";
     private const float GripPoseNormalized = 0.55f;
@@ -21,12 +22,15 @@ public sealed class SprayWeaponVisual3D : MonoBehaviour
     private static readonly Vector3 HandScale = Vector3.one * 0.26f;
     private static readonly Vector3 HandPosition = new Vector3(-0.027f, -0.042f, -0.145f);
     private static readonly Quaternion HandRotation = Quaternion.Euler(24.061f, 0f, 180f);
+    private static readonly Vector3 NozzleAnchorPosition = new(0.0676f, 0.0089f, -0.2537f);
     private static readonly Dictionary<Color32, Material> Materials = new();
 
     private Transform modelRoot;
+    private Transform nozzleTransform;
     private bool initialized;
 
     public Transform ModelRoot => modelRoot;
+    public Transform NozzleTransform => nozzleTransform;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     private static void ResetSharedResources()
@@ -78,6 +82,7 @@ public sealed class SprayWeaponVisual3D : MonoBehaviour
         if (existingRoot != null)
         {
             modelRoot = existingRoot;
+            CreateNozzleAnchor();
             return;
         }
 
@@ -87,6 +92,22 @@ public sealed class SprayWeaponVisual3D : MonoBehaviour
         modelRoot.SetParent(transform, false);
         BuildBottle();
         BuildHand();
+        CreateNozzleAnchor();
+    }
+
+    private void CreateNozzleAnchor()
+    {
+        nozzleTransform = modelRoot.Find(NozzleAnchorName);
+        if (nozzleTransform == null)
+        {
+            GameObject nozzleObject = new GameObject(NozzleAnchorName);
+            nozzleObject.layer = gameObject.layer;
+            nozzleTransform = nozzleObject.transform;
+            nozzleTransform.SetParent(modelRoot, false);
+        }
+        nozzleTransform.localPosition = NozzleAnchorPosition;
+        nozzleTransform.localRotation = Quaternion.identity;
+        nozzleTransform.localScale = Vector3.one;
     }
 
     private void BuildBottle()

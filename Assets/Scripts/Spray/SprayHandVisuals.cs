@@ -129,6 +129,10 @@ public class SprayHandVisuals
 
     public Vector3 GetNozzleWorldPosition()
     {
+        Transform nozzle = weaponVisual?.NozzleTransform;
+        if (nozzle != null)
+            return nozzle.position;
+
         Vector3 playerPos =
             playerTransform != null ? playerTransform.position : sprayTransform.position;
         Vector2 dir = CurrentDirection;
