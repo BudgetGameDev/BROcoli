@@ -153,7 +153,7 @@ public sealed partial class ResponsiveMainMenuLayout
                     mainButtons[i].gameObject.SetActive(mainButtonsWereActive[i]);
         }
 
-        GetComponent<MainMenu>()?.SetupControllerNavigation(true);
+        GetComponent<MainMenu>()?.SetupControllerNavigation(true, settingsButton);
         ApplyResponsiveLayout(true);
     }
 
@@ -197,10 +197,10 @@ public sealed partial class ResponsiveMainMenuLayout
         if (!SettingsOpen)
             return;
 
-        if (
+        bool cancel =
             Input.GetKeyDown(KeyCode.Escape)
-            || (Gamepad.current != null && Gamepad.current.buttonEast.wasPressedThisFrame)
-        )
+            || (Gamepad.current != null && Gamepad.current.buttonEast.wasPressedThisFrame);
+        if (cancel && MenuInputGate.TryConsumeCancel())
         {
             CloseSettings();
             return;
@@ -241,9 +241,16 @@ public sealed partial class ResponsiveMainMenuLayout
 
         bool submit =
             Input.GetKeyDown(KeyCode.Return)
+            || Input.GetKeyDown(KeyCode.KeypadEnter)
             || Input.GetKeyDown(KeyCode.Space)
             || (Gamepad.current != null && Gamepad.current.buttonSouth.wasPressedThisFrame);
-        if (submit && settingsSelectables[selectedSetting] is Button button)
+        if (
+            submit
+            && settingsSelectables[selectedSetting] is Button button
+            && MenuInputGate.TryConsumeSubmit()
+        )
+        {
             button.onClick.Invoke();
+        }
     }
 }

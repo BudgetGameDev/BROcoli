@@ -1,6 +1,5 @@
 using System.Collections;
 using System.Collections.Generic;
-using Pooling;
 using UnityEngine;
 
 /// <summary>
@@ -9,7 +8,7 @@ using UnityEngine;
 /// This eliminates the hitch/stutter during the first wave.
 /// </summary>
 [DefaultExecutionOrder(-500)] // Run early, but after iOSSafariWebGLOptimizer
-public class GamePreloader : MonoBehaviour
+public partial class GamePreloader : MonoBehaviour
 {
     [Header("Settings")]
     [SerializeField]
@@ -63,8 +62,19 @@ public class GamePreloader : MonoBehaviour
     {
         if (_hasPreloaded)
         {
+            // Shaders, materials and audio stay warm for the whole process, but the
+            // pools live on a scene-scoped PoolManager. A reloaded scene (restart after
+            // death) gets a fresh, empty one, so they must be rebuilt here - otherwise
+            // the ExpGain pool stays null, enemies drop no XP, and the player can never
+            // level up or pick a single upgrade for the rest of the session.
+            if (prewarmPools)
+            {
+                CollectPoolPrefabs();
+                WarmupPools();
+            }
+
             if (logPreloadSteps)
-                Debug.Log("[GamePreloader] Already preloaded, skipping");
+                Debug.Log("[GamePreloader] Already preloaded, rebuilt scene-scoped pools");
             Destroy(gameObject);
             return;
         }
@@ -249,49 +259,7 @@ public class GamePreloader : MonoBehaviour
     private IEnumerator PrewarmPrefabs(float startProgress, float endProgress)
     {
         Vector3 warmupPos = new Vector3(-10000f, -10000f, 0f);
-        List<GameObject> prefabsToWarm = new List<GameObject>();
-
-        // Collect enemy prefabs
-        foreach (GameObject prefab in Resources.LoadAll<GameObject>(EnemyPrefabPath))
-        {
-            if (prefab.GetComponent<EnemyBase>() != null)
-            {
-                prefabsToWarm.Add(prefab);
-                _enemyPrefabs.Add(prefab); // Store for pooling
-            }
-        }
-
-        // Collect boost/projectile prefabs
-        foreach (GameObject prefab in Resources.LoadAll<GameObject>(BoostPrefabPath))
-        {
-            if (
-                prefab.name.StartsWith("Boost")
-                || prefab.name.Contains("Projectile")
-                || prefab.name.Contains("FireBall")
-                || prefab.name.Contains("Exp")
-            )
-            {
-                prefabsToWarm.Add(prefab);
-
-                // Store projectile prefabs for pooling
-                if (prefab.GetComponent<EnemyProjectile>() != null)
-                {
-                    _projectilePrefabs.Add(prefab);
-                }
-
-                // Store ExpGain prefab for pooling
-                var expGain = prefab.GetComponent<ExpGain>();
-                if (expGain != null && _expGainPrefab == null)
-                {
-                    _expGainPrefab = expGain;
-                }
-            }
-        }
-
-        if (logPreloadSteps)
-            Debug.Log(
-                $"[GamePreloader] Found {prefabsToWarm.Count} prefabs ({_enemyPrefabs.Count} enemies, {_projectilePrefabs.Count} projectiles)"
-            );
+        List<GameObject> prefabsToWarm = CollectPoolPrefabs();
 
         // Instantiate each prefab offscreen
         for (int i = 0; i < prefabsToWarm.Count; i++)
@@ -313,25 +281,6 @@ public class GamePreloader : MonoBehaviour
             if (go != null)
                 Destroy(go);
         _warmupInstances.Clear();
-    }
-
-    private void WarmupPools()
-    {
-        // Initialize GameContext singleton early
-        var context = GameContext.Instance;
-
-        // Initialize EnemySpatialHash singleton early
-        var spatialHash = EnemySpatialHash.Instance;
-
-        // Pre-warm object pools
-        PoolManager.Instance.PreWarmAll(
-            _enemyPrefabs.ToArray(),
-            _expGainPrefab,
-            _projectilePrefabs.ToArray()
-        );
-
-        if (logPreloadSteps)
-            Debug.Log("[GamePreloader] Object pools pre-warmed");
     }
 
     private void DisableWarmupBehaviors(GameObject go)

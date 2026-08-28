@@ -321,7 +321,6 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 1247721535}
   - {fileID: 805707170}
   - {fileID: 1037325169}
   - {fileID: 862497756}
@@ -2905,8 +2904,8 @@ MonoBehaviour:
   m_ShadowVolumeIntensityEnabled: 0
   m_ShadowVolumeIntensity: 0.75
   m_LocalBounds:
-    m_Center: {x: 0, y: 0, z: 0}
-    m_Extent: {x: 1, y: 1, z: 0}
+    m_Center: {x: 0, y: -0.00000011920929, z: 0}
+    m_Extent: {x: 0.9985302, y: 0.99853027, z: 0}
   m_PointLightInnerAngle: 360
   m_PointLightOuterAngle: 360
   m_PointLightInnerRadius: 3
@@ -2921,76 +2920,6 @@ MonoBehaviour:
   - {x: 0.5, y: -0.5, z: 0}
   - {x: 0.5, y: 0.5, z: 0}
   - {x: -0.5, y: 0.5, z: 0}
---- !u!1001 &1247721533
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 44608742}
-    m_Modifications:
-    - target: {fileID: 518009116725275461, guid: 80610c14f5098f84d81232a84acd0539, type: 3}
-      propertyPath: _healthBar
-      value: 
-      objectReference: {fileID: 1644047234}
-    - target: {fileID: 518009116725275461, guid: 80610c14f5098f84d81232a84acd0539, type: 3}
-      propertyPath: _experienceBar
-      value: 
-      objectReference: {fileID: 2063095873}
-    - target: {fileID: 4405537985664648752, guid: 80610c14f5098f84d81232a84acd0539, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: 521.10126
-      objectReference: {fileID: 0}
-    - target: {fileID: 4405537985664648752, guid: 80610c14f5098f84d81232a84acd0539, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 474.55463
-      objectReference: {fileID: 0}
-    - target: {fileID: 4405537985664648752, guid: 80610c14f5098f84d81232a84acd0539, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4405537985664648752, guid: 80610c14f5098f84d81232a84acd0539, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 4405537985664648752, guid: 80610c14f5098f84d81232a84acd0539, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4405537985664648752, guid: 80610c14f5098f84d81232a84acd0539, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4405537985664648752, guid: 80610c14f5098f84d81232a84acd0539, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4405537985664648752, guid: 80610c14f5098f84d81232a84acd0539, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4405537985664648752, guid: 80610c14f5098f84d81232a84acd0539, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4405537985664648752, guid: 80610c14f5098f84d81232a84acd0539, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 7405927770426339431, guid: 80610c14f5098f84d81232a84acd0539, type: 3}
-      propertyPath: m_Name
-      value: PlayerStats
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: 80610c14f5098f84d81232a84acd0539, type: 3}
---- !u!4 &1247721535 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 4405537985664648752, guid: 80610c14f5098f84d81232a84acd0539, type: 3}
-  m_PrefabInstance: {fileID: 1247721533}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1280303362
 GameObject:
   m_ObjectHideFlags: 0
@@ -5358,7 +5287,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 18
+  m_fontSize: 24
   m_fontSizeBase: 48
   m_fontWeight: 400
   m_enableAutoSizing: 1

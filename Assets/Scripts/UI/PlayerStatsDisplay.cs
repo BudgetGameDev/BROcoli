@@ -34,7 +34,7 @@ public class PlayerStatsDisplay : MonoBehaviour
     {
         if (playerStats == null)
         {
-            playerStats = FindAnyObjectByType<PlayerStats>();
+            playerStats = PlayerStats.Resolve();
         }
 
         if (playerStats == null || statsText == null)

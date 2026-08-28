@@ -104,7 +104,7 @@ public class SanitizerSpray : MonoBehaviour
             if (playerStats == null)
                 playerStats = playerTransform.GetComponentInChildren<PlayerStats>();
             if (playerStats == null)
-                playerStats = FindFirstObjectByType<PlayerStats>();
+                playerStats = PlayerStats.Resolve();
         }
 
         // Initialize damage handler with references

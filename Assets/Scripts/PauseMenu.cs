@@ -70,7 +70,7 @@ public partial class PauseMenu : MonoBehaviour
         mainCanvas = ScreenCanvasLocator.Find();
 
         // Find player stats
-        playerStats = FindAnyObjectByType<PlayerStats>();
+        playerStats = PlayerStats.Resolve();
 
         // Detect mobile
 #if UNITY_WEBGL && !UNITY_EDITOR
@@ -515,7 +515,7 @@ public partial class PauseMenu : MonoBehaviour
         if (statsText == null || playerStats == null)
         {
             if (playerStats == null)
-                playerStats = FindAnyObjectByType<PlayerStats>();
+                playerStats = PlayerStats.Resolve();
             if (statsText == null || playerStats == null)
                 return;
         }

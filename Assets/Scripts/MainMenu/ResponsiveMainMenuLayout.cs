@@ -52,6 +52,7 @@ public sealed partial class ResponsiveMainMenuLayout : MonoBehaviour
 
         CacheExistingMenuObjects();
         BuildPresentation();
+        PublishNavigationOrder();
         ApplyResponsiveLayout(true);
     }
 
@@ -159,6 +160,17 @@ public sealed partial class ResponsiveMainMenuLayout : MonoBehaviour
         SetButtonLabel("BackButton", "BACK");
 
         built = true;
+    }
+
+    /// <summary>
+    /// Hands the menu the order these buttons are laid out in, top to bottom.
+    /// </summary>
+    private void PublishNavigationOrder()
+    {
+        Button[] ordered = new Button[mainButtons.Length + modeButtons.Length];
+        mainButtons.CopyTo(ordered, 0);
+        modeButtons.CopyTo(ordered, mainButtons.Length);
+        GetComponent<MainMenu>()?.SetNavigationOrder(ordered);
     }
 
     private void ConfigureCanvasScaler()

@@ -14,7 +14,7 @@ using UnityEngine;
 /// - Health Regen: HP restored per second
 /// - Life Steal: % of damage dealt returned as health (0-100)
 /// </summary>
-public class PlayerStats : MonoBehaviour
+public partial class PlayerStats : MonoBehaviour
 {
     // Default stat values (matching original scene values)
     private const float DefaultHealth = 100f;
@@ -113,6 +113,7 @@ public class PlayerStats : MonoBehaviour
     private void Awake()
     {
         RegisterPickupTarget();
+        WarnOnDuplicateStats();
         DiscoverUIComponents();
     }
 
@@ -306,36 +307,6 @@ public class PlayerStats : MonoBehaviour
                     return boost.amount;
             }
             return 0f;
-        }
-    }
-
-    /// <summary>
-    /// Discover UI Bar components by GameObject name.
-    /// </summary>
-    private void DiscoverUIComponents()
-    {
-        // Find bars by name in scene
-        var allBars = FindObjectsByType<Bar>(FindObjectsSortMode.None);
-
-        foreach (var bar in allBars)
-        {
-            if (bar.gameObject.name == "HealthBar")
-            {
-                _healthBar = bar;
-            }
-            else if (bar.gameObject.name == "ExperienceBar")
-            {
-                _experienceBar = bar;
-            }
-        }
-
-        if (_healthBar == null)
-        {
-            Debug.LogWarning("PlayerStats: Could not find HealthBar in scene");
-        }
-        if (_experienceBar == null)
-        {
-            Debug.LogWarning("PlayerStats: Could not find ExperienceBar in scene");
         }
     }
 

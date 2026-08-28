@@ -35,7 +35,7 @@ public class SprayParticleCollisionHandler : MonoBehaviour
         sprayParticles = GetComponent<ParticleSystem>();
         playerStats = GetComponentInParent<PlayerStats>();
         if (playerStats == null)
-            playerStats = FindFirstObjectByType<PlayerStats>();
+            playerStats = PlayerStats.Resolve();
 
         // Configure collision module if not already set up
         if (sprayParticles != null)

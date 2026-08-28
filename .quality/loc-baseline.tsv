@@ -9,7 +9,6 @@
 363	Assets/Scripts/GamePreloader.cs
 606	Assets/Scripts/HydraEnemyScript.cs
 581	Assets/Scripts/LevelUpScreen.cs
-314	Assets/Scripts/MainMenu/MainMenu.cs
 661	Assets/Scripts/PauseMenu.cs
 892	Assets/Scripts/PickupVisual3D.cs
 630	Assets/Scripts/Player/PlayerStats.cs

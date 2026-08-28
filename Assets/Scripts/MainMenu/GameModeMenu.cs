@@ -1,6 +1,6 @@
 using System;
 using UnityEngine;
-using UnityEngine.EventSystems;
+using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
@@ -58,6 +58,19 @@ public class GameModeMenu : MonoBehaviour
     public void backToMain()
     {
         ShowPanel(false);
+    }
+
+    private void Update()
+    {
+        if (!IsOpen)
+            return;
+
+        bool cancel =
+            Input.GetKeyDown(KeyCode.Escape)
+            || (Gamepad.current != null && Gamepad.current.buttonEast.wasPressedThisFrame);
+
+        if (cancel && MenuInputGate.TryConsumeCancel())
+            backToMain();
     }
 
     /// <summary>Called by the Waves button on the mode panel.</summary>
@@ -125,12 +138,24 @@ public class GameModeMenu : MonoBehaviour
         }
 
         // Rebuild MainMenu's cached keyboard/controller navigation over the
-        // buttons that are now visible.
+        // buttons that are now visible, and hand it the entry to start on so
+        // its highlight and the confirm button agree.
         MainMenu mainMenu = GetComponent<MainMenu>();
         if (mainMenu != null)
-            mainMenu.SetupControllerNavigation(true);
+            mainMenu.SetupControllerNavigation(true, open ? firstModeButton : FirstMainButton());
+    }
 
-        if (open && firstModeButton != null && EventSystem.current != null)
-            EventSystem.current.SetSelectedGameObject(firstModeButton.gameObject);
+    private Button FirstMainButton()
+    {
+        if (mainButtons == null)
+            return null;
+
+        foreach (GameObject button in mainButtons)
+        {
+            if (button != null && button.activeInHierarchy)
+                return button.GetComponent<Button>();
+        }
+
+        return null;
     }
 }
