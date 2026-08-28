@@ -35,9 +35,7 @@ public class PlayerController : MonoBehaviour
     private WeaponType currentWeapon = WeaponType.SanitizerSpray;
 
     [Header("Debug Tuning")]
-    [Tooltip(
-        "Overrides the player's original base damage. The default is 5; upgrades are still added on top."
-    )]
+    [Tooltip("Overrides the player's original base damage. Upgrades are still added on top.")]
     [SerializeField, Min(0f)]
     private float debugBaseDamage = PlayerStats.DefaultBaseDamage;
 

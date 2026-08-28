@@ -183,61 +183,6 @@ public partial class DungeonPropPlacer
             || prefabName.Contains("Table");
     }
 
-    private static (Vector2 pos, float yaw)[] TorchSpots(DungeonLayout.RoomArchetype archetype)
-    {
-        if (archetype.Shape == DungeonLayout.RoomShape.Compact)
-            return new[]
-            {
-                (new Vector2(-3.5f, PositiveWallFace(6f)), 180f),
-                (new Vector2(3.5f, PositiveWallFace(6f)), 180f),
-                BottomWallTorch(-3.5f, -6f),
-                BottomWallTorch(3.5f, -6f),
-                (new Vector2(PositiveWallFace(6f), -3.5f), -90f),
-                (new Vector2(PositiveWallFace(6f), 3.5f), -90f),
-                (new Vector2(NegativeWallFace(-6f), -3.5f), 90f),
-                (new Vector2(NegativeWallFace(-6f), 3.5f), 90f),
-            };
-        if (archetype.Shape == DungeonLayout.RoomShape.LongHorizontal)
-            return new[]
-            {
-                (new Vector2(-8f, PositiveWallFace(6f)), 180f),
-                (new Vector2(8f, PositiveWallFace(6f)), 180f),
-                BottomWallTorch(-8f, -6f),
-                BottomWallTorch(8f, -6f),
-            };
-        if (archetype.Shape == DungeonLayout.RoomShape.LongVertical)
-            return new[]
-            {
-                (new Vector2(PositiveWallFace(6f), -4f), -90f),
-                (new Vector2(PositiveWallFace(6f), 4f), -90f),
-                (new Vector2(NegativeWallFace(-6f), -4f), 90f),
-                (new Vector2(NegativeWallFace(-6f), 4f), 90f),
-            };
-        if (archetype.Shape == DungeonLayout.RoomShape.LargeSquare)
-            return new[]
-            {
-                (new Vector2(-6f, PositiveWallFace(HalfRoomDepth)), 180f),
-                (new Vector2(6f, PositiveWallFace(HalfRoomDepth)), 180f),
-                BottomWallTorch(-6f, -HalfRoomDepth),
-                BottomWallTorch(6f, -HalfRoomDepth),
-                (new Vector2(PositiveWallFace(10f), -4f), -90f),
-                (new Vector2(PositiveWallFace(10f), 4f), -90f),
-                (new Vector2(NegativeWallFace(-10f), -4f), 90f),
-                (new Vector2(NegativeWallFace(-10f), 4f), 90f),
-            };
-        return new[]
-        {
-            (new Vector2(-8f, PositiveWallFace(HalfRoomDepth)), 180f),
-            (new Vector2(8f, PositiveWallFace(HalfRoomDepth)), 180f),
-            BottomWallTorch(-8f, -HalfRoomDepth),
-            BottomWallTorch(8f, -HalfRoomDepth),
-            (new Vector2(PositiveWallFace(HalfRoomWidth), -5f), -90f),
-            (new Vector2(PositiveWallFace(HalfRoomWidth), 5f), -90f),
-            (new Vector2(NegativeWallFace(-HalfRoomWidth), -5f), 90f),
-            (new Vector2(NegativeWallFace(-HalfRoomWidth), 5f), 90f),
-        };
-    }
-
     private static float PositiveWallFace(float wallCoordinate)
     {
         return wallCoordinate + WallFrontFaceOffset;
@@ -246,14 +191,6 @@ public partial class DungeonPropPlacer
     private static float NegativeWallFace(float wallCoordinate)
     {
         return wallCoordinate + WallBackFaceOffset;
-    }
-
-    private static (Vector2 pos, float yaw) BottomWallTorch(float x, float wallCoordinate)
-    {
-        // Bottom walls become half walls from the gameplay camera. Keep their
-        // torches on the world-downward face so the bracket remains visibly
-        // attached to the wall instead of hovering above its faded top.
-        return (new Vector2(x, PositiveWallFace(wallCoordinate)), 180f);
     }
 
     private static Vector2 PoolSpot(DungeonLayout.RoomArchetype archetype, System.Random random)

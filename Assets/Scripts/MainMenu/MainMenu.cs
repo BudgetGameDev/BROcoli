@@ -1,4 +1,3 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -20,12 +19,13 @@ public class MainMenu : MonoBehaviour
     [SerializeField]
     private Button[] menuButtons;
 
-    // Controller navigation
     private int selectedIndex = 0;
     private float lastNavTime = 0f;
     private const float NavRepeatDelay = 0.25f;
     private Outline[] buttonOutlines;
     private Vector3[] originalScales;
+
+    private void Awake() => gameObject.AddComponent<ResponsiveMainMenuLayout>();
 
     void Start()
     {
@@ -94,8 +94,8 @@ public class MainMenu : MonoBehaviour
             {
                 outline = menuButtons[i].gameObject.AddComponent<Outline>();
             }
-            outline.effectColor = new Color(1f, 0.9f, 0.2f, 1f);
-            outline.effectDistance = new Vector2(6f, 6f);
+            outline.effectColor = new Color(0.64f, 1f, 0.76f, 0.95f);
+            outline.effectDistance = new Vector2(2f, -2f);
             outline.enabled = false;
             buttonOutlines[i] = outline;
 
@@ -193,11 +193,9 @@ public class MainMenu : MonoBehaviour
 
     public void Update()
     {
-        // Handle controller navigation
         HandleControllerNavigation();
         UpdateSelectionVisuals();
 
-        // Legacy keyboard shortcut (press any key to start)
         if (Keyboard.current != null && Keyboard.current.anyKey.wasPressedThisFrame)
         {
             // Don't auto-start if using navigation keys
@@ -210,7 +208,9 @@ public class MainMenu : MonoBehaviour
                 && !Keyboard.current.sKey.isPressed
                 && !Keyboard.current.enterKey.isPressed
                 && !Keyboard.current.spaceKey.isPressed
+                && !Keyboard.current.escapeKey.isPressed
                 && !GameModeMenu.IsOpen
+                && !ResponsiveMainMenuLayout.SettingsOpen
             )
             {
                 SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex + 1);
@@ -220,7 +220,7 @@ public class MainMenu : MonoBehaviour
 
     private void HandleControllerNavigation()
     {
-        if (menuButtons == null || menuButtons.Length == 0)
+        if (ResponsiveMainMenuLayout.SettingsOpen || menuButtons == null || menuButtons.Length == 0)
             return;
 
         // Rate limit
@@ -300,7 +300,7 @@ public class MainMenu : MonoBehaviour
                 RectTransform rt = menuButtons[i].GetComponent<RectTransform>();
                 if (rt != null)
                 {
-                    float targetScale = isSelected ? 1.1f : 1f;
+                    float targetScale = isSelected ? 1.025f : 1f;
                     Vector3 target = originalScales[i] * targetScale;
                     rt.localScale = Vector3.Lerp(
                         rt.localScale,

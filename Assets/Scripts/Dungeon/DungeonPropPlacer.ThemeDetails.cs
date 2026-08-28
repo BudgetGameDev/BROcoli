@@ -177,6 +177,8 @@ public partial class DungeonPropPlacer
 
         float wallX = archetype.Shape switch
         {
+            DungeonLayout.RoomShape.Tiny => 4f,
+            DungeonLayout.RoomShape.NarrowVertical => 4f,
             DungeonLayout.RoomShape.Compact => 6f,
             DungeonLayout.RoomShape.LongVertical => 6f,
             DungeonLayout.RoomShape.LargeSquare => 10f,
@@ -184,6 +186,8 @@ public partial class DungeonPropPlacer
         };
         float wallZ = archetype.Shape switch
         {
+            DungeonLayout.RoomShape.Tiny => 4f,
+            DungeonLayout.RoomShape.NarrowHorizontal => 4f,
             DungeonLayout.RoomShape.Compact => 6f,
             DungeonLayout.RoomShape.LongHorizontal => 6f,
             _ => HalfRoomDepth,

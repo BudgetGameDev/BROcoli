@@ -436,7 +436,7 @@ MonoBehaviour:
   TimeToEndSpawning: 70
   ScoreValue: 20
   Damage: 3
-  Speed: 3.4
+  Speed: 4
   Health: 15
   MaxHealth: 15
   isElite: 0

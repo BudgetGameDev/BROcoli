@@ -100,6 +100,11 @@ public partial class DungeonRoomBuilder
 
     private static void TrimBoundaryOverlap(GameObject wall, float inwardLocalX)
     {
+        ResizeWallAtBoundary(wall, -inwardLocalX, false);
+    }
+
+    private static void ResizeWallAtBoundary(GameObject wall, float outwardLocalX, bool extend)
+    {
         MeshFilter meshFilter = wall.GetComponentInChildren<MeshFilter>();
         if (meshFilter == null || meshFilter.sharedMesh == null)
             return;
@@ -111,18 +116,18 @@ public partial class DungeonRoomBuilder
         if (visualLength <= 0.0001f || boundaryOverlap <= 0f)
             return;
 
-        // The perpendicular shell wall occupies one visual half-depth inside
-        // the room. Shorten the endpoint mesh and its navigation collider by
-        // that amount. The collider is wider than the mesh, so the two walls
-        // still overlap slightly at the corner without leaving an invisible
-        // extension that blocks movement along the shell wall.
-        float retainedFraction = Mathf.Clamp01((visualLength - boundaryOverlap) / visualLength);
+        // Move the endpoint by one visual half-depth so perpendicular wall
+        // meshes intersect instead of exposing their beveled end faces. The
+        // collider follows the same adjustment and keeps its authored 0.2-unit
+        // overhang beyond the visible wall.
+        float lengthAdjustment = extend ? boundaryOverlap : -boundaryOverlap;
+        float adjustedLength = Mathf.Max(0.0001f, visualLength + lengthAdjustment);
         Vector3 scale = visual.localScale;
-        scale.x *= retainedFraction;
+        scale.x *= adjustedLength / visualLength;
         visual.localScale = scale;
 
         Vector3 position = visual.localPosition;
-        position.x += inwardLocalX * boundaryOverlap * 0.5f;
+        position.x += outwardLocalX * lengthAdjustment * 0.5f;
         visual.localPosition = position;
 
         BoxCollider wallCollider = wall.GetComponent<BoxCollider>();
@@ -130,11 +135,11 @@ public partial class DungeonRoomBuilder
             return;
 
         Vector3 colliderSize = wallCollider.size;
-        colliderSize.x = Mathf.Max(0f, colliderSize.x - boundaryOverlap);
+        colliderSize.x = Mathf.Max(0f, colliderSize.x + lengthAdjustment);
         wallCollider.size = colliderSize;
 
         Vector3 colliderCenter = wallCollider.center;
-        colliderCenter.x += inwardLocalX * boundaryOverlap * 0.5f;
+        colliderCenter.x += outwardLocalX * lengthAdjustment * 0.5f;
         wallCollider.center = colliderCenter;
     }
 }

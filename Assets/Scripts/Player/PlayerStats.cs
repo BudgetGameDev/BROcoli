@@ -20,7 +20,7 @@ public class PlayerStats : MonoBehaviour
     private const float DefaultHealth = 100f;
     private const float DefaultMaxHealth = 100f;
     private const float DefaultAttackSpeed = 0.6f;
-    public const float DefaultBaseDamage = 5f;
+    public const float DefaultBaseDamage = 8f;
     private const float DefaultMovementSpeed = 4f;
     private const float DefaultMaxExperience = 30f;
     private const float DefaultDetectionRadius = 12f;

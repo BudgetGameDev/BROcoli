@@ -16,15 +16,16 @@ public sealed partial class DungeonLayout
         double themeRoll = themeRandom.NextDouble();
         RoomTheme theme = themeRoll switch
         {
-            < 0.11 => RoomTheme.Empty,
-            < 0.27 => RoomTheme.Sparse,
-            < 0.43 => RoomTheme.Storage,
-            < 0.55 => RoomTheme.Banquet,
-            < 0.67 => RoomTheme.Armory,
-            < 0.77 => RoomTheme.Shrine,
-            < 0.87 => RoomTheme.Flooded,
-            < 0.93 => RoomTheme.TreasureVault,
-            _ => RoomTheme.Collapsed,
+            < 0.08 => RoomTheme.Empty,
+            < 0.20 => RoomTheme.Sparse,
+            < 0.34 => RoomTheme.Storage,
+            < 0.46 => RoomTheme.Banquet,
+            < 0.58 => RoomTheme.Armory,
+            < 0.68 => RoomTheme.Shrine,
+            < 0.78 => RoomTheme.Flooded,
+            < 0.85 => RoomTheme.TreasureVault,
+            < 0.92 => RoomTheme.Collapsed,
+            _ => RoomTheme.Arena,
         };
 
         System.Random shapeRandom = RoomRandom(room, 809);
@@ -32,31 +33,65 @@ public sealed partial class DungeonLayout
         RoomShape shape;
         switch (theme)
         {
+            case RoomTheme.Arena:
+                shape = RoomShape.GrandArena;
+                break;
             case RoomTheme.Banquet:
-                shape = shapeRoll < 0.5 ? RoomShape.LongHorizontal : RoomShape.LongVertical;
+                shape =
+                    shapeRoll < 0.32 ? RoomShape.LongHorizontal
+                    : shapeRoll < 0.58 ? RoomShape.LongVertical
+                    : shapeRoll < 0.74 ? RoomShape.NarrowHorizontal
+                    : shapeRoll < 0.88 ? RoomShape.NarrowVertical
+                    : RoomShape.LargeSquare;
                 break;
             case RoomTheme.Shrine:
             case RoomTheme.TreasureVault:
-                shape = shapeRoll < 0.46 ? RoomShape.Compact : RoomShape.LargeSquare;
+                shape =
+                    shapeRoll < 0.20 ? RoomShape.Tiny
+                    : shapeRoll < 0.56 ? RoomShape.Compact
+                    : shapeRoll < 0.75 ? RoomShape.LargeSquare
+                    : shapeRoll < 0.85 ? RoomShape.NarrowHorizontal
+                    : shapeRoll < 0.95 ? RoomShape.NarrowVertical
+                    : RoomShape.OpenHall;
                 break;
             case RoomTheme.Flooded:
-                shape = shapeRoll < 0.58 ? RoomShape.OpenHall : RoomShape.LargeSquare;
+                shape =
+                    shapeRoll < 0.34 ? RoomShape.OpenHall
+                    : shapeRoll < 0.58 ? RoomShape.LargeSquare
+                    : shapeRoll < 0.72 ? RoomShape.LongHorizontal
+                    : shapeRoll < 0.86 ? RoomShape.LongVertical
+                    : shapeRoll < 0.93 ? RoomShape.NarrowHorizontal
+                    : RoomShape.Divided;
                 break;
             case RoomTheme.Collapsed:
                 shape =
-                    shapeRoll < 0.45 ? RoomShape.Divided
-                    : shapeRoll < 0.72 ? RoomShape.OpenHall
+                    shapeRoll < 0.28 ? RoomShape.Divided
+                    : shapeRoll < 0.42 ? RoomShape.Tiny
+                    : shapeRoll < 0.56 ? RoomShape.NarrowHorizontal
+                    : shapeRoll < 0.70 ? RoomShape.NarrowVertical
+                    : shapeRoll < 0.84 ? RoomShape.OpenHall
                     : RoomShape.LargeSquare;
+                break;
+            case RoomTheme.Empty:
+                shape =
+                    shapeRoll < 0.20 ? RoomShape.Tiny
+                    : shapeRoll < 0.40 ? RoomShape.NarrowHorizontal
+                    : shapeRoll < 0.60 ? RoomShape.NarrowVertical
+                    : shapeRoll < 0.80 ? RoomShape.Divided
+                    : RoomShape.OpenHall;
                 break;
             default:
                 shape = shapeRoll switch
                 {
-                    < 0.24 => RoomShape.OpenHall,
-                    < 0.41 => RoomShape.Compact,
-                    < 0.58 => RoomShape.LargeSquare,
-                    < 0.73 => RoomShape.LongHorizontal,
-                    < 0.88 => RoomShape.LongVertical,
-                    _ => RoomShape.Divided,
+                    < 0.12 => RoomShape.Tiny,
+                    < 0.25 => RoomShape.Compact,
+                    < 0.36 => RoomShape.NarrowHorizontal,
+                    < 0.47 => RoomShape.NarrowVertical,
+                    < 0.60 => RoomShape.LargeSquare,
+                    < 0.72 => RoomShape.LongHorizontal,
+                    < 0.84 => RoomShape.LongVertical,
+                    < 0.92 => RoomShape.Divided,
+                    _ => RoomShape.OpenHall,
                 };
                 break;
         }
@@ -74,10 +109,17 @@ public sealed partial class DungeonLayout
         int ring = Ring(room);
         if (ring == 0)
             return new RoomPopulation(0, false);
-        if (Archetype(room).Theme == RoomTheme.Empty)
+        RoomArchetype archetype = Archetype(room);
+        if (archetype.Theme == RoomTheme.Empty)
             return new RoomPopulation(0, false);
 
         System.Random random = RoomRandom(room, 303);
+        if (archetype.Shape == RoomShape.GrandArena)
+        {
+            int hordeSize = 13 + random.Next(0, 6) + Mathf.Min(ring, 3);
+            return new RoomPopulation(Mathf.Min(archetype.EnemyCapacity, hordeSize), false);
+        }
+
         double roll = random.NextDouble();
         if (roll < 0.18)
             return new RoomPopulation(0, false);
@@ -97,7 +139,11 @@ public sealed partial class DungeonLayout
     {
         return shape switch
         {
+            RoomShape.GrandArena => new RoomArchetype(shape, theme, 12f, 8.2f, variant),
+            RoomShape.Tiny => new RoomArchetype(shape, theme, 2.8f, 2.8f, variant),
             RoomShape.Compact => new RoomArchetype(shape, theme, 4.7f, 4.7f, variant),
+            RoomShape.NarrowHorizontal => new RoomArchetype(shape, theme, 10.2f, 2.8f, variant),
+            RoomShape.NarrowVertical => new RoomArchetype(shape, theme, 2.8f, 8.2f, variant),
             RoomShape.LargeSquare => new RoomArchetype(shape, theme, 8.2f, 6.4f, variant),
             RoomShape.LongHorizontal => new RoomArchetype(shape, theme, 10.2f, 4.5f, variant),
             RoomShape.LongVertical => new RoomArchetype(shape, theme, 4.5f, 6.4f, variant),

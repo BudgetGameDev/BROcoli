@@ -577,7 +577,7 @@ public class PauseMenu : MonoBehaviour
 
         // Base values for comparison
         float baseMaxHealth = 100f,
-            baseDamage = 5f,
+            baseDamage = PlayerStats.DefaultBaseDamage,
             baseSpeed = 4f;
         float baseAttackSpeed = 0.6f,
             baseDetection = 12f;

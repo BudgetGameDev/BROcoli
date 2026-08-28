@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Pooling;
 using UnityEngine;
+using UnityEngine.AI;
 
 /// <summary>
 /// Spawns a room's enemies ahead of the player's arrival. Enemies come from
@@ -49,7 +50,7 @@ public static class DungeonEnemyPlacer
         int spawnCount = Mathf.Min(population.Count, archetype.EnemyCapacity);
         for (int i = 0; i < spawnCount; i++)
         {
-            EnemyBase prefab = allowed[random.Next(allowed.Count)];
+            EnemyBase prefab = PickEnemy(allowed, archetype, i, random);
             Vector3 position = PickSpot(roomCenter, archetype, random).ToWorld();
 
             EnemyBase enemy = PoolManager.Instance?.GetEnemy(prefab, position, Quaternion.identity);
@@ -98,6 +99,44 @@ public static class DungeonEnemyPlacer
         dormant.Clear();
     }
 
+    /// <summary>
+    /// Moves dormant enemies onto the freshly baked walkable surface. This
+    /// prevents a random spawn from beginning inside a prop or just beyond an
+    /// interior-wall NavMesh boundary.
+    /// </summary>
+    public static void AlignToNavMesh(List<EnemyBase> dormant)
+    {
+        if (dormant == null)
+            return;
+
+        foreach (EnemyBase enemy in dormant)
+        {
+            if (
+                enemy == null
+                || !NavMesh.SamplePosition(
+                    enemy.transform.position,
+                    out NavMeshHit hit,
+                    4f,
+                    NavMesh.AllAreas
+                )
+            )
+                continue;
+
+            Vector3 position = hit.position;
+            position.y = enemy.transform.position.y;
+            if (enemy.rb != null)
+            {
+                enemy.rb.position = position;
+                enemy.rb.linearVelocity = Vector3.zero;
+                enemy.rb.angularVelocity = Vector3.zero;
+            }
+            else
+            {
+                enemy.transform.position = position;
+            }
+        }
+    }
+
     /// <summary>Returns a still-dormant group to the pool when its room unloads.</summary>
     public static void Despawn(List<EnemyBase> dormant)
     {
@@ -127,6 +166,27 @@ public static class DungeonEnemyPlacer
             Object.Instantiate(prefab, position, Quaternion.identity);
     }
 
+    private static EnemyBase PickEnemy(
+        List<EnemyBase> allowed,
+        DungeonLayout.RoomArchetype archetype,
+        int spawnIndex,
+        System.Random random
+    )
+    {
+        // Grand arenas should visibly include the restored fast archetype
+        // rather than relying on a low-probability uniform roll.
+        if (archetype.Shape == DungeonLayout.RoomShape.GrandArena && spawnIndex == 0)
+        {
+            foreach (EnemyBase candidate in allowed)
+            {
+                if (candidate.name.Contains("Spider"))
+                    return candidate;
+            }
+        }
+
+        return allowed[random.Next(allowed.Count)];
+    }
+
     private static Vector2 PickSpot(
         Vector2 roomCenter,
         DungeonLayout.RoomArchetype archetype,
@@ -135,6 +195,10 @@ public static class DungeonEnemyPlacer
     {
         float halfWidth = archetype.HalfWidth;
         float halfDepth = archetype.HalfDepth;
+        float centerClearRadius = Mathf.Min(
+            CenterClearRadius,
+            Mathf.Max(1.25f, Mathf.Min(halfWidth, halfDepth) * 0.55f)
+        );
 
         for (int attempt = 0; attempt < 24; attempt++)
         {
@@ -144,7 +208,7 @@ public static class DungeonEnemyPlacer
             );
             // Leave the middle of the room clear so the player never walks
             // straight into a spawn through a doorway.
-            if (offset.sqrMagnitude < CenterClearRadius * CenterClearRadius)
+            if (offset.sqrMagnitude < centerClearRadius * centerClearRadius)
                 continue;
             if (IsOnDivider(offset, archetype))
                 continue;

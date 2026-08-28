@@ -120,8 +120,7 @@ public class SprayParticleCollisionHandler : MonoBehaviour
         // Scale damage with player stats if available
         if (playerStats != null)
         {
-            // The original 10 base damage maps to the original 0.5 damage per
-            // particle. Inspector debug tuning scales this legacy path too.
+            // Preserve the authored per-particle ratio as the player's damage changes.
             if (!damageParamsExplicitlySet)
                 totalDamage *= playerStats.CurrentDamage / PlayerStats.DefaultBaseDamage;
 

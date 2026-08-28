@@ -92,7 +92,7 @@ public class SprayDamageHandler
             playerStats != null ? playerStats.CurrentSprayDamageMultiplier : 1f;
         float baseDamage =
             playerStats != null
-                ? playerStats.CurrentDamage * 0.14f
+                ? playerStats.CurrentDamage * SpraySettings.DamagePerSimulatedHitMultiplier
                 : SpraySettings.BaseDamagePerParticle * 3f;
 
         foreach (var kvp in particleHitCounts)

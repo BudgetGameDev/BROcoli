@@ -151,6 +151,7 @@ public partial class DungeonPropPlacer : MonoBehaviour
                 DungeonLayout.RoomTheme.TreasureVault => 4,
                 DungeonLayout.RoomTheme.Storage => 3 + random.Next(0, 2),
                 DungeonLayout.RoomTheme.Banquet => 3 + random.Next(0, 2),
+                DungeonLayout.RoomTheme.Arena => 6,
                 _ => 2 + random.Next(0, 3),
             };
             for (int i = 0; i < torchCount && i < spots.Length; i++)
@@ -194,7 +195,12 @@ public partial class DungeonPropPlacer : MonoBehaviour
                             Mathf.Lerp(-3.2f, 3.2f, (float)random.NextDouble()),
                             Mathf.Lerp(-2.4f, 2.4f, (float)random.NextDouble())
                         );
-            float maxScale = archetype.Shape == DungeonLayout.RoomShape.Compact ? 0.84f : 1.5f;
+            float maxScale = archetype.Shape switch
+            {
+                DungeonLayout.RoomShape.Tiny => 0.65f,
+                DungeonLayout.RoomShape.Compact => 0.84f,
+                _ => 1.5f,
+            };
             float scale = Mathf.Lerp(0.62f, maxScale, (float)random.NextDouble());
             float yaw = random.Next(0, 360);
             if (
@@ -230,7 +236,7 @@ public partial class DungeonPropPlacer : MonoBehaviour
         if (DungeonLayout.Ring(room) == 0 || archetype.Theme == DungeonLayout.RoomTheme.Empty)
             return 0;
         if (archetype.Theme == DungeonLayout.RoomTheme.TreasureVault)
-            return 4;
+            return archetype.Shape == DungeonLayout.RoomShape.Tiny ? 2 : 4;
 
         float chance = chestChance;
         if (
@@ -249,7 +255,10 @@ public partial class DungeonPropPlacer : MonoBehaviour
             float z = archetype.HalfDepth - 1.4f;
             float xSign = (archetype.Variant & 1) == 0 ? 1f : -1f;
             if (
-                archetype.Shape == DungeonLayout.RoomShape.Compact
+                (
+                    archetype.Shape == DungeonLayout.RoomShape.Compact
+                    || archetype.Shape == DungeonLayout.RoomShape.Tiny
+                )
                 && archetype.Theme == DungeonLayout.RoomTheme.Shrine
             )
             {
@@ -263,8 +272,8 @@ public partial class DungeonPropPlacer : MonoBehaviour
             return new Vector2(xSign * x, (archetype.Variant & 2) == 0 ? z : -z);
         }
 
-        float vaultX = archetype.Shape == DungeonLayout.RoomShape.Compact ? 2.3f : 3.3f;
-        float vaultZ = archetype.Shape == DungeonLayout.RoomShape.Compact ? 2.3f : 3f;
+        float vaultX = Mathf.Max(0.8f, Mathf.Min(3.3f, archetype.HalfWidth - 0.5f));
+        float vaultZ = Mathf.Max(0.8f, Mathf.Min(3f, archetype.HalfDepth - 0.5f));
         var vaultSpots = new[]
         {
             new Vector2(-vaultX, -vaultZ),

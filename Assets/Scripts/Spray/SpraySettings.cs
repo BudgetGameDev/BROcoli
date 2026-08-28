@@ -11,6 +11,7 @@ public static class SpraySettings
     public const float BaseSprayAngle = 28f; // Wider cone angle (+25%)
     public const float SpreadDelayPercent = 0.33f; // Start spreading after 33% of lifetime
     public const float BaseDamagePerParticle = 0.55f;
+    public const float DamagePerSimulatedHitMultiplier = 0.18f;
     public const float DamageTickRate = 0.08f; // Five damage ticks during a standard burst
 
     // ==================== Burst Settings ====================

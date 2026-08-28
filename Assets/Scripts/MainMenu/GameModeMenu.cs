@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
@@ -69,6 +70,19 @@ public class GameModeMenu : MonoBehaviour
     public void playDungeon()
     {
         Launch("Dungeon");
+    }
+
+    public void RegisterMainButton(GameObject button)
+    {
+        if (button == null)
+            return;
+
+        mainButtons ??= Array.Empty<GameObject>();
+        if (Array.IndexOf(mainButtons, button) >= 0)
+            return;
+
+        Array.Resize(ref mainButtons, mainButtons.Length + 1);
+        mainButtons[^1] = button;
     }
 
     private void Launch(string sceneName)

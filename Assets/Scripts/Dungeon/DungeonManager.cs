@@ -10,7 +10,7 @@ using UnityEngine;
 /// Far-away rooms unload; the deterministic seed rebuilds them identically
 /// when the player backtracks.
 /// </summary>
-public class DungeonManager : MonoBehaviour
+public partial class DungeonManager : MonoBehaviour
 {
     private const string EnemyResourceFolder = "CursedDevolpmentStudioAss Assets/Waves";
     private const float RoomCheckInterval = 0.2f;
@@ -100,23 +100,29 @@ public class DungeonManager : MonoBehaviour
         hasCurrentRoom = true;
 
         EnsureRoom(room);
-        DungeonEnemyPlacer.Activate(loadedRooms[room].DormantEnemies);
-        GetState(room).Visited = true;
 
-        // Pre-generate the full 3x3 neighbourhood so anything visible over a
-        // wall or reachable through a doorway already exists before the
-        // player gets there.
+        if (navSurface.navMeshData != null)
+        {
+            DungeonEnemyPlacer.Activate(loadedRooms[room].DormantEnemies);
+            GetState(room).Visited = true;
+            RequestRoomStreaming();
+            return;
+        }
+
+        // The initial loading frame prepares everything around the spawn and
+        // establishes the first NavMesh. Later room changes stream and update
+        // incrementally so walking through a doorway never runs a full bake.
         for (int dx = -1; dx <= 1; dx++)
         for (int dy = -1; dy <= 1; dy++)
             EnsureRoom(room + new Vector2Int(dx, dy));
 
-        UnloadDistantRooms();
+        navSurface.BuildNavMesh();
+        navMeshDirty = false;
+        foreach (LoadedRoom loaded in loadedRooms.Values)
+            DungeonEnemyPlacer.AlignToNavMesh(loaded.DormantEnemies);
 
-        if (navMeshDirty)
-        {
-            navSurface.BuildNavMesh();
-            navMeshDirty = false;
-        }
+        DungeonEnemyPlacer.Activate(loadedRooms[room].DormantEnemies);
+        GetState(room).Visited = true;
     }
 
     private void EnsureRoom(Vector2Int room)
@@ -152,7 +158,7 @@ public class DungeonManager : MonoBehaviour
                 loadedEdges[edge] = builder.BuildEdge(
                     transform,
                     edge,
-                    layout.IsDoorOpen(room, direction)
+                    layout.Passage(edge, layout.IsDoorOpen(room, direction))
                 );
         }
 
@@ -175,68 +181,6 @@ public class DungeonManager : MonoBehaviour
 
         loadedRooms[room] = loaded;
         navMeshDirty = true;
-    }
-
-    private void UnloadDistantRooms()
-    {
-        List<Vector2Int> toUnload = null;
-        foreach (KeyValuePair<Vector2Int, LoadedRoom> pair in loadedRooms)
-        {
-            Vector2Int delta = pair.Key - currentRoom;
-            if (Mathf.Max(Mathf.Abs(delta.x), Mathf.Abs(delta.y)) > unloadDistance)
-                (toUnload ??= new List<Vector2Int>()).Add(pair.Key);
-        }
-        if (toUnload == null)
-            return;
-
-        foreach (Vector2Int room in toUnload)
-        {
-            LoadedRoom loaded = loadedRooms[room];
-            DungeonEnemyPlacer.Despawn(loaded.DormantEnemies);
-            Destroy(loaded.Root);
-            loadedRooms.Remove(room);
-            navMeshDirty = true;
-        }
-
-        PruneSharedGeometry();
-    }
-
-    private void PruneSharedGeometry()
-    {
-        List<DungeonEdge> deadEdges = null;
-        foreach (KeyValuePair<DungeonEdge, GameObject> pair in loadedEdges)
-        {
-            var roomA = new Vector2Int(pair.Key.X, pair.Key.Y);
-            Vector2Int roomB = roomA + (pair.Key.Horizontal ? Vector2Int.up : Vector2Int.right);
-            if (!loadedRooms.ContainsKey(roomA) && !loadedRooms.ContainsKey(roomB))
-                (deadEdges ??= new List<DungeonEdge>()).Add(pair.Key);
-        }
-        if (deadEdges != null)
-        {
-            foreach (DungeonEdge edge in deadEdges)
-            {
-                Destroy(loadedEdges[edge]);
-                loadedEdges.Remove(edge);
-            }
-        }
-
-        List<Vector2Int> deadJunctions = null;
-        foreach (KeyValuePair<Vector2Int, GameObject> pair in loadedJunctions)
-        {
-            bool anyLoaded = false;
-            foreach (Vector2Int room in VertexRooms(pair.Key))
-                anyLoaded |= loadedRooms.ContainsKey(room);
-            if (!anyLoaded)
-                (deadJunctions ??= new List<Vector2Int>()).Add(pair.Key);
-        }
-        if (deadJunctions != null)
-        {
-            foreach (Vector2Int vertex in deadJunctions)
-            {
-                Destroy(loadedJunctions[vertex]);
-                loadedJunctions.Remove(vertex);
-            }
-        }
     }
 
     private RoomState GetState(Vector2Int room)

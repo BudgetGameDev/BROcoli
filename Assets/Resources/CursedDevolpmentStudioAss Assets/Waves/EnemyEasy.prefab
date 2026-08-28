@@ -410,8 +410,8 @@ MonoBehaviour:
   ScoreValue: 10
   Damage: 7
   Speed: 2.5
-  Health: 45
-  MaxHealth: 45
+  Health: 35
+  MaxHealth: 35
   isElite: 0
   eliteHealthMultiplier: 3
   eliteScaleMultiplier: 1.3

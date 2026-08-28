@@ -69,8 +69,8 @@ public partial class DungeonRoomBuilder : MonoBehaviour
 
     /// <summary>
     /// Adds interior wall runs that reshape the fixed grid shell. Every run
-    /// leaves a four-unit opening aligned with an outer doorway, so all four
-    /// neighbouring rooms remain reachable regardless of the chosen shape.
+    /// leaves a central circulation gap so all outer-edge opening patterns stay
+    /// connected regardless of the chosen shape.
     /// </summary>
     public void BuildInterior(
         Transform parent,
@@ -78,7 +78,11 @@ public partial class DungeonRoomBuilder : MonoBehaviour
         DungeonLayout.RoomArchetype archetype
     )
     {
-        if (wallPrefab == null || archetype.Shape == DungeonLayout.RoomShape.OpenHall)
+        if (
+            wallPrefab == null
+            || archetype.Shape == DungeonLayout.RoomShape.OpenHall
+            || archetype.Shape == DungeonLayout.RoomShape.GrandArena
+        )
             return;
 
         Vector2 center = DungeonLayout.RoomCenter(room);
@@ -87,11 +91,25 @@ public partial class DungeonRoomBuilder : MonoBehaviour
 
         switch (archetype.Shape)
         {
+            case DungeonLayout.RoomShape.Tiny:
+                BuildHorizontalInterior(root.transform, center, 4f, true);
+                BuildHorizontalInterior(root.transform, center, -4f, true);
+                BuildVerticalInterior(root.transform, center, 4f, true);
+                BuildVerticalInterior(root.transform, center, -4f, true);
+                break;
             case DungeonLayout.RoomShape.Compact:
                 BuildHorizontalInterior(root.transform, center, 6f, true);
                 BuildHorizontalInterior(root.transform, center, -6f, true);
                 BuildVerticalInterior(root.transform, center, 6f, true);
                 BuildVerticalInterior(root.transform, center, -6f, true);
+                break;
+            case DungeonLayout.RoomShape.NarrowHorizontal:
+                BuildHorizontalInterior(root.transform, center, 4f, true);
+                BuildHorizontalInterior(root.transform, center, -4f, true);
+                break;
+            case DungeonLayout.RoomShape.NarrowVertical:
+                BuildVerticalInterior(root.transform, center, 4f, true);
+                BuildVerticalInterior(root.transform, center, -4f, true);
                 break;
             case DungeonLayout.RoomShape.LargeSquare:
                 BuildVerticalInterior(root.transform, center, 10f, true);
@@ -115,89 +133,6 @@ public partial class DungeonRoomBuilder : MonoBehaviour
     }
 
     /// <summary>
-    /// Builds one shared wall run between two rooms, with an open gateway or a
-    /// blocked (barred) gateway in the middle. The run straddles the room
-    /// boundary so both rooms see the same wall.
-    /// </summary>
-    public GameObject BuildEdge(Transform parent, DungeonEdge edge, bool open)
-    {
-        GameObject root = new GameObject(
-            $"Edge ({edge.X}, {edge.Y}, {(edge.Horizontal ? "H" : "V")})"
-        );
-        root.transform.SetParent(parent, false);
-        Transform wallRun = CreateOcclusionSection(root.transform, "Wall Run");
-        DungeonOcclusionSection wallRunSection = wallRun.GetComponent<DungeonOcclusionSection>();
-
-        Vector2 roomCenter = DungeonLayout.RoomCenter(new Vector2Int(edge.X, edge.Y));
-        GameObject gatePrefab = open ? gateOpenPrefab : gateBlockedPrefab;
-
-        if (edge.Horizontal)
-        {
-            float boundaryZ = roomCenter.y + HalfRoomDepth;
-            wallRunSection.ConfigureEdge(
-                new Vector3(roomCenter.x - HalfRoomWidth, 0f, boundaryZ),
-                new Vector3(roomCenter.x + HalfRoomWidth, 0f, boundaryZ)
-            );
-            int gateIndex = DungeonLayout.RoomTilesX / 2;
-            GameObject gate = null;
-            for (int i = 0; i < DungeonLayout.RoomTilesX; i++)
-            {
-                float x = roomCenter.x + (i - gateIndex) * Tile;
-                if (i == gateIndex)
-                {
-                    gate = Instantiate(
-                        gatePrefab,
-                        new Vector3(x, 0f, boundaryZ + WallSlabCenterOffset),
-                        Quaternion.identity,
-                        wallRun
-                    );
-                }
-                else
-                {
-                    Instantiate(
-                        wallPrefab,
-                        new Vector3(x, 0f, boundaryZ),
-                        Quaternion.identity,
-                        wallRun
-                    );
-                }
-            }
-            ConfigureGatewayOcclusion(gate, wallRun);
-        }
-        else
-        {
-            float boundaryX = roomCenter.x + HalfRoomWidth;
-            wallRunSection.ConfigureEdge(
-                new Vector3(boundaryX, 0f, roomCenter.y - HalfRoomDepth),
-                new Vector3(boundaryX, 0f, roomCenter.y + HalfRoomDepth)
-            );
-            int gateIndex = DungeonLayout.RoomTilesZ / 2;
-            Quaternion sideways = Quaternion.Euler(0f, 90f, 0f);
-            GameObject gate = null;
-            for (int j = 0; j < DungeonLayout.RoomTilesZ; j++)
-            {
-                float z = roomCenter.y + (j - gateIndex) * Tile;
-                if (j == gateIndex)
-                {
-                    gate = Instantiate(
-                        gatePrefab,
-                        new Vector3(boundaryX + WallSlabCenterOffset, 0f, z),
-                        sideways,
-                        wallRun
-                    );
-                }
-                else
-                {
-                    Instantiate(wallPrefab, new Vector3(boundaryX, 0f, z), sideways, wallRun);
-                }
-            }
-            ConfigureGatewayOcclusion(gate, wallRun);
-        }
-
-        return root;
-    }
-
-    /// <summary>
     /// Keeps perpendicular wall runs linked for coordinated occlusion fading
     /// without placing a visible wall-corner mesh at their shared vertex.
     /// </summary>
@@ -213,20 +148,6 @@ public partial class DungeonRoomBuilder : MonoBehaviour
         junction.transform.position = position;
         junction.AddComponent<DungeonOcclusionSection>().ConfigureJunction(position);
         return junction;
-    }
-
-    private static void ConfigureGatewayOcclusion(GameObject gate, Transform section)
-    {
-        DungeonOcclusionSection occlusionSection = section.GetComponent<DungeonOcclusionSection>();
-        occlusionSection.ConfigureGateway(gate.transform);
-
-        var volume = new GameObject("Gateway Top Occlusion Volume");
-        volume.transform.SetParent(gate.transform, false);
-        int wallLayer = LayerMask.NameToLayer("Wall");
-        volume.layer = wallLayer >= 0 ? wallLayer : gate.layer;
-        volume
-            .AddComponent<DungeonOcclusionVolume>()
-            .Configure(new Vector3(0f, 2.15f, 0f), new Vector3(3.1f, 1f, 2f));
     }
 
     private static Vector2 TileCenter(Vector2 roomCenter, int i, int j)
@@ -251,7 +172,8 @@ public partial class DungeonRoomBuilder : MonoBehaviour
             DungeonLayout.RoomTheme.Empty => false,
             DungeonLayout.RoomTheme.Storage => Mathf.Abs(x) == 3 || Mathf.Abs(z) == 2,
             DungeonLayout.RoomTheme.Banquet => archetype.Shape
-            == DungeonLayout.RoomShape.LongHorizontal
+                is DungeonLayout.RoomShape.LongHorizontal
+                    or DungeonLayout.RoomShape.NarrowHorizontal
                 ? z == 0
                 : x == 0,
             DungeonLayout.RoomTheme.Armory => (i + j + archetype.Variant) % 2 == 0,
@@ -261,6 +183,7 @@ public partial class DungeonRoomBuilder : MonoBehaviour
                 || Mathf.Abs(z) == 2
                 || ((i + j) & 1) == 0,
             DungeonLayout.RoomTheme.Collapsed => Mathf.Abs(x - z + archetype.Variant - 1) <= 1,
+            DungeonLayout.RoomTheme.Arena => Mathf.Abs(x) == 3 || Mathf.Abs(z) == 2,
             _ => false,
         };
 

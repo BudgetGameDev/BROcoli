@@ -93,6 +93,11 @@ public partial class DungeonPropPlacer
             case DungeonLayout.RoomTheme.Collapsed:
                 BuildCollapsed(parent, center, archetype, random, occupied);
                 break;
+            case DungeonLayout.RoomTheme.Arena:
+                Scatter(parent, center, archetype, random, occupied, random.Next(1, 4), "Stones");
+                PlaceWallBanner(parent, center, archetype, archetype.Variant);
+                PlaceWallBanner(parent, center, archetype, archetype.Variant + 2);
+                break;
         }
     }
 
@@ -104,7 +109,9 @@ public partial class DungeonPropPlacer
         List<OccupiedSpot> occupied
     )
     {
-        bool horizontal = archetype.Shape == DungeonLayout.RoomShape.LongHorizontal;
+        bool horizontal =
+            archetype.Shape == DungeonLayout.RoomShape.LongHorizontal
+            || archetype.Shape == DungeonLayout.RoomShape.NarrowHorizontal;
         float[] stations = horizontal ? new[] { -6f, 0f, 6f } : new[] { -3.4f, 3.4f };
         foreach (float station in stations)
         {

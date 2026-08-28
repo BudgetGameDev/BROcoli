@@ -37,6 +37,49 @@ public readonly struct DungeonEdge : IEquatable<DungeonEdge>
 }
 
 /// <summary>
+/// Describes the openings cut into one shared wall run. Openings can be bare
+/// gaps or framed by archway prefabs; blocked edges retain one barred arch.
+/// </summary>
+public readonly struct DungeonPassage
+{
+    public readonly bool Open;
+    public readonly int OpeningMask;
+    public readonly int ArchwayMask;
+
+    public DungeonPassage(bool open, int openingMask, int archwayMask)
+    {
+        Open = open;
+        OpeningMask = openingMask;
+        ArchwayMask = archwayMask;
+    }
+
+    public bool HasOpening(int slot)
+    {
+        return (OpeningMask & (1 << slot)) != 0;
+    }
+
+    public bool HasArchway(int slot)
+    {
+        return (ArchwayMask & (1 << slot)) != 0;
+    }
+
+    public int OpeningCount
+    {
+        get
+        {
+            int count = 0;
+            int remaining = OpeningMask;
+            while (remaining != 0)
+            {
+                count += remaining & 1;
+                remaining >>= 1;
+            }
+            return count;
+        }
+    }
+}
+
+/// <summary>
 /// Pure deterministic layout math for the infinite dungeon. Every query is a
 /// function of the run seed and the room coordinate, so any room can be
 /// regenerated identically after being unloaded, and both rooms beside a
@@ -147,7 +190,11 @@ public sealed partial class DungeonLayout
     public enum RoomShape
     {
         OpenHall,
+        GrandArena,
+        Tiny,
         Compact,
+        NarrowHorizontal,
+        NarrowVertical,
         LargeSquare,
         LongHorizontal,
         LongVertical,
@@ -165,6 +212,7 @@ public sealed partial class DungeonLayout
         Flooded,
         TreasureVault,
         Collapsed,
+        Arena,
     }
 
     /// <summary>
@@ -198,10 +246,15 @@ public sealed partial class DungeonLayout
         public int EnemyCapacity =>
             Shape switch
             {
+                RoomShape.Tiny => 3,
                 RoomShape.Compact => 5,
+                RoomShape.NarrowHorizontal => 6,
+                RoomShape.NarrowVertical => 6,
                 RoomShape.LongHorizontal => 8,
                 RoomShape.LongVertical => 8,
-                RoomShape.Divided => 9,
+                RoomShape.Divided => 10,
+                RoomShape.GrandArena => 20,
+                RoomShape.OpenHall => 14,
                 _ => 12,
             };
 
