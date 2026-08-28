@@ -29,6 +29,18 @@ mergeInto(LibraryManager.library, {
     
     return result ? 1 : 0;
   },
+
+  // Expose the effective runtime policy to the browser smoke test. Keeping
+  // this on the page also makes real-device diagnostics available in DevTools.
+  ReportIOSLightingSettings: function(qualityLevel, pixelLightCount, additionalLightCount, shadowsEnabled) {
+    if (!document.body) return;
+    document.body.setAttribute('data-ios-lighting', [
+      qualityLevel,
+      pixelLightCount,
+      additionalLightCount,
+      shadowsEnabled
+    ].join(','));
+  },
   
   // Detect if running on Android mobile browser
   IsAndroidMobile: function() {

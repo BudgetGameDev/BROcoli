@@ -2,19 +2,16 @@ using System.Runtime.InteropServices;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
-// Alias to resolve ambiguity
-using UnityShadowQuality = UnityEngine.ShadowQuality;
-using UnityShadowResolution = UnityEngine.ShadowResolution;
 
 /// <summary>
-/// Applies aggressive performance optimizations for iOS Safari WebGL builds only.
+/// Applies lighting-safe performance optimizations for iOS WebGL builds only.
 /// Does NOT affect native iOS builds or other platforms.
 ///
 /// Settings applied:
-/// - Lowest quality level
-/// - Native resolution (no scaling)
+/// - Preserve the normal WebGL quality level and scene-light budget
+/// - Standard-DPI rendering (paired with the WebGL template's iOS DPR policy)
 /// - MSAA disabled
-/// - Minimal shadows for lighting
+/// - Non-lighting quality reductions
 ///
 /// Note: Frame rate settings are handled by FrameRateOptimizer (all platforms).
 /// </summary>
@@ -24,6 +21,14 @@ public class iOSSafariWebGLOptimizer : MonoBehaviour
 #if UNITY_WEBGL && !UNITY_EDITOR
     [DllImport("__Internal")]
     private static extern int IsiOSMobile();
+
+    [DllImport("__Internal")]
+    private static extern void ReportIOSLightingSettings(
+        int qualityLevel,
+        int pixelLightCount,
+        int additionalLightCount,
+        int shadowsEnabled
+    );
 #endif
 
     private static bool _optimizationsApplied = false;
@@ -69,20 +74,33 @@ public class iOSSafariWebGLOptimizer : MonoBehaviour
         Debug.Log("[iOSSafariOptimizer] iOS Safari WebGL detected - applying optimizations");
         _optimizationsApplied = true;
 
-        ApplyQualitySettings();
-        ApplyURPSettings();
+        ApplyLightingSafeQualitySettings();
+        ApplyLightingSafeURPSettings();
+        ReportLightingSettings();
         Debug.Log("[iOSSafariOptimizer] All optimizations applied");
     }
 
-    private void ApplyQualitySettings()
+    private void ReportLightingSettings()
     {
-        // Set to lowest quality level (index 0)
-        int lowestQuality = 0;
-        if (QualitySettings.GetQualityLevel() != lowestQuality)
-        {
-            QualitySettings.SetQualityLevel(lowestQuality, true);
-            Debug.Log($"[iOSSafariOptimizer] Quality level set to {lowestQuality} (lowest)");
-        }
+#if UNITY_WEBGL && !UNITY_EDITOR
+        var urpAsset = GraphicsSettings.currentRenderPipeline as UniversalRenderPipelineAsset;
+        ReportIOSLightingSettings(
+            QualitySettings.GetQualityLevel(),
+            QualitySettings.pixelLightCount,
+            urpAsset == null ? 0 : urpAsset.maxAdditionalLightsCount,
+            QualitySettings.shadows == UnityEngine.ShadowQuality.Disable ? 0 : 1
+        );
+#endif
+    }
+
+    private void ApplyLightingSafeQualitySettings()
+    {
+        // Do not switch quality levels here. The WebGL default preserves the pixel-light
+        // budget used by the world and player-proximity lights. The Very Low profile has
+        // zero pixel lights, which leaves most of the Dungeon scene black on iOS.
+        Debug.Log(
+            $"[iOSSafariOptimizer] Preserving quality level {QualitySettings.GetQualityLevel()}"
+        );
 
         // Note: VSync and frame rate are handled by FrameRateOptimizer
 
@@ -90,17 +108,9 @@ public class iOSSafariWebGLOptimizer : MonoBehaviour
         QualitySettings.antiAliasing = 0;
         Debug.Log("[iOSSafariOptimizer] MSAA disabled (QualitySettings)");
 
-        // Use hard shadows only (cheapest shadow option that still provides some depth)
-        // NOTE: Completely disabling shadows can make 3D models appear flat/black
-        QualitySettings.shadows = UnityShadowQuality.HardOnly;
-        QualitySettings.shadowResolution = UnityShadowResolution.Low;
-        QualitySettings.shadowDistance = 20f; // Minimal distance for nearby shadows
-        Debug.Log("[iOSSafariOptimizer] Shadows set to HardOnly (minimal)");
-
-        // Reduce other quality settings
+        // Reduce effects that do not alter the scene's light selection or shadow budget.
         QualitySettings.softParticles = false;
         QualitySettings.softVegetation = false;
-        QualitySettings.realtimeReflectionProbes = false;
         QualitySettings.billboardsFaceCameraPosition = false;
         QualitySettings.lodBias = 0.5f;
         QualitySettings.maximumLODLevel = 2;
@@ -108,7 +118,7 @@ public class iOSSafariWebGLOptimizer : MonoBehaviour
         Debug.Log("[iOSSafariOptimizer] Additional quality reductions applied");
     }
 
-    private void ApplyURPSettings()
+    private void ApplyLightingSafeURPSettings()
     {
         // Try to modify URP asset settings at runtime
         var urpAsset = GraphicsSettings.currentRenderPipeline as UniversalRenderPipelineAsset;
@@ -130,15 +140,11 @@ public class iOSSafariWebGLOptimizer : MonoBehaviour
         // Note: HDR property might not be directly settable at runtime
         // urpAsset.supportsHDR = false;
 
-        // Keep minimal shadow distance for basic lighting to work
-        // NOTE: Setting to 0 can cause 3D models to appear completely black
-        urpAsset.shadowDistance = 20f;
-        Debug.Log("[iOSSafariOptimizer] URP shadow distance set to 20 (minimal)");
-
-        // Allow 1 additional light for minimal scene lighting
-        // NOTE: Setting to 0 can cause 3D models to appear completely black
-        // The main directional light is separate, but some scenes need at least 1 additional
-        urpAsset.maxAdditionalLightsCount = 1;
-        Debug.Log("[iOSSafariOptimizer] URP max additional lights set to 1 (minimal)");
+        // Do not change shadowDistance or maxAdditionalLightsCount. Dungeon uses two
+        // point lights (world + player proximity), and both are additional URP lights.
+        Debug.Log(
+            $"[iOSSafariOptimizer] Preserving {urpAsset.maxAdditionalLightsCount} additional lights "
+                + $"and {urpAsset.shadowDistance} shadow distance"
+        );
     }
 }

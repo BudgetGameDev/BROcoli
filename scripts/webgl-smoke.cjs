@@ -2,12 +2,13 @@
 
 const zlib = require('node:zlib');
 
-const [pageUrl, debugPort = '9223', timeoutText = '120000'] = process.argv.slice(2);
+const [pageUrl, debugPort = '9223', timeoutText = '120000', platformProfile = 'desktop'] =
+  process.argv.slice(2);
 const timeoutMs = Number(timeoutText);
 const deadline = Date.now() + timeoutMs;
 
-if (!pageUrl || !Number.isFinite(timeoutMs)) {
-  console.error('usage: webgl-smoke.cjs URL [DEBUG_PORT] [TIMEOUT_MS]');
+if (!pageUrl || !Number.isFinite(timeoutMs) || !['desktop', 'ios'].includes(platformProfile)) {
+  console.error('usage: webgl-smoke.cjs URL [DEBUG_PORT] [TIMEOUT_MS] [desktop|ios]');
   process.exit(2);
 }
 
@@ -155,13 +156,28 @@ async function inspectUnityState(webSocketUrl) {
       const response = await command('Runtime.evaluate', {
         expression: `(() => ({
           state: document.body?.getAttribute('data-unity-state') || '',
-          error: document.querySelector('.startup-error p')?.textContent || ''
+          error: document.querySelector('.startup-error p')?.textContent || '',
+          iosLighting: document.body?.getAttribute('data-ios-lighting') || ''
         }))()`,
         returnByValue: true
       });
       const result = response.result?.value || {};
 
       if (result.state === 'started') {
+        if (platformProfile === 'ios') {
+          const lighting = result.iosLighting.split(',').map(Number);
+          if (
+            lighting.length !== 4 ||
+            lighting.some((value) => !Number.isFinite(value)) ||
+            lighting[0] < 3 ||
+            lighting[1] < 2 ||
+            lighting[2] < 2 ||
+            lighting[3] !== 1
+          ) {
+            throw new Error(`iOS lighting policy is unsafe (${result.iosLighting || 'not reported'})`);
+          }
+        }
+
         while (Date.now() < deadline) {
           await delay(500);
           const screenshot = await command('Page.captureScreenshot', {
@@ -188,8 +204,10 @@ async function inspectUnityState(webSocketUrl) {
 (async () => {
   const webSocketUrl = await findPageTarget();
   const result = await inspectUnityState(webSocketUrl);
+  const lightingResult = platformProfile === 'ios' ? `; lighting=${result.iosLighting}` : '';
   console.log(
-    `webgl-smoke: Unity rendered a visible ${result.visual.width}x${result.visual.height} frame`
+    `webgl-smoke: Unity rendered a visible ${result.visual.width}x${result.visual.height} ` +
+      `frame (${platformProfile}${lightingResult})`
   );
 })().catch((error) => {
   console.error(`webgl-smoke: ${error.message}`);

@@ -3,6 +3,7 @@
 set -euo pipefail
 
 BUILD_DIR="${1:-build/WebGL}"
+SMOKE_PROFILE="${WEBGL_SMOKE_PLATFORM:-desktop}"
 if [ ! -f "$BUILD_DIR/index.html" ]; then
     echo "webgl-smoke: missing $BUILD_DIR/index.html" >&2
     exit 2
@@ -65,21 +66,38 @@ if [ "$SERVER_READY" != true ]; then
     exit 1
 fi
 
-"$BROWSER" \
-    --headless=new \
-    --no-sandbox \
-    --disable-dev-shm-usage \
-    --enable-webgl \
-    --ignore-gpu-blocklist \
-    --remote-allow-origins='*' \
-    --remote-debugging-port=9223 \
-    --user-data-dir="$SMOKE_TEMP_DIR/chrome-profile" \
+BROWSER_ARGUMENTS=(
+    --headless=new
+    --no-sandbox
+    --disable-dev-shm-usage
+    --enable-webgl
+    --ignore-gpu-blocklist
+    --remote-allow-origins='*'
+    --remote-debugging-port=9223
+    --user-data-dir="$SMOKE_TEMP_DIR/chrome-profile"
+)
+
+case "$SMOKE_PROFILE" in
+    desktop) ;;
+    ios)
+        BROWSER_ARGUMENTS+=(
+            '--window-size=844,390'
+            '--user-agent=Mozilla/5.0 (iPhone; CPU iPhone OS 18_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.6 Mobile/15E148 Safari/604.1'
+        )
+        ;;
+    *)
+        echo "webgl-smoke: unsupported WEBGL_SMOKE_PLATFORM '$SMOKE_PROFILE'" >&2
+        exit 2
+        ;;
+esac
+
+"$BROWSER" "${BROWSER_ARGUMENTS[@]}" \
     "http://127.0.0.1:4173/?webgl-smoke=1" \
     >"$SMOKE_TEMP_DIR/chrome.log" 2>&1 &
 BROWSER_PID="$!"
 
 if ! node "$(dirname "$0")/webgl-smoke.cjs" \
-    "http://127.0.0.1:4173/" 9223 120000; then
+    "http://127.0.0.1:4173/" 9223 120000 "$SMOKE_PROFILE"; then
     tail -80 "$SMOKE_TEMP_DIR/chrome.log" >&2 || true
     exit 1
 fi

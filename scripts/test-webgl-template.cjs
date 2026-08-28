@@ -33,6 +33,18 @@ const iosOptimizer = fs.readFileSync(
   path.join(__dirname, '..', 'Assets', 'Scripts', 'iOSSafariWebGLOptimizer.cs'),
   'utf8'
 );
+const mobileDetection = fs.readFileSync(
+  path.join(__dirname, '..', 'Assets', 'Plugins', 'WebGL', 'MobileDetection.jslib'),
+  'utf8'
+);
+const qualitySettings = fs.readFileSync(
+  path.join(__dirname, '..', 'ProjectSettings', 'QualitySettings.asset'),
+  'utf8'
+);
+const urpSettings = fs.readFileSync(
+  path.join(__dirname, '..', 'Assets', 'Settings', 'UniversalRP.asset'),
+  'utf8'
+);
 const resizeFunction = template.match(
   /function updateCanvasSize\(\)\s*\{([\s\S]*?)\n\s*\}\n\s*\n\s*\/\/ Full-screen canvas setup/
 );
@@ -86,5 +98,32 @@ assert.doesNotMatch(
   /Shader\.WarmupAllShaders\(\)/,
   'iOS startup must not prewarm every shader variant'
 );
+assert.doesNotMatch(
+  iosOptimizer,
+  /QualitySettings\.SetQualityLevel\(/,
+  'iOS must retain the WebGL quality profile that supplies scene lighting'
+);
+assert.doesNotMatch(
+  iosOptimizer,
+  /QualitySettings\.(?:shadows|shadowResolution|shadowDistance)\s*=(?!=)/,
+  'iOS optimizations must not override the project shadow policy'
+);
+assert.doesNotMatch(
+  iosOptimizer,
+  /urpAsset\.(?:shadowDistance|maxAdditionalLightsCount)\s*=(?!=)/,
+  'iOS optimizations must preserve the URP scene-light budget'
+);
+
+const webglQuality = qualitySettings.match(/^\s*WebGL:\s*(\d+)$/m);
+const additionalLights = urpSettings.match(/^\s*m_AdditionalLightsPerObjectLimit:\s*(\d+)$/m);
+assert.ok(webglQuality, 'WebGL must declare a default quality profile');
+assert.ok(Number(webglQuality[1]) >= 3, 'WebGL must retain the High-or-better lighting profile');
+assert.ok(additionalLights, 'URP must declare its additional-light budget');
+assert.ok(
+  Number(additionalLights[1]) >= 2,
+  'URP must support the Dungeon world and player-proximity lights together'
+);
+assert.match(iosOptimizer, /ReportIOSLightingSettings\(/);
+assert.match(mobileDetection, /data-ios-lighting/);
 
 console.log('webgl template contract: all checks passed');
