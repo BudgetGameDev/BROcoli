@@ -41,8 +41,13 @@ assert.ok(resizeFunction, 'updateCanvasSize must remain present in the WebGL tem
 assert.match(template, /matchWebGLToCanvasSize:\s*true/);
 assert.match(
   template,
-  /devicePixelRatio:\s*isiOSDevice\s*\?\s*1\s*:/,
-  'iOS must use a bounded drawing-buffer scale'
+  /devicePixelRatio:\s*unityDevicePixelRatio/,
+  'Unity must use the platform policy covered by the browser matrix'
+);
+assert.match(
+  template,
+  /unityDevicePixelRatio\s*=\s*platformInfo\.unityDevicePixelRatio/,
+  'The tested platform render scale must reach the compiled Unity configuration'
 );
 assert.doesNotMatch(
   resizeFunction[1],

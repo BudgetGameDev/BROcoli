@@ -65,8 +65,10 @@ run_gate "C# formatting" dotnet csharpier check Assets/Scripts Assets/Editor
 run_gate "Python lint" uvx ruff@0.12.11 check scripts
 run_gate "Python formatting" uvx ruff@0.12.11 format --check scripts
 run_gate "WebGL platform detection" node scripts/test-webgl-platform.cjs
+run_gate "WebGL service worker behavior" node scripts/test-webgl-service-worker.cjs
 run_gate "WebGL template contract" node scripts/test-webgl-template.cjs
 run_gate "WebGL smoke probe syntax" node --check scripts/webgl-smoke.cjs
+run_gate "WebGL build contract syntax" node --check scripts/check-webgl-build.cjs
 run_gate "Shell lint" shellcheck ci.sh format.sh scripts/*.sh .githooks/pre-push
 run_gate "Shell formatting" shfmt -d -i 4 -ci ci.sh format.sh scripts/*.sh .githooks/pre-push
 run_gate \

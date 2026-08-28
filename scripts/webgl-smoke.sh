@@ -8,6 +8,8 @@ if [ ! -f "$BUILD_DIR/index.html" ]; then
     exit 2
 fi
 
+node "$(dirname "$0")/check-webgl-build.cjs" "$BUILD_DIR"
+
 BROWSER=""
 for candidate in \
     google-chrome \

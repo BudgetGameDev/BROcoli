@@ -17,10 +17,12 @@ function environment({
   navigatorPlatform,
   maxTouchPoints = 0,
   innerWidth = 1440,
-  touch = false
+  touch = false,
+  devicePixelRatio = 1
 }) {
   const browserWindow = {
     innerWidth,
+    devicePixelRatio,
     matchMedia: () => ({ matches: false })
   };
   if (touch) browserWindow.ontouchstart = null;
@@ -49,12 +51,14 @@ for (const maxTouchPoints of [0, 5]) {
     navigatorPlatform: 'MacIntel',
     maxTouchPoints,
     innerWidth: 900,
-    touch: maxTouchPoints > 0
+    touch: maxTouchPoints > 0,
+    devicePixelRatio: 2
   }));
 
   assert.equal(result.isSafari, true, 'macOS Safari should remain Safari');
   assert.equal(result.isAppleMobile, false, 'macOS Safari must not be detected as iOS');
   assert.equal(result.isMobile, false, 'macOS Safari must retain desktop controls');
+  assert.equal(result.unityDevicePixelRatio, 2, 'macOS Safari must retain Retina rendering');
 }
 
 const ipad = platform.detect(environment({
@@ -62,11 +66,13 @@ const ipad = platform.detect(environment({
   navigatorPlatform: 'MacIntel',
   maxTouchPoints: 5,
   innerWidth: 1024,
-  touch: true
+  touch: true,
+  devicePixelRatio: 2
 }));
 assert.equal(ipad.isIPadOS, true);
 assert.equal(ipad.isAppleMobile, true);
 assert.equal(ipad.isMobile, true);
+assert.equal(ipad.unityDevicePixelRatio, 1, 'iPadOS must use its bounded WebGL render scale');
 
 const iphone = platform.detect(environment({
   userAgent:
@@ -75,10 +81,27 @@ const iphone = platform.detect(environment({
   navigatorPlatform: 'iPhone',
   maxTouchPoints: 5,
   innerWidth: 390,
-  touch: true
+  touch: true,
+  devicePixelRatio: 3
 }));
 assert.equal(iphone.isIOS, true);
 assert.equal(iphone.isAppleMobile, true);
+assert.equal(iphone.unityDevicePixelRatio, 1, 'iPhone Safari must use a bounded render scale');
+
+const iosChrome = platform.detect(environment({
+  userAgent:
+    'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) ' +
+    'AppleWebKit/605.1.15 CriOS/140.0.7339.122 Mobile/15E148 Safari/604.1',
+  navigatorPlatform: 'iPhone',
+  maxTouchPoints: 5,
+  innerWidth: 390,
+  touch: true,
+  devicePixelRatio: 3
+}));
+assert.equal(iosChrome.isIOS, true);
+assert.equal(iosChrome.isSafari, false);
+assert.equal(iosChrome.isAppleMobile, true);
+assert.equal(iosChrome.unityDevicePixelRatio, 1, 'iOS Chrome shares the iOS GPU budget');
 
 const android = platform.detect(environment({
   userAgent:
@@ -92,5 +115,28 @@ const android = platform.detect(environment({
 assert.equal(android.isAndroid, true);
 assert.equal(android.isMobile, true);
 assert.equal(android.isSafari, false);
+assert.equal(android.unityDevicePixelRatio, 1);
+
+const windowsChrome = platform.detect(environment({
+  userAgent:
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 ' +
+    'Chrome/140.0.0.0 Safari/537.36',
+  navigatorPlatform: 'Win32',
+  devicePixelRatio: 1.5
+}));
+assert.equal(windowsChrome.isMobile, false);
+assert.equal(windowsChrome.isSafari, false);
+assert.equal(windowsChrome.unityDevicePixelRatio, 1.5);
+
+const macChrome = platform.detect(environment({
+  userAgent:
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 ' +
+    'Chrome/140.0.0.0 Safari/537.36',
+  navigatorPlatform: 'MacIntel',
+  devicePixelRatio: 2
+}));
+assert.equal(macChrome.isMobile, false);
+assert.equal(macChrome.isAppleMobile, false);
+assert.equal(macChrome.unityDevicePixelRatio, 2);
 
 console.log('webgl platform detection: all cases passed');

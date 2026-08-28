@@ -442,6 +442,7 @@
       var isSafari = false;
       var isMobile = false;
       var isStandalone = false;
+      var unityDevicePixelRatio = window.devicePixelRatio || 1;
       
       try {
         var platformInfo = window.BroccoliPlatform.current();
@@ -451,6 +452,7 @@
         isSafari = platformInfo.isSafari;
         isMobile = platformInfo.isMobile;
         isStandalone = platformInfo.isStandalone;
+        unityDevicePixelRatio = platformInfo.unityDevicePixelRatio;
       } catch (e) {
         // Platform detection failed - use safe defaults
       }
@@ -984,7 +986,7 @@
           // iOS Safari has a tighter GPU-memory budget, so render its Retina canvas
           // at standard DPI. Desktop browsers retain their native DPR.
           matchWebGLToCanvasSize: true,
-          devicePixelRatio: isiOSDevice ? 1 : (window.devicePixelRatio || 1),
+          devicePixelRatio: unityDevicePixelRatio,
           // Progress callback
           onProgress: function(progress) {
             if (progressBar) {

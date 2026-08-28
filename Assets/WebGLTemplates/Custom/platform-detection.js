@@ -29,6 +29,14 @@
       /AppleWebKit/i.test(userAgent) &&
       /Mobile\//i.test(userAgent);
     var isAppleMobile = isIOSUserAgent || isIPadOS;
+    var browserDevicePixelRatio = Number(win.devicePixelRatio || 1);
+    if (!Number.isFinite(browserDevicePixelRatio) || browserDevicePixelRatio <= 0) {
+      browserDevicePixelRatio = 1;
+    }
+    // iPhones and iPads have a tighter WebGL GPU-memory budget. Keeping this
+    // policy beside platform detection makes it independently regression-testable
+    // and prevents touch-capable Macs from accidentally receiving the iOS scale.
+    var unityDevicePixelRatio = isAppleMobile ? 1 : browserDevicePixelRatio;
     var isAndroid = /Android/i.test(userAgent);
     var isOtherMobile = /webOS|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
     var isSmallTouchScreen =
@@ -61,6 +69,7 @@
       isIOS: isIOSUserAgent,
       isIPadOS: isIPadOS,
       isAppleMobile: isAppleMobile,
+      unityDevicePixelRatio: unityDevicePixelRatio,
       isAndroid: isAndroid,
       isMobile: isMobile,
       isSafari: isSafari,
