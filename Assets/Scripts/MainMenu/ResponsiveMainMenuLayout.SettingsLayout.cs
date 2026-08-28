@@ -1,6 +1,7 @@
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using static MenuTheme;
 
 public sealed partial class ResponsiveMainMenuLayout
 {

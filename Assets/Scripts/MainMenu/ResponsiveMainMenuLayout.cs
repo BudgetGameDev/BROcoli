@@ -1,6 +1,7 @@
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using static MenuTheme;
 
 /// <summary>
 /// Builds a responsive, safe-area-aware presentation around the existing main-menu buttons.
@@ -9,17 +10,6 @@ using UnityEngine.UI;
 [DisallowMultipleComponent]
 public sealed partial class ResponsiveMainMenuLayout : MonoBehaviour
 {
-    private static readonly Color Background = Hex("#0F1713");
-    private static readonly Color HeroSurface = Hex("#173E2B");
-    private static readonly Color CardSurface = Hex("#1D2923");
-    private static readonly Color SurfaceVariant = Hex("#2A3831");
-    private static readonly Color Primary = Hex("#43A047");
-    private static readonly Color PrimaryHover = Hex("#55B95A");
-    private static readonly Color PrimaryPressed = Hex("#347C38");
-    private static readonly Color OnSurface = Hex("#F4F7F5");
-    private static readonly Color OnSurfaceMuted = Hex("#B8C6BE");
-    private static readonly Color Divider = new(0.65f, 0.84f, 0.71f, 0.22f);
-
     private const float MaximumCardWidth = 680f;
     private const float MaximumCardHeight = 800f;
 
@@ -121,10 +111,7 @@ public sealed partial class ResponsiveMainMenuLayout : MonoBehaviour
         Image cardImage = card.GetComponent<Image>();
         cardImage.type = Image.Type.Simple;
 
-        Shadow cardShadow = card.gameObject.AddComponent<Shadow>();
-        cardShadow.effectColor = new Color(0f, 0f, 0f, 0.48f);
-        cardShadow.effectDistance = new Vector2(0f, -12f);
-        cardShadow.useGraphicAlpha = true;
+        AddCardShadow(card);
 
         accentBar = CreatePanel("AccentBar", card, Primary);
         eyebrow = CreateText("Eyebrow", card, "ACTION SURVIVAL", 18f, Primary);

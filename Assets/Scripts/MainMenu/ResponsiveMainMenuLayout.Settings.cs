@@ -3,6 +3,7 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
+using static MenuTheme;
 
 public sealed partial class ResponsiveMainMenuLayout
 {

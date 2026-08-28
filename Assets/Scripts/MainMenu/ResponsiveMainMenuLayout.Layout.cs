@@ -1,6 +1,7 @@
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using static MenuTheme;
 
 public sealed partial class ResponsiveMainMenuLayout
 {
@@ -27,7 +28,7 @@ public sealed partial class ResponsiveMainMenuLayout
         lastRootSize = currentRootSize;
         lastVisibilitySignature = visibilitySignature;
 
-        ApplySafeArea(currentSafeArea);
+        ApplySafeArea(safeArea, currentSafeArea);
         Canvas.ForceUpdateCanvases();
 
         Vector2 available = safeArea.rect.size;
@@ -79,16 +80,6 @@ public sealed partial class ResponsiveMainMenuLayout
         LayoutSettingsPanel(innerWidth, actionTop, actionBottom, compact, narrow);
 
         heroField.anchorMin = new Vector2(0f, available.x > available.y ? 0.56f : 0.66f);
-    }
-
-    private void ApplySafeArea(Rect pixelSafeArea)
-    {
-        float width = Mathf.Max(1f, Screen.width);
-        float height = Mathf.Max(1f, Screen.height);
-        safeArea.anchorMin = new Vector2(pixelSafeArea.xMin / width, pixelSafeArea.yMin / height);
-        safeArea.anchorMax = new Vector2(pixelSafeArea.xMax / width, pixelSafeArea.yMax / height);
-        safeArea.offsetMin = Vector2.zero;
-        safeArea.offsetMax = Vector2.zero;
     }
 
     private void LayoutActiveButtons(

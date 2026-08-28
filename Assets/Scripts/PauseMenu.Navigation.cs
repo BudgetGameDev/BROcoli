@@ -39,8 +39,8 @@ public partial class PauseMenu
             Outline outline = button.GetComponent<Outline>();
             if (outline == null)
                 outline = button.gameObject.AddComponent<Outline>();
-            outline.effectColor = new Color(1f, 0.9f, 0.2f, 1f);
-            outline.effectDistance = new Vector2(6f, 6f);
+            outline.effectColor = MenuTheme.SelectionOutline;
+            outline.effectDistance = MenuTheme.SelectionThickness;
             outline.enabled = false;
             buttonOutlines[i] = outline;
 

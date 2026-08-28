@@ -9,7 +9,8 @@ using UnityEngine.UI;
 /// This script auto-initializes on game start - no need to add it to any scene manually.
 /// It adds letterboxing (black bars) when the screen is in portrait mode or too narrow.
 /// In portrait mode, it pauses the game and shows a "rotate phone" overlay.
-/// Also auto-pauses when the game loses focus (tab switch, app background, etc).
+/// Also auto-pauses gameplay when the game loses focus (tab switch, app background,
+/// etc). Menu scenes are left running - they have no pause menu to resume from.
 /// Works on native builds, WebGL (including iOS Safari), and all platforms.
 /// </summary>
 public static class ForceLandscapeAspect
@@ -166,13 +167,23 @@ public static class ForceLandscapeAspect
     {
         if (_isFocusLost)
             return; // Already paused for focus
+
+        // Only gameplay auto-pauses. Menu scenes have no PauseMenu, so pausing
+        // there would freeze the menu with no way to resume it.
+        PauseMenu pauseMenu = Object.FindAnyObjectByType<PauseMenu>();
+        if (pauseMenu == null)
+        {
+            if (DEBUG_MODE)
+                Debug.Log("[ForceLandscapeAspect] Focus LOST outside gameplay - not pausing");
+            return;
+        }
+
         _isFocusLost = true;
 
         if (DEBUG_MODE)
             Debug.Log("[ForceLandscapeAspect] Focus LOST - triggering pause");
 
-        // Try to use existing PauseMenu
-        TriggerPauseMenu(true);
+        pauseMenu.Pause();
     }
 
     /// <summary>
@@ -189,27 +200,6 @@ public static class ForceLandscapeAspect
 
         // Note: We don't auto-resume - let user tap Resume button in pause menu
         // This is better UX than game suddenly resuming when you switch back
-    }
-
-    private static void TriggerPauseMenu(bool pause)
-    {
-        // Find the existing PauseMenu in the scene
-        PauseMenu pauseMenu = Object.FindAnyObjectByType<PauseMenu>();
-
-        if (pauseMenu != null && pause)
-        {
-            // Use the existing pause menu
-            pauseMenu.Pause();
-        }
-        else if (pause)
-        {
-            // Fallback: just pause time if no PauseMenu exists (e.g., in MainMenu scene)
-            if (!_isPortrait) // Don't double-save if already in portrait
-            {
-                _savedTimeScale = Time.timeScale;
-            }
-            Time.timeScale = 0f;
-        }
     }
 
     private static void ShowRotateOverlay(bool show)

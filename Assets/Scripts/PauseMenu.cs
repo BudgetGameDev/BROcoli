@@ -46,10 +46,12 @@ public partial class PauseMenu : MonoBehaviour
         isPaused = false;
         Time.timeScale = 1f;
 
-        // Hide pause menu
+        // Hide pause menu, and give it the shared menu presentation.
         if (pauseMenuUI != null)
         {
             pauseMenuUI.SetActive(false);
+            if (pauseMenuUI.GetComponent<ResponsivePauseMenuLayout>() == null)
+                pauseMenuUI.AddComponent<ResponsivePauseMenuLayout>();
         }
 
         // CRITICAL: Ensure EventSystem is active immediately
@@ -368,12 +370,12 @@ public partial class PauseMenu : MonoBehaviour
                 RectTransform rt = menuButtons[i].GetComponent<RectTransform>();
                 if (rt != null)
                 {
-                    float targetScale = isSelected ? 1.1f : 1f;
+                    float targetScale = isSelected ? MenuTheme.SelectedScale : 1f;
                     Vector3 target = originalScales[i] * targetScale;
                     rt.localScale = Vector3.Lerp(
                         rt.localScale,
                         target,
-                        Time.unscaledDeltaTime * 12f
+                        Time.unscaledDeltaTime * MenuTheme.SelectionLerpSpeed
                     );
                 }
             }
