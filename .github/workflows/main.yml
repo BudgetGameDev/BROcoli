@@ -102,6 +102,11 @@ jobs:
             sudo find "$licensed_asset_dir" -mindepth 1 -delete
           fi
 
+          licensed_package_dir="Assets/Generated/Licensed"
+          if [[ -d "$licensed_package_dir" ]]; then
+            sudo find "$licensed_package_dir" -mindepth 1 -delete
+          fi
+
       - name: Smoke test built WebGL player
         timeout-minutes: 5
         run: |

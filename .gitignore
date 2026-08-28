@@ -78,3 +78,6 @@ UserSettings/Layouts/default-6000.dwlt
 # Licensed asset pipeline: local secret and decrypted Unity imports.
 .env
 Assets/Resources/Generated/Licensed/
+Assets/Generated/Licensed/
+Assets/Generated/Licensed.meta
+Assets/Generated.meta

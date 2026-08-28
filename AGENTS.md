@@ -34,6 +34,19 @@ and runtime budget, and do not require paid dependencies or services. Import onl
 files and samples the project actually needs and verify the asset in Play Mode through
 the real gameplay camera and target platform settings.
 
+When evaluating an Asset Store package, use the action shown by Unity's Package Manager
+to choose the repository workflow:
+
+- If Package Manager offers `Install`, treat it as a UPM package. Install the selected
+  version and commit both `Packages/manifest.json` and `Packages/packages-lock.json`.
+  Do not commit or encrypt Unity's package cache; another licensed machine restores the
+  dependency from the package registry after pulling those two files.
+- If Package Manager offers `Download` or `Import`, treat it as a traditional Asset
+  Store asset package. Use the encrypted licensed-asset workflow below for the imported
+  files and their Unity `.meta` files. Do not rely on each developer independently
+  selecting and importing package contents, because that can produce version and GUID
+  drift.
+
 An Asset Store price of `Free` does not mean the asset is public domain or freely
 redistributable. Before downloading or importing an asset, inspect its exact store page
 and linked terms and verify all of the following:
@@ -51,14 +64,16 @@ and linked terms and verify all of the following:
 - Its source files can be handled by this repository's distribution model. The
   [Unity Asset Store EULA](https://unity.com/legal/as-terms) generally permits eligible
   assets to be embedded in a substantial game, but does not grant permission to
-  redistribute the stand-alone asset or plaintext source package. Store Asset Store
-  packages and their imported source files through the repository's existing encrypted
-  licensed-asset pipeline and shared key, as is done for other restricted third-party
-  assets. Commit only encrypted payloads and their metadata sidecars; never commit the
-  download archive, plaintext source files, `.env`, or generated decrypted files. For a
-  multi-file package, preserve its folder structure and Unity `.meta` files in the
-  encrypted payload and extend the decryptor when necessary so it is restored only into
-  an ignored generated location.
+  redistribute the stand-alone asset or plaintext source package. Store traditional
+  `Download`/`Import` Asset Store packages and their imported source files through the
+  repository's existing encrypted licensed-asset pipeline and shared key, as is done for
+  other restricted third-party assets. Commit only encrypted payloads and their metadata
+  sidecars; never commit the download archive, plaintext source files, `.env`, or
+  generated decrypted files. For a multi-file package, preserve its folder structure
+  and Unity `.meta` files in a single encrypted package payload. Restore it only under
+  `Assets/Generated/Licensed/`; keep all integration scenes, prefabs, and configuration
+  outside that ignored generated tree so source package updates cannot overwrite
+  project-authored work.
 
 Encryption prevents the repository from exposing a usable stand-alone source package;
 it does not create license rights or override the Asset Store EULA or provider terms.
@@ -150,7 +165,7 @@ model; find another model or ask the user.
 
 Read `docs/licensed-assets.md` before importing, replacing, decrypting, or re-encrypting
 any licensed model. Never commit `.env` or anything under
-`Assets/Resources/Generated/Licensed/`.
+`Assets/Resources/Generated/Licensed/` or `Assets/Generated/Licensed/`.
 
 ### Other game assets: Unity Asset Store, then Kenney
 
