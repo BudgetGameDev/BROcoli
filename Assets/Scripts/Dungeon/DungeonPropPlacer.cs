@@ -27,12 +27,19 @@ public partial class DungeonPropPlacer : MonoBehaviour
         public readonly Vector2 Position;
         public readonly float Radius;
         public readonly bool Large;
+        public readonly bool ReservedForChest;
 
-        public OccupiedSpot(Vector2 position, float radius, bool large)
+        public OccupiedSpot(
+            Vector2 position,
+            float radius,
+            bool large,
+            bool reservedForChest = false
+        )
         {
             Position = position;
             Radius = radius;
             Large = large;
+            ReservedForChest = reservedForChest;
         }
     }
 
@@ -107,9 +114,10 @@ public partial class DungeonPropPlacer : MonoBehaviour
                         : random.NextDouble() < goldenChestChance
                 );
             GameObject prefab = golden ? goldenChestPrefab : chestPrefab;
-            Vector2 local = ChestSpot(slot, chestCount, archetype);
             float radius = FootprintRadius(prefab);
-            occupied.Add(new OccupiedSpot(local, radius, radius >= 1.1f));
+            Vector2 local = ChestSpot(archetype, random, radius, occupied);
+            int yaw = random.Next(0, 4) * 90;
+            occupied.Add(new OccupiedSpot(local, radius, radius >= 1.1f, true));
 
             if (openedChestSlots != null && openedChestSlots.Contains(slot))
                 continue;
@@ -119,7 +127,7 @@ public partial class DungeonPropPlacer : MonoBehaviour
             GameObject spawned = Instantiate(
                 prefab,
                 (center + local).ToWorld(),
-                GroundPlane.YawRotation((archetype.Variant * 90 + slot * 90) % 360),
+                GroundPlane.YawRotation(yaw),
                 parent
             );
             LootChest chest = spawned.GetComponent<LootChest>();
@@ -245,42 +253,5 @@ public partial class DungeonPropPlacer : MonoBehaviour
         )
             chance += 0.12f;
         return random.NextDouble() < chance ? 1 : 0;
-    }
-
-    private static Vector2 ChestSpot(int slot, int count, DungeonLayout.RoomArchetype archetype)
-    {
-        if (count == 1)
-        {
-            float x = archetype.HalfWidth - 1.4f;
-            float z = archetype.HalfDepth - 1.4f;
-            float xSign = (archetype.Variant & 1) == 0 ? 1f : -1f;
-            if (
-                (
-                    archetype.Shape == DungeonLayout.RoomShape.Compact
-                    || archetype.Shape == DungeonLayout.RoomShape.Tiny
-                )
-                && archetype.Theme == DungeonLayout.RoomTheme.Shrine
-            )
-            {
-                return new Vector2(xSign * 2f, xSign * -2f);
-            }
-            if (archetype.Theme == DungeonLayout.RoomTheme.Armory)
-            {
-                float armoryZ = Mathf.Min(2f, z);
-                return new Vector2(xSign * x, xSign * -armoryZ);
-            }
-            return new Vector2(xSign * x, (archetype.Variant & 2) == 0 ? z : -z);
-        }
-
-        float vaultX = Mathf.Max(0.8f, Mathf.Min(3.3f, archetype.HalfWidth - 0.5f));
-        float vaultZ = Mathf.Max(0.8f, Mathf.Min(3f, archetype.HalfDepth - 0.5f));
-        var vaultSpots = new[]
-        {
-            new Vector2(-vaultX, -vaultZ),
-            new Vector2(vaultX, -vaultZ),
-            new Vector2(-vaultX, vaultZ),
-            new Vector2(vaultX, vaultZ),
-        };
-        return RotateQuarterTurns(vaultSpots[slot % vaultSpots.Length], archetype.Variant);
     }
 }

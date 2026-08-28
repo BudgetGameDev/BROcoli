@@ -262,7 +262,7 @@ namespace Pooling
 
         private void OnExpGainGet(ExpGain exp)
         {
-            // Reset state
+            exp.SetPooled(true);
             var rb = exp.GetComponent<Rigidbody>();
             if (rb != null)
             {

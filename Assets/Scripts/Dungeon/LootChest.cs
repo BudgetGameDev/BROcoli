@@ -14,6 +14,9 @@ public class LootChest : MonoBehaviour
     [SerializeField, Min(0)]
     private int expDropCount = 5;
 
+    [SerializeField, Min(1)]
+    private int experiencePerPickup = 3;
+
     [SerializeField, Min(0)]
     private int boostDropCount = 1;
 
@@ -55,6 +58,7 @@ public class LootChest : MonoBehaviour
             ExpGain gain = PoolManager.Instance?.GetExpGain(spot.ToWorld(0.5f));
             if (gain == null)
                 break;
+            gain.Init(experiencePerPickup);
         }
 
         GameObject[] boostPrefabs = FindAnyObjectByType<BoostHandler>()?.BoostPrefabs;

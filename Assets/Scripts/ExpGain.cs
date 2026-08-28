@@ -92,11 +92,13 @@ public class ExpGain : MonoBehaviour
 
         // Hide/recycle before applying XP. Applying XP can pause the game for
         // a level-up choice, so the orb must already be gone at that point.
-        gameObject.SetActive(false);
         if (_isPooled)
             ReturnToPool();
         else
+        {
+            gameObject.SetActive(false);
             Destroy(gameObject);
+        }
 
         ProceduralXPPickupAudio.PlayPickup();
         stats.ApplyExperience(experience);

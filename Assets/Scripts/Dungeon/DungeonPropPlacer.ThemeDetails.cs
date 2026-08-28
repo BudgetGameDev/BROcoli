@@ -153,6 +153,9 @@ public partial class DungeonPropPlacer
         GameObject prefab = FindProp(token);
         if (prefab == null)
             return;
+        float radius = FootprintRadius(prefab) * scale;
+        if (OverlapsReservedChest(local, radius, occupied))
+            return;
         GameObject prop = Instantiate(
             prefab,
             (center + local).ToWorld(height),
@@ -160,8 +163,24 @@ public partial class DungeonPropPlacer
             parent
         );
         prop.transform.localScale *= scale;
-        float radius = FootprintRadius(prefab) * scale;
         occupied.Add(new OccupiedSpot(local, radius, IsLargeProp(prefab.name)));
+    }
+
+    private static bool OverlapsReservedChest(
+        Vector2 local,
+        float radius,
+        List<OccupiedSpot> occupied
+    )
+    {
+        foreach (OccupiedSpot spot in occupied)
+        {
+            if (!spot.ReservedForChest)
+                continue;
+            float separation = radius + spot.Radius + PropGap;
+            if ((local - spot.Position).sqrMagnitude < separation * separation)
+                return true;
+        }
+        return false;
     }
 
     private void PlaceWallBanner(
