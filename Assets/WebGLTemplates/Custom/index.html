@@ -981,8 +981,10 @@
           productName: {{{ JSON.stringify(PRODUCT_NAME) }}},
           productVersion: {{{ JSON.stringify(PRODUCT_VERSION) }}},
           // Unity synchronizes its drawing buffer to the CSS size and current DPR.
-          // Do not also assign canvas.width/height from page JavaScript.
+          // iOS Safari has a tighter GPU-memory budget, so render its Retina canvas
+          // at standard DPI. Desktop browsers retain their native DPR.
           matchWebGLToCanvasSize: true,
+          devicePixelRatio: isiOSDevice ? 1 : (window.devicePixelRatio || 1),
           // Progress callback
           onProgress: function(progress) {
             if (progressBar) {
@@ -1005,10 +1007,11 @@
           
           updateCanvasSize();
           
-          // iOS Safari cache warmup - ensure all critical files are cached for offline use
-          // Run this after successful load to prevent offline issues on next app restart
+          // Warm up Android/mobile caches after startup. Do not immediately re-fetch
+          // the ~100 MB Unity payload on iOS Safari while the game is using its
+          // tighter memory budget; controlled loads are already cached by the worker.
           try {
-            if ('serviceWorker' in navigator && navigator.serviceWorker.controller && (isiOSDevice || isMobile)) {
+            if ('serviceWorker' in navigator && navigator.serviceWorker.controller && isMobile && !isiOSDevice) {
               setTimeout(function() {
                 try {
                   // Get the current page's build file URLs from the loader

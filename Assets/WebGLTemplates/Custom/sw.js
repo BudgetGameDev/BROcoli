@@ -3,7 +3,7 @@
 // IMPORTANT: Change CACHE_VERSION to force ALL clients to get fresh content!
 // This is the nuclear option - change this string and deploy to bust all caches.
 // =============================================================================
-const CACHE_VERSION = 'v4';
+const CACHE_VERSION = 'v5';
 
 // Detect if we're on a staging path or the production build (root)
 function detectBuildPath() {
@@ -335,13 +335,10 @@ self.addEventListener('fetch', (event) => {
           return cachedResponse;
         }
         
-        // No cache - try network with timeout
+        // No cache - let large Unity downloads finish. A fixed timeout made
+        // first loads fail on mobile connections even while bytes were arriving.
         try {
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout for large files
-          
-          const response = await fetch(event.request, { signal: controller.signal });
-          clearTimeout(timeoutId);
+          const response = await fetch(event.request);
           
           if (!response || response.status !== 200) {
             return response;

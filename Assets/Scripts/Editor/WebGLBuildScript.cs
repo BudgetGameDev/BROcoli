@@ -12,12 +12,23 @@ using UnityEngine;
 public static class WebGLBuildScript
 {
     private const string DefaultOutputPath = "build/WebGL";
+    private const string DevelopmentOutputPath = "build/WebGLDebug";
 
     public static void Build()
     {
         string[] arguments = Environment.GetCommandLineArgs();
         string outputPath = ReadArgument(arguments, "-buildOutput") ?? DefaultOutputPath;
         bool development = arguments.Contains("-development", StringComparer.OrdinalIgnoreCase);
+        BuildPlayer(outputPath, development);
+    }
+
+    public static void BuildDevelopment()
+    {
+        BuildPlayer(DevelopmentOutputPath, true);
+    }
+
+    private static void BuildPlayer(string outputPath, bool development)
+    {
         string[] scenes = EditorBuildSettings
             .scenes.Where(scene => scene.enabled)
             .Select(scene => scene.path)
@@ -31,7 +42,8 @@ public static class WebGLBuildScript
         BuildOptions buildOptions = BuildOptions.None;
         if (development)
         {
-            buildOptions |= BuildOptions.Development | BuildOptions.AllowDebugging;
+            // WebGL supports development diagnostics but not an attachable script debugger.
+            buildOptions |= BuildOptions.Development;
         }
 
         Debug.Log(

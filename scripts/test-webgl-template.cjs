@@ -21,12 +21,29 @@ const releaseProfile = fs.readFileSync(
   path.join(__dirname, '..', 'Assets', 'Settings', 'Build Profiles', 'Web - Desktop - Release.asset'),
   'utf8'
 );
+const serviceWorker = fs.readFileSync(
+  path.join(__dirname, '..', 'Assets', 'WebGLTemplates', 'Custom', 'sw.js'),
+  'utf8'
+);
+const versionChecker = fs.readFileSync(
+  path.join(__dirname, '..', 'Assets', 'WebGLTemplates', 'Custom', 'version-check.js'),
+  'utf8'
+);
+const iosOptimizer = fs.readFileSync(
+  path.join(__dirname, '..', 'Assets', 'Scripts', 'iOSSafariWebGLOptimizer.cs'),
+  'utf8'
+);
 const resizeFunction = template.match(
   /function updateCanvasSize\(\)\s*\{([\s\S]*?)\n\s*\}\n\s*\n\s*\/\/ Full-screen canvas setup/
 );
 
 assert.ok(resizeFunction, 'updateCanvasSize must remain present in the WebGL template');
 assert.match(template, /matchWebGLToCanvasSize:\s*true/);
+assert.match(
+  template,
+  /devicePixelRatio:\s*isiOSDevice\s*\?\s*1\s*:/,
+  'iOS must use a bounded drawing-buffer scale'
+);
 assert.doesNotMatch(
   resizeFunction[1],
   /canvas\.(?:width|height)\s*=/,
@@ -44,5 +61,25 @@ assert.doesNotMatch(
 );
 assert.match(projectSettings, /^\s*webGLPowerPreference:\s*0$/m);
 assert.match(releaseProfile, /webGLPowerPreference:\s*0/);
+assert.match(projectSettings, /^\s*webGLInitialMemorySize:\s*256$/m);
+assert.match(releaseProfile, /webGLInitialMemorySize:\s*256/);
+assert.doesNotMatch(
+  serviceWorker,
+  /setTimeout\(\(\) => controller\.abort\(\),\s*30000\)/,
+  'Large Unity build downloads must not be aborted on slow mobile connections'
+);
+assert.match(
+  template,
+  /navigator\.serviceWorker\.controller\s*&&\s*isMobile\s*&&\s*!isiOSDevice/,
+  'iOS must not re-fetch the full Unity payload immediately after startup'
+);
+assert.match(serviceWorker, /const CACHE_VERSION = 'v5'/);
+assert.match(versionChecker, /cacheVersion:\s*'v5'/);
+assert.match(versionChecker, /unity-game-cache-v5-/);
+assert.doesNotMatch(
+  iosOptimizer,
+  /Shader\.WarmupAllShaders\(\)/,
+  'iOS startup must not prewarm every shader variant'
+);
 
 console.log('webgl template contract: all checks passed');
