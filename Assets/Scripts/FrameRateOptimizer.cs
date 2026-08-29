@@ -1,7 +1,9 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.Rendering;
-#if UNITY_STANDALONE_WIN && !UNITY_EDITOR
+// Unity 6's built-in NVIDIA module no longer exposes the legacy Reflex API used below.
+// A compatible Reflex integration can opt in by defining NVIDIA_REFLEX_AVAILABLE.
+#if UNITY_STANDALONE_WIN && !UNITY_EDITOR && NVIDIA_REFLEX_AVAILABLE
 using UnityEngine.NVIDIA;
 #endif
 
@@ -260,7 +262,7 @@ public class FrameRateOptimizer : MonoBehaviour
 
     private void TryEnableNvidiaReflex()
     {
-#if UNITY_STANDALONE_WIN && !UNITY_EDITOR
+#if UNITY_STANDALONE_WIN && !UNITY_EDITOR && NVIDIA_REFLEX_AVAILABLE
         try
         {
             string vendor = SystemInfo.graphicsDeviceVendor.ToLower();
@@ -433,7 +435,7 @@ public class FrameRateOptimizer : MonoBehaviour
 
     public static void MarkSimulationStart()
     {
-#if UNITY_STANDALONE_WIN && !UNITY_EDITOR
+#if UNITY_STANDALONE_WIN && !UNITY_EDITOR && NVIDIA_REFLEX_AVAILABLE
         if (!_reflexEnabled)
             return;
         try
@@ -448,7 +450,7 @@ public class FrameRateOptimizer : MonoBehaviour
 
     public static void MarkSimulationEnd()
     {
-#if UNITY_STANDALONE_WIN && !UNITY_EDITOR
+#if UNITY_STANDALONE_WIN && !UNITY_EDITOR && NVIDIA_REFLEX_AVAILABLE
         if (!_reflexEnabled)
             return;
         try
@@ -463,7 +465,7 @@ public class FrameRateOptimizer : MonoBehaviour
 
     public static void MarkRenderStart()
     {
-#if UNITY_STANDALONE_WIN && !UNITY_EDITOR
+#if UNITY_STANDALONE_WIN && !UNITY_EDITOR && NVIDIA_REFLEX_AVAILABLE
         if (!_reflexEnabled)
             return;
         try
@@ -478,7 +480,7 @@ public class FrameRateOptimizer : MonoBehaviour
 
     public static void MarkRenderEnd()
     {
-#if UNITY_STANDALONE_WIN && !UNITY_EDITOR
+#if UNITY_STANDALONE_WIN && !UNITY_EDITOR && NVIDIA_REFLEX_AVAILABLE
         if (!_reflexEnabled)
             return;
         try
