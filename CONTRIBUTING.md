@@ -77,7 +77,11 @@ lines. This is a ratchet, not a general exemption.
 `ci.sh` uses `scripts/unity-webgl-build.sh` to create `build/WebGL` on the host. The
 wrapper reuses a connected automated Editor when one is available and otherwise
 uses `unity build` with the editor version from
-`ProjectSettings/ProjectVersion.txt`. The build resolves packages, imports assets,
+`ProjectSettings/ProjectVersion.txt`. `scripts/unity-test-check.sh` picks its
+Editor the same way, through the shared
+`scripts/unity-editor-connection.sh` helper: an open Editor holds the project
+lock, so the gate drives the attached instance rather than starting a second one
+that cannot open the project. The build resolves packages, imports assets,
 compiles scripts, and creates the player exercised by both smoke profiles.
 If the project is already open, launch that Editor with `unity-open` so the gate can
 drive the build safely.

@@ -9,6 +9,7 @@ set -euo pipefail
 PROJECT_PATH="$(cd "$(dirname "$0")/.." && pwd)"
 LOG_FILE="/tmp/unity_test_check.log"
 RESULTS_FILE="/tmp/unity_test_results.xml"
+JSON_RESULTS_FILE="/tmp/unity_test_results.json"
 VERSION_FILE="$PROJECT_PATH/ProjectSettings/ProjectVersion.txt"
 
 if [ ! -f "$VERSION_FILE" ]; then
@@ -20,6 +21,75 @@ UNITY_VERSION="$(sed -n 's/^m_EditorVersion: //p' "$VERSION_FILE" | head -1)"
 if [ -z "$UNITY_VERSION" ]; then
     echo "❌ Could not read m_EditorVersion from: $VERSION_FILE"
     exit 1
+fi
+
+# shellcheck source=scripts/unity-editor-connection.sh
+. "$PROJECT_PATH/scripts/unity-editor-connection.sh"
+
+summarize_json_results() {
+    python3 - "$1" <<'REPORT'
+import json
+import sys
+
+with open(sys.argv[1], encoding="utf-8") as stream:
+    document = json.load(stream)
+result = ((document.get("data") or {}).get("result")) or {}
+summary = result.get("Summary") or {}
+failed = int(summary.get("Failed", 0) or 0)
+print(
+    f"{summary.get('Passed', 0)}/{summary.get('Total', 0)} passed, "
+    f"{failed} failed, {summary.get('Skipped', 0)} skipped"
+)
+
+if failed:
+    for case in result.get("Results") or []:
+        if case.get("Status") != "Failed":
+            continue
+        print(f"\n❌ {case.get('FullName')}")
+        message = (case.get("Message") or "").strip()
+        if message:
+            print("   " + message.replace("\n", "\n   ")[:800])
+
+raise SystemExit(1 if failed else 0)
+REPORT
+}
+
+# A ready automated Editor already holds this project's lock, so a second
+# batch-mode Editor cannot open the project and exits without writing any
+# results. Drive the run through the Editor that is already attached instead.
+EDITOR_PID="$(connected_editor_pid "$PROJECT_PATH" || true)"
+if [ -n "$EDITOR_PID" ]; then
+    require_automated_editor "$EDITOR_PID" "$PROJECT_PATH" || exit 2
+
+    echo "🧪 Unity EditMode Tests"
+    echo "======================="
+    echo "Project: $PROJECT_PATH"
+    echo "Editor:  connected instance $EDITOR_PID"
+    echo ""
+
+    set +e
+    RESULTS_JSON="$(unity command run_tests \
+        --mode EditMode \
+        --project-path "$PROJECT_PATH" \
+        --timeout 1800 \
+        --format json)"
+    COMMAND_STATUS=$?
+    set -e
+
+    if [ "$COMMAND_STATUS" -ne 0 ] || [ -z "$RESULTS_JSON" ]; then
+        echo "❌ TEST RUN FAILED (unity command run_tests exit $COMMAND_STATUS)"
+        printf '%s\n' "$RESULTS_JSON"
+        exit 1
+    fi
+
+    printf '%s' "$RESULTS_JSON" >"$JSON_RESULTS_FILE"
+
+    echo "======================="
+    summarize_json_results "$JSON_RESULTS_FILE"
+
+    echo ""
+    echo "✅ EDITMODE TESTS PASSED"
+    exit 0
 fi
 
 detect_unity_path() {

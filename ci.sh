@@ -76,7 +76,7 @@ run_gate "WebGL service worker behavior" node scripts/test-webgl-service-worker.
 run_gate "WebGL template contract" node scripts/test-webgl-template.cjs
 run_gate "WebGL smoke probe syntax" node --check scripts/webgl-smoke.cjs
 run_gate "WebGL build contract syntax" node --check scripts/check-webgl-build.cjs
-run_gate "Shell lint" shellcheck ci.sh format.sh scripts/*.sh .githooks/pre-push
+run_gate "Shell lint" shellcheck -x ci.sh format.sh scripts/*.sh .githooks/pre-push
 run_gate "Shell formatting" shfmt -d -i 4 -ci ci.sh format.sh scripts/*.sh .githooks/pre-push
 run_gate \
     "Static analysis" \

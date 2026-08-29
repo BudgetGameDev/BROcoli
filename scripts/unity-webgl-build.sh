@@ -14,31 +14,12 @@ fi
 # Never let a stale player satisfy the smoke checks after a failed build.
 rm -rf "$OUTPUT_PATH"
 
-connected_editor_pid() {
-    unity status --project-path "$PROJECT_PATH" --format json 2>/dev/null | python3 -c '
-import json, os, sys
+# shellcheck source=scripts/unity-editor-connection.sh
+. "$PROJECT_PATH/scripts/unity-editor-connection.sh"
 
-project = os.path.realpath(sys.argv[1])
-document = json.load(sys.stdin)
-instances = (document.get("data") or {}).get("instances") or []
-for instance in instances:
-    if (
-        isinstance(instance, dict)
-        and os.path.realpath(instance.get("project") or "") == project
-        and instance.get("state") == "ready"
-    ):
-        print(instance.get("pid") or "")
-        break
-' "$PROJECT_PATH"
-}
-
-EDITOR_PID="$(connected_editor_pid || true)"
+EDITOR_PID="$(connected_editor_pid "$PROJECT_PATH" || true)"
 if [ -n "$EDITOR_PID" ]; then
-    if ! ps -p "$EDITOR_PID" -ww -o args= | grep -Eq -- '(^|[[:space:]])-automated([[:space:]]|$)'; then
-        echo "unity-webgl-build: the project is open without -automated" >&2
-        echo "Close it safely, then reopen it with: unity-open \"$PROJECT_PATH\"" >&2
-        exit 2
-    fi
+    require_automated_editor "$EDITOR_PID" "$PROJECT_PATH" || exit 2
 
     unity command eval \
         'WebGLBuildScript.Build(); return "WebGL build completed";' \
