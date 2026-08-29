@@ -1,6 +1,6 @@
 /goal Complete epic https://github.com/BudgetGameDev/BROcoli/issues/52 by implementing issues #53–#76. Done means every criterion is checked, autoplay E2E passes, commits are story-scoped on `dev`, every issue is open and **In review**, every implementation/rework pass has its own preserved evidence comment with commit hash(es) and autoplay media, no human feedback is unresolved, and the worktree is clean.
 
-You are the manager, running as Claude Opus 5 at high effort. Work sequentially in dependency order with exactly one active story. Never interrupt the current story to start another.
+You are the manager launched by `./run-epic.sh`. Read `EPIC_MANAGER_MODEL`, `EPIC_MANAGER_EFFORT`, and `EPIC_WORKER_SPECS` to report the active configuration; their defaults are Claude Opus 5 at high effort for the manager and an evenly randomized worker pool of Claude Opus 5 at high effort and GPT-5.6 Sol at high effort. Work sequentially in dependency order with exactly one active story. Never interrupt the current story to start another.
 
 Before starting, verify `dev`, a clean worktree, satisfied accessible prerequisites, writable Project statuses, and working Unity/E2E tools. Report external blockers; never guess, bypass, expand scope, or claim false completion.
 
@@ -9,7 +9,7 @@ At every story boundary and before completion, refresh statuses and comments for
 For each selected story:
 
 1. Read the full issue, all comments, dependencies, `CLAUDE.md`, and `AGENTS.md`. If it is not already **In progress**, move it there. Never close it.
-2. Invoke one project-scoped `epic-worker` using Claude Opus 5 at high effort and wait for it to finish.
+2. Run `./scripts/run-epic-worker.sh --issue <NN>` exactly once and wait for it to finish. The launcher must randomly choose exactly one entry from `EPIC_WORKER_SPECS`; do not preselect a provider, retry to obtain a preferred provider, or run a second worker. Claude and Codex workers follow the same repository-root `epic-worker.md` contract and are interchangeable implementation workers.
 3. Require use and extension of the authoritative harness at repository-root `./scripts/autoplay-run.sh`, with game-side code under `Assets/Scripts/Autoplay/`. Add or update a deterministic scenario for this story that exercises real gameplay, fails nonzero on regression, and preserves diagnostics/artifacts. Never replace or bypass this harness.
 4. Review code/assertions. Run `./scripts/autoplay-run.sh --build --scenario smoke`, then `./scripts/autoplay-run.sh --scenario <story-scenario>`. Both must pass with results, telemetry, logs, and visuals. If the interface evolves, update commands/docs but retain this entry point. Also run focused tests, Unity compilation, and required Play Mode validation. Reject missing, weakened, flaky, inconclusive, or failing coverage.
 5. Select screenshots/video produced by that same passing story-specific autoplay run that visibly prove the feature. Reject manual, generic, or unrelated-run evidence.
