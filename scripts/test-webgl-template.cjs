@@ -41,10 +41,40 @@ const qualitySettings = fs.readFileSync(
   path.join(__dirname, '..', 'ProjectSettings', 'QualitySettings.asset'),
   'utf8'
 );
-const urpSettings = fs.readFileSync(
-  path.join(__dirname, '..', 'Assets', 'Settings', 'UniversalRP.asset'),
+const graphicsSettings = fs.readFileSync(
+  path.join(__dirname, '..', 'ProjectSettings', 'GraphicsSettings.asset'),
   'utf8'
 );
+
+// Resolve the pipeline asset through GraphicsSettings rather than naming a path.
+// This contract used to read Assets/Settings/UniversalRP.asset directly, and went
+// on passing after the project switched pipelines, vouching for a light budget the
+// game had stopped using. Following the GUID means it can only check the live one.
+function findAssetByGuid(guid) {
+  const pending = [path.join(__dirname, '..', 'Assets')];
+  while (pending.length > 0) {
+    const dir = pending.pop();
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        pending.push(full);
+      } else if (entry.name.endsWith('.asset.meta')) {
+        if (fs.readFileSync(full, 'utf8').includes(`guid: ${guid}`)) {
+          return full.slice(0, -'.meta'.length);
+        }
+      }
+    }
+  }
+  return null;
+}
+
+const pipelineGuid = graphicsSettings.match(
+  /m_CustomRenderPipeline:\s*\{fileID:\s*\d+,\s*guid:\s*([0-9a-f]{32})/
+);
+assert.ok(pipelineGuid, 'GraphicsSettings must name the active render pipeline asset');
+const pipelinePath = findAssetByGuid(pipelineGuid[1]);
+assert.ok(pipelinePath, `No asset matches the active render pipeline GUID ${pipelineGuid[1]}`);
+const urpSettings = fs.readFileSync(pipelinePath, 'utf8');
 const resizeFunction = template.match(
   /function updateCanvasSize\(\)\s*\{([\s\S]*?)\n\s*\}\n\s*\n\s*\/\/ Full-screen canvas setup/
 );
