@@ -3,4 +3,4 @@ set -euo pipefail
 
 exec env -u CLAUDE_CODE_EFFORT_LEVEL \
   CLAUDE_CODE_SUBAGENT_MODEL=claude-opus-5 \
-  claude --model claude-fable-5 --effort high "$@"
+  claude --model claude-opus-5 --effort high "$@"

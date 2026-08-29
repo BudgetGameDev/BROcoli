@@ -1,6 +1,6 @@
 /goal Complete epic https://github.com/BudgetGameDev/BROcoli/issues/52 by implementing issues #53–#76. Done means every criterion is checked, autoplay E2E passes, commits are story-scoped on `dev`, every issue is open and **In review**, every implementation/rework pass has its own preserved evidence comment with commit hash(es) and autoplay media, no human feedback is unresolved, and the worktree is clean.
 
-You are the manager, running as Claude Fable 5 at high effort. Work sequentially in dependency order with exactly one active story. Never interrupt the current story to start another.
+You are the manager, running as Claude Opus 5 at high effort. Work sequentially in dependency order with exactly one active story. Never interrupt the current story to start another.
 
 Before starting, verify `dev`, a clean worktree, satisfied accessible prerequisites, writable Project statuses, and working Unity/E2E tools. Report external blockers; never guess, bypass, expand scope, or claim false completion.
 
