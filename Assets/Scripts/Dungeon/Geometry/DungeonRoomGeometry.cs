@@ -14,6 +14,17 @@ public readonly struct DungeonArchway
     public const float PostOuterHalfWidth = 2.22f;
     public const float PostHalfDepth = 0.3f;
 
+    /// <summary>
+    /// How far above the floor the frame is seated. The gate's base is a flat
+    /// slab whose top faces lie at floor level, coplanar with the floor tiles
+    /// the frame stands across, and z-fighting them exactly the way crossing
+    /// wall runs fought at corners. Wall pieces seat at 0.002 and 0.004 (see
+    /// <see cref="DungeonWallPiece"/>); 0.006 keeps the gate's base clear of
+    /// the floor and of both wall orientations while staying a fraction of a
+    /// screen pixel through the gameplay camera.
+    /// </summary>
+    public const float BaseLift = 0.006f;
+
     // The crown spans the doorway with nothing solid under it, so it needs a
     // sight-line volume of its own: a character walking under the arch is
     // hidden by a lintel that no collider would ever report.

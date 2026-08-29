@@ -58,7 +58,7 @@ public partial class DungeonRoomBuilder
         {
             Instantiate(
                 gateOpenPrefab,
-                archway.Position.ToWorld(),
+                archway.Position.ToWorld(DungeonArchway.BaseLift),
                 Quaternion.Euler(0f, archway.Yaw, 0f),
                 gatewayRoot
             );
