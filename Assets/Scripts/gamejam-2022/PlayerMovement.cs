@@ -13,7 +13,16 @@ public partial class PlayerMovement : MonoBehaviour
     private const float MaxKnockbackForce = 2.75f;
     private const float CollisionSkin = 0.02f;
     private const float EnemyStandOffGap = 0.4f;
-    private const int MaxCollisionSlides = 2;
+
+    // Pressing along a wall leaves the run almost parallel to it, and modular
+    // architecture puts a slab corner every few metres for that run to graze.
+    // A surface has to face us by at least this much before it counts as
+    // something to stop against rather than something to slide past.
+    private const float GrazingApproach = 0.01f;
+
+    // One slide per surface, plus a free move once the last one is cleared, so
+    // an inside corner resolves within a single physics step.
+    private const int MaxCollisionSlides = 3;
 
     private Rigidbody _body;
     private Animator _animator;

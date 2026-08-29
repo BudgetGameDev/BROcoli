@@ -44,7 +44,8 @@ public partial class PlayerMovement
                 direction,
                 distance + CollisionSkin + EnemyStandOffGap,
                 _enemyLayerMask,
-                out RaycastHit enemyHit
+                out RaycastHit enemyHit,
+                out Vector2 enemyNormal
             );
             bool hasWallHit = TryGetBlockingHit(
                 castTop,
@@ -53,7 +54,8 @@ public partial class PlayerMovement
                 direction,
                 distance + CollisionSkin,
                 _wallLayerMask,
-                out RaycastHit wallHit
+                out RaycastHit wallHit,
+                out Vector2 wallNormal
             );
             if (!hasEnemyHit && !hasWallHit)
             {
@@ -68,7 +70,7 @@ public partial class PlayerMovement
                 ? wallHit.distance - CollisionSkin
                 : float.PositiveInfinity;
             bool wallBlocksFirst = wallTravelDistance <= enemyTravelDistance;
-            RaycastHit hit = wallBlocksFirst ? wallHit : enemyHit;
+            Vector2 hitNormal = wallBlocksFirst ? wallNormal : enemyNormal;
             float travelDistance = Mathf.Clamp(
                 wallBlocksFirst ? wallTravelDistance : enemyTravelDistance,
                 0f,
@@ -81,7 +83,6 @@ public partial class PlayerMovement
             castBottom += worldTravel;
 
             Vector2 untraveled = direction * (distance - travelDistance);
-            Vector2 hitNormal = hit.normal.ToGround();
             float intoSurface = Vector2.Dot(untraveled, hitNormal);
             if (intoSurface < 0f)
                 untraveled -= hitNormal * intoSurface;
@@ -92,6 +93,12 @@ public partial class PlayerMovement
         return resolvedDelta;
     }
 
+    /// <summary>
+    /// The nearest obstacle on <paramref name="layerMask"/> that actually stands
+    /// in the way, with the ground-plane normal of the surface it presents. The
+    /// normal is reported separately because the sweep's own normal cannot be
+    /// trusted at zero distance, and the caller slides along it.
+    /// </summary>
     private bool TryGetBlockingHit(
         Vector3 castTop,
         Vector3 castBottom,
@@ -99,14 +106,14 @@ public partial class PlayerMovement
         Vector2 direction,
         float distance,
         int layerMask,
-        out RaycastHit closestHit
+        out RaycastHit closestHit,
+        out Vector2 surfaceNormal
     )
     {
+        closestHit = default;
+        surfaceNormal = Vector2.zero;
         if (layerMask == 0)
-        {
-            closestHit = default;
             return false;
-        }
 
         int hitCount = Physics.CapsuleCastNonAlloc(
             castTop,
@@ -119,7 +126,6 @@ public partial class PlayerMovement
             QueryTriggerInteraction.Ignore
         );
 
-        closestHit = default;
         float closestDistance = float.MaxValue;
 
         for (int i = 0; i < hitCount; i++)
@@ -128,26 +134,64 @@ public partial class PlayerMovement
             if (candidate.collider == null || candidate.collider == _collider)
                 continue;
 
-            // Casts that begin in contact can report a zero-distance hit even
-            // while moving away or tangentially. Ignore that contact so the
-            // player can always disengage instead of becoming stuck.
-            if (candidate.distance <= CollisionSkin)
-            {
-                Vector3 castCenter = (castTop + castBottom) * 0.5f;
-                Vector2 closestPoint = candidate.collider.ClosestPoint(castCenter).ToGround();
-                Vector2 awayFromObstacle = castCenter.ToGround() - closestPoint;
-                if (Vector2.Dot(direction, awayFromObstacle) >= 0f)
-                    continue;
-            }
+            if (!TryGetContactNormal(candidate, castTop, castBottom, direction, out Vector2 normal))
+                continue;
+
+            // A surface has to face us to stop us. Anything we are only grazing
+            // is something we slide past, and treating it as blocking is what
+            // used to catch the player on the seam between two wall pieces: the
+            // corner of the next slab is reached edge-on, at right angles to the
+            // way we are travelling, and clamping the travel against it froze
+            // the run flush against an otherwise smooth wall.
+            if (Vector2.Dot(direction, normal) >= -GrazingApproach)
+                continue;
 
             if (candidate.distance < closestDistance)
             {
                 closestDistance = candidate.distance;
                 closestHit = candidate;
+                surfaceNormal = normal;
             }
         }
 
         return closestHit.collider != null;
+    }
+
+    /// <summary>
+    /// The ground-plane normal of the surface a sweep hit. A sweep that starts
+    /// in contact reports the sweep direction back at us rather than a surface
+    /// normal, so that case is measured against the collider instead. A body we
+    /// are already inside reports nothing, leaving the caller free to move out
+    /// of it rather than becoming stuck in it.
+    /// </summary>
+    private static bool TryGetContactNormal(
+        RaycastHit hit,
+        Vector3 castTop,
+        Vector3 castBottom,
+        Vector2 direction,
+        out Vector2 normal
+    )
+    {
+        Vector2 candidate;
+        if (hit.distance > 0f)
+            candidate = hit.normal.ToGround();
+        else
+        {
+            Vector3 castCenter = (castTop + castBottom) * 0.5f;
+            candidate = castCenter.ToGround() - hit.collider.ClosestPoint(castCenter).ToGround();
+        }
+
+        // A purely vertical normal - the top of a wall, the lip of a step -
+        // cannot oppose movement across the ground, and a zero-length one means
+        // the cast centre is inside the collider.
+        if (candidate.sqrMagnitude < 0.000001f)
+        {
+            normal = Vector2.zero;
+            return false;
+        }
+
+        normal = candidate.normalized;
+        return true;
     }
 
     /// <summary>
