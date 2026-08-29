@@ -30,6 +30,9 @@ jobs:
     name: Build and deploy GitHub Pages
     if: github.ref_name == 'staging' || github.ref_name == 'production'
     runs-on: ubuntu-latest
+    # Successful runs take about 30 minutes; fail rather than burn the default
+    # six-hour ceiling when Unity or a deploy wedges.
+    timeout-minutes: 90
     concurrency:
       # Both branches write to gh-pages, so serialize them to prevent push races.
       group: brocoli-gh-pages-deployment
@@ -98,15 +101,16 @@ jobs:
           COMMIT_SHA=$GITHUB_SHA
           COMMIT_MSG=$(git log -1 --pretty=%B | head -n 1)
 
-          cat > "$WEBGL_DEPLOY_DIR/version.json" << EOF
-          {
-            "buildId": "$BUILD_ID",
-            "buildTimestamp": "$BUILD_TIMESTAMP",
-            "buildNumber": $BUILD_NUMBER,
-            "commitSha": "$COMMIT_SHA",
-            "description": "$COMMIT_MSG"
-          }
-          EOF
+          jq -n \
+            --arg buildId "$BUILD_ID" \
+            --arg buildTimestamp "$BUILD_TIMESTAMP" \
+            --argjson buildNumber "$BUILD_NUMBER" \
+            --arg commitSha "$COMMIT_SHA" \
+            --arg description "$COMMIT_MSG" \
+            '{buildId: $buildId, buildTimestamp: $buildTimestamp,
+              buildNumber: $buildNumber, commitSha: $commitSha,
+              description: $description}' \
+            > "$WEBGL_DEPLOY_DIR/version.json"
 
       - name: Generate staging manifest
         if: github.ref_name == 'staging'
