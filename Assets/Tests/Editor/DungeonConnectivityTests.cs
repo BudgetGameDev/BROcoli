@@ -9,14 +9,11 @@ using UnityEngine;
 /// </summary>
 public sealed class DungeonConnectivityTests
 {
-    // A wall slab always sits on the positive side of its boundary line, so a
-    // room's north and east walls stand outside its floor rect while its south
-    // and west walls stand inside it. The fill domain therefore only extends
-    // past the north and east boundaries, and only as far as the slab reaches:
-    // far enough to see a fill escape through a hole, not far enough to walk
-    // into the neighbouring room. Every wall is some room's north or east wall,
-    // so sweeping all rooms still checks all four sides of each.
-    private const float DomainMargin = DungeonWallPiece.SlabFarFace;
+    // Every slab straddles its own boundary line, so the domain can extend the
+    // same distance past all four sides. Half a slab is far enough to see a
+    // fill escape through a hole and not far enough to walk into the room next
+    // door.
+    private const float DomainMargin = DungeonWallPiece.SlabHalfThickness;
 
     private static IEnumerable<(DungeonGeometryModel Block, Vector2Int Room)> Rooms()
     {
@@ -120,8 +117,8 @@ public sealed class DungeonConnectivityTests
     {
         Rect bounds = DungeonRoomGeometry.RoomFloorBounds(room);
         Rect domain = Rect.MinMaxRect(
-            bounds.xMin,
-            bounds.yMin,
+            bounds.xMin - DomainMargin,
+            bounds.yMin - DomainMargin,
             bounds.xMax + DomainMargin,
             bounds.yMax + DomainMargin
         );

@@ -11,10 +11,10 @@ public partial class DungeonPropPlacer : MonoBehaviour
     private const float HalfRoomWidth = DungeonLayout.RoomWidth / 2f;
     private const float HalfRoomDepth = DungeonLayout.RoomDepth / 2f;
 
-    // Wall props sit against the structural slab's faces, not the outer bounds
-    // of the mesh's floor-level moulding. See DungeonWallPiece.
-    private const float WallFrontFaceOffset = DungeonWallPiece.SlabNearFace;
-    private const float WallBackFaceOffset = DungeonWallPiece.SlabFarFace;
+    // A wall slab straddles its own centre line, so its two faces are the same
+    // distance out on either side. See DungeonWallPiece.
+    private const float WallFrontFaceOffset = -DungeonWallPiece.SlabHalfThickness;
+    private const float WallBackFaceOffset = DungeonWallPiece.SlabHalfThickness;
 
     // Independent obstacles reserve a lane wider than the player's 0.86-unit
     // capsule. This prevents procedural placement from creating tempting gaps
@@ -183,7 +183,7 @@ public partial class DungeonPropPlacer : MonoBehaviour
                 Instantiate(
                     torchPrefab,
                     (center + mounts[i].Local).ToWorld(),
-                    GroundPlane.YawRotation(mounts[i].Yaw),
+                    Quaternion.Euler(0f, mounts[i].Yaw, 0f),
                     parent
                 );
             }

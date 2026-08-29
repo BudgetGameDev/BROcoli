@@ -104,7 +104,7 @@ public static partial class DungeonWallDressing
         {
             float x = DungeonPassage.SlotOffset(slot, DungeonLayout.RoomTilesX);
             if (!doorways.North.HasOpening(slot))
-                mounts.Add(new DungeonWallMount(new Vector2(x, NearFace(HalfRoomDepth)), 180f));
+                mounts.Add(new DungeonWallMount(new Vector2(x, InnerFace(HalfRoomDepth)), 180f));
             if (!doorways.South.HasOpening(slot))
                 mounts.Add(BottomWallTorch(x, -HalfRoomDepth));
         }
@@ -113,9 +113,9 @@ public static partial class DungeonWallDressing
         {
             float z = DungeonPassage.SlotOffset(slot, DungeonLayout.RoomTilesZ);
             if (!doorways.East.HasOpening(slot))
-                mounts.Add(new DungeonWallMount(new Vector2(NearFace(HalfRoomWidth), z), -90f));
+                mounts.Add(new DungeonWallMount(new Vector2(InnerFace(HalfRoomWidth), z), -90f));
             if (!doorways.West.HasOpening(slot))
-                mounts.Add(new DungeonWallMount(new Vector2(FarFace(-HalfRoomWidth), z), 90f));
+                mounts.Add(new DungeonWallMount(new Vector2(InnerFace(-HalfRoomWidth), z), 90f));
         }
         return mounts;
     }
@@ -130,16 +130,20 @@ public static partial class DungeonWallDressing
         return true;
     }
 
-    /// <summary>The face of a wall slab nearer the room it is mounted from.</summary>
-    public static float NearFace(float wallCoordinate)
+    /// <summary>
+    /// The face of the wall at <paramref name="wallCoordinate"/> that looks back
+    /// towards the room centre. The coordinate is signed relative to that
+    /// centre, so this is symmetric on all four sides.
+    /// </summary>
+    public static float InnerFace(float wallCoordinate)
     {
-        return wallCoordinate + DungeonWallPiece.SlabNearFace;
+        return wallCoordinate - Mathf.Sign(wallCoordinate) * DungeonWallPiece.SlabHalfThickness;
     }
 
-    /// <summary>The far face of a wall slab.</summary>
-    public static float FarFace(float wallCoordinate)
+    /// <summary>The opposite face, looking away from the room centre.</summary>
+    public static float OuterFace(float wallCoordinate)
     {
-        return wallCoordinate + DungeonWallPiece.SlabFarFace;
+        return wallCoordinate + Mathf.Sign(wallCoordinate) * DungeonWallPiece.SlabHalfThickness;
     }
 
     private static void Shuffle<T>(List<T> values, System.Random random)

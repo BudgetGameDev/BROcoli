@@ -46,24 +46,22 @@ public partial class DungeonRoomBuilder
             Instantiate(
                 gateOpenPrefab,
                 archway.Position.ToWorld(),
-                GroundPlane.YawRotation(archway.Yaw),
+                Quaternion.Euler(0f, archway.Yaw, 0f),
                 gatewayRoot
             );
         }
         ConfigureGatewayOcclusion(gatewayRoot, wallRun);
     }
 
-    /// <summary>Instantiates one planned wall piece, trimmed as the plan asks.</summary>
+    /// <summary>Instantiates one planned wall piece on its slab centre line.</summary>
     private void InstantiateWall(Transform parent, DungeonWallPiece piece)
     {
-        GameObject wall = Instantiate(
+        Instantiate(
             wallPrefab,
-            piece.Anchor.ToWorld(),
-            piece.AlongX ? Quaternion.identity : GroundPlane.YawRotation(90f),
+            piece.PrefabPosition.ToWorld(),
+            piece.AlongX ? Quaternion.identity : Quaternion.Euler(0f, 90f, 0f),
             parent
         );
-        if (piece.LengthAdjustment != 0f)
-            ResizeWallEnd(wall, piece);
     }
 
     private static void ConfigureGatewayOcclusion(Transform gatewayRoot, Transform section)

@@ -53,6 +53,14 @@ internal sealed class DungeonGeometryModel
     /// <summary>The shared edges this block built, each exactly once.</summary>
     public IReadOnlyCollection<DungeonEdge> Edges => builtEdges;
 
+    /// <summary>Every seed crossed with every sample block.</summary>
+    public static IEnumerable<DungeonGeometryModel> Blocks()
+    {
+        foreach (int seed in Seeds)
+        foreach ((Vector2Int center, int radius) in SampleBlocks())
+            yield return new DungeonGeometryModel(seed, center, radius);
+    }
+
     /// <summary>The rooms that property tests sweep, for one seed.</summary>
     public static IEnumerable<(Vector2Int Center, int Radius)> SampleBlocks()
     {

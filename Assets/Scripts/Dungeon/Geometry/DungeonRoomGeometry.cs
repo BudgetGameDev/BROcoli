@@ -29,9 +29,10 @@ public static partial class DungeonRoomGeometry
     private const string EdgeSection = "Wall Run";
 
     /// <summary>
-    /// The shared boundary run between two rooms. Openings drop a wall piece;
-    /// the two end pieces are trimmed and extended by half a slab depth so
-    /// consecutive runs meet cleanly at the junction between them.
+    /// The shared boundary run between two rooms. Openings drop a wall piece.
+    /// Because every slab straddles its own boundary line, a run reaches
+    /// exactly to the room's corner and overlaps the perpendicular run there by
+    /// half a slab: junctions close themselves, with nothing to trim.
     /// </summary>
     public static void AppendEdgeWalls(
         List<DungeonWallPiece> walls,
@@ -47,46 +48,16 @@ public static partial class DungeonRoomGeometry
                 continue;
 
             float offset = DungeonPassage.SlotOffset(slot, slotCount);
-            if (edge.Horizontal)
-            {
-                // Pull the first piece back off the perpendicular run and push
-                // the last one through it, so the seam lands inside the
-                // neighbouring slab instead of exposing a bevelled end face.
-                float adjustment = 0f;
-                float end = 0f;
-                if (slot == 0)
-                {
-                    adjustment = -DungeonWallPiece.SlabThickness / 2f;
-                    end = -1f;
-                }
-                else if (slot == slotCount - 1)
-                {
-                    adjustment = DungeonWallPiece.SlabThickness / 2f;
-                    end = 1f;
-                }
-
-                walls.Add(
-                    new DungeonWallPiece(
-                        new Vector2(roomCenter.x + offset, roomCenter.y + HalfRoomDepth),
-                        true,
-                        DungeonWallKind.Shell,
-                        EdgeSection,
-                        adjustment,
-                        end
-                    )
-                );
-            }
-            else
-            {
-                walls.Add(
-                    new DungeonWallPiece(
-                        new Vector2(roomCenter.x + HalfRoomWidth, roomCenter.y + offset),
-                        false,
-                        DungeonWallKind.Shell,
-                        EdgeSection
-                    )
-                );
-            }
+            walls.Add(
+                new DungeonWallPiece(
+                    edge.Horizontal
+                        ? new Vector2(roomCenter.x + offset, roomCenter.y + HalfRoomDepth)
+                        : new Vector2(roomCenter.x + HalfRoomWidth, roomCenter.y + offset),
+                    edge.Horizontal,
+                    DungeonWallKind.Shell,
+                    EdgeSection
+                )
+            );
         }
     }
 
@@ -104,23 +75,17 @@ public static partial class DungeonRoomGeometry
             if (!passage.HasArchway(slot))
                 continue;
 
-            // The gate assembly is centred on the wall slab rather than on the
-            // boundary line, so it stays flush with the pieces beside it.
+            // The gate prefab is already centred on its own root, so it goes
+            // straight onto the boundary line beside the wall slabs.
             float offset = DungeonPassage.SlotOffset(slot, slotCount);
             archways.Add(
                 edge.Horizontal
                     ? new DungeonArchway(
-                        new Vector2(
-                            roomCenter.x + offset,
-                            roomCenter.y + HalfRoomDepth + DungeonWallPiece.SlabCenterOffset
-                        ),
+                        new Vector2(roomCenter.x + offset, roomCenter.y + HalfRoomDepth),
                         0f
                     )
                     : new DungeonArchway(
-                        new Vector2(
-                            roomCenter.x + HalfRoomWidth + DungeonWallPiece.SlabCenterOffset,
-                            roomCenter.y + offset
-                        ),
+                        new Vector2(roomCenter.x + HalfRoomWidth, roomCenter.y + offset),
                         90f
                     )
             );

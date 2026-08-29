@@ -33,14 +33,14 @@ public static partial class DungeonWallDressing
     {
         return new[]
         {
-            new DungeonWallMount(new Vector2(-horizontalOffset, NearFace(wallZ)), 180f),
-            new DungeonWallMount(new Vector2(horizontalOffset, NearFace(wallZ)), 180f),
+            new DungeonWallMount(new Vector2(-horizontalOffset, InnerFace(wallZ)), 180f),
+            new DungeonWallMount(new Vector2(horizontalOffset, InnerFace(wallZ)), 180f),
             BottomWallTorch(-horizontalOffset, -wallZ),
             BottomWallTorch(horizontalOffset, -wallZ),
-            new DungeonWallMount(new Vector2(NearFace(wallX), -verticalOffset), -90f),
-            new DungeonWallMount(new Vector2(NearFace(wallX), verticalOffset), -90f),
-            new DungeonWallMount(new Vector2(FarFace(-wallX), -verticalOffset), 90f),
-            new DungeonWallMount(new Vector2(FarFace(-wallX), verticalOffset), 90f),
+            new DungeonWallMount(new Vector2(InnerFace(wallX), -verticalOffset), -90f),
+            new DungeonWallMount(new Vector2(InnerFace(wallX), verticalOffset), -90f),
+            new DungeonWallMount(new Vector2(InnerFace(-wallX), -verticalOffset), 90f),
+            new DungeonWallMount(new Vector2(InnerFace(-wallX), verticalOffset), 90f),
         };
     }
 
@@ -48,8 +48,8 @@ public static partial class DungeonWallDressing
     {
         return new[]
         {
-            new DungeonWallMount(new Vector2(-offset, NearFace(wallZ)), 180f),
-            new DungeonWallMount(new Vector2(offset, NearFace(wallZ)), 180f),
+            new DungeonWallMount(new Vector2(-offset, InnerFace(wallZ)), 180f),
+            new DungeonWallMount(new Vector2(offset, InnerFace(wallZ)), 180f),
             BottomWallTorch(-offset, -wallZ),
             BottomWallTorch(offset, -wallZ),
         };
@@ -59,18 +59,18 @@ public static partial class DungeonWallDressing
     {
         return new[]
         {
-            new DungeonWallMount(new Vector2(NearFace(wallX), -offset), -90f),
-            new DungeonWallMount(new Vector2(NearFace(wallX), offset), -90f),
-            new DungeonWallMount(new Vector2(FarFace(-wallX), -offset), 90f),
-            new DungeonWallMount(new Vector2(FarFace(-wallX), offset), 90f),
+            new DungeonWallMount(new Vector2(InnerFace(wallX), -offset), -90f),
+            new DungeonWallMount(new Vector2(InnerFace(wallX), offset), -90f),
+            new DungeonWallMount(new Vector2(InnerFace(-wallX), -offset), 90f),
+            new DungeonWallMount(new Vector2(InnerFace(-wallX), offset), 90f),
         };
     }
 
     private static DungeonWallMount BottomWallTorch(float x, float wallCoordinate)
     {
         // Bottom walls become half walls from the gameplay camera. Keep their
-        // torches on the world-downward face so the bracket remains attached.
-        return new DungeonWallMount(new Vector2(x, NearFace(wallCoordinate)), 180f);
+        // torches on the outward face so the bracket remains attached.
+        return new DungeonWallMount(new Vector2(x, OuterFace(wallCoordinate)), 180f);
     }
 
     private static DungeonWallMount BannerMount(DungeonLayout.RoomArchetype archetype, int side)
@@ -95,22 +95,19 @@ public static partial class DungeonWallDressing
 
         return (((side % 4) + 4) % 4) switch
         {
-            0 => new DungeonWallMount(
-                new Vector2(-3.5f, NearFace(wallZ) + BannerMeshDepthOffset),
-                0f
-            ),
-            1 => new DungeonWallMount(
-                new Vector2(NearFace(wallX) + BannerMeshDepthOffset, -3f),
-                90f
-            ),
-            2 => new DungeonWallMount(
-                new Vector2(3.5f, FarFace(-wallZ) - BannerMeshDepthOffset),
-                180f
-            ),
-            _ => new DungeonWallMount(
-                new Vector2(FarFace(-wallX) - BannerMeshDepthOffset, 3f),
-                -90f
-            ),
+            0 => new DungeonWallMount(new Vector2(-3.5f, BannerDepth(wallZ)), 0f),
+            1 => new DungeonWallMount(new Vector2(BannerDepth(wallX), -3f), 90f),
+            2 => new DungeonWallMount(new Vector2(3.5f, BannerDepth(-wallZ)), 180f),
+            _ => new DungeonWallMount(new Vector2(BannerDepth(-wallX), 3f), -90f),
         };
+    }
+
+    /// <summary>
+    /// A banner's pivot sits behind the cloth, so it hangs off the wall's inner
+    /// face by the mesh's own depth.
+    /// </summary>
+    private static float BannerDepth(float wallCoordinate)
+    {
+        return InnerFace(wallCoordinate) + Mathf.Sign(wallCoordinate) * BannerMeshDepthOffset;
     }
 }

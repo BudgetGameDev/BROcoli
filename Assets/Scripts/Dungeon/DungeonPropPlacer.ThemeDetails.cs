@@ -207,7 +207,7 @@ public partial class DungeonPropPlacer
         Instantiate(
             prefab,
             (center + mount.Local).ToWorld(),
-            GroundPlane.YawRotation(mount.Yaw),
+            Quaternion.Euler(0f, mount.Yaw, 0f),
             parent
         );
     }

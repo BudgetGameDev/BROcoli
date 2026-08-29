@@ -13,13 +13,6 @@ public sealed class DungeonWallGeometryTests
     private const float Epsilon = 0.001f;
     private const float JunctionTolerance = 0.5f;
 
-    private static IEnumerable<DungeonGeometryModel> Blocks()
-    {
-        foreach (int seed in DungeonGeometryModel.Seeds)
-        foreach ((Vector2Int center, int radius) in DungeonGeometryModel.SampleBlocks())
-            yield return new DungeonGeometryModel(seed, center, radius);
-    }
-
     /// <summary>
     /// Two walls running the same way must never occupy the same space. Walls
     /// that cross at right angles legitimately overlap at a junction.
@@ -27,7 +20,7 @@ public sealed class DungeonWallGeometryTests
     [Test]
     public void ParallelWallsNeverIntersect()
     {
-        foreach (DungeonGeometryModel block in Blocks())
+        foreach (DungeonGeometryModel block in DungeonGeometryModel.Blocks())
         {
             for (int i = 0; i < block.Walls.Count; i++)
             for (int j = i + 1; j < block.Walls.Count; j++)
@@ -53,7 +46,7 @@ public sealed class DungeonWallGeometryTests
     [Test]
     public void NoWallVolumeIsDuplicated()
     {
-        foreach (DungeonGeometryModel block in Blocks())
+        foreach (DungeonGeometryModel block in DungeonGeometryModel.Blocks())
         {
             var seen = new HashSet<(long, long, bool)>();
             foreach (DungeonWallPiece piece in block.Walls)
@@ -76,7 +69,7 @@ public sealed class DungeonWallGeometryTests
     [Test]
     public void WallRunsReachTheirJunctions()
     {
-        foreach (DungeonGeometryModel block in Blocks())
+        foreach (DungeonGeometryModel block in DungeonGeometryModel.Blocks())
         {
             foreach (Vector2Int room in block.Rooms)
             {
@@ -121,7 +114,7 @@ public sealed class DungeonWallGeometryTests
     [Test]
     public void ClosedBoundarySlotsAreWalled()
     {
-        foreach (DungeonGeometryModel block in Blocks())
+        foreach (DungeonGeometryModel block in DungeonGeometryModel.Blocks())
         {
             foreach (Vector2Int room in block.Rooms)
             {
@@ -154,7 +147,7 @@ public sealed class DungeonWallGeometryTests
     [Test]
     public void GeometryStaysWithinItsExpectedBounds()
     {
-        foreach (DungeonGeometryModel block in Blocks())
+        foreach (DungeonGeometryModel block in DungeonGeometryModel.Blocks())
         {
             foreach (Vector2Int room in block.Rooms)
             {
@@ -184,12 +177,14 @@ public sealed class DungeonWallGeometryTests
                         float far = horizontal ? footprint.yMax : footprint.xMax;
                         Assert.That(
                             near,
-                            Is.EqualTo(boundary + DungeonWallPiece.SlabNearFace).Within(Epsilon),
+                            Is.EqualTo(boundary - DungeonWallPiece.SlabHalfThickness)
+                                .Within(Epsilon),
                             $"seed {block.Seed}: {piece} is off its boundary"
                         );
                         Assert.That(
                             far,
-                            Is.EqualTo(boundary + DungeonWallPiece.SlabFarFace).Within(Epsilon),
+                            Is.EqualTo(boundary + DungeonWallPiece.SlabHalfThickness)
+                                .Within(Epsilon),
                             $"seed {block.Seed}: {piece} is off its boundary"
                         );
                     }
@@ -198,82 +193,9 @@ public sealed class DungeonWallGeometryTests
         }
     }
 
-    /// <summary>
-    /// The same seed must rebuild a room identically, or streaming a room back
-    /// in after it unloads would rearrange the dungeon around the player.
-    /// </summary>
-    [Test]
-    public void GeometryIsDeterministicForASeed()
-    {
-        foreach (int seed in DungeonGeometryModel.Seeds)
-        {
-            var first = new DungeonGeometryModel(seed, Vector2Int.zero, 1);
-            var second = new DungeonGeometryModel(seed, Vector2Int.zero, 1);
-            Assert.That(second.Walls.Count, Is.EqualTo(first.Walls.Count), $"seed {seed}");
-            for (int i = 0; i < first.Walls.Count; i++)
-            {
-                Assert.That(second.Walls[i].Anchor, Is.EqualTo(first.Walls[i].Anchor));
-                Assert.That(second.Walls[i].AlongX, Is.EqualTo(first.Walls[i].AlongX));
-                Assert.That(second.Walls[i].Length, Is.EqualTo(first.Walls[i].Length));
-            }
-        }
-    }
-
-    /// <summary>
-    /// Both rooms beside a doorway must agree on it, or one of them would build
-    /// a wall where the other built a gap.
-    /// </summary>
-    [Test]
-    public void NeighbouringRoomsAgreeOnTheirSharedEdge()
-    {
-        foreach (DungeonGeometryModel block in Blocks())
-        {
-            foreach (Vector2Int room in block.Rooms)
-            {
-                for (int direction = 0; direction < 4; direction++)
-                {
-                    Vector2Int neighbour = room + DungeonLayout.DirectionOffsets[direction];
-                    int opposite = (direction + 2) % 4;
-                    Assert.That(
-                        DungeonLayout.EdgeBetween(neighbour, opposite),
-                        Is.EqualTo(DungeonLayout.EdgeBetween(room, direction))
-                    );
-                    Assert.That(
-                        block.Passage(neighbour, opposite).OpeningMask,
-                        Is.EqualTo(block.Passage(room, direction).OpeningMask),
-                        $"seed {block.Seed}: {room} and {neighbour} disagree"
-                    );
-                }
-            }
-        }
-    }
-
     private static Vector2 SlabPoint(Vector2Int room, int direction, int slot)
     {
-        Vector2 center = DungeonGeometryModel.SlotCenter(room, direction, slot);
-        // The slab sits a fixed offset off the boundary line, on the side the
-        // owning room's run was built from.
-        DungeonEdge edge = DungeonLayout.EdgeBetween(room, direction);
-        float offset = DungeonWallPiece.SlabCenterOffset;
-        return edge.Horizontal
-            ? new Vector2(
-                center.x,
-                DungeonLayout.RoomCenter(EdgeRoom(edge)).y + Half(true) + offset
-            )
-            : new Vector2(
-                DungeonLayout.RoomCenter(EdgeRoom(edge)).x + Half(false) + offset,
-                center.y
-            );
-    }
-
-    private static Vector2Int EdgeRoom(DungeonEdge edge)
-    {
-        return new Vector2Int(edge.X, edge.Y);
-    }
-
-    private static float Half(bool horizontal)
-    {
-        return horizontal ? DungeonLayout.RoomDepth / 2f : DungeonLayout.RoomWidth / 2f;
+        return DungeonGeometryModel.SlotCenter(room, direction, slot);
     }
 
     private static bool Covers(List<DungeonWallPiece> run, Vector2 point)

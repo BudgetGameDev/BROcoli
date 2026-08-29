@@ -23,60 +23,47 @@ public readonly struct DungeonWallPiece
     // renderer bounds is floor-level moulding. Every solid-geometry question
     // about a wall - what it blocks, what it can be mounted on, where it meets
     // its neighbour - is a question about that slab.
-    public const float SlabNearFace = 0.4f;
-    public const float SlabFarFace = 1f;
-    public const float SlabThickness = SlabFarFace - SlabNearFace;
-    public const float SlabCenterOffset = (SlabNearFace + SlabFarFace) / 2f;
+    //
+    // A piece is planned by its slab's centre line, so the slab straddles the
+    // line it was asked for and a room is symmetric about its own centre.
+    // PrefabPosition converts back to where the prefab root has to go.
+    public const float SlabThickness = 0.6f;
+    public const float SlabHalfThickness = SlabThickness / 2f;
+    public const float SlabCenterOffset = 0.7f;
 
     /// <summary>The wall prefab's untrimmed length, one floor tile.</summary>
     public const float NominalLength = DungeonLayout.TileSize;
 
-    /// <summary>Where the builder instantiates the prefab.</summary>
+    /// <summary>The centre line of this piece's solid slab.</summary>
     public readonly Vector2 Anchor;
 
     /// <summary>True when the run travels along world X, false along world Z.</summary>
     public readonly bool AlongX;
-
-    /// <summary>
-    /// Signed change to the piece's length. Negative pulls the piece back from
-    /// a junction, positive pushes it through one so perpendicular runs meet
-    /// without exposing a bevelled end face.
-    /// </summary>
-    public readonly float LengthAdjustment;
-
-    /// <summary>
-    /// Which end of the run the adjustment moves, as a world-axis direction
-    /// along <see cref="AlongX"/>. Zero when the piece is untrimmed.
-    /// </summary>
-    public readonly float AdjustmentEnd;
 
     public readonly DungeonWallKind Kind;
 
     /// <summary>Occlusion grouping key; pieces sharing it fade together.</summary>
     public readonly string Section;
 
-    public DungeonWallPiece(
-        Vector2 anchor,
-        bool alongX,
-        DungeonWallKind kind,
-        string section,
-        float lengthAdjustment = 0f,
-        float adjustmentEnd = 0f
-    )
+    public DungeonWallPiece(Vector2 anchor, bool alongX, DungeonWallKind kind, string section)
     {
         Anchor = anchor;
         AlongX = alongX;
         Kind = kind;
         Section = section;
-        LengthAdjustment = lengthAdjustment;
-        AdjustmentEnd = adjustmentEnd;
     }
 
-    public float Length => NominalLength + LengthAdjustment;
+    public float Length => NominalLength;
 
-    /// <summary>How far the piece slides along its run axis to stay anchored at
-    /// its unadjusted end.</summary>
-    public float RunShift => AdjustmentEnd * LengthAdjustment * 0.5f;
+    /// <summary>The direction the slab's thickness runs in.</summary>
+    public Vector2 Normal => AlongX ? Vector2.up : Vector2.right;
+
+    /// <summary>
+    /// Where the prefab root goes so the slab lands on <see cref="Anchor"/>.
+    /// The prefab's slab sits <see cref="SlabCenterOffset"/> ahead of its root,
+    /// which is the one place that offset is allowed to matter.
+    /// </summary>
+    public Vector2 PrefabPosition => Anchor - Normal * SlabCenterOffset;
 
     /// <summary>
     /// The ground-plane rectangle the structural slab actually occupies. This
@@ -87,34 +74,21 @@ public readonly struct DungeonWallPiece
         get
         {
             float half = Length / 2f;
-            float shift = RunShift;
             return AlongX
                 ? Rect.MinMaxRect(
-                    Anchor.x + shift - half,
-                    Anchor.y + SlabNearFace,
-                    Anchor.x + shift + half,
-                    Anchor.y + SlabFarFace
+                    Anchor.x - half,
+                    Anchor.y - SlabHalfThickness,
+                    Anchor.x + half,
+                    Anchor.y + SlabHalfThickness
                 )
                 : Rect.MinMaxRect(
-                    Anchor.x + SlabNearFace,
-                    Anchor.y + shift - half,
-                    Anchor.x + SlabFarFace,
-                    Anchor.y + shift + half
+                    Anchor.x - SlabHalfThickness,
+                    Anchor.y - half,
+                    Anchor.x + SlabHalfThickness,
+                    Anchor.y + half
                 );
         }
     }
-
-    /// <summary>The centre line's start point, along the run axis.</summary>
-    public Vector2 RunStart =>
-        AlongX
-            ? new Vector2(Anchor.x + RunShift - Length / 2f, Anchor.y + SlabCenterOffset)
-            : new Vector2(Anchor.x + SlabCenterOffset, Anchor.y + RunShift - Length / 2f);
-
-    /// <summary>The centre line's end point, along the run axis.</summary>
-    public Vector2 RunEnd =>
-        AlongX
-            ? new Vector2(Anchor.x + RunShift + Length / 2f, Anchor.y + SlabCenterOffset)
-            : new Vector2(Anchor.x + SlabCenterOffset, Anchor.y + RunShift + Length / 2f);
 
     public override string ToString()
     {
