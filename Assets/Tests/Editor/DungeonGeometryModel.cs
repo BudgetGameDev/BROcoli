@@ -35,6 +35,9 @@ internal sealed class DungeonGeometryModel
     /// <summary>Every archway in the block.</summary>
     public readonly List<DungeonArchway> Archways = new();
 
+    /// <summary>Every junction post in the block, capping a wall crossing.</summary>
+    public readonly List<DungeonJunctionPost> Posts = new();
+
     private readonly HashSet<DungeonEdge> builtEdges = new();
     private readonly List<Vector2Int> rooms = new();
 
@@ -52,6 +55,9 @@ internal sealed class DungeonGeometryModel
 
     /// <summary>The shared edges this block built, each exactly once.</summary>
     public IReadOnlyCollection<DungeonEdge> Edges => builtEdges;
+
+    /// <summary>Whether this block built a given shared edge.</summary>
+    public bool HasEdge(DungeonEdge edge) => builtEdges.Contains(edge);
 
     /// <summary>Every seed crossed with every sample block.</summary>
     public static IEnumerable<DungeonGeometryModel> Blocks()
@@ -128,7 +134,11 @@ internal sealed class DungeonGeometryModel
     private void Add(Vector2Int room)
     {
         rooms.Add(room);
-        DungeonRoomGeometry.AppendInteriorWalls(Walls, room, Layout.Archetype(room));
+        var interior = new List<DungeonWallPiece>();
+        DungeonRoomGeometry.AppendInteriorWalls(interior, room, Layout.Archetype(room));
+        DungeonRoomGeometry.AppendInteriorJunctions(Posts, interior);
+        Walls.AddRange(interior);
+
         for (int direction = 0; direction < 4; direction++)
         {
             DungeonEdge edge = DungeonLayout.EdgeBetween(room, direction);
@@ -138,6 +148,7 @@ internal sealed class DungeonGeometryModel
             DungeonPassage passage = Passage(room, direction);
             DungeonRoomGeometry.AppendEdgeWalls(Walls, edge, passage);
             DungeonRoomGeometry.AppendEdgeArchways(Archways, edge, passage);
+            DungeonRoomGeometry.AppendEdgeJunctions(Posts, edge);
         }
     }
 }

@@ -76,26 +76,60 @@ public sealed partial class DungeonLayout
         return masks[random.Next(masks.Length)];
     }
 
+    /// <summary>
+    /// Picks the one opening on this run that gets an arch, from the openings
+    /// framed by a wall piece on both sides. The frame is wider than the slot
+    /// it stands in, so its posts land on the neighbouring slabs: with an
+    /// opening beside it there is nothing for a post to meet and the arch reads
+    /// as a free-standing gate in the middle of a gap. Some runs open two
+    /// adjacent slots and so have no framed opening at all; those get no arch.
+    /// </summary>
     private static int PickSingleArchwayMask(int openingMask, int slotCount, System.Random random)
     {
-        int openings = 0;
-        for (int slot = 0; slot < slotCount; slot++)
-        {
-            if ((openingMask & (1 << slot)) != 0)
-                openings++;
-        }
-        if (openings == 0)
+        int framed = FramedOpeningMask(openingMask, slotCount);
+        int candidates = SlotCount(framed);
+        if (candidates == 0)
             return 0;
 
-        int chosen = random.Next(openings);
+        int chosen = random.Next(candidates);
         for (int slot = 0; slot < slotCount; slot++)
         {
-            if ((openingMask & (1 << slot)) == 0)
+            if ((framed & (1 << slot)) == 0)
                 continue;
             if (chosen-- == 0)
                 return 1 << slot;
         }
         return 0;
+    }
+
+    /// <summary>
+    /// The openings that have a wall piece on both sides, and so can carry an
+    /// archway. An opening at either end of the run is unframed by definition:
+    /// the run stops at the grid post rather than continuing past it.
+    /// </summary>
+    public static int FramedOpeningMask(int openingMask, int slotCount)
+    {
+        int framed = 0;
+        for (int slot = 1; slot < slotCount - 1; slot++)
+        {
+            bool open = (openingMask & (1 << slot)) != 0;
+            bool leftWalled = (openingMask & (1 << (slot - 1))) == 0;
+            bool rightWalled = (openingMask & (1 << (slot + 1))) == 0;
+            if (open && leftWalled && rightWalled)
+                framed |= 1 << slot;
+        }
+        return framed;
+    }
+
+    private static int SlotCount(int mask)
+    {
+        int count = 0;
+        while (mask != 0)
+        {
+            count += mask & 1;
+            mask >>= 1;
+        }
+        return count;
     }
 
     /// <summary>
