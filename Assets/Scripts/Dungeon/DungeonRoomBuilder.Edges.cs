@@ -71,7 +71,7 @@ public partial class DungeonRoomBuilder
     {
         Instantiate(
             wallPrefab,
-            piece.PrefabPosition.ToWorld(),
+            piece.PrefabPosition.ToWorld(piece.BaseLift),
             piece.AlongX ? Quaternion.identity : Quaternion.Euler(0f, 90f, 0f),
             parent
         );

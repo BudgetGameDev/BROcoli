@@ -42,6 +42,19 @@ public readonly struct DungeonWallPiece
     /// <summary>The wall prefab's untrimmed length, one floor tile.</summary>
     public const float NominalLength = DungeonLayout.TileSize;
 
+    // The mesh's base is a stack of flat horizontal surfaces: dirt decals at
+    // 0, 0.03 and 0.06 above the floor and moulding ledges at 0.11 and 0.5,
+    // reaching MeshDepthAgainstNormal out from the slab. Two crossing runs
+    // repeat that stack at identical heights, so their base aprons overlap
+    // coplanar and z-fight across a corner region far wider than any junction
+    // post could cap. Seating the two orientations a couple of millimetres
+    // apart - and both clear of the floor plane at 0 - separates every such
+    // pair. The gaps are a fraction of a screen pixel through the gameplay
+    // camera and orders of magnitude above depth-buffer resolution there, so
+    // nothing reads as floating and nothing flickers.
+    public const float LiftAlongX = 0.002f;
+    public const float LiftAlongZ = 0.004f;
+
     // The mesh is wider than the slab: floor moulding skirts the base on the
     // side the slab's normal points away from. Occlusion works on what is
     // drawn, not on what collides, so the visible footprint is its own
@@ -80,6 +93,11 @@ public readonly struct DungeonWallPiece
     /// which is the one place that offset is allowed to matter.
     /// </summary>
     public Vector2 PrefabPosition => Anchor - Normal * SlabCenterOffset;
+
+    /// <summary>How far above the floor the prefab is seated. See the lift
+    /// constants: crossing runs must never repeat a base surface at the same
+    /// height.</summary>
+    public float BaseLift => AlongX ? LiftAlongX : LiftAlongZ;
 
     /// <summary>
     /// The ground-plane rectangle the structural slab actually occupies. This
