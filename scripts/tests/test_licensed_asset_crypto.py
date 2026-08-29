@@ -2,12 +2,17 @@ import argparse
 import importlib.util
 import json
 import os
+import sys
 import tempfile
 import unittest
 import zipfile
 from pathlib import Path
 
-SCRIPT_PATH = Path(__file__).resolve().parents[1] / "licensed_asset_crypto.py"
+SCRIPTS_ROOT = Path(__file__).resolve().parents[1]
+if str(SCRIPTS_ROOT) not in sys.path:
+    sys.path.insert(0, str(SCRIPTS_ROOT))
+
+SCRIPT_PATH = SCRIPTS_ROOT / "licensed_asset_crypto.py"
 SPEC = importlib.util.spec_from_file_location("licensed_asset_crypto", SCRIPT_PATH)
 licensed_asset_crypto = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(licensed_asset_crypto)

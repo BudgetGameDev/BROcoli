@@ -20,7 +20,6 @@
 306	Assets/Scripts/ProceduralXPPickupAudio.cs
 528	Assets/Scripts/ShuffleWalkVisual.cs
 357	Assets/Scripts/Spray/SanitizerSpray.cs
-340	Assets/Scripts/Spray/SprayMaterialCreator.cs
 376	Assets/Scripts/Spray/SprayParticleController.cs
 683	Assets/Scripts/TouchAction.cs
 417	Assets/Scripts/UpgradeOption.cs
