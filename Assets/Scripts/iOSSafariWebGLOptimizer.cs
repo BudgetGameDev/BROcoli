@@ -13,7 +13,7 @@ using UnityEngine.Rendering.Universal;
 /// - MSAA disabled
 /// - Non-lighting quality reductions
 ///
-/// Note: Frame rate settings are handled by FrameRateOptimizer (all platforms).
+/// Note: this does not change the frame rate; it only relaxes iOS Safari's cost.
 /// </summary>
 [DefaultExecutionOrder(-1000)] // Run very early
 public class iOSSafariWebGLOptimizer : MonoBehaviour
@@ -102,7 +102,7 @@ public class iOSSafariWebGLOptimizer : MonoBehaviour
             $"[iOSSafariOptimizer] Preserving quality level {QualitySettings.GetQualityLevel()}"
         );
 
-        // Note: VSync and frame rate are handled by FrameRateOptimizer
+        // Note: VSync and target frame rate are left at their project defaults.
 
         // Disable MSAA via quality settings
         QualitySettings.antiAliasing = 0;

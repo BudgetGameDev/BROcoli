@@ -4,7 +4,6 @@
 990	Assets/Scripts/Enemy Spawner/Enemies/EnemyBase.cs
 504	Assets/Scripts/Enemy Spawner/Enemies/EnemyScript.cs
 579	Assets/Scripts/ForceLandscapeAspect.cs
-516	Assets/Scripts/FrameRateOptimizer.cs
 363	Assets/Scripts/GamePreloader.cs
 606	Assets/Scripts/HydraEnemyScript.cs
 581	Assets/Scripts/LevelUpScreen.cs
@@ -24,9 +23,6 @@
 340	Assets/Scripts/Spray/SprayMaterialCreator.cs
 376	Assets/Scripts/Spray/SprayParticleController.cs
 683	Assets/Scripts/TouchAction.cs
-410	Assets/Scripts/UI/ControllerUINavigator.cs
 417	Assets/Scripts/UpgradeOption.cs
 915	Assets/Scripts/VirtualController.cs
-445	Assets/Scripts/gamejam-2022/ClueSystem.cs
-315	Assets/Scripts/gamejam-2022/GameOverScreen.cs
 399	Assets/Scripts/gamejam-2022/PlayerCombat.cs

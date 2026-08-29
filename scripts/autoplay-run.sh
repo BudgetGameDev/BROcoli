@@ -9,7 +9,7 @@
 # Extra args (e.g. --no-deterministic, --minlevel=3) are passed through to the player.
 #
 # Exit code mirrors the scenario pass/fail. Prints summary.json and (if Pillow is
-# available) a per-band luminance report. See plans/2026-06-13-autoplay-e2e-harness.md.
+# available) a per-band luminance report.
 set -euo pipefail
 
 PROJECT_PATH="$(cd "$(dirname "$0")/.." && pwd)"

@@ -49,7 +49,7 @@ public class PlayerInputHandler : MonoBehaviour
     public void UpdateInput()
     {
         // Autoplay/E2E: a bot may drive the player. Inert during normal play
-        // (BotDriver.Active is false). See plans/2026-06-13-autoplay-e2e-harness.md.
+        // (BotDriver.Active is false).
         if (BotDriver.Active)
         {
             _rawInput = BotDriver.Move;

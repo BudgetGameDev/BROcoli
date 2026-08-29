@@ -5,7 +5,8 @@ using UnityEngine.SceneManagement;
 /// Lights the environment around the player without overexposing the player model.
 ///
 /// On each gameplay scene it:
-///   1. Moves the player's renderers onto the "PlayerModel" layer.
+///   1. Moves the player's model renderers onto the "PlayerModel" layer
+///      (particle effects parented to the player are left in the world).
 ///   2. Removes that layer from the brightest scene light's culling mask, so the
 ///      bright world light lights the ground/enemies but no longer hits the player.
 ///   3. Clones that light as a dimmer, player-only "fill" (same type/unit/range),
@@ -67,9 +68,16 @@ public class PlayerModelLighting : MonoBehaviour
         if (renderers.Length == 0)
             return; // visual not spawned yet; try again next frame
 
-        // 1) Player renderers -> PlayerModel layer.
+        // 1) Player model renderers -> PlayerModel layer. Effects parented to the
+        //    player are not part of its model: the ground fog rides along with the
+        //    player but belongs to the world, and moving it here would cut it off
+        //    from the world light and the torches.
         foreach (var r in renderers)
+        {
+            if (r is ParticleSystemRenderer)
+                continue;
             r.gameObject.layer = _layer;
+        }
 
         // 2) Brightest light = the world light. Exclude the player from it.
         Light main = null;

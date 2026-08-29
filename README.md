@@ -22,6 +22,18 @@ https://budgetgamedev.github.io/BROcoli/
 <!-- ![](./doc/gamejam-image-0.png) -->
 <!-- ![](./doc/gamejam-image-1.png) -->
 
+## Development tooling
+
+Install [Nix](https://nixos.org/download/), then enter the pinned development
+environment from the repository root:
+
+```bash
+nix develop
+```
+
+This provides FFmpeg, ImageMagick, Fontconfig, and Python with Pillow for the
+autoplay and E2E tooling. The Unity Editor remains a separate installation.
+
 ## Disclaimer
 This project is built partially using generative ai, with human in the loop, software engineering best practices and reviews by professional human software engineers.
 

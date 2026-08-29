@@ -14,7 +14,6 @@ using UnityEngine.SceneManagement;
 /// fast-forward. Physics still runs at the fixed <c>Time.fixedDeltaTime</c> step
 /// (sub-stepped per frame), so simulation stays accurate while wall-clock time is
 /// compressed. A bigger <c>--timestep</c> compresses harder (coarser Update step).
-/// See plans/2026-06-13-autoplay-e2e-harness.md.
 /// </summary>
 public class AutoplayController : MonoBehaviour
 {
