@@ -217,9 +217,9 @@ public partial class DungeonPropPlacer
         };
     }
 
-    private static void Shuffle<T>(T[] values, System.Random random)
+    private static void Shuffle<T>(List<T> values, System.Random random)
     {
-        for (int i = values.Length - 1; i > 0; i--)
+        for (int i = values.Count - 1; i > 0; i--)
         {
             int j = random.Next(i + 1);
             (values[i], values[j]) = (values[j], values[i]);

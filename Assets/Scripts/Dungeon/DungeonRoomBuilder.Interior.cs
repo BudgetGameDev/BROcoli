@@ -1,93 +1,28 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 public partial class DungeonRoomBuilder
 {
-    private void BuildHorizontalInterior(
-        Transform parent,
-        Vector2 center,
-        float localZ,
-        bool leaveCentreGap
-    )
-    {
-        Transform left = CreateOcclusionSection(parent, $"Horizontal {localZ:0.##} Left");
-        Transform right = leaveCentreGap
-            ? CreateOcclusionSection(parent, $"Horizontal {localZ:0.##} Right")
-            : left;
-        for (int i = -3; i <= 3; i++)
-        {
-            if (leaveCentreGap && i == 0)
-                continue;
-            GameObject wall = Instantiate(
-                wallPrefab,
-                new Vector3(center.x + i * Tile, 0f, center.y + localZ),
-                Quaternion.identity,
-                i < 0 ? left : right
-            );
-            if (i == -3 || i == 3)
-                TrimBoundaryOverlap(wall, i < 0 ? 1f : -1f);
-        }
-    }
+    private readonly List<DungeonWallPiece> interiorWalls = new();
+    private readonly Dictionary<string, Transform> sections = new();
 
-    private void BuildVerticalInterior(
-        Transform parent,
-        Vector2 center,
-        float localX,
-        bool leaveCentreGap
-    )
+    /// <summary>
+    /// Instantiates a planned set of wall pieces, grouping them into occlusion
+    /// sections so pieces on the same run fade together.
+    /// </summary>
+    private void InstantiateWallRuns(Transform parent, List<DungeonWallPiece> walls)
     {
-        Transform lower = CreateOcclusionSection(parent, $"Vertical {localX:0.##} Lower");
-        Transform upper = leaveCentreGap
-            ? CreateOcclusionSection(parent, $"Vertical {localX:0.##} Upper")
-            : lower;
-        Quaternion sideways = Quaternion.Euler(0f, 90f, 0f);
-        for (int j = -2; j <= 2; j++)
+        sections.Clear();
+        foreach (DungeonWallPiece piece in walls)
         {
-            if (leaveCentreGap && j == 0)
-                continue;
-            GameObject wall = Instantiate(
-                wallPrefab,
-                new Vector3(center.x + localX, 0f, center.y + j * Tile),
-                sideways,
-                j < 0 ? lower : upper
-            );
-            if (j == -2 || j == 2)
+            if (!sections.TryGetValue(piece.Section, out Transform section))
             {
-                // A +90-degree wall maps local -X toward world +Z.
-                TrimBoundaryOverlap(wall, j < 0 ? -1f : 1f);
+                section = CreateOcclusionSection(parent, piece.Section);
+                sections[piece.Section] = section;
             }
+            InstantiateWall(section, piece);
         }
-    }
-
-    private void BuildVerticalDivider(Transform parent, Vector2 center)
-    {
-        Quaternion sideways = Quaternion.Euler(0f, 90f, 0f);
-        foreach (int j in new[] { -1, 1 })
-        {
-            Transform section = CreateOcclusionSection(
-                parent,
-                j < 0 ? "Vertical Divider Lower" : "Vertical Divider Upper"
-            );
-            Instantiate(
-                wallPrefab,
-                new Vector3(center.x, 0f, center.y + j * Tile),
-                sideways,
-                section
-            );
-        }
-    }
-
-    private void BuildHorizontalDivider(Transform parent, Vector2 center)
-    {
-        foreach (int i in new[] { -2, 0, 2 })
-        {
-            Transform section = CreateOcclusionSection(parent, $"Horizontal Divider {i:+#;-#;0}");
-            Instantiate(
-                wallPrefab,
-                new Vector3(center.x + i * Tile, 0f, center.y),
-                Quaternion.identity,
-                section
-            );
-        }
+        sections.Clear();
     }
 
     private static Transform CreateOcclusionSection(Transform parent, string name)
@@ -98,36 +33,33 @@ public partial class DungeonRoomBuilder
         return section.transform;
     }
 
-    private static void TrimBoundaryOverlap(GameObject wall, float inwardLocalX)
-    {
-        ResizeWallAtBoundary(wall, -inwardLocalX, false);
-    }
-
-    private static void ResizeWallAtBoundary(GameObject wall, float outwardLocalX, bool extend)
+    /// <summary>
+    /// Moves one end of a wall piece by the length the plan asked for. Runs
+    /// that meet a perpendicular wall recede from it or push through it so
+    /// their bevelled end faces never show at the junction.
+    /// </summary>
+    private static void ResizeWallEnd(GameObject wall, DungeonWallPiece piece)
     {
         MeshFilter meshFilter = wall.GetComponentInChildren<MeshFilter>();
         if (meshFilter == null || meshFilter.sharedMesh == null)
             return;
 
         Transform visual = meshFilter.transform;
-        Bounds meshBounds = meshFilter.sharedMesh.bounds;
-        float visualLength = meshBounds.size.x * Mathf.Abs(visual.localScale.x);
-        float boundaryOverlap = meshBounds.extents.z * Mathf.Abs(visual.localScale.z);
-        if (visualLength <= 0.0001f || boundaryOverlap <= 0f)
+        float visualLength = meshFilter.sharedMesh.bounds.size.x * Mathf.Abs(visual.localScale.x);
+        if (visualLength <= 0.0001f)
             return;
 
-        // Move the endpoint by one visual half-depth so perpendicular wall
-        // meshes intersect instead of exposing their beveled end faces. The
-        // collider follows the same adjustment so it stays aligned with the
-        // visible wall all the way to the junction.
-        float lengthAdjustment = extend ? boundaryOverlap : -boundaryOverlap;
-        float adjustedLength = Mathf.Max(0.0001f, visualLength + lengthAdjustment);
+        // A +90-degree wall maps local +X toward world -Z, so a run shift along
+        // the piece's world axis flips sign for vertical runs.
+        float adjustment = piece.LengthAdjustment;
+        float localShift = piece.AlongX ? piece.RunShift : -piece.RunShift;
+
         Vector3 scale = visual.localScale;
-        scale.x *= adjustedLength / visualLength;
+        scale.x *= Mathf.Max(0.0001f, visualLength + adjustment) / visualLength;
         visual.localScale = scale;
 
         Vector3 position = visual.localPosition;
-        position.x += outwardLocalX * lengthAdjustment * 0.5f;
+        position.x += localShift;
         visual.localPosition = position;
 
         BoxCollider wallCollider = wall.GetComponent<BoxCollider>();
@@ -135,11 +67,11 @@ public partial class DungeonRoomBuilder
             return;
 
         Vector3 colliderSize = wallCollider.size;
-        colliderSize.x = Mathf.Max(0f, colliderSize.x + lengthAdjustment);
+        colliderSize.x = Mathf.Max(0f, colliderSize.x + adjustment);
         wallCollider.size = colliderSize;
 
         Vector3 colliderCenter = wallCollider.center;
-        colliderCenter.x += outwardLocalX * lengthAdjustment * 0.5f;
+        colliderCenter.x += localShift;
         wallCollider.center = colliderCenter;
     }
 }

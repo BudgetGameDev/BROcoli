@@ -135,12 +135,14 @@ public partial class DungeonManager : MonoBehaviour
         var root = new GameObject($"Room ({room.x}, {room.y}) [{archetype}]");
         root.transform.SetParent(transform, false);
 
+        DungeonLayout.RoomDoorways doorways = layout.Doorways(room);
         builder.BuildFloor(root.transform, room, archetype, layout.RoomRandom(room, 404));
         builder.BuildInterior(root.transform, room, archetype);
         List<DungeonPropPlacer.PlacedChest> chests = decor.BuildContents(
             root.transform,
             room,
             archetype,
+            doorways,
             layout.RoomRandom(room, 505),
             state.OpenedChestSlots
         );
@@ -149,7 +151,13 @@ public partial class DungeonManager : MonoBehaviour
             int slot = placed.Slot;
             placed.Chest.Opened += () => state.OpenedChestSlots.Add(slot);
         }
-        decor.BuildAtmosphere(root.transform, room, archetype, layout.RoomRandom(room, 707));
+        decor.BuildAtmosphere(
+            root.transform,
+            room,
+            archetype,
+            doorways,
+            layout.RoomRandom(room, 707)
+        );
 
         for (int direction = 0; direction < 4; direction++)
         {

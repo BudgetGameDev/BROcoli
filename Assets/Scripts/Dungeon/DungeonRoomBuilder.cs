@@ -2,7 +2,7 @@ using UnityEngine;
 
 /// <summary>
 /// Instantiates the physical pieces of a dungeon room: floor tiles, shared
-/// wall runs with open or blocked gateways, decorative props, and loot
+/// wall runs with doorways cut into them, decorative props, and loot
 /// chests. Pure construction; the layout decisions come from
 /// <see cref="DungeonLayout"/> and the per-room random streams handed in by
 /// <see cref="DungeonManager"/>.
@@ -30,9 +30,6 @@ public partial class DungeonRoomBuilder : MonoBehaviour
 
     [SerializeField]
     private GameObject gateOpenPrefab;
-
-    [SerializeField]
-    private GameObject gateBlockedPrefab;
 
     [SerializeField, Range(0f, 1f)]
     private float floorVariantChance = 0.18f;

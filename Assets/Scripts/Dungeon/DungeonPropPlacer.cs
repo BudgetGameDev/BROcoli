@@ -20,6 +20,9 @@ public partial class DungeonPropPlacer : MonoBehaviour
     private const float WallBackFaceOffset = 1f;
     private const float BannerMeshDepthOffset = 1.05f;
 
+    // Half width of the hanging banner mesh, used to keep it off a doorway.
+    private const float BannerDoorwayClearance = 1.2f;
+
     // Independent obstacles reserve a lane wider than the player's 0.86-unit
     // capsule. This prevents procedural placement from creating tempting gaps
     // that are too narrow to traverse reliably. Deliberate clutter clusters
@@ -94,6 +97,11 @@ public partial class DungeonPropPlacer : MonoBehaviour
 
     private readonly Dictionary<GameObject, float> footprintRadii = new();
 
+    // The passages around the room currently being dressed. Generation is
+    // synchronous per room, so wall-mounted helpers deep in the theme code can
+    // read this instead of threading it through every call.
+    private DungeonLayout.RoomDoorways doorways;
+
     /// <summary>
     /// Places deterministic chest slots and the room's prop pattern. Opened
     /// slots still reserve their positions so rebuilt rooms never rearrange.
@@ -102,10 +110,12 @@ public partial class DungeonPropPlacer : MonoBehaviour
         Transform parent,
         Vector2Int room,
         DungeonLayout.RoomArchetype archetype,
+        DungeonLayout.RoomDoorways roomDoorways,
         System.Random random,
         ISet<int> openedChestSlots
     )
     {
+        doorways = roomDoorways;
         Vector2 center = DungeonLayout.RoomCenter(room);
         var placedChests = new List<PlacedChest>();
         var occupied = new List<OccupiedSpot>();
@@ -151,14 +161,14 @@ public partial class DungeonPropPlacer : MonoBehaviour
         Transform parent,
         Vector2Int room,
         DungeonLayout.RoomArchetype archetype,
+        DungeonLayout.RoomDoorways roomDoorways,
         System.Random random
     )
     {
+        doorways = roomDoorways;
         Vector2 center = DungeonLayout.RoomCenter(room);
         if (torchPrefab != null)
         {
-            (Vector2 pos, float yaw)[] spots = TorchSpots(archetype);
-            Shuffle(spots, random);
             int torchCount = archetype.Theme switch
             {
                 DungeonLayout.RoomTheme.Empty => 2,
@@ -169,7 +179,13 @@ public partial class DungeonPropPlacer : MonoBehaviour
                 DungeonLayout.RoomTheme.Arena => 6,
                 _ => 2 + random.Next(0, 3),
             };
-            for (int i = 0; i < torchCount && i < spots.Length; i++)
+            List<(Vector2 pos, float yaw)> spots = AvailableTorchSpots(
+                archetype,
+                roomDoorways,
+                torchCount,
+                random
+            );
+            for (int i = 0; i < torchCount && i < spots.Count; i++)
             {
                 Instantiate(
                     torchPrefab,

@@ -1,5 +1,11 @@
 # Agent instructions
 
+## Unity Editor automation
+
+Always open the Unity Editor in automated mode by using the `unity-open` command
+available on the shell `PATH`. Do not launch the Unity Editor directly through Unity
+Hub, an editor executable, or another command.
+
 ## Asset acquisition
 
 ### Acquisition-first rule

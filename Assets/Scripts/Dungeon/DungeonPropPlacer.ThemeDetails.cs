@@ -211,28 +211,38 @@ public partial class DungeonPropPlacer
             DungeonLayout.RoomShape.LongHorizontal => 6f,
             _ => HalfRoomDepth,
         };
-        Vector2 local;
-        float yaw;
-        switch ((side % 4 + 4) % 4)
+        // Walk the four walls from the requested side so a banner whose own
+        // wall was opened into a doorway moves to the next solid one instead of
+        // hanging in the gap.
+        for (int attempt = 0; attempt < 4; attempt++)
         {
-            case 0:
-                local = new Vector2(-3.5f, PositiveWallFace(wallZ) + BannerMeshDepthOffset);
-                yaw = 0f;
-                break;
-            case 1:
-                local = new Vector2(PositiveWallFace(wallX) + BannerMeshDepthOffset, -3f);
-                yaw = 90f;
-                break;
-            case 2:
-                local = new Vector2(3.5f, NegativeWallFace(-wallZ) - BannerMeshDepthOffset);
-                yaw = 180f;
-                break;
-            default:
-                local = new Vector2(NegativeWallFace(-wallX) - BannerMeshDepthOffset, 3f);
-                yaw = -90f;
-                break;
+            Vector2 local;
+            float yaw;
+            switch (((side + attempt) % 4 + 4) % 4)
+            {
+                case 0:
+                    local = new Vector2(-3.5f, PositiveWallFace(wallZ) + BannerMeshDepthOffset);
+                    yaw = 0f;
+                    break;
+                case 1:
+                    local = new Vector2(PositiveWallFace(wallX) + BannerMeshDepthOffset, -3f);
+                    yaw = 90f;
+                    break;
+                case 2:
+                    local = new Vector2(3.5f, NegativeWallFace(-wallZ) - BannerMeshDepthOffset);
+                    yaw = 180f;
+                    break;
+                default:
+                    local = new Vector2(NegativeWallFace(-wallX) - BannerMeshDepthOffset, 3f);
+                    yaw = -90f;
+                    break;
+            }
+            if (doorways.BlocksDoorway(local, BannerDoorwayClearance))
+                continue;
+
+            Instantiate(prefab, (center + local).ToWorld(), Quaternion.Euler(0f, yaw, 0f), parent);
+            return;
         }
-        Instantiate(prefab, (center + local).ToWorld(), Quaternion.Euler(0f, yaw, 0f), parent);
     }
 
     private GameObject FindProp(string token)
