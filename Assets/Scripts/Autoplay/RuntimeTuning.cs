@@ -9,7 +9,12 @@ using UnityEngine;
 /// it changes.
 ///
 /// JSON keys (omit any you don't want to change):
-///   { "worldLightIntensity": 250, "fillFactor": 0.6, "lightHeightY": 8, "ambientIntensity": 1 }
+///   { "worldLightIntensity": 85, "lightHeightY": 5, "lightOffsetZ": -5, "ambientIntensity": 1 }
+///
+/// The light being tuned is the player's key light, which lights the player and the
+/// world alike. <c>lightOffsetZ</c> is the one that shapes the characters: the camera
+/// looks down +Z, so a negative offset swings the light toward it and off the crown of
+/// the head, and 0 flattens everything into a straight-overhead wash.
 ///
 /// Pair with scripts/autoplay-tune.sh (a long, real-time session) to tune lighting
 /// by editing the file while watching captured frames.
@@ -22,8 +27,8 @@ public class RuntimeTuning : MonoBehaviour
     public class TuningData
     {
         public float worldLightIntensity = Unset;
-        public float fillFactor = Unset;
         public float lightHeightY = Unset;
+        public float lightOffsetZ = Unset;
         public float ambientIntensity = Unset;
     }
 
@@ -49,9 +54,29 @@ public class RuntimeTuning : MonoBehaviour
     }
 
     private string _path;
-    private float _fillFactor = PlayerModelLighting.DefaultFillFactor;
+    private Light _key;
     private long _lastTicks;
     private float _pollAcc;
+
+    /// <summary>
+    /// The key light, resolved as the brightest light in the scene. The torches sit an
+    /// order of magnitude below it, so brightness picks it out without scene wiring.
+    /// Re-resolved whenever it goes null, which is what a scene load looks like here.
+    /// </summary>
+    private Light KeyLight
+    {
+        get
+        {
+            if (_key != null)
+                return _key;
+
+            foreach (var l in FindObjectsByType<Light>(FindObjectsSortMode.None))
+                if (_key == null || l.intensity > _key.intensity)
+                    _key = l;
+
+            return _key;
+        }
+    }
 
     private void Update()
     {
@@ -84,42 +109,30 @@ public class RuntimeTuning : MonoBehaviour
 
     private void Apply(TuningData d)
     {
-        var world = PlayerModelLighting.WorldLight;
-        var fill = PlayerModelLighting.FillLight;
+        var key = KeyLight;
 
-        if (Set(d.fillFactor))
-            _fillFactor = d.fillFactor;
-
-        if (world != null && Set(d.worldLightIntensity))
-            world.intensity = d.worldLightIntensity;
-
-        if (Set(d.lightHeightY))
+        if (key != null)
         {
-            if (world != null)
-                SetLocalY(world.transform, d.lightHeightY);
-            if (fill != null)
-                SetLocalY(fill.transform, d.lightHeightY);
-        }
+            if (Set(d.worldLightIntensity))
+                key.intensity = d.worldLightIntensity;
 
-        if (world != null && fill != null)
-            fill.intensity = world.intensity * _fillFactor;
+            var p = key.transform.localPosition;
+            if (Set(d.lightHeightY))
+                p.y = d.lightHeightY;
+            if (Set(d.lightOffsetZ))
+                p.z = d.lightOffsetZ;
+            key.transform.localPosition = p;
+        }
 
         if (Set(d.ambientIntensity))
             RenderSettings.ambientIntensity = d.ambientIntensity;
 
         Debug.Log(
-            $"[RuntimeTuning] applied worldI={(world != null ? world.intensity : 0f)} "
-                + $"fillFactor={_fillFactor} y={(world != null ? world.transform.localPosition.y : 0f)} "
+            $"[RuntimeTuning] applied worldI={(key != null ? key.intensity : 0f)} "
+                + $"pos={(key != null ? key.transform.localPosition : Vector3.zero)} "
                 + $"ambient={RenderSettings.ambientIntensity}"
         );
     }
 
     private static bool Set(float v) => v > Unset + 1f;
-
-    private static void SetLocalY(Transform t, float y)
-    {
-        var p = t.localPosition;
-        p.y = y;
-        t.localPosition = p;
-    }
 }

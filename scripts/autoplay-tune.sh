@@ -13,9 +13,9 @@ TUNING="${TUNING:-/tmp/brocoli-tuning.json}"
 if [ ! -f "$TUNING" ]; then
     cat >"$TUNING" <<'JSON'
 {
-  "worldLightIntensity": 250,
-  "fillFactor": 0.6,
-  "lightHeightY": 8,
+  "worldLightIntensity": 85,
+  "lightHeightY": 5,
+  "lightOffsetZ": -5,
   "ambientIntensity": 1
 }
 JSON
