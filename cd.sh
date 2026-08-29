@@ -4,6 +4,26 @@
 # This replaces the hosted Pages build: the Mac mini has already produced and
 # smoke-tested the exact artifact that job would rebuild, so it publishes that
 # one instead of paying for the same build twice.
+#
+# Publishing happens BEFORE the branch being pushed actually moves.
+#
+# The pre-push hook calls this, and pre-push is the last hook git offers for a
+# push: there is no post-push, and no hook at all that runs once the remote ref
+# has been updated. So by the time Pages is live, the push that triggered it has
+# not landed yet. Two consequences worth knowing before changing anything here:
+#
+#   - The hook refuses a push that is not a fast-forward, so the common way for
+#     a push to fail after a green gate - someone else moved the branch first -
+#     stops before anything is published.
+#   - A push that fails after that check anyway, on network or credentials,
+#     leaves Pages one commit ahead of the branch. Nothing is corrupted and
+#     nothing needs undoing: fix the cause and push again. The deploy is
+#     idempotent, and version.json records the source commit, so what is live is
+#     always identifiable even while the branch is behind.
+#
+# Do not try to close that window by deploying from a background job after the
+# push, or by pushing the source branch from inside the hook. The first makes
+# failures invisible, and the second re-enters the hook.
 set -euo pipefail
 
 PROJECT_PATH="$(cd "$(dirname "$0")" && pwd)"
