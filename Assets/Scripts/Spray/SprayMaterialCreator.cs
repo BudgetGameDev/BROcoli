@@ -8,6 +8,8 @@ using UnityEngine;
 /// </summary>
 public static class SprayMaterialCreator
 {
+    private const string LicensedWaterSprayMaterialPath = "Integration/LicensedWaterSpray";
+
     // Cached materials
     private static Material _sprayCoreMaterial;
     private static Material _sprayMistMaterial;
@@ -59,6 +61,16 @@ public static class SprayMaterialCreator
     {
         if (_sprayCoreMaterial != null)
             return _sprayCoreMaterial;
+
+        // Keep the gameplay-tuned particle system, but render its dense core with the
+        // acquired Stylized Water Effect Pack shader when licensed assets are present.
+        Material licensedTemplate = Resources.Load<Material>(LicensedWaterSprayMaterialPath);
+        if (licensedTemplate != null)
+        {
+            _sprayCoreMaterial = new Material(licensedTemplate);
+            _sprayCoreMaterial.name = "SprayCoreMaterial (Stylized Water Effect Pack)";
+            return _sprayCoreMaterial;
+        }
 
         // Try to use URP Lit particle shader for PBR, fallback to standard
         Shader shader = Shader.Find("Universal Render Pipeline/Particles/Lit");

@@ -149,3 +149,32 @@ ignored generated directory locally. Do not delete another package's generated p
 - `theHand.fbx.enc` — “the Hand” by sayjing, Sketchfab Free Standard, acquired through
   the authenticated licensee account on 2026-08-25.
   Source: https://sketchfab.com/3d-models/the-hand-a0bd25ee25544603a8455121aa1242ec
+- `fog-particles.zip.enc` — “Fog Particles” version 1.0.0 by Game Seed Assets,
+  acquired free on 2026-08-29 under the Standard Unity Asset Store EULA as an
+  Extension Asset. The payload restores to `Assets/Generated/Licensed/FogParticles/`
+  and retains only the bluish fog prefab and its material/texture dependencies. It is
+  instantiated under `DungeonManager` as the dungeon's general atmospheric fog.
+  Source: https://assetstore.unity.com/packages/vfx/particles/fog-particles-351840
+- `free-fire-vfx-urp.zip.enc` — “Free Fire VFX - URP” version 1.0.2023.1 by
+  Vefects, acquired free on 2026-08-29 under the Standard Unity Asset Store EULA as
+  an Extension Asset. The payload restores to
+  `Assets/Generated/Licensed/FreeFireVFXURP/` and contains the selected small fire
+  prefab plus its runtime dependencies; unused audio, light, heat-haze, demo, and
+  alternate-effect content was removed. `DungeonTorch.prefab` uses the selected fire
+  effect for every generated torch.
+  Source: https://assetstore.unity.com/packages/vfx/particles/fire-explosions/free-fire-vfx-urp-266226
+- `urp-stylized-water-shader.zip.enc` — “URP Stylized Water Shader - Proto Series”
+  version 1.0 by BitGem, acquired free on 2026-08-29 under the Standard Unity Asset
+  Store EULA as an Extension Asset. The payload restores to
+  `Assets/Generated/Licensed/StylisedWaterShader/` and retains the water Shader Graph
+  and normal texture. A BROcoli-authored integration material applies it to the
+  shallow volume mesh used by `DungeonWater.prefab`.
+  Source: https://assetstore.unity.com/packages/vfx/shaders/urp-stylized-water-shader-proto-series-187485
+- `stylized-water-effect-pack.zip.enc` — “Stylized Water Effect Pack” version 1.0
+  by Namu, acquired free on 2026-08-29 under the Standard Unity Asset Store EULA as
+  an Extension Asset. The payload restores to
+  `Assets/Generated/Licensed/StylizedWaterEffectPack/` and retains only the particle
+  Shader Graph and its texture/subgraph dependencies. The existing gameplay spray
+  keeps its range, collision, and burst logic while its core particles use this
+  acquired water-effect shader through a BROcoli-authored Resources material.
+  Source: https://assetstore.unity.com/packages/vfx/particles/stylized-water-effect-pack-270114

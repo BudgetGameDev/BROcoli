@@ -1,0 +1,18 @@
+{
+  "formatVersion": 2,
+  "payloadType": "directory",
+  "archiveFormat": "zip",
+  "generatedPath": "Assets/Generated/Licensed/FreeFireVFXURP",
+  "rootGuid": "23ecc79019cb939dda2b7a0f6ffec313",
+  "sha256": "104f44ba43027eda5892d1f6cd81f7e5f687bb11b4758f3f700ab0b4e37d81c5",
+  "fileCount": 21,
+  "uncompressedSize": 1727607,
+  "title": "Free Fire VFX - URP",
+  "sourceUrl": "https://assetstore.unity.com/packages/vfx/particles/fire-explosions/free-fire-vfx-urp-266226",
+  "author": "Vefects",
+  "license": "Standard Unity Asset Store EULA",
+  "assetVersion": "1.0.2023.1",
+  "licenseType": "Extension Asset",
+  "acquiredDate": "2026-08-29",
+  "price": "Free"
+}
