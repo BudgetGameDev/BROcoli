@@ -36,6 +36,10 @@ require_tool unity
 export DOTNET_CLI_TELEMETRY_OPTOUT=1
 export SEMGREP_ENABLE_VERSION_CHECK=0
 
+# ./cd.sh publishes only what a green run of this script vouches for. Drop any
+# earlier receipt first, so an interrupted or failing run leaves no pass behind.
+python3 scripts/ci_receipt.py clear
+
 run_gate "Restore pinned .NET tools" dotnet tool restore
 run_gate "C# formatting" dotnet csharpier check Assets/Scripts Assets/Editor Assets/Tests
 run_gate "Python lint" uvx ruff@0.12.11 check scripts
@@ -46,13 +50,13 @@ run_gate "WebGL service worker behavior" node scripts/test-webgl-service-worker.
 run_gate "WebGL template contract" node scripts/test-webgl-template.cjs
 run_gate "WebGL smoke probe syntax" node --check scripts/webgl-smoke.cjs
 run_gate "WebGL build contract syntax" node --check scripts/check-webgl-build.cjs
-run_gate "Shell lint" shellcheck -x ci.sh format.sh scripts/*.sh .githooks/pre-push
-run_gate "Shell formatting" shfmt -d -i 4 -ci ci.sh format.sh scripts/*.sh .githooks/pre-push
+run_gate "Shell lint" shellcheck -x ci.sh cd.sh format.sh scripts/*.sh .githooks/pre-push
+run_gate "Shell formatting" shfmt -d -i 4 -ci ci.sh cd.sh format.sh scripts/*.sh .githooks/pre-push
 run_gate \
     "Static analysis" \
     uvx --from semgrep==1.169.0 semgrep scan \
     --config .semgrep.yml --error --strict --metrics=off \
-    Assets/Scripts Assets/Editor Assets/Tests scripts ci.sh .githooks
+    Assets/Scripts Assets/Editor Assets/Tests scripts ci.sh cd.sh .githooks
 run_gate "Source file size" python3 scripts/check_source_size.py
 
 run_gate "Unity EditMode tests" ./scripts/unity-test-check.sh
@@ -61,6 +65,8 @@ run_gate "WebGL desktop smoke test" ./scripts/webgl-smoke.sh build/WebGL
 run_gate \
     "WebGL iOS smoke test" \
     env WEBGL_SMOKE_PLATFORM=ios ./scripts/webgl-smoke.sh build/WebGL
+
+python3 scripts/ci_receipt.py write
 
 echo ""
 echo "ci: all gates passed"

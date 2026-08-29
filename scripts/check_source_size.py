@@ -15,7 +15,12 @@ SOURCE_ROOTS = (
     ROOT / "scripts",
 )
 SOURCE_SUFFIXES = {".cs", ".jslib", ".ps1", ".py", ".sh"}
-ROOT_SOURCES = (ROOT / "ci.sh", ROOT / "format.sh", ROOT / ".githooks" / "pre-push")
+ROOT_SOURCES = (
+    ROOT / "ci.sh",
+    ROOT / "cd.sh",
+    ROOT / "format.sh",
+    ROOT / ".githooks" / "pre-push",
+)
 
 
 def physical_lines(path: Path) -> int:

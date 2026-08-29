@@ -4,7 +4,7 @@ set -euo pipefail
 PROJECT_PATH="$(git rev-parse --show-toplevel)"
 TARGET_BRANCHES=""
 
-while read -r _local_ref local_oid remote_ref _remote_oid; do
+while read -r _local_ref local_oid remote_ref remote_oid; do
     case "$remote_ref" in
         refs/heads/staging | refs/heads/production)
             # Deleting a remote branch sends an all-zero local object ID. There is
@@ -13,8 +13,18 @@ while read -r _local_ref local_oid remote_ref _remote_oid; do
                 continue
             fi
 
+            # cd.sh publishes before the ref moves, because pre-push is the last
+            # hook git offers. Refuse a push that will be rejected anyway, so a
+            # deploy cannot outlive the commit it came from.
+            if [[ ! "$remote_oid" =~ ^0+$ ]]; then
+                if ! git merge-base --is-ancestor "$remote_oid" "$local_oid"; then
+                    echo "pre-push: ${remote_ref#refs/heads/} is not a fast-forward; rebase before pushing" >&2
+                    exit 1
+                fi
+            fi
+
             branch="${remote_ref#refs/heads/}"
-            TARGET_BRANCHES="${TARGET_BRANCHES:+$TARGET_BRANCHES, }$branch"
+            TARGET_BRANCHES="${TARGET_BRANCHES:+$TARGET_BRANCHES }$branch"
             ;;
     esac
 done
@@ -24,5 +34,13 @@ if [ -z "$TARGET_BRANCHES" ]; then
     exit 0
 fi
 
-echo "pre-push: pushing to $TARGET_BRANCHES; running repository CI gate"
-exec "$PROJECT_PATH/ci.sh"
+echo "pre-push: pushing to ${TARGET_BRANCHES// /, }; running repository CI gate"
+"$PROJECT_PATH/ci.sh"
+
+# Only reached when every gate passed; ci.sh exits non-zero otherwise and set -e
+# stops the push before anything is published.
+for branch in $TARGET_BRANCHES; do
+    echo ""
+    echo "pre-push: publishing $branch to GitHub Pages"
+    "$PROJECT_PATH/cd.sh" "$branch"
+done

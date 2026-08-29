@@ -16,9 +16,9 @@ This is a hard requirement, not a default to be improved on:
   `production`. Do not widen it to `dev`, to other branches, or to a
   "fast subset" of gates on every push.
 - Do not add a GitHub Actions workflow that runs quality checks, tests, or
-  builds on `dev`, or on pull requests targeting it. The only hosted job is the
-  Pages player build for `staging` and `production`, because Pages cannot deploy
-  a local artifact.
+  builds on `dev`, or on pull requests targeting it. The one hosted job is a
+  manually dispatched Pages build kept as a fallback; deploys normally come from
+  `./cd.sh` on the host, and nothing runs on push.
 - Do not add commit hooks, watchers, or scheduled jobs that verify `dev`.
 
 The cost of this is real and accepted: formatting, lint, and source-size

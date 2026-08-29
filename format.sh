@@ -18,6 +18,6 @@ dotnet tool restore
 dotnet csharpier format Assets/Scripts Assets/Editor Assets/Tests
 uvx ruff@0.12.11 check scripts --fix
 uvx ruff@0.12.11 format scripts
-shfmt -w -i 4 -ci ci.sh format.sh scripts/*.sh .githooks/pre-push
+shfmt -w -i 4 -ci ci.sh cd.sh format.sh scripts/*.sh .githooks/pre-push
 
 echo "format: complete"

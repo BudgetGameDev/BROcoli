@@ -53,10 +53,12 @@ Enable the repository-managed pre-push hook with:
 ```
 
 The hook runs `./ci.sh` when a push updates `staging` or `production`, and blocks
-that push if any gate fails. Pushes exclusively to other branches or tags skip the
-gate; `dev` is deliberately ungated, so the gate runs once at promotion rather
-than on day-to-day work. Git hooks are local and are not activated merely by
-cloning the repository, which is why the installer is required once per clone.
+that push if any gate fails. When every gate passes it then runs `./cd.sh` for
+each of those branches, publishing the player it just built. Pushes exclusively
+to other branches or tags skip both; `dev` is deliberately ungated, so this runs
+once at promotion rather than on day-to-day work. Git hooks are local and are not
+activated merely by cloning the repository, which is why the installer is
+required once per clone.
 
 ### 300-line source-file limit
 
@@ -88,10 +90,28 @@ drive the build safely.
 
 The standalone compile-only check remains available as
 `./scripts/unity-build-check.sh` or `.\scripts\unity-build-check.ps1`, but it does
-not replace the full local gate. GitHub Actions repeats only the player build
-because Pages cannot deploy the host's local artifact; it does not rerun quality
-checks, tests, or smoke probes. Changes limited to documentation, local tooling, or
-tests do not trigger that Pages build.
+not replace the full local gate.
+
+## Deployment
+
+`./cd.sh <staging|production>` publishes the player `./ci.sh` built. Staging goes
+to the `BranchStaging` and `BranchMain` folders on `gh-pages`; production goes to
+the Pages root and keeps both staging folders. It generates `version.json` and
+the staging manifest exactly as the hosted job did, then replaces `gh-pages` with
+a single root commit, because every deploy rewrites roughly 90MB of player and
+keeping that history would grow the repository without bound. The source commit
+behind any deploy stays recorded in `version.json`.
+
+`cd.sh` refuses to publish anything `ci.sh` has not passed for. A green run
+writes `build/ci-pass.json` recording the commit, the working tree, and the built
+player; `cd.sh` recomputes all three and stops unless they still match, so
+neither a stale pass, an edit made afterwards, nor a hand-run `./cd.sh` can reach
+Pages. `ci.sh` deletes that receipt before its first gate, so an interrupted or
+failing run leaves no pass behind.
+
+The GitHub Actions Pages build is now a manually dispatched fallback for when
+this host is unavailable or a clean-room build is wanted. Nothing deploys on
+push, which also keeps two writers from racing for `gh-pages`.
 
 Do not use `dotnet build` as the repository verification step. Unity generates the
 gitignored `Assembly-CSharp*.csproj` files locally, so they are absent from a clean

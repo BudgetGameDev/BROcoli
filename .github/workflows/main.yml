@@ -1,26 +1,20 @@
 name: Deploy GitHub Pages
 
+# Deploys normally come from the Mac mini: ./cd.sh publishes the player ./ci.sh
+# has already built and smoke-tested, which takes a couple of minutes instead of
+# the half hour this job needs to rebuild the same artifact. This stays as a
+# fallback for when that host is unavailable or a clean-room build is wanted.
+# It is deliberately manual: two writers pushing gh-pages would race.
 on:
-  push:
-    branches: ["staging", "production"]
-    paths-ignore:
-      - "**/*.md"
-      - ".github/**"
-      - ".githooks/**"
-      - ".quality/**"
-      - ".semgrep.yml"
-      - "Assets/Tests/**"
-      - "ci.sh"
-      - "format.sh"
-      - "scripts/autoplay-*"
-      - "scripts/check-webgl-build.cjs"
-      - "scripts/check_source_size.py"
-      - "scripts/install-git-hooks.sh"
-      - "scripts/test-*.cjs"
-      - "scripts/unity-*-check.*"
-      - "scripts/unity-webgl-build.sh"
-      - "scripts/webgl-smoke.*"
   workflow_dispatch:
+    inputs:
+      branch:
+        description: "Branch to build and deploy"
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
 
 permissions:
   contents: write
@@ -28,7 +22,6 @@ permissions:
 jobs:
   deployPages:
     name: Build and deploy GitHub Pages
-    if: github.ref_name == 'staging' || github.ref_name == 'production'
     runs-on: ubuntu-latest
     # Successful runs take about 30 minutes; fail rather than burn the default
     # six-hour ceiling when Unity or a deploy wedges.
@@ -42,6 +35,10 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
+        with:
+          # A dispatch defaults to the repository's default branch, so name the
+          # branch being deployed explicitly.
+          ref: ${{ inputs.branch }}
 
       - name: Cache Unity Library
         uses: actions/cache@v5
@@ -120,7 +117,7 @@ jobs:
             > "$WEBGL_DEPLOY_DIR/version.json"
 
       - name: Generate staging manifest
-        if: github.ref_name == 'staging'
+        if: inputs.branch == 'staging'
         shell: bash
         run: |
           BASE_NAME=$(jq -r '.name' "$WEBGL_DEPLOY_DIR/manifest.json")
@@ -137,7 +134,7 @@ jobs:
             "$WEBGL_DEPLOY_DIR/manifest-staging.json"
 
       - name: Deploy staging to BranchStaging
-        if: github.ref_name == 'staging'
+        if: inputs.branch == 'staging'
         uses: JamesIves/github-pages-deploy-action@v4.8.0
         with:
           branch: gh-pages
@@ -146,7 +143,7 @@ jobs:
           clean: true
 
       - name: Deploy staging to legacy BranchMain path
-        if: github.ref_name == 'staging'
+        if: inputs.branch == 'staging'
         uses: JamesIves/github-pages-deploy-action@v4.8.0
         with:
           branch: gh-pages
@@ -155,7 +152,7 @@ jobs:
           clean: true
 
       - name: Deploy production to Pages root
-        if: github.ref_name == 'production'
+        if: inputs.branch == 'production'
         uses: JamesIves/github-pages-deploy-action@v4.8.0
         with:
           branch: gh-pages
