@@ -209,8 +209,6 @@ public partial class SprayDamageHandler
             playerTransform != null ? playerTransform.position.ToGround() : nozzleOrigin.ToGround();
 
         float halfAngle = currentWidth * 0.5f;
-        int wallLayerMask = LayerMask.GetMask("Wall");
-
         // Detection still uses a circle around nozzle for initial broad-phase
         int hitCount = GroundPlane.OverlapCircle(origin, currentRange, hitBuffer);
 
@@ -243,14 +241,10 @@ public partial class SprayDamageHandler
 
             if (angleToEnemy <= halfAngle)
             {
-                if (
-                    Physics.Linecast(
-                        nozzleOrigin,
-                        hit.bounds.center,
-                        wallLayerMask,
-                        QueryTriggerInteraction.Ignore
-                    )
-                )
+                Vector3 sightOrigin = origin.ToWorld(nozzleOrigin.y);
+                Vector3 sightTarget = hit.bounds.center;
+                sightTarget.y = nozzleOrigin.y;
+                if (!ProjectileWallCollision.HasClearLine(sightOrigin, sightTarget))
                     continue;
 
                 // Physics-based damage: particles fizzle over distance, spread over angle

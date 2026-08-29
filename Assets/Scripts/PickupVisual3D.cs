@@ -27,11 +27,13 @@ public sealed class PickupVisual3D : MonoBehaviour
 
     private const string ModelRootName = "PickupModel3D";
 
-    // Bridges the Y-up pickup frame into the frame the meshes were authored in.
-    private static readonly Quaternion ModelFrame = Quaternion.Euler(90f, 0f, 0f);
+    // The crystal stands upright while boost faces lean toward the gameplay camera.
+    // A shared 90-degree Y-up conversion left both models reading like flat sprites.
+    private static readonly Quaternion ExperienceModelFrame = Quaternion.identity;
+    private static readonly Quaternion BoostModelFrame = Quaternion.Euler(58f, 0f, 0f);
     private const int RadialSegments = 16;
-    private const float ExperienceVisualScale = 0.3f;
-    private const float BoostVisualScale = 0.8f;
+    private const float ExperienceVisualScale = 0.62f;
+    private const float BoostVisualScale = 0.9f;
     private const float ExperienceBaseHeight = 0.28f;
     private const float BoostBaseHeight = 0.62f;
 
@@ -126,10 +128,7 @@ public sealed class PickupVisual3D : MonoBehaviour
         Kind = kind;
         animationPhase = Mathf.Abs(GetInstanceID() % 1000) * 0.013f;
         spinSpeed = kind == ModelKind.Experience ? 72f : 34f;
-        rotationAxis =
-            kind == ModelKind.Experience
-                ? new Vector3(0.25f, 0.5f, 1f).normalized
-                : Vector3.forward;
+        rotationAxis = kind == ModelKind.Experience ? Vector3.up : Vector3.forward;
         modelBasePosition =
             Vector3.up * (kind == ModelKind.Experience ? ExperienceBaseHeight : BoostBaseHeight);
         modelBaseScale =
@@ -144,7 +143,8 @@ public sealed class PickupVisual3D : MonoBehaviour
             modelRoot = existingRoot;
             modelRoot.localPosition = modelBasePosition;
             modelRoot.localScale = modelBaseScale;
-            modelBaseRotation = ModelFrame;
+            modelBaseRotation =
+                kind == ModelKind.Experience ? ExperienceModelFrame : BoostModelFrame;
             modelRoot.localRotation = modelBaseRotation;
             spinTarget = kind == ModelKind.Experience ? modelRoot : modelRoot.Find("Token Face");
             spinBaseRotation =
@@ -158,7 +158,7 @@ public sealed class PickupVisual3D : MonoBehaviour
         rootObject.layer = gameObject.layer;
         modelRoot = rootObject.transform;
         modelRoot.SetParent(transform, false);
-        modelBaseRotation = ModelFrame;
+        modelBaseRotation = kind == ModelKind.Experience ? ExperienceModelFrame : BoostModelFrame;
         modelRoot.localPosition = modelBasePosition;
         modelRoot.localRotation = modelBaseRotation;
         modelRoot.localScale = modelBaseScale;
@@ -580,8 +580,9 @@ public sealed class PickupVisual3D : MonoBehaviour
         part.GetComponent<MeshFilter>().sharedMesh = mesh;
         MeshRenderer renderer = part.GetComponent<MeshRenderer>();
         renderer.sharedMaterials = CreateMaterialArray(colors);
-        renderer.shadowCastingMode = ShadowCastingMode.Off;
-        renderer.receiveShadows = false;
+        renderer.shadowCastingMode =
+            Kind == ModelKind.Experience ? ShadowCastingMode.Off : ShadowCastingMode.On;
+        renderer.receiveShadows = true;
         renderer.lightProbeUsage = LightProbeUsage.Off;
         renderer.reflectionProbeUsage = ReflectionProbeUsage.Off;
         renderer.motionVectorGenerationMode = MotionVectorGenerationMode.ForceNoMotion;
@@ -602,7 +603,9 @@ public sealed class PickupVisual3D : MonoBehaviour
         if (Materials.TryGetValue(key, out Material material) && material != null)
             return material;
 
-        Shader shader = Shader.Find("Universal Render Pipeline/Unlit");
+        Shader shader = Shader.Find("Universal Render Pipeline/Lit");
+        if (shader == null)
+            shader = Shader.Find("Universal Render Pipeline/Simple Lit");
         if (shader == null)
             shader = Shader.Find("Sprites/Default");
 
@@ -615,6 +618,10 @@ public sealed class PickupVisual3D : MonoBehaviour
 
         if (material.HasProperty("_BaseColor"))
             material.SetColor("_BaseColor", color);
+        if (material.HasProperty("_Metallic"))
+            material.SetFloat("_Metallic", 0f);
+        if (material.HasProperty("_Smoothness"))
+            material.SetFloat("_Smoothness", 0.5f);
 
         Materials[key] = material;
         return material;

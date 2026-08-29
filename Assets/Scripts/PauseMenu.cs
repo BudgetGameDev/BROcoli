@@ -539,6 +539,22 @@ public partial class PauseMenu : MonoBehaviour
         sb.AppendLine("<size=28><b>STATS</b></size>");
         sb.AppendLine();
 
+        GameStates gameStates = FindAnyObjectByType<GameStates>();
+        DungeonManager dungeon = FindAnyObjectByType<DungeonManager>();
+        int score = gameStates != null ? gameStates.score : 0;
+        int roomsCleared = dungeon != null ? dungeon.RoomsVisited : 0;
+        int enemiesKilled = gameStates != null ? gameStates.EnemiesKilled : 0;
+        float timeSurvived = gameStates != null ? gameStates.gameTime : 0f;
+
+        sb.AppendLine($"Score: <color=white>{score:N0}</color>");
+        sb.AppendLine($"Rooms Cleared: <color=white>{roomsCleared:N0}</color>");
+        sb.AppendLine($"Enemies Killed: <color=white>{enemiesKilled:N0}</color>");
+        sb.AppendLine(
+            $"Time Survived: <color=white>{GameStates.FormatSurvivalTime(timeSurvived)}</color>"
+        );
+        sb.AppendLine();
+        sb.AppendLine("<b>BUILD</b>");
+
         sb.AppendLine(FormatStat("Level", playerStats.CurrentLevel, 1f, true));
         sb.AppendLine(
             FormatStat(

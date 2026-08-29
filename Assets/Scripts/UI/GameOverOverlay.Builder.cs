@@ -65,13 +65,13 @@ public sealed partial class GameOverOverlay
         RectTransform contentRect = content.GetComponent<RectTransform>();
         contentRect.anchorMin = new Vector2(0.5f, 0.5f);
         contentRect.anchorMax = new Vector2(0.5f, 0.5f);
-        contentRect.sizeDelta = new Vector2(760f, 560f);
+        contentRect.sizeDelta = new Vector2(760f, 640f);
 
         CreateText(
             content.transform,
             "GameOverTitle",
             "GAME OVER",
-            new Vector2(0f, 175f),
+            new Vector2(0f, 230f),
             new Vector2(720f, 110f),
             76f,
             new Color(1f, 0.24f, 0.28f),
@@ -82,9 +82,9 @@ public sealed partial class GameOverOverlay
             content.transform,
             "RunStats",
             string.Empty,
-            new Vector2(0f, 55f),
-            new Vector2(700f, 120f),
-            34f,
+            new Vector2(0f, 75f),
+            new Vector2(700f, 210f),
+            30f,
             Color.white,
             FontStyles.Bold
         );
@@ -93,7 +93,7 @@ public sealed partial class GameOverOverlay
             content.transform,
             "RestartHint",
             "The outbreak continues. Ready for another run?",
-            new Vector2(0f, -35f),
+            new Vector2(0f, -65f),
             new Vector2(700f, 70f),
             24f,
             new Color(0.76f, 0.8f, 0.88f),
@@ -110,7 +110,7 @@ public sealed partial class GameOverOverlay
         RectTransform buttonsRect = buttons.GetComponent<RectTransform>();
         buttonsRect.anchorMin = new Vector2(0.5f, 0.5f);
         buttonsRect.anchorMax = new Vector2(0.5f, 0.5f);
-        buttonsRect.anchoredPosition = new Vector2(0f, -145f);
+        buttonsRect.anchoredPosition = new Vector2(0f, -190f);
         buttonsRect.sizeDelta = new Vector2(650f, 76f);
 
         HorizontalLayoutGroup layout = buttons.GetComponent<HorizontalLayoutGroup>();

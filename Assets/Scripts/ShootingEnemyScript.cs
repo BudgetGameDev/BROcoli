@@ -118,15 +118,23 @@ public class ShootingEnemyScript : EnemyBase
             return;
         if (Time.time < nextShootTime)
             return;
-        nextShootTime = Time.time + (1f / fireRate) / Mathf.Max(0.1f, EnemyTimeScale);
 
         // Calculate direction to player
-        Vector2 direction = (
-            player.position.ToGround() - shootPoint.position.ToGround()
-        ).normalized;
+        Vector2 shooterPosition = shootPoint.position.ToGround();
+        Vector2 playerPosition = player.position.ToGround();
+        if (
+            !ProjectileWallCollision.HasClearLine(
+                shooterPosition.ToWorld(projectileVisualHeight),
+                playerPosition.ToWorld(projectileVisualHeight)
+            )
+        )
+            return;
+
+        nextShootTime = Time.time + (1f / fireRate) / Mathf.Max(0.1f, EnemyTimeScale);
+        Vector2 direction = (playerPosition - shooterPosition).normalized;
 
         // Calculate spawn position with offset (similar to player projectile spawning)
-        Vector2 spawnPos2D = shootPoint.position.ToGround();
+        Vector2 spawnPos2D = shooterPosition;
 
         // Offset to the side (perpendicular to firing direction)
         Vector2 perpendicular = new Vector2(-direction.y, direction.x);

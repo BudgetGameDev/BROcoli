@@ -25,6 +25,8 @@ public sealed partial class GameOverOverlay : MonoBehaviour
     public bool IsVisible { get; private set; }
     public int DisplayedScore { get; private set; }
     public int DisplayedRooms { get; private set; }
+    public int DisplayedEnemiesKilled { get; private set; }
+    public float DisplayedTimeSurvived { get; private set; }
     public Button RestartButton => restartButton;
     public Button MainMenuButton => mainMenuButton;
 
@@ -36,18 +38,29 @@ public sealed partial class GameOverOverlay : MonoBehaviour
 
     public static GameOverOverlay Show(int score, int rooms)
     {
+        return Show(score, rooms, 0, 0f);
+    }
+
+    public static GameOverOverlay Show(int score, int rooms, int enemiesKilled, float timeSurvived)
+    {
         if (active == null)
             active = CreateOverlay();
 
-        active.Display(score, rooms);
+        active.Display(score, rooms, enemiesKilled, timeSurvived);
         return active;
     }
 
-    private void Display(int score, int rooms)
+    private void Display(int score, int rooms, int enemiesKilled, float timeSurvived)
     {
         DisplayedScore = Mathf.Max(0, score);
         DisplayedRooms = Mathf.Max(0, rooms);
-        statsText.text = $"SCORE  {DisplayedScore:N0}\nROOMS  {DisplayedRooms:N0}";
+        DisplayedEnemiesKilled = Mathf.Max(0, enemiesKilled);
+        DisplayedTimeSurvived = Mathf.Max(0f, timeSurvived);
+        statsText.text =
+            $"SCORE  {DisplayedScore:N0}\n"
+            + $"ROOMS CLEARED  {DisplayedRooms:N0}\n"
+            + $"ENEMIES KILLED  {DisplayedEnemiesKilled:N0}\n"
+            + $"TIME SURVIVED  {GameStates.FormatSurvivalTime(DisplayedTimeSurvived)}";
 
         EnsureEventSystem();
         gameObject.SetActive(true);

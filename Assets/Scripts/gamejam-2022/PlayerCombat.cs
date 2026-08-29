@@ -140,7 +140,7 @@ public class PlayerCombat : MonoBehaviour
 
         foreach (Collider hit in hits)
         {
-            if (hit == null)
+            if (!CanShootTarget(hit, playerPos))
                 continue;
 
             float sqrDist = (hit.transform.position.ToGround() - playerPos).sqrMagnitude;
@@ -183,7 +183,7 @@ public class PlayerCombat : MonoBehaviour
 
         foreach (Collider hit in hits)
         {
-            if (hit == null)
+            if (!CanShootTarget(hit, playerPos))
                 continue;
             EnemyBase enemy = hit.GetComponent<EnemyBase>();
             if (enemy == null)
@@ -258,6 +258,17 @@ public class PlayerCombat : MonoBehaviour
         }
 
         return bestTarget;
+    }
+
+    private static bool CanShootTarget(Collider target, Vector2 shooterPosition)
+    {
+        if (target == null)
+            return false;
+
+        Vector3 origin = shooterPosition.ToWorld(ProjectileVisualHeight);
+        Vector3 targetPoint = target.bounds.center;
+        targetPoint.y = ProjectileVisualHeight;
+        return ProjectileWallCollision.HasClearLine(origin, targetPoint);
     }
 
     /// <summary>

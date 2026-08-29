@@ -667,6 +667,7 @@ public abstract class EnemyBase : MonoBehaviour
         if (context?.GameStates != null)
         {
             context.GameStates.score += ScoreValue;
+            context.GameStates.RecordEnemyKilled();
         }
 
         SpawnExpGain();

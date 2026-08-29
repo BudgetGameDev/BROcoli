@@ -18,6 +18,29 @@ public static class ProjectileWallCollision
             && (WallMask & (1 << candidate.gameObject.layer)) != 0;
     }
 
+    /// <summary>
+    /// Returns whether a shot can travel between two points without crossing
+    /// a solid wall. Use the shooter's position rather than an offset muzzle
+    /// position so a muzzle cannot begin on the far side of a thin wall.
+    /// </summary>
+    public static bool HasClearLine(Vector3 origin, Vector3 target)
+    {
+        Vector3 displacement = target - origin;
+        float distance = displacement.magnitude;
+        if (distance <= 0.000001f)
+            return true;
+        if (WallMask == 0)
+            return true;
+
+        return !Physics.Raycast(
+            origin,
+            displacement / distance,
+            distance,
+            WallMask,
+            QueryTriggerInteraction.Ignore
+        );
+    }
+
     public static bool Sweep(
         Collider projectileCollider,
         Transform projectileTransform,
