@@ -64,7 +64,9 @@ public sealed class DungeonWallGeometryTests
 
     /// <summary>
     /// The four runs that meet at a grid corner must all reach it, or the
-    /// dungeon shell has a hole where two rooms meet.
+    /// dungeon shell has a hole where two rooms meet. This holds for
+    /// mega-room-internal edges too: they open everything between their posts
+    /// but keep the two post stubs, so the run still spans its boundary.
     /// </summary>
     [Test]
     public void WallRunsReachTheirJunctions()

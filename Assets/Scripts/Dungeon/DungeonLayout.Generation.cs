@@ -12,6 +12,22 @@ public sealed partial class DungeonLayout
         if (Ring(room) == 0)
             return CreateArchetype(RoomShape.OpenHall, RoomTheme.Sparse, 0);
 
+        if (TryGetMegaCluster(room, out Vector2Int anchor, out _))
+        {
+            // The whole cluster shares one theme rolled at its anchor, so a
+            // merged hall reads as one authored space, not a patchwork.
+            System.Random megaRandom = RoomRandom(anchor, MegaThemeSalt);
+            RoomTheme megaTheme = megaRandom.NextDouble() switch
+            {
+                < 0.30 => RoomTheme.Arena,
+                < 0.50 => RoomTheme.Banquet,
+                < 0.68 => RoomTheme.Flooded,
+                < 0.84 => RoomTheme.Storage,
+                _ => RoomTheme.Sparse,
+            };
+            return CreateArchetype(RoomShape.MegaSection, megaTheme, megaRandom.Next(0, 4));
+        }
+
         System.Random themeRandom = RoomRandom(room, 808);
         double themeRoll = themeRandom.NextDouble();
         RoomTheme theme = themeRoll switch
@@ -100,9 +116,11 @@ public sealed partial class DungeonLayout
     }
 
     /// <summary>
-    /// Rolls a room's population archetype: some rooms are empty, most hold a
-    /// small or medium group, a few are packed, and rare rooms are elite dens
-    /// (a couple of low-tier enemies promoted to elites).
+    /// Rolls a room's population archetype. Counts are capacity-relative, so
+    /// the same distribution packs a tiny chamber wall-to-wall and floods an
+    /// open hall: some rooms are empty, most hold a small or medium group,
+    /// some are packed, a few fill to capacity as swarms, and rare rooms are
+    /// elite dens (a couple of low-tier enemies promoted to elites).
     /// </summary>
     public RoomPopulation Population(Vector2Int room)
     {
@@ -120,19 +138,60 @@ public sealed partial class DungeonLayout
             return new RoomPopulation(Mathf.Min(archetype.EnemyCapacity, hordeSize), false);
         }
 
+        if (archetype.Shape == RoomShape.MegaSection)
+            return MegaCellPopulation(room, random, ring, archetype.EnemyCapacity);
+
+        int capacity = archetype.EnemyCapacity;
         double roll = random.NextDouble();
-        if (roll < 0.18)
+        if (roll < 0.14)
             return new RoomPopulation(0, false);
-        if (roll < 0.52)
-            return new RoomPopulation(1 + random.Next(0, 2) + ring / 3, false);
-        if (roll < 0.82)
-            return new RoomPopulation(3 + random.Next(0, 3) + Mathf.Min(ring, 5), false);
-        if (roll < 0.95)
+        if (roll < 0.24 && ring >= 2 && capacity >= RoomPopulation.SpiderSwarmSize)
+            return RoomPopulation.SpiderSwarm();
+        if (roll < 0.46)
+            return new RoomPopulation(1 + random.Next(0, 2) + ring / 4, false);
+        if (roll < 0.72)
             return new RoomPopulation(
-                Mathf.Min(12, 6 + random.Next(0, 4) + Mathf.Min(ring, 6)),
+                Mathf.Min(capacity, 3 + random.Next(0, 3) + Mathf.Min(ring, 5)),
                 false
             );
+        if (roll < 0.86)
+            return new RoomPopulation(
+                Mathf.Min(capacity, Mathf.Max(3, capacity * 3 / 4 + random.Next(0, 3))),
+                false
+            );
+        if (roll < 0.94)
+            // A swarm fills the room to capacity, however small the room is.
+            return new RoomPopulation(capacity, false);
         return new RoomPopulation(2 + random.Next(0, 2), true);
+    }
+
+    /// <summary>
+    /// Population for one cell of a mega room. The cluster rolls its character
+    /// once at its anchor — deserted, scattered, an elite patrol, packed, or a
+    /// wall-to-wall horde — and every cell jitters around that, so a horde
+    /// hall is a horde in every corner rather than a patchwork.
+    /// </summary>
+    private RoomPopulation MegaCellPopulation(
+        Vector2Int room,
+        System.Random cellRandom,
+        int ring,
+        int capacity
+    )
+    {
+        TryGetMegaCluster(room, out Vector2Int anchor, out _);
+        double style = RoomRandom(anchor, MegaPopulationSalt).NextDouble();
+        if (style < 0.10)
+            return new RoomPopulation(0, false);
+        if (style < 0.40)
+            return new RoomPopulation(2 + cellRandom.Next(0, 3), false);
+        if (style < 0.52)
+            return new RoomPopulation(1 + cellRandom.Next(0, 2), true);
+        if (style < 0.85)
+            return new RoomPopulation(
+                Mathf.Min(capacity, 7 + cellRandom.Next(0, 4) + Mathf.Min(ring, 4)),
+                false
+            );
+        return new RoomPopulation(capacity - cellRandom.Next(0, 3), false);
     }
 
     private static RoomArchetype CreateArchetype(RoomShape shape, RoomTheme theme, int variant)
@@ -140,6 +199,7 @@ public sealed partial class DungeonLayout
         return shape switch
         {
             RoomShape.GrandArena => new RoomArchetype(shape, theme, 12f, 8.2f, variant),
+            RoomShape.MegaSection => new RoomArchetype(shape, theme, 12f, 8.2f, variant),
             RoomShape.Tiny => new RoomArchetype(shape, theme, 2.8f, 2.8f, variant),
             RoomShape.Compact => new RoomArchetype(shape, theme, 4.7f, 4.7f, variant),
             RoomShape.NarrowHorizontal => new RoomArchetype(shape, theme, 10.2f, 2.8f, variant),
@@ -165,23 +225,65 @@ public sealed partial class DungeonLayout
     }
 
     /// <summary>
-    /// When all four of a room's edges roll closed, the room deterministically
-    /// forces one of them open so it can never seal itself (or a neighbour) in.
+    /// The doors this room forces open on top of the base rolls, one bit per
+    /// direction. A room whose edges all rolled closed forces two exits (just
+    /// one when it is a mega-room cell, which already reaches more exits
+    /// through its cluster), and a room left with a single door usually forces
+    /// a second, so dead ends stay rare instead of common. Cluster-internal
+    /// edges are already open and are never counted or forced.
     /// </summary>
-    private bool TryGetForcedEdge(Vector2Int room, out DungeonEdge forcedEdge)
+    private int ForcedDoorMask(Vector2Int room)
     {
+        int closedMask = 0;
+        int openCount = 0;
         for (int direction = 0; direction < 4; direction++)
         {
-            if (IsEdgeBaseOpen(EdgeBetween(room, direction)))
-            {
-                forcedEdge = default;
-                return false;
-            }
+            DungeonEdge edge = EdgeBetween(room, direction);
+            if (IsClusterInternalEdge(edge))
+                continue;
+            if (IsEdgeBaseOpen(edge))
+                openCount++;
+            else
+                closedMask |= 1 << direction;
         }
 
-        int forcedDirection = (int)(Hash(room.x, room.y, ForcedDoorSalt) % 4);
-        forcedEdge = EdgeBetween(room, forcedDirection);
-        return true;
+        if (openCount >= 2 || closedMask == 0)
+            return 0;
+
+        if (openCount == 1)
+        {
+            bool breakDeadEnd =
+                Hash(room.x, room.y, DeadEndBreakSalt) / (float)uint.MaxValue < SecondDoorChance;
+            return breakDeadEnd ? PickDirectionBit(room, SecondDoorSalt, closedMask) : 0;
+        }
+
+        int forced = PickDirectionBit(room, ForcedDoorSalt, closedMask);
+        if (!IsMegaRoomCell(room))
+            forced |= PickDirectionBit(room, SecondDoorSalt, closedMask & ~forced);
+        return forced;
+    }
+
+    /// <summary>One deterministic direction bit out of a candidate mask.</summary>
+    private int PickDirectionBit(Vector2Int room, int salt, int candidateMask)
+    {
+        int count = 0;
+        for (int direction = 0; direction < 4; direction++)
+        {
+            if ((candidateMask & (1 << direction)) != 0)
+                count++;
+        }
+        if (count == 0)
+            return 0;
+
+        int chosen = (int)(Hash(room.x, room.y, salt) % (uint)count);
+        for (int direction = 0; direction < 4; direction++)
+        {
+            if ((candidateMask & (1 << direction)) == 0)
+                continue;
+            if (chosen-- == 0)
+                return 1 << direction;
+        }
+        return 0;
     }
 
     private uint Hash(int x, int y, int salt)

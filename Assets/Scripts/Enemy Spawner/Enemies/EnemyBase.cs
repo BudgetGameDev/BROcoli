@@ -90,6 +90,7 @@ public abstract class EnemyBase : MonoBehaviour
     private float baseHealth;
     private float baseMaxHealth;
     private float baseSpeed;
+    private float baseDamage;
     private int baseScoreValue;
     private Quaternion baseLocalRotation;
 
@@ -129,6 +130,7 @@ public abstract class EnemyBase : MonoBehaviour
         baseHealth = Health;
         baseMaxHealth = MaxHealth;
         baseSpeed = Speed;
+        baseDamage = Damage;
         baseScoreValue = ScoreValue;
 
         foreach (var sr in GetComponentsInChildren<SpriteRenderer>(true))
@@ -816,6 +818,7 @@ public abstract class EnemyBase : MonoBehaviour
         Health = baseHealth;
         MaxHealth = baseMaxHealth;
         Speed = baseSpeed;
+        Damage = baseDamage;
         ScoreValue = baseScoreValue;
         healthBarVisable = false;
         isKnockedBack = false;

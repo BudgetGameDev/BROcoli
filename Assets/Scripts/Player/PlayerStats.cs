@@ -604,6 +604,36 @@ public partial class PlayerStats : MonoBehaviour
     }
 
     /// <summary>
+    /// The player's combat power relative to a fresh run (1.0 at spawn).
+    /// Offense is expected DPS (damage, attack speed, crit, spray multiplier);
+    /// defense is effective HP (max health, armor, dodge, regen, life steal).
+    /// The dungeon reads this when a room spawns its enemies, so groups stay
+    /// correctly challenging as the build comes online.
+    /// </summary>
+    public float ComputePowerScore()
+    {
+        float attackInterval = Mathf.Max(0.15f, CurrentAttackSpeed);
+        float critFactor = 1f + (_currentCritChance / 100f) * Mathf.Max(0f, _currentCritDamage - 1f);
+        float sprayFactor = Mathf.Max(0.25f, _currentSprayDamageMultiplier);
+        float dps = Mathf.Max(1f, CurrentDamage) * critFactor * sprayFactor / attackInterval;
+
+        const float baselineCritFactor = 1f + (DefaultCritChance / 100f) * (DefaultCritDamage - 1f);
+        const float baselineDps = DefaultBaseDamage * baselineCritFactor / DefaultAttackSpeed;
+        float offense = dps / baselineDps;
+
+        // Regen and life steal behave like extra health over a stretch of
+        // fighting; armor and dodge stretch how far each hit point goes.
+        float sustain = _currentHealthRegen + dps * (_currentLifeSteal / 100f) * 0.5f;
+        float effectiveHealth =
+            (_currentMaxHealth + sustain * 8f)
+            * (1f + _currentArmor / 20f)
+            / Mathf.Max(0.25f, 1f - _currentDodgeChance / 100f);
+        float defense = effectiveHealth / DefaultMaxHealth;
+
+        return Mathf.Sqrt(Mathf.Max(0.1f, offense) * Mathf.Max(0.1f, defense));
+    }
+
+    /// <summary>
     /// Apply life steal healing based on damage dealt.
     /// Call this after dealing damage to enemies.
     /// </summary>

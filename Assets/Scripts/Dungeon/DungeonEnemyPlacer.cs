@@ -13,6 +13,17 @@ public static class DungeonEnemyPlacer
 {
     private const float CenterClearRadius = 4f;
 
+    // How much of the player's power growth (see PlayerStats.ComputePowerScore)
+    // feeds back into enemy strength. Every exponent sits below 1 so upgrades
+    // still feel like progress: a player four times as powerful meets enemies
+    // roughly 2.3x as tough, not 4x.
+    private const float HealthPowerExponent = 0.6f;
+    private const float DamagePowerExponent = 0.35f;
+    private const float CountPowerExponent = 0.25f;
+    private const float MaxHealthPowerScale = 8f;
+    private const float MaxDamagePowerScale = 3f;
+    private const float MaxCountPowerScale = 1.75f;
+
     /// <summary>
     /// Spawns the room's enemy group dormant and returns it. The mix of enemy
     /// types unlocks with ring distance; elite dens promote low-tier enemies.
@@ -43,14 +54,29 @@ public static class DungeonEnemyPlacer
         if (allowed.Count == 0)
             return spawned;
 
+        EnemyBase swarmSpider = population.IsSpiderSwarm ? FindSpider(allowed) : null;
+
         System.Random random = layout.RoomRandom(room, 606);
-        float healthScale = layout.EnemyHealthScale(room);
+        float power = CurrentPlayerPower();
+        float healthScale =
+            layout.EnemyHealthScale(room)
+            * PowerScale(power, HealthPowerExponent, MaxHealthPowerScale);
+        float damageScale = PowerScale(power, DamagePowerExponent, MaxDamagePowerScale);
         Vector2 roomCenter = DungeonLayout.RoomCenter(room);
 
         int spawnCount = Mathf.Min(population.Count, archetype.EnemyCapacity);
+        if (!population.IsSpiderSwarm)
+        {
+            spawnCount = Mathf.Min(
+                archetype.EnemyCapacity,
+                Mathf.RoundToInt(
+                    spawnCount * PowerScale(power, CountPowerExponent, MaxCountPowerScale)
+                )
+            );
+        }
         for (int i = 0; i < spawnCount; i++)
         {
-            EnemyBase prefab = PickEnemy(allowed, archetype, i, random);
+            EnemyBase prefab = PickEnemy(allowed, swarmSpider, archetype, i, random);
             Vector3 position = PickSpot(roomCenter, archetype, random).ToWorld();
 
             EnemyBase enemy = PoolManager.Instance?.GetEnemy(prefab, position, Quaternion.identity);
@@ -66,6 +92,7 @@ public static class DungeonEnemyPlacer
 
             enemy.Health *= healthScale;
             enemy.MaxHealth *= healthScale;
+            enemy.Damage *= damageScale;
 
             if (population.Elite)
             {
@@ -157,6 +184,18 @@ public static class DungeonEnemyPlacer
         dormant.Clear();
     }
 
+    private static float CurrentPlayerPower()
+    {
+        PlayerStats stats = PlayerStats.Resolve();
+        return stats != null ? stats.ComputePowerScore() : 1f;
+    }
+
+    /// <summary>A power multiplier that never weakens enemies below baseline.</summary>
+    private static float PowerScale(float power, float exponent, float max)
+    {
+        return Mathf.Clamp(Mathf.Pow(Mathf.Max(1f, power), exponent), 1f, max);
+    }
+
     private static void DropEliteReward(Vector3 position)
     {
         GameObject prefab = LootChest.PickWeightedBoost(
@@ -168,11 +207,15 @@ public static class DungeonEnemyPlacer
 
     private static EnemyBase PickEnemy(
         List<EnemyBase> allowed,
+        EnemyBase swarmSpider,
         DungeonLayout.RoomArchetype archetype,
         int spawnIndex,
         System.Random random
     )
     {
+        if (swarmSpider != null)
+            return swarmSpider;
+
         // Grand arenas should visibly include the restored fast archetype
         // rather than relying on a low-probability uniform roll.
         if (archetype.Shape == DungeonLayout.RoomShape.GrandArena && spawnIndex == 0)
@@ -185,6 +228,17 @@ public static class DungeonEnemyPlacer
         }
 
         return allowed[random.Next(allowed.Count)];
+    }
+
+    private static EnemyBase FindSpider(List<EnemyBase> allowed)
+    {
+        foreach (EnemyBase candidate in allowed)
+        {
+            if (candidate.name.Contains("Spider"))
+                return candidate;
+        }
+
+        return null;
     }
 
     private static Vector2 PickSpot(

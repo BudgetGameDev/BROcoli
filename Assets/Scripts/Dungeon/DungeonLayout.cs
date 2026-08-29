@@ -131,9 +131,14 @@ public sealed partial class DungeonLayout
         new Vector2Int(-1, 0),
     };
 
-    private const float DoorOpenChance = 0.62f;
+    // High enough that most rooms have several ways through; the forced-door
+    // rules below then make single-door dead ends genuinely rare.
+    private const float DoorOpenChance = 0.7f;
+    private const float SecondDoorChance = 0.7f;
     private const int EdgeSalt = 101;
     private const int ForcedDoorSalt = 202;
+    private const int SecondDoorSalt = 203;
+    private const int DeadEndBreakSalt = 204;
 
     private readonly int seed;
 
@@ -175,22 +180,25 @@ public sealed partial class DungeonLayout
     }
 
     /// <summary>
-    /// Whether the doorway on the given side of a room is open. A door is open
-    /// when its edge rolls open, or when either adjacent room would otherwise
-    /// be fully sealed and picked this edge as its forced exit. This guarantees
-    /// every room always has at least one active door.
+    /// Whether the doorway on the given side of a room is open. An edge inside
+    /// a mega-room cluster is always open. Otherwise a door is open when its
+    /// edge rolls open, or when either adjacent room forces it open so it is
+    /// not sealed in or left as a dead end (see <see cref="ForcedDoorMask"/>).
+    /// Every room always keeps at least one active door.
     /// </summary>
     public bool IsDoorOpen(Vector2Int room, int direction)
     {
         DungeonEdge edge = EdgeBetween(room, direction);
+        if (IsClusterInternalEdge(edge))
+            return true;
         if (IsEdgeBaseOpen(edge))
             return true;
-        if (TryGetForcedEdge(room, out DungeonEdge forced) && forced.Equals(edge))
+        if ((ForcedDoorMask(room) & (1 << direction)) != 0)
             return true;
 
         Vector2Int neighbour = room + DirectionOffsets[direction];
-        return TryGetForcedEdge(neighbour, out DungeonEdge neighbourForced)
-            && neighbourForced.Equals(edge);
+        int opposite = (direction + 2) % 4;
+        return (ForcedDoorMask(neighbour) & (1 << opposite)) != 0;
     }
 
     /// <summary>Deterministic per-room random stream for content decisions.</summary>
@@ -202,13 +210,22 @@ public sealed partial class DungeonLayout
     /// <summary>What kind of enemy group a room holds.</summary>
     public readonly struct RoomPopulation
     {
+        public const int SpiderSwarmSize = 5;
+
         public readonly int Count;
         public readonly bool Elite;
+        public readonly bool IsSpiderSwarm;
 
-        public RoomPopulation(int count, bool elite)
+        public RoomPopulation(int count, bool elite, bool isSpiderSwarm = false)
         {
             Count = count;
             Elite = elite;
+            IsSpiderSwarm = isSpiderSwarm;
+        }
+
+        public static RoomPopulation SpiderSwarm()
+        {
+            return new RoomPopulation(SpiderSwarmSize, false, true);
         }
     }
 
@@ -224,6 +241,13 @@ public sealed partial class DungeonLayout
         LongHorizontal,
         LongVertical,
         Divided,
+
+        /// <summary>
+        /// One cell of a merged mega room: a full open shell whose
+        /// cluster-internal edges build no wall at all, so several cells read
+        /// as one long, deep, or huge chamber.
+        /// </summary>
+        MegaSection,
     }
 
     public enum RoomTheme
@@ -271,8 +295,11 @@ public sealed partial class DungeonLayout
         public int EnemyCapacity =>
             Shape switch
             {
-                RoomShape.Tiny => 3,
-                RoomShape.Compact => 5,
+                // Tiny and compact rooms hold more than their floor space
+                // suggests, so a swarm roll can genuinely cram them full.
+                RoomShape.Tiny => 6,
+                RoomShape.Compact => 8,
+                RoomShape.MegaSection => 16,
                 RoomShape.NarrowHorizontal => 6,
                 RoomShape.NarrowVertical => 6,
                 RoomShape.LongHorizontal => 8,

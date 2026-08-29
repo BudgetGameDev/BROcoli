@@ -28,7 +28,11 @@ public sealed partial class DungeonLayout
     /// <summary>
     /// Chooses the repeatable openings for a shared edge. A closed edge is a
     /// solid wall run with no gateway at all; an open edge drops one to three
-    /// wall pieces, of which at most one is framed by an archway.
+    /// wall pieces, of which at most one is framed by an archway. An edge
+    /// inside a mega-room cluster opens every slot except the two at its grid
+    /// posts: the cells read as one continuous space, the remaining stubs
+    /// stand as pillars marking the old boundary, and every run meeting a
+    /// post stays walled there, which the wall-fade grouping relies on.
     /// </summary>
     public DungeonPassage Passage(DungeonEdge edge, bool open)
     {
@@ -36,6 +40,11 @@ public sealed partial class DungeonLayout
             return new DungeonPassage(false, 0, 0);
 
         int slotCount = edge.Horizontal ? RoomTilesX : RoomTilesZ;
+        if (IsClusterInternalEdge(edge))
+        {
+            int innerMask = ((1 << slotCount) - 1) & ~(1 | (1 << (slotCount - 1)));
+            return new DungeonPassage(true, innerMask, 0);
+        }
         int salt = edge.Horizontal ? PassagePatternSalt : PassagePatternSalt + 1;
         var random = new System.Random((int)Hash(edge.X, edge.Y, salt));
         double countRoll = random.NextDouble();
