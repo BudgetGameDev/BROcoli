@@ -2,8 +2,12 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// Fades dungeon walls that sit between the gameplay camera and a visible character.
-/// Runtime material copies keep the shared wall material unchanged.
+/// Fades dungeon walls that sit between the gameplay camera and a character
+/// who has to stay readable. Every decision - which logical wall group is in
+/// the way, when it lowers, and when it may stand back up - belongs to
+/// <see cref="WallVisibilityResolver"/>; this component only turns the answer
+/// into materials. Runtime material copies keep the shared wall material
+/// unchanged.
 /// </summary>
 [DisallowMultipleComponent]
 [RequireComponent(typeof(Camera))]
@@ -39,13 +43,13 @@ public sealed partial class CameraOcclusionFader : MonoBehaviour
 
     [Header("Occlusion Stability")]
     [Tooltip(
-        "A wall that disappears from detection and returns within this interval is treated as boundary jitter."
+        "A wall group that disappears from detection and returns within this interval is treated as boundary jitter."
     )]
     [SerializeField, Min(0f)]
     private float flickerReacquireWindow = 0.45f;
 
     [Tooltip(
-        "How long a rapidly reacquired wall remains lowered. Initial lowering and ordinary releases are unaffected."
+        "How long a rapidly reacquired wall group remains lowered. Initial lowering and ordinary releases are unaffected."
     )]
     [SerializeField, Min(0f)]
     private float flickerStabilityHold = 0.65f;
@@ -57,10 +61,6 @@ public sealed partial class CameraOcclusionFader : MonoBehaviour
         public readonly Material[] FadedMaterials;
         public readonly Color[] BaseColors;
         public float Visibility = 1f;
-        public float LastOccludedTime = float.NegativeInfinity;
-        public float DetectionLostTime = float.NegativeInfinity;
-        public float StabilityHoldUntil = float.NegativeInfinity;
-        public bool DirectlyOccludedLastFrame;
         public bool UsingFadedMaterials;
 
         public FadeState(
@@ -133,13 +133,32 @@ public sealed partial class CameraOcclusionFader : MonoBehaviour
 
     private readonly RaycastHit[] castHits = new RaycastHit[MaxCastHits];
     private readonly List<Renderer> hitRenderers = new();
-    private readonly HashSet<DungeonOcclusionSection> currentSections = new();
     private readonly HashSet<Renderer> currentOccluders = new();
     private readonly Dictionary<Renderer, FadeState> fadeStates = new();
     private readonly List<Renderer> statesToRemove = new();
+    private WallVisibilityResolver resolver;
     private Shader fadeShader;
 
+    /// <summary>How many renderers are currently faded, for diagnostics.</summary>
     public int ActiveOccluderCount { get; private set; }
+
+    /// <summary>How many logical wall groups are lowered, for diagnostics.</summary>
+    public int LoweredGroupCount { get; private set; }
+
+    /// <summary>
+    /// The decision layer, created on demand. A script reload while play mode
+    /// is running rebuilds this component's plain fields without calling
+    /// <see cref="Awake"/> again, so anything only assigned there comes back
+    /// null and every later frame throws.
+    /// </summary>
+    private WallVisibilityResolver Resolver =>
+        resolver ??= new WallVisibilityResolver(
+            new WallVisibilityStateMachine.Settings(
+                releaseDelay,
+                flickerReacquireWindow,
+                flickerStabilityHold
+            )
+        );
 
     private void Awake()
     {
@@ -152,12 +171,11 @@ public sealed partial class CameraOcclusionFader : MonoBehaviour
     private void LateUpdate()
     {
         ResolveTarget();
-        currentSections.Clear();
         currentOccluders.Clear();
-
-        FindOccludingGeometry();
+        UpdateOccludingGeometry();
 
         ActiveOccluderCount = currentOccluders.Count;
+        LoweredGroupCount = Resolver.LoweredGroups.Count;
         UpdateFades();
     }
 
@@ -180,18 +198,19 @@ public sealed partial class CameraOcclusionFader : MonoBehaviour
 
     private void UpdateFades()
     {
-        float now = Time.unscaledTime;
         foreach (Renderer renderer in currentOccluders)
         {
-            if (!fadeStates.TryGetValue(renderer, out FadeState state))
+            if (!fadeStates.ContainsKey(renderer))
             {
-                state = new FadeState(
+                fadeStates.Add(
                     renderer,
-                    fadeShader,
-                    wallFadeFeatherFraction,
-                    visibleWallBaseFraction
+                    new FadeState(
+                        renderer,
+                        fadeShader,
+                        wallFadeFeatherFraction,
+                        visibleWallBaseFraction
+                    )
                 );
-                fadeStates.Add(renderer, state);
             }
         }
 
@@ -207,38 +226,14 @@ public sealed partial class CameraOcclusionFader : MonoBehaviour
                 continue;
             }
 
-            bool directlyOccluded = currentOccluders.Contains(renderer);
-            if (directlyOccluded)
-            {
-                if (
-                    !state.DirectlyOccludedLastFrame
-                    && now - state.DetectionLostTime <= flickerReacquireWindow
-                )
-                {
-                    state.StabilityHoldUntil = Mathf.Max(
-                        state.StabilityHoldUntil,
-                        now + flickerStabilityHold
-                    );
-                }
-
-                state.LastOccludedTime = now;
-            }
-            else if (state.DirectlyOccludedLastFrame)
-                state.DetectionLostTime = now;
-
-            state.DirectlyOccludedLastFrame = directlyOccluded;
-            bool occluded =
-                directlyOccluded
-                || now <= state.StabilityHoldUntil
-                || now - state.LastOccludedTime <= releaseDelay;
-            float desiredVisibility = occluded ? 0f : 1f;
+            bool lowered = currentOccluders.Contains(renderer);
             state.Visibility = Mathf.MoveTowards(
                 state.Visibility,
-                desiredVisibility,
+                lowered ? 0f : 1f,
                 fadeSpeed * Time.unscaledDeltaTime
             );
 
-            if (occluded && !state.UsingFadedMaterials)
+            if (lowered && !state.UsingFadedMaterials)
             {
                 renderer.sharedMaterials = state.FadedMaterials;
                 state.UsingFadedMaterials = true;
@@ -247,7 +242,7 @@ public sealed partial class CameraOcclusionFader : MonoBehaviour
             if (state.UsingFadedMaterials)
                 ApplyVisibility(state);
 
-            if (!occluded && state.Visibility >= 0.999f)
+            if (!lowered && state.Visibility >= 0.999f)
             {
                 renderer.sharedMaterials = state.OriginalMaterials;
                 state.UsingFadedMaterials = false;
@@ -267,9 +262,9 @@ public sealed partial class CameraOcclusionFader : MonoBehaviour
             DestroyFadedMaterials(state);
         }
         fadeStates.Clear();
-        currentSections.Clear();
         currentOccluders.Clear();
         ResetDetection();
         ActiveOccluderCount = 0;
+        LoweredGroupCount = 0;
     }
 }

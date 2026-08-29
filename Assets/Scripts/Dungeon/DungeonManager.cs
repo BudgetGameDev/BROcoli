@@ -42,7 +42,6 @@ public partial class DungeonManager : MonoBehaviour
 
     private readonly Dictionary<Vector2Int, LoadedRoom> loadedRooms = new();
     private readonly Dictionary<DungeonEdge, GameObject> loadedEdges = new();
-    private readonly Dictionary<Vector2Int, GameObject> loadedJunctions = new();
     private readonly Dictionary<Vector2Int, RoomState> roomStates = new();
     private readonly List<EnemyBase> enemyPrefabs = new();
 
@@ -170,12 +169,6 @@ public partial class DungeonManager : MonoBehaviour
                 );
         }
 
-        foreach (Vector2Int vertex in RoomVertices(room))
-        {
-            if (!loadedJunctions.ContainsKey(vertex))
-                loadedJunctions[vertex] = builder.BuildJunction(transform, vertex);
-        }
-
         var loaded = new LoadedRoom { Root = root, DormantEnemies = new List<EnemyBase>() };
         if (!state.Visited)
         {
@@ -199,24 +192,6 @@ public partial class DungeonManager : MonoBehaviour
             roomStates[room] = state;
         }
         return state;
-    }
-
-    /// <summary>The four grid vertices at this room's corners. Vertex (x, y)
-    /// is the north-east corner of room (x, y).</summary>
-    private static IEnumerable<Vector2Int> RoomVertices(Vector2Int room)
-    {
-        yield return room;
-        yield return room + Vector2Int.left;
-        yield return room + Vector2Int.down;
-        yield return room + Vector2Int.left + Vector2Int.down;
-    }
-
-    private static IEnumerable<Vector2Int> VertexRooms(Vector2Int vertex)
-    {
-        yield return vertex;
-        yield return vertex + Vector2Int.right;
-        yield return vertex + Vector2Int.up;
-        yield return vertex + Vector2Int.right + Vector2Int.up;
     }
 
     private static Transform ResolvePlayer()

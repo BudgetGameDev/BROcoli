@@ -28,11 +28,27 @@ public readonly struct DungeonWallPiece
     // line it was asked for and a room is symmetric about its own centre.
     // PrefabPosition converts back to where the prefab root has to go.
     public const float SlabThickness = 0.6f;
+
+    /// <summary>
+    /// How tall the slab stands above the floor. Sight lines are the reason
+    /// this matters: a character the camera can see over the wall is not
+    /// hidden by it, so the occlusion tests need the same height the prefab
+    /// actually builds.
+    /// </summary>
+    public const float SlabHeight = 2.28f;
     public const float SlabHalfThickness = SlabThickness / 2f;
     public const float SlabCenterOffset = 0.7f;
 
     /// <summary>The wall prefab's untrimmed length, one floor tile.</summary>
     public const float NominalLength = DungeonLayout.TileSize;
+
+    // The mesh is wider than the slab: floor moulding skirts the base on the
+    // side the slab's normal points away from. Occlusion works on what is
+    // drawn, not on what collides, so the visible footprint is its own
+    // question - a wall stops fading only once its whole mesh is past you.
+    public const float MeshHalfLength = NominalLength / 2f;
+    public const float MeshDepthAlongNormal = 0.3f;
+    public const float MeshDepthAgainstNormal = 1.7f;
 
     /// <summary>The centre line of this piece's solid slab.</summary>
     public readonly Vector2 Anchor;
@@ -86,6 +102,33 @@ public readonly struct DungeonWallPiece
                     Anchor.y - half,
                     Anchor.x + SlabHalfThickness,
                     Anchor.y + half
+                );
+        }
+    }
+
+    /// <summary>
+    /// The ground-plane rectangle this piece's mesh occupies, moulding
+    /// included. This is what the camera sees fade.
+    /// </summary>
+    public Rect RenderFootprint
+    {
+        get
+        {
+            Vector2 normal = Normal;
+            Vector2 far = Anchor + normal * MeshDepthAlongNormal;
+            Vector2 near = Anchor - normal * MeshDepthAgainstNormal;
+            return AlongX
+                ? Rect.MinMaxRect(
+                    Anchor.x - MeshHalfLength,
+                    near.y,
+                    Anchor.x + MeshHalfLength,
+                    far.y
+                )
+                : Rect.MinMaxRect(
+                    near.x,
+                    Anchor.y - MeshHalfLength,
+                    far.x,
+                    Anchor.y + MeshHalfLength
                 );
         }
     }

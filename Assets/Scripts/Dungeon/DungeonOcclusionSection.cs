@@ -2,41 +2,51 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// Marks one contiguous piece of dungeon architecture as an occlusion unit.
-/// Wall runs link to their endpoint posts and straight continuations so each
-/// visible run, gateway, and adjoining post fades as one visual unit.
+/// Marks one contiguous piece of dungeon architecture as an occlusion unit -
+/// the logical wall group the visibility decision works in. Everything under a
+/// section fades together; which of its pieces actually fade is decided by
+/// <see cref="WallVisibilityResolver.IsPieceInTheWay"/>, so a run passing the
+/// player never lowers the part standing behind them.
+///
+/// A section is exactly one built run. Runs on either side of a grid post are
+/// separate sections and never drag each other down: the post is always walled,
+/// so the player cannot walk from one to the other along the wall, and to them
+/// the two are different walls in different rooms.
 /// </summary>
 [DisallowMultipleComponent]
-public sealed partial class DungeonOcclusionSection : MonoBehaviour
+public sealed class DungeonOcclusionSection : MonoBehaviour
 {
-    private const float EndpointTolerance = 0.25f;
-    private static readonly HashSet<DungeonOcclusionSection> ConfiguredSections = new();
+    private static readonly Dictionary<int, DungeonOcclusionSection> Registry = new();
 
-    private readonly HashSet<DungeonOcclusionSection> linkedSections = new();
+    /// <summary>
+    /// A renderer paired with the solid extent it is judged by. The wall mesh
+    /// carries floor moulding that reaches well past the slab; deciding on that
+    /// would fade a wall the player has not reached yet, so the decision uses
+    /// the colliders and the fade is applied to the mesh.
+    /// </summary>
+    private readonly struct FadeCandidate
+    {
+        public readonly Renderer Renderer;
+        public readonly Bounds Structure;
+
+        public FadeCandidate(Renderer renderer, Bounds structure)
+        {
+            Renderer = renderer;
+            Structure = structure;
+        }
+    }
+
+    private FadeCandidate[] fadeCandidates;
     private Transform excludedRoot;
     private Transform gatewayRoot;
     private float gatewayFadeReferenceMinY;
     private float gatewayFadeReferenceHeight;
-    private Vector3 firstEndpoint;
-    private Vector3 secondEndpoint;
-    private Vector3 junctionPosition;
-    private bool isEdge;
-    private bool isJunction;
 
-    public void ConfigureEdge(Vector3 first, Vector3 second)
-    {
-        isEdge = true;
-        firstEndpoint = first;
-        secondEndpoint = second;
-        RegisterAndRefreshLinks();
-    }
-
-    public void ConfigureJunction(Vector3 position)
-    {
-        isJunction = true;
-        junctionPosition = position;
-        RegisterAndRefreshLinks();
-    }
+    /// <summary>
+    /// The visibility group this section is. Stable for the section's life and
+    /// unique across sections, so the decision layer can reason in plain ints.
+    /// </summary>
+    public int GroupId => GetInstanceID();
 
     public void Exclude(Transform root)
     {
@@ -56,106 +66,112 @@ public sealed partial class DungeonOcclusionSection : MonoBehaviour
         return renderer != null && IsGateway(renderer.transform) && gatewayFadeReferenceHeight > 0f;
     }
 
-    public static bool TryCollectForHit(
-        Collider hit,
-        Camera camera,
+    /// <summary>The section a physics hit belongs to, if any.</summary>
+    public static DungeonOcclusionSection Owning(Component candidate)
+    {
+        DungeonOcclusionSection section = candidate.GetComponentInParent<DungeonOcclusionSection>();
+        return section != null && !section.IsExcluded(candidate.transform) ? section : null;
+    }
+
+    /// <summary>The section owning a group id, or null once it is gone.</summary>
+    public static DungeonOcclusionSection ForGroup(int groupId)
+    {
+        return Registry.TryGetValue(groupId, out DungeonOcclusionSection section) && section != null
+            ? section
+            : null;
+    }
+
+    /// <summary>
+    /// The renderers of this section that should fade while it is lowered. The
+    /// gateway frame is judged by the same rule as the wall pieces around it,
+    /// so an arch and the run it stands in transition on the same frame.
+    /// </summary>
+    public void CollectFadeRenderers(
+        WallVisibilityResolver resolver,
         Plane[] frustumPlanes,
-        Vector3 playerPosition,
-        HashSet<DungeonOcclusionSection> collectedSections,
         HashSet<Renderer> results,
         List<Renderer> rendererBuffer
     )
     {
-        DungeonOcclusionSection section = hit.GetComponentInParent<DungeonOcclusionSection>();
-        if (section == null)
-            return false;
-
-        if (section.IsExcluded(hit.transform))
-            return true;
-
-        if (section.IsGateway(hit.transform))
+        fadeCandidates ??= BuildFadeCandidates(transform, this, rendererBuffer);
+        foreach (FadeCandidate candidate in fadeCandidates)
         {
-            section.CollectGatewayUnit(
-                camera,
-                frustumPlanes,
-                playerPosition,
-                collectedSections,
-                results,
-                rendererBuffer
-            );
-            return true;
+            if (
+                candidate.Renderer != null
+                && candidate.Renderer.enabled
+                && GeometryUtility.TestPlanesAABB(frustumPlanes, candidate.Renderer.bounds)
+                && resolver.IsPieceInTheWay(candidate.Structure)
+            )
+                results.Add(candidate.Renderer);
         }
-
-        section.CollectWithLinks(
-            camera,
-            frustumPlanes,
-            playerPosition,
-            collectedSections,
-            results,
-            rendererBuffer
-        );
-        return true;
     }
 
-    public static void CollectForVolume(
-        DungeonOcclusionVolume volume,
-        Camera camera,
+    /// <summary>Every renderer under a transform that is standing in the way.</summary>
+    public static void CollectFadeRenderers(
+        Transform root,
+        WallVisibilityResolver resolver,
         Plane[] frustumPlanes,
-        Vector3 playerPosition,
-        HashSet<DungeonOcclusionSection> collectedSections,
         HashSet<Renderer> results,
         List<Renderer> rendererBuffer
     )
     {
-        DungeonOcclusionSection section = volume.GetComponentInParent<DungeonOcclusionSection>();
-        if (section != null)
-            section.CollectGatewayUnit(
-                camera,
-                frustumPlanes,
-                playerPosition,
-                collectedSections,
-                results,
-                rendererBuffer
-            );
+        foreach (FadeCandidate candidate in BuildFadeCandidates(root, null, rendererBuffer))
+        {
+            if (
+                candidate.Renderer != null
+                && candidate.Renderer.enabled
+                && GeometryUtility.TestPlanesAABB(frustumPlanes, candidate.Renderer.bounds)
+                && resolver.IsPieceInTheWay(candidate.Structure)
+            )
+                results.Add(candidate.Renderer);
+        }
     }
 
-    public static void CollectVisibleRenderers(
+    /// <summary>
+    /// Pairs each renderer with the solid extent of the prefab it belongs to.
+    /// Dungeon architecture never moves once built, so this is worked out once.
+    /// </summary>
+    private static FadeCandidate[] BuildFadeCandidates(
         Transform root,
-        Camera camera,
-        Plane[] frustumPlanes,
-        Vector3 playerPosition,
-        HashSet<Renderer> results,
-        List<Renderer> rendererBuffer,
-        DungeonOcclusionSection section = null,
-        Transform alwaysIncludeRoot = null
+        DungeonOcclusionSection section,
+        List<Renderer> rendererBuffer
     )
     {
         rendererBuffer.Clear();
         root.GetComponentsInChildren(false, rendererBuffer);
+        var candidates = new List<FadeCandidate>(rendererBuffer.Count);
         foreach (Renderer candidate in rendererBuffer)
         {
-            if (
-                candidate == null
-                || !candidate.enabled
-                || (section != null && section.IsExcluded(candidate.transform))
-            )
+            if (candidate == null || (section != null && section.IsExcluded(candidate.transform)))
                 continue;
-            int layerMask = 1 << candidate.gameObject.layer;
-            if ((camera.cullingMask & layerMask) == 0)
-                continue;
-            if (!GeometryUtility.TestPlanesAABB(frustumPlanes, candidate.bounds))
-                continue;
-
-            if (
-                IsWithinRoot(candidate.transform, alwaysIncludeRoot)
-                || DungeonOcclusionGeometry.IsFullyOnCameraSideOfPlayer(
-                    candidate.bounds,
-                    camera,
-                    playerPosition
-                )
-            )
-                results.Add(candidate);
+            candidates.Add(new FadeCandidate(candidate, StructureOf(candidate)));
         }
+        return candidates.ToArray();
+    }
+
+    /// <summary>
+    /// What is solid about the prefab a renderer belongs to, or the mesh itself
+    /// when nothing about it is solid.
+    /// </summary>
+    private static Bounds StructureOf(Renderer renderer)
+    {
+        Transform prefabRoot =
+            renderer.transform.parent != null ? renderer.transform.parent : renderer.transform;
+        Bounds structure = default;
+        bool any = false;
+        foreach (Collider collider in prefabRoot.GetComponentsInChildren<Collider>())
+        {
+            if (collider == null || collider.isTrigger)
+                continue;
+            if (!any)
+            {
+                structure = collider.bounds;
+                any = true;
+            }
+            else
+                structure.Encapsulate(collider.bounds);
+        }
+        return any ? structure : renderer.bounds;
     }
 
     private bool IsExcluded(Transform candidate)
@@ -166,55 +182,8 @@ public sealed partial class DungeonOcclusionSection : MonoBehaviour
 
     private bool IsGateway(Transform candidate)
     {
-        return IsWithinRoot(candidate, gatewayRoot);
-    }
-
-    private void CollectGatewayUnit(
-        Camera camera,
-        Plane[] frustumPlanes,
-        Vector3 playerPosition,
-        HashSet<DungeonOcclusionSection> collectedSections,
-        HashSet<Renderer> results,
-        List<Renderer> rendererBuffer
-    )
-    {
-        if (gatewayRoot == null)
-        {
-            CollectWithLinks(
-                camera,
-                frustumPlanes,
-                playerPosition,
-                collectedSections,
-                results,
-                rendererBuffer
-            );
-            return;
-        }
-
-        collectedSections.Add(this);
-        CollectVisibleRenderers(
-            transform,
-            camera,
-            frustumPlanes,
-            playerPosition,
-            results,
-            rendererBuffer,
-            this,
-            gatewayRoot
-        );
-        CollectLinkedJunctions(
-            camera,
-            frustumPlanes,
-            playerPosition,
-            collectedSections,
-            results,
-            rendererBuffer
-        );
-    }
-
-    private static bool IsWithinRoot(Transform candidate, Transform root)
-    {
-        return root != null && (candidate == root || candidate.IsChildOf(root));
+        return gatewayRoot != null
+            && (candidate == gatewayRoot || candidate.IsChildOf(gatewayRoot));
     }
 
     private void CacheGatewayFadeReference()
@@ -235,38 +204,14 @@ public sealed partial class DungeonOcclusionSection : MonoBehaviour
             gatewayFadeReferenceHeight = candidate.bounds.size.y;
         }
     }
-}
 
-internal static class DungeonOcclusionGeometry
-{
-    public static bool IsFullyOnCameraSideOfPlayer(
-        Bounds bounds,
-        Camera camera,
-        Vector3 playerPosition
-    )
+    private void OnEnable()
     {
-        // A wall that reaches beside or behind the player is not an occluder,
-        // even when its centre is slightly camera-side. Compare the rear-most
-        // point of its ground footprint so linked wall runs cannot shorten a
-        // neighbouring full-height piece that merely straddles the player.
-        Vector3 groundForward = Vector3.ProjectOnPlane(camera.transform.forward, Vector3.up);
-        if (groundForward.sqrMagnitude <= 0.0001f)
-        {
-            Vector3 candidatePosition = bounds.center;
-            candidatePosition.y = playerPosition.y;
-            Vector3 candidateViewport = camera.WorldToViewportPoint(candidatePosition);
-            Vector3 playerViewport = camera.WorldToViewportPoint(playerPosition);
-            return candidateViewport.z > camera.nearClipPlane
-                && candidateViewport.y <= playerViewport.y;
-        }
+        Registry[GroupId] = this;
+    }
 
-        groundForward.Normalize();
-        Vector3 fromCamera = bounds.center - camera.transform.position;
-        float playerDepth = Vector3.Dot(playerPosition - camera.transform.position, groundForward);
-        float rearDepth =
-            Vector3.Dot(fromCamera, groundForward)
-            + Mathf.Abs(groundForward.x) * bounds.extents.x
-            + Mathf.Abs(groundForward.z) * bounds.extents.z;
-        return rearDepth <= playerDepth;
+    private void OnDisable()
+    {
+        Registry.Remove(GroupId);
     }
 }

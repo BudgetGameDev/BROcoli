@@ -4,6 +4,22 @@ using UnityEngine;
 /// <summary>An archway frame standing in one doorway.</summary>
 public readonly struct DungeonArchway
 {
+    // The gate prefab is centred on its own root and stands a little wider and
+    // taller than the wall pieces beside it. Its two posts leave the doorway
+    // itself clear, so nothing solid stands where the player walks through.
+    public const float MeshHalfWidth = 2.2f;
+    public const float MeshHalfDepth = 1f;
+    public const float MeshHeight = 2.64f;
+    public const float DoorwayHalfWidth = 1.32f;
+    public const float PostOuterHalfWidth = 2.22f;
+    public const float PostHalfDepth = 0.3f;
+
+    // The crown spans the doorway with nothing solid under it, so it needs a
+    // sight-line volume of its own: a character walking under the arch is
+    // hidden by a lintel that no collider would ever report.
+    public static readonly Vector3 OcclusionVolumeCenter = new(0f, 2.15f, 0f);
+    public static readonly Vector3 OcclusionVolumeSize = new(3.1f, 1f, 2f);
+
     public readonly Vector2 Position;
     public readonly float Yaw;
 
@@ -11,6 +27,33 @@ public readonly struct DungeonArchway
     {
         Position = position;
         Yaw = yaw;
+    }
+
+    /// <summary>True when the frame spans a boundary running along world X.</summary>
+    public bool AlongX => Mathf.Approximately(Yaw, 0f);
+
+    /// <summary>The ground rectangle the frame's mesh occupies.</summary>
+    public Rect RenderFootprint => Footprint(MeshHalfWidth, MeshHalfDepth, 0f);
+
+    /// <summary>The ground rectangle of the crown's sight-line volume.</summary>
+    public Rect OcclusionFootprint =>
+        Footprint(OcclusionVolumeSize.x / 2f, OcclusionVolumeSize.z / 2f, 0f);
+
+    /// <summary>The ground rectangles of the two posts holding the frame up.</summary>
+    public Rect PostFootprint(bool second)
+    {
+        float half = (PostOuterHalfWidth - DoorwayHalfWidth) / 2f;
+        float offset = (PostOuterHalfWidth + DoorwayHalfWidth) / 2f;
+        return Footprint(half, PostHalfDepth, second ? offset : -offset);
+    }
+
+    private Rect Footprint(float halfAlong, float halfAcross, float offsetAlong)
+    {
+        float halfX = AlongX ? halfAlong : halfAcross;
+        float halfZ = AlongX ? halfAcross : halfAlong;
+        float x = Position.x + (AlongX ? offsetAlong : 0f);
+        float z = Position.y + (AlongX ? 0f : offsetAlong);
+        return Rect.MinMaxRect(x - halfX, z - halfZ, x + halfX, z + halfZ);
     }
 }
 
@@ -90,33 +133,6 @@ public static partial class DungeonRoomGeometry
                     )
             );
         }
-    }
-
-    /// <summary>The endpoints of an edge's centre line, for occlusion grouping.</summary>
-    public static (Vector2 From, Vector2 To) EdgeSpan(DungeonEdge edge)
-    {
-        Vector2 roomCenter = DungeonLayout.RoomCenter(new Vector2Int(edge.X, edge.Y));
-        return edge.Horizontal
-            ? (
-                new Vector2(roomCenter.x - HalfRoomWidth, roomCenter.y + HalfRoomDepth),
-                new Vector2(roomCenter.x + HalfRoomWidth, roomCenter.y + HalfRoomDepth)
-            )
-            : (
-                new Vector2(roomCenter.x + HalfRoomWidth, roomCenter.y - HalfRoomDepth),
-                new Vector2(roomCenter.x + HalfRoomWidth, roomCenter.y + HalfRoomDepth)
-            );
-    }
-
-    /// <summary>
-    /// The grid corner where four rooms meet. Vertex (x, y) is the north-east
-    /// corner of room (x, y).
-    /// </summary>
-    public static Vector2 JunctionPoint(Vector2Int vertex)
-    {
-        return new Vector2(
-            vertex.x * DungeonLayout.RoomWidth + HalfRoomWidth,
-            vertex.y * DungeonLayout.RoomDepth + HalfRoomDepth
-        );
     }
 
     /// <summary>The floor rectangle a room's geometry is expected to stay within.</summary>

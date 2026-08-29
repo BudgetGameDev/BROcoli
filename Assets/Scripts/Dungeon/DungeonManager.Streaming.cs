@@ -134,23 +134,5 @@ public partial class DungeonManager
                 loadedEdges.Remove(edge);
             }
         }
-
-        List<Vector2Int> deadJunctions = null;
-        foreach (KeyValuePair<Vector2Int, GameObject> pair in loadedJunctions)
-        {
-            bool anyLoaded = false;
-            foreach (Vector2Int room in VertexRooms(pair.Key))
-                anyLoaded |= loadedRooms.ContainsKey(room);
-            if (!anyLoaded)
-                (deadJunctions ??= new List<Vector2Int>()).Add(pair.Key);
-        }
-        if (deadJunctions == null)
-            return;
-
-        foreach (Vector2Int vertex in deadJunctions)
-        {
-            Destroy(loadedJunctions[vertex]);
-            loadedJunctions.Remove(vertex);
-        }
     }
 }

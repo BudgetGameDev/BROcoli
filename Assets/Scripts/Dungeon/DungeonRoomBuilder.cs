@@ -82,20 +82,6 @@ public partial class DungeonRoomBuilder : MonoBehaviour
         InstantiateWallRuns(root.transform, interiorWalls);
     }
 
-    /// <summary>
-    /// Keeps perpendicular wall runs linked for coordinated occlusion fading
-    /// without placing a visible wall-corner mesh at their shared vertex.
-    /// </summary>
-    public GameObject BuildJunction(Transform parent, Vector2Int vertex)
-    {
-        Vector3 position = DungeonRoomGeometry.JunctionPoint(vertex).ToWorld();
-        var junction = new GameObject($"Wall Junction ({vertex.x}, {vertex.y})");
-        junction.transform.SetParent(parent, false);
-        junction.transform.position = position;
-        junction.AddComponent<DungeonOcclusionSection>().ConfigureJunction(position);
-        return junction;
-    }
-
     private static Vector2 TileCenter(Vector2 roomCenter, int i, int j)
     {
         return new Vector2(

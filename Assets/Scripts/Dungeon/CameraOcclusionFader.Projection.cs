@@ -1,87 +1,63 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 public sealed partial class CameraOcclusionFader
 {
-    private bool TryGetPlayerViewportRect(out Rect viewportRect, out Bounds playerBounds)
+    private const float FallbackPlayerWidth = 1.4f;
+    private const float FallbackPlayerHeight = 2.2f;
+
+    private readonly List<Renderer> targetRenderers = new();
+
+    /// <summary>
+    /// The world-space box a character fills. This is the only step of the
+    /// visibility decision that has to look at renderers.
+    /// </summary>
+    private bool TryGetTargetBounds(Transform character, out Bounds bounds)
     {
         targetRenderers.Clear();
-        target.GetComponentsInChildren(false, targetRenderers);
+        character.GetComponentsInChildren(false, targetRenderers);
         bool hasBounds = false;
-        playerBounds = default;
-        foreach (Renderer targetRenderer in targetRenderers)
+        bounds = default;
+        foreach (Renderer characterRenderer in targetRenderers)
         {
-            if (!IsPlayerBodyRenderer(targetRenderer))
+            if (!IsCharacterBodyRenderer(characterRenderer))
                 continue;
             if (!hasBounds)
             {
-                playerBounds = targetRenderer.bounds;
+                bounds = characterRenderer.bounds;
                 hasBounds = true;
             }
             else
-            {
-                playerBounds.Encapsulate(targetRenderer.bounds);
-            }
+                bounds.Encapsulate(characterRenderer.bounds);
         }
 
-        if (!hasBounds)
+        if (!hasBounds && character == target)
         {
-            playerBounds = new Bounds(
-                target.position + Vector3.up * targetHeight,
+            bounds = new Bounds(
+                character.position + Vector3.up * targetHeight,
                 new Vector3(FallbackPlayerWidth, FallbackPlayerHeight, FallbackPlayerWidth)
             );
+            hasBounds = true;
         }
-        return TryProjectBounds(playerBounds, out viewportRect);
+        return hasBounds;
     }
 
-    private static bool IsPlayerBodyRenderer(Renderer targetRenderer)
+    private static bool IsCharacterBodyRenderer(Renderer characterRenderer)
     {
-        return targetRenderer != null
-            && targetRenderer.enabled
-            && targetRenderer is not ParticleSystemRenderer
-            && targetRenderer is not TrailRenderer
-            && targetRenderer is not LineRenderer;
-    }
-
-    private bool TryProjectBounds(Bounds bounds, out Rect viewportRect)
-    {
-        Vector3 minimum = bounds.min;
-        Vector3 maximum = bounds.max;
-        float minX = float.PositiveInfinity;
-        float minY = float.PositiveInfinity;
-        float maxX = float.NegativeInfinity;
-        float maxY = float.NegativeInfinity;
-        bool hasVisiblePoint = false;
-
-        for (int x = 0; x <= 1; x++)
-        for (int y = 0; y <= 1; y++)
-        for (int z = 0; z <= 1; z++)
-        {
-            var corner = new Vector3(
-                x == 0 ? minimum.x : maximum.x,
-                y == 0 ? minimum.y : maximum.y,
-                z == 0 ? minimum.z : maximum.z
-            );
-            Vector3 viewport = gameplayCamera.WorldToViewportPoint(corner);
-            if (viewport.z <= gameplayCamera.nearClipPlane)
-                continue;
-
-            hasVisiblePoint = true;
-            minX = Mathf.Min(minX, viewport.x);
-            minY = Mathf.Min(minY, viewport.y);
-            maxX = Mathf.Max(maxX, viewport.x);
-            maxY = Mathf.Max(maxY, viewport.y);
-        }
-
-        viewportRect = Rect.MinMaxRect(minX, minY, maxX, maxY);
-        return hasVisiblePoint && maxX > 0f && minX < 1f && maxY > 0f && minY < 1f;
+        return characterRenderer != null
+            && characterRenderer.enabled
+            && characterRenderer is not ParticleSystemRenderer
+            && characterRenderer is not TrailRenderer
+            && characterRenderer is not LineRenderer;
     }
 
     private void ResetDetection()
     {
         gameplayCamera = null;
         MaximumDetectedCoverage = 0f;
-        QualifyingColliderCount = 0;
-        qualifyingColliders.Clear();
-        qualifyingVolumes.Clear();
+        QualifyingGroupCount = 0;
+        VisibleEnemyTargetCount = 0;
+        columnRoots.Clear();
+        resolver?.Clear();
     }
 }

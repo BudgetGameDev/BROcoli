@@ -20,9 +20,6 @@ public partial class DungeonRoomBuilder
         root.transform.SetParent(parent, false);
 
         Transform wallRun = CreateOcclusionSection(root.transform, "Wall Run");
-        (Vector2 from, Vector2 to) = DungeonRoomGeometry.EdgeSpan(edge);
-        wallRun.GetComponent<DungeonOcclusionSection>().ConfigureEdge(from.ToWorld(), to.ToWorld());
-
         edgeWalls.Clear();
         DungeonRoomGeometry.AppendEdgeWalls(edgeWalls, edge, passage);
         foreach (DungeonWallPiece piece in edgeWalls)
@@ -77,7 +74,10 @@ public partial class DungeonRoomBuilder
             volume.layer = wallLayer >= 0 ? wallLayer : gate.gameObject.layer;
             volume
                 .AddComponent<DungeonOcclusionVolume>()
-                .Configure(new Vector3(0f, 2.15f, 0f), new Vector3(3.1f, 1f, 2f));
+                .Configure(
+                    DungeonArchway.OcclusionVolumeCenter,
+                    DungeonArchway.OcclusionVolumeSize
+                );
         }
     }
 }

@@ -3,28 +3,6 @@ using UnityEngine;
 
 public sealed partial class CameraOcclusionFader
 {
-    private const float FallbackPlayerWidth = 1.4f;
-    private const float FallbackPlayerHeight = 2.2f;
-    private const float EnemyTargetRefreshInterval = 0.25f;
-    private static readonly Vector2[] TargetRaySamples =
-    {
-        new(0.5f, 0.5f),
-        new(0.025f, 0.2f),
-        new(0.25f, 0.2f),
-        new(0.5f, 0.2f),
-        new(0.75f, 0.2f),
-        new(0.975f, 0.2f),
-        new(0.025f, 0.5f),
-        new(0.25f, 0.5f),
-        new(0.75f, 0.5f),
-        new(0.975f, 0.5f),
-        new(0.025f, 0.8f),
-        new(0.25f, 0.8f),
-        new(0.5f, 0.8f),
-        new(0.75f, 0.8f),
-        new(0.975f, 0.8f),
-    };
-
     [Header("Occlusion Detection")]
     [SerializeField, Range(0.05f, 0.9f)]
     private float minimumPlayerCoverage = 0.5f;
@@ -40,244 +18,224 @@ public sealed partial class CameraOcclusionFader
     private float releaseDelay = 0.2f;
 
     private readonly Plane[] frustumPlanes = new Plane[6];
-    private readonly List<Renderer> targetRenderers = new();
-    private readonly HashSet<Collider> qualifyingColliders = new();
-    private readonly HashSet<DungeonOcclusionVolume> qualifyingVolumes = new();
+    private readonly Dictionary<int, Transform> columnRoots = new();
+    private readonly List<int> expiredColumns = new();
+    private OccluderQuery occluderQuery;
     private Camera gameplayCamera;
-    private EnemyBase[] enemyTargets = System.Array.Empty<EnemyBase>();
-    private float nextEnemyTargetRefreshTime;
+    private OcclusionCameraModel cameraModel;
 
     public float MaximumDetectedCoverage { get; private set; }
-    public int QualifyingColliderCount { get; private set; }
-    public int VisibleEnemyTargetCount { get; private set; }
+    public int QualifyingGroupCount { get; private set; }
 
-    private void FindOccludingGeometry()
+    /// <summary>
+    /// The broad phase. Physics answers what stands along a sight line; the
+    /// decision about what that means belongs to the resolver.
+    /// </summary>
+    private sealed class OccluderQuery : IOcclusionCandidateSource
     {
-        if (gameplayCamera == null)
-            gameplayCamera = GetComponent<Camera>();
-        MaximumDetectedCoverage = 0f;
-        QualifyingColliderCount = 0;
-        VisibleEnemyTargetCount = 0;
-        qualifyingColliders.Clear();
-        qualifyingVolumes.Clear();
+        private readonly CameraOcclusionFader owner;
 
-        GeometryUtility.CalculateFrustumPlanes(gameplayCamera, frustumPlanes);
-        if (
-            target != null
-            && TryGetPlayerViewportRect(out Rect playerRect, out Bounds playerBounds)
-        )
-            ScanOcclusionTarget(playerRect, playerBounds, target.position, minimumPlayerCoverage);
-        FindEnemyOccludingGeometry();
-    }
-
-    private void ScanOcclusionTarget(
-        Rect targetRect,
-        Bounds targetBounds,
-        Vector3 targetPosition,
-        float minimumCoverage
-    )
-    {
-        float targetDepth = Vector3.Dot(
-            targetBounds.center - gameplayCamera.transform.position,
-            gameplayCamera.transform.forward
-        );
-        float maximumDepth = Mathf.Max(gameplayCamera.nearClipPlane, targetDepth);
-
-        foreach (Vector2 sample in TargetRaySamples)
+        public OccluderQuery(CameraOcclusionFader owner)
         {
-            Vector3 viewportPoint = new(
-                Mathf.Lerp(targetRect.xMin, targetRect.xMax, sample.x),
-                Mathf.Lerp(targetRect.yMin, targetRect.yMax, sample.y),
-                0f
-            );
-            Ray ray = gameplayCamera.ViewportPointToRay(viewportPoint);
-            float forwardAmount = Vector3.Dot(ray.direction, gameplayCamera.transform.forward);
-            if (forwardAmount <= 0.0001f)
-                continue;
+            this.owner = owner;
+        }
 
-            ScanTargetRay(
-                ray,
-                maximumDepth / forwardAmount,
-                targetRect,
-                targetPosition,
-                minimumCoverage
-            );
-            ScanVisualVolumes(
-                ray,
-                maximumDepth / forwardAmount,
-                targetRect,
-                targetPosition,
-                minimumCoverage
-            );
+        public void Collect(Ray ray, float maximumDistance, List<OcclusionCandidate> results)
+        {
+            owner.CollectAlongRay(ray, maximumDistance, results);
+        }
+
+        public void CollectEnclosing(Vector3 targetPosition, List<OcclusionCandidate> results)
+        {
+            owner.CollectEnclosingVolumes(targetPosition, results);
         }
     }
 
-    private void ScanVisualVolumes(
-        Ray ray,
-        float distance,
-        Rect targetRect,
-        Vector3 targetPosition,
-        float minimumCoverage
-    )
+    private void UpdateOccludingGeometry()
+    {
+        if (gameplayCamera == null)
+            gameplayCamera = GetComponent<Camera>();
+        occluderQuery ??= new OccluderQuery(this);
+        cameraModel = OcclusionCameraModel.FromCamera(gameplayCamera);
+        cameraModel.CalculateFrustumPlanes(frustumPlanes);
+
+        Resolver.BeginFrame();
+        AddPlayerTarget();
+        AddEnemyTargets();
+        Resolver.Resolve(cameraModel, occluderQuery, Time.unscaledTime);
+
+        MaximumDetectedCoverage = 0f;
+        foreach (KeyValuePair<int, OcclusionActivation> activation in Resolver.Activations)
+            MaximumDetectedCoverage = Mathf.Max(MaximumDetectedCoverage, activation.Value.Coverage);
+        QualifyingGroupCount = Resolver.Activations.Count;
+
+        CollectLoweredRenderers();
+    }
+
+    private void AddPlayerTarget()
+    {
+        if (target == null || !TryGetTargetBounds(target, out Bounds bounds))
+            return;
+        if (
+            OcclusionTarget.TryCreate(
+                cameraModel,
+                OcclusionTargetKind.Player,
+                target.position,
+                bounds,
+                minimumPlayerCoverage,
+                out OcclusionTarget playerTarget
+            )
+        )
+            Resolver.AddTarget(playerTarget);
+    }
+
+    /// <summary>
+    /// Turns the lowered groups into the renderers that actually fade. A group
+    /// decides when the transition happens; each of its pieces still has to be
+    /// standing in the way to take part.
+    /// </summary>
+    private void CollectLoweredRenderers()
+    {
+        foreach (int groupId in Resolver.LoweredGroups)
+        {
+            DungeonOcclusionSection section = DungeonOcclusionSection.ForGroup(groupId);
+            if (section != null)
+            {
+                section.CollectFadeRenderers(
+                    Resolver,
+                    frustumPlanes,
+                    currentOccluders,
+                    hitRenderers
+                );
+                continue;
+            }
+
+            if (columnRoots.TryGetValue(groupId, out Transform column) && column != null)
+                DungeonOcclusionSection.CollectFadeRenderers(
+                    column,
+                    Resolver,
+                    frustumPlanes,
+                    currentOccluders,
+                    hitRenderers
+                );
+        }
+
+        PruneColumnRoots();
+    }
+
+    private void CollectAlongRay(Ray ray, float maximumDistance, List<OcclusionCandidate> results)
+    {
+        int hitCount = Physics.RaycastNonAlloc(
+            ray,
+            castHits,
+            maximumDistance,
+            occluderMask,
+            QueryTriggerInteraction.Collide
+        );
+        for (int i = 0; i < hitCount; i++)
+            AddColliderCandidate(castHits[i].collider, results);
+
+        foreach (DungeonOcclusionVolume volume in DungeonOcclusionVolume.Active)
+        {
+            if (volume == null || !volume.gameObject.activeInHierarchy)
+                continue;
+            Bounds bounds = volume.WorldBounds;
+            if (
+                IsVisibleGeometry(volume.gameObject.layer, bounds)
+                && bounds.IntersectRay(ray, out float distance)
+                && distance <= maximumDistance
+            )
+                AddVolumeCandidate(volume, bounds, results);
+        }
+    }
+
+    private void CollectEnclosingVolumes(Vector3 targetPosition, List<OcclusionCandidate> results)
     {
         foreach (DungeonOcclusionVolume volume in DungeonOcclusionVolume.Active)
         {
             if (volume == null || !volume.gameObject.activeInHierarchy)
                 continue;
-
-            int layerMask = 1 << volume.gameObject.layer;
             Bounds bounds = volume.WorldBounds;
-            bool targetInside = IsInsideGroundFootprint(bounds, targetPosition);
             if (
-                (gameplayCamera.cullingMask & layerMask) == 0
-                || !GeometryUtility.TestPlanesAABB(frustumPlanes, bounds)
-                || (
-                    !targetInside
-                    && (
-                        !DungeonOcclusionGeometry.IsFullyOnCameraSideOfPlayer(
-                            bounds,
-                            gameplayCamera,
-                            targetPosition
-                        )
-                        || !bounds.IntersectRay(ray, out float hitDistance)
-                        || hitDistance > distance
-                    )
-                )
+                IsVisibleGeometry(volume.gameObject.layer, bounds)
+                && WallOcclusionMath.ContainsGroundPoint(bounds, targetPosition)
             )
-                continue;
-
-            float coverage = targetInside ? 1f : TargetCoverage(bounds, targetRect);
-            MaximumDetectedCoverage = Mathf.Max(MaximumDetectedCoverage, coverage);
-            if (coverage < minimumCoverage)
-                continue;
-
-            if (qualifyingVolumes.Add(volume))
-                QualifyingColliderCount++;
-            DungeonOcclusionSection.CollectForVolume(
-                volume,
-                gameplayCamera,
-                frustumPlanes,
-                targetPosition,
-                currentSections,
-                currentOccluders,
-                hitRenderers
-            );
+                AddVolumeCandidate(volume, bounds, results);
         }
     }
 
-    private static bool IsInsideGroundFootprint(Bounds bounds, Vector3 targetPosition)
+    private void AddColliderCandidate(Collider candidate, List<OcclusionCandidate> results)
     {
-        return targetPosition.x >= bounds.min.x
-            && targetPosition.x <= bounds.max.x
-            && targetPosition.z >= bounds.min.z
-            && targetPosition.z <= bounds.max.z;
+        if (
+            candidate == null
+            || !candidate.enabled
+            || !candidate.gameObject.activeInHierarchy
+            || !IsVisibleGeometry(candidate.gameObject.layer, candidate.bounds)
+        )
+            return;
+
+        DungeonOcclusionSection section = DungeonOcclusionSection.Owning(candidate);
+        if (section != null)
+        {
+            results.Add(new OcclusionCandidate(section.GroupId, candidate.bounds));
+            return;
+        }
+
+        // Freestanding columns are full-height architecture and fade on their
+        // own. Other objects on the Wall layer - barrels, chests, rocks - do
+        // not obscure a character enough to justify lowering anything.
+        Transform column = FreestandingColumnRoot(candidate.transform);
+        if (column == null)
+            return;
+
+        int groupId = column.GetInstanceID();
+        columnRoots[groupId] = column;
+        results.Add(new OcclusionCandidate(groupId, candidate.bounds));
     }
 
-    private void ScanTargetRay(
-        Ray ray,
-        float distance,
-        Rect targetRect,
-        Vector3 targetPosition,
-        float minimumCoverage
+    private void AddVolumeCandidate(
+        DungeonOcclusionVolume volume,
+        Bounds bounds,
+        List<OcclusionCandidate> results
     )
     {
-        int hitCount = Physics.RaycastNonAlloc(
-            ray,
-            castHits,
-            distance,
-            occluderMask,
-            QueryTriggerInteraction.Collide
-        );
-        for (int i = 0; i < hitCount; i++)
-        {
-            Collider candidate = castHits[i].collider;
-            if (!IsVisibleCandidate(candidate, targetPosition) || !IsStructuralOccluder(candidate))
-                continue;
-
-            float coverage = TargetCoverage(candidate.bounds, targetRect);
-            MaximumDetectedCoverage = Mathf.Max(MaximumDetectedCoverage, coverage);
-            if (coverage < minimumCoverage)
-                continue;
-
-            if (qualifyingColliders.Add(candidate))
-                QualifyingColliderCount++;
-            if (
-                DungeonOcclusionSection.TryCollectForHit(
-                    candidate,
-                    gameplayCamera,
-                    frustumPlanes,
-                    targetPosition,
-                    currentSections,
-                    currentOccluders,
-                    hitRenderers
-                )
-            )
-                continue;
-
-            DungeonOcclusionSection.CollectVisibleRenderers(
-                candidate.transform,
-                gameplayCamera,
-                frustumPlanes,
-                targetPosition,
-                currentOccluders,
-                hitRenderers
-            );
-        }
+        DungeonOcclusionSection section = volume.GetComponentInParent<DungeonOcclusionSection>();
+        if (section != null)
+            results.Add(new OcclusionCandidate(section.GroupId, bounds));
     }
 
-    private static bool IsStructuralOccluder(Collider candidate)
+    private bool IsVisibleGeometry(int layer, Bounds bounds)
     {
-        if (candidate.GetComponentInParent<DungeonOcclusionSection>() != null)
-            return true;
+        return (gameplayCamera.cullingMask & (1 << layer)) != 0
+            && GeometryUtility.TestPlanesAABB(frustumPlanes, bounds);
+    }
 
-        // Freestanding columns are full-height architecture. Other objects on
-        // the Wall layer (barrels, chests, rocks, and similar low props) do not
-        // obscure the player enough to justify fading.
-        return IsFreestandingColumn(candidate);
+    private void PruneColumnRoots()
+    {
+        expiredColumns.Clear();
+        foreach (KeyValuePair<int, Transform> column in columnRoots)
+        {
+            if (column.Value == null)
+                expiredColumns.Add(column.Key);
+        }
+        foreach (int groupId in expiredColumns)
+            columnRoots.Remove(groupId);
+    }
+
+    private static Transform FreestandingColumnRoot(Transform candidate)
+    {
+        Transform current = candidate;
+        while (current != null)
+        {
+            if (current.name.StartsWith("DungeonColumn", System.StringComparison.Ordinal))
+                return current;
+            current = current.parent;
+        }
+        return null;
     }
 
     private static bool IsFreestandingColumn(Component candidate)
     {
-        Transform current = candidate != null ? candidate.transform : null;
-        while (current != null)
-        {
-            if (current.name.StartsWith("DungeonColumn", System.StringComparison.Ordinal))
-                return true;
-            current = current.parent;
-        }
-        return false;
-    }
-
-    private bool IsVisibleCandidate(Collider candidate, Vector3 playerPosition)
-    {
-        if (candidate == null || !candidate.enabled || !candidate.gameObject.activeInHierarchy)
-            return false;
-        int layerMask = 1 << candidate.gameObject.layer;
-        return (gameplayCamera.cullingMask & layerMask) != 0
-            && GeometryUtility.TestPlanesAABB(frustumPlanes, candidate.bounds)
-            && DungeonOcclusionGeometry.IsFullyOnCameraSideOfPlayer(
-                candidate.bounds,
-                gameplayCamera,
-                playerPosition
-            );
-    }
-
-    private float TargetCoverage(Bounds occluder, Rect playerRect)
-    {
-        if (!TryProjectBounds(occluder, out Rect occluderRect))
-            return 0f;
-
-        float overlapWidth = Mathf.Max(
-            0f,
-            Mathf.Min(playerRect.xMax, occluderRect.xMax)
-                - Mathf.Max(playerRect.xMin, occluderRect.xMin)
-        );
-        float overlapHeight = Mathf.Max(
-            0f,
-            Mathf.Min(playerRect.yMax, occluderRect.yMax)
-                - Mathf.Max(playerRect.yMin, occluderRect.yMin)
-        );
-        float playerArea = Mathf.Max(0.000001f, playerRect.width * playerRect.height);
-        return overlapWidth * overlapHeight / playerArea;
+        return candidate != null && FreestandingColumnRoot(candidate.transform) != null;
     }
 }
