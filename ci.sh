@@ -61,7 +61,7 @@ export DOTNET_CLI_TELEMETRY_OPTOUT=1
 export SEMGREP_ENABLE_VERSION_CHECK=0
 
 run_gate "Restore pinned .NET tools" dotnet tool restore
-run_gate "C# formatting" dotnet csharpier check Assets/Scripts Assets/Editor
+run_gate "C# formatting" dotnet csharpier check Assets/Scripts Assets/Editor Assets/Tests
 run_gate "Python lint" uvx ruff@0.12.11 check scripts
 run_gate "Python formatting" uvx ruff@0.12.11 format --check scripts
 run_gate "WebGL platform detection" node scripts/test-webgl-platform.cjs
@@ -75,16 +75,20 @@ run_gate \
     "Static analysis" \
     uvx --from semgrep==1.169.0 semgrep scan \
     --config .semgrep.yml --error --strict --metrics=off \
-    Assets/Scripts Assets/Editor scripts ci.sh .githooks
+    Assets/Scripts Assets/Editor Assets/Tests scripts ci.sh .githooks
 run_gate "Source file size" python3 scripts/check_source_size.py
 
 if [ "$SKIP_UNITY" -eq 1 ]; then
     echo ""
     echo "==> Unity compilation: supplied by the separate Unity player-build job"
-elif has_connected_editor; then
-    run_gate "Unity compilation (connected Editor)" ./scripts/unity-live-compile-check.sh
+    echo "==> Unity EditMode tests: supplied by the separate Unity test job"
 else
-    run_gate "Unity compilation (batch mode)" ./scripts/unity-build-check.sh
+    if has_connected_editor; then
+        run_gate "Unity compilation (connected Editor)" ./scripts/unity-live-compile-check.sh
+    else
+        run_gate "Unity compilation (batch mode)" ./scripts/unity-build-check.sh
+    fi
+    run_gate "Unity EditMode tests" ./scripts/unity-test-check.sh
 fi
 
 echo ""

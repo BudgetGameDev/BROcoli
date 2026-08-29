@@ -13,11 +13,6 @@ public partial class DungeonRoomBuilder : MonoBehaviour
     private const float HalfRoomWidth = DungeonLayout.RoomWidth / 2f;
     private const float HalfRoomDepth = DungeonLayout.RoomDepth / 2f;
 
-    // The wall prefab's upright slab is centred at local Z 0.7 rather than at
-    // its root. Shift the complete gate assembly to the same depth so its
-    // arch, bars, and colliders stay aligned with the adjoining wall pieces.
-    private const float WallSlabCenterOffset = 0.7f;
-
     [Header("Modular Dungeon Kit pieces")]
     [SerializeField]
     private GameObject floorPrefab;
@@ -65,9 +60,8 @@ public partial class DungeonRoomBuilder : MonoBehaviour
     }
 
     /// <summary>
-    /// Adds interior wall runs that reshape the fixed grid shell. Every run
-    /// leaves a central circulation gap so all outer-edge opening patterns stay
-    /// connected regardless of the chosen shape.
+    /// Adds the interior wall runs that reshape the fixed grid shell, exactly
+    /// where <see cref="DungeonRoomGeometry"/> planned them.
     /// </summary>
     public void BuildInterior(
         Transform parent,
@@ -75,58 +69,17 @@ public partial class DungeonRoomBuilder : MonoBehaviour
         DungeonLayout.RoomArchetype archetype
     )
     {
-        if (
-            wallPrefab == null
-            || archetype.Shape == DungeonLayout.RoomShape.OpenHall
-            || archetype.Shape == DungeonLayout.RoomShape.GrandArena
-        )
+        if (wallPrefab == null)
             return;
 
-        Vector2 center = DungeonLayout.RoomCenter(room);
+        interiorWalls.Clear();
+        DungeonRoomGeometry.AppendInteriorWalls(interiorWalls, room, archetype);
+        if (interiorWalls.Count == 0)
+            return;
+
         GameObject root = new GameObject($"Interior - {archetype.Shape}");
         root.transform.SetParent(parent, false);
-
-        switch (archetype.Shape)
-        {
-            case DungeonLayout.RoomShape.Tiny:
-                BuildHorizontalInterior(root.transform, center, 4f, true);
-                BuildHorizontalInterior(root.transform, center, -4f, true);
-                BuildVerticalInterior(root.transform, center, 4f, true);
-                BuildVerticalInterior(root.transform, center, -4f, true);
-                break;
-            case DungeonLayout.RoomShape.Compact:
-                BuildHorizontalInterior(root.transform, center, 6f, true);
-                BuildHorizontalInterior(root.transform, center, -6f, true);
-                BuildVerticalInterior(root.transform, center, 6f, true);
-                BuildVerticalInterior(root.transform, center, -6f, true);
-                break;
-            case DungeonLayout.RoomShape.NarrowHorizontal:
-                BuildHorizontalInterior(root.transform, center, 4f, true);
-                BuildHorizontalInterior(root.transform, center, -4f, true);
-                break;
-            case DungeonLayout.RoomShape.NarrowVertical:
-                BuildVerticalInterior(root.transform, center, 4f, true);
-                BuildVerticalInterior(root.transform, center, -4f, true);
-                break;
-            case DungeonLayout.RoomShape.LargeSquare:
-                BuildVerticalInterior(root.transform, center, 10f, true);
-                BuildVerticalInterior(root.transform, center, -10f, true);
-                break;
-            case DungeonLayout.RoomShape.LongHorizontal:
-                BuildHorizontalInterior(root.transform, center, 6f, true);
-                BuildHorizontalInterior(root.transform, center, -6f, true);
-                break;
-            case DungeonLayout.RoomShape.LongVertical:
-                BuildVerticalInterior(root.transform, center, 6f, true);
-                BuildVerticalInterior(root.transform, center, -6f, true);
-                break;
-            case DungeonLayout.RoomShape.Divided:
-                if ((archetype.Variant & 1) == 0)
-                    BuildVerticalDivider(root.transform, center);
-                else
-                    BuildHorizontalDivider(root.transform, center);
-                break;
-        }
+        InstantiateWallRuns(root.transform, interiorWalls);
     }
 
     /// <summary>
@@ -135,11 +88,7 @@ public partial class DungeonRoomBuilder : MonoBehaviour
     /// </summary>
     public GameObject BuildJunction(Transform parent, Vector2Int vertex)
     {
-        Vector3 position = new Vector3(
-            vertex.x * DungeonLayout.RoomWidth + HalfRoomWidth,
-            0f,
-            vertex.y * DungeonLayout.RoomDepth + HalfRoomDepth
-        );
+        Vector3 position = DungeonRoomGeometry.JunctionPoint(vertex).ToWorld();
         var junction = new GameObject($"Wall Junction ({vertex.x}, {vertex.y})");
         junction.transform.SetParent(parent, false);
         junction.transform.position = position;

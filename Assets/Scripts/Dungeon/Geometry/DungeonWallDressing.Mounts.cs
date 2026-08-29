@@ -93,7 +93,7 @@ public static partial class DungeonWallDressing
             _ => HalfRoomDepth,
         };
 
-        return ((side % 4) + 4) % 4 switch
+        return (((side % 4) + 4) % 4) switch
         {
             0 => new DungeonWallMount(
                 new Vector2(-3.5f, NearFace(wallZ) + BannerMeshDepthOffset),

@@ -10,6 +10,7 @@ BASELINE = ROOT / ".quality" / "loc-baseline.tsv"
 SOURCE_ROOTS = (
     ROOT / "Assets" / "Scripts",
     ROOT / "Assets" / "Editor",
+    ROOT / "Assets" / "Tests",
     ROOT / "Assets" / "Plugins" / "WebGL",
     ROOT / "scripts",
 )

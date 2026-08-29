@@ -177,16 +177,6 @@ public partial class DungeonPropPlacer
             || prefabName.Contains("Table");
     }
 
-    private static float PositiveWallFace(float wallCoordinate)
-    {
-        return wallCoordinate + WallFrontFaceOffset;
-    }
-
-    private static float NegativeWallFace(float wallCoordinate)
-    {
-        return wallCoordinate + WallBackFaceOffset;
-    }
-
     private static Vector2 PoolSpot(DungeonLayout.RoomArchetype archetype, System.Random random)
     {
         Vector2 corner = new Vector2(
@@ -215,14 +205,5 @@ public partial class DungeonPropPlacer
             3 => new Vector2(-point.y, point.x),
             _ => point,
         };
-    }
-
-    private static void Shuffle<T>(List<T> values, System.Random random)
-    {
-        for (int i = values.Count - 1; i > 0; i--)
-        {
-            int j = random.Next(i + 1);
-            (values[i], values[j]) = (values[j], values[i]);
-        }
     }
 }

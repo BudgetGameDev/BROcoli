@@ -11,17 +11,10 @@ public partial class DungeonPropPlacer : MonoBehaviour
     private const float HalfRoomWidth = DungeonLayout.RoomWidth / 2f;
     private const float HalfRoomDepth = DungeonLayout.RoomDepth / 2f;
 
-    // The Kenney wall mesh is asymmetric around its prefab origin. Its upright
-    // structural slab occupies local Z 0.4..1.0; the rest of its renderer
-    // bounds is floor-level moulding. Horizontal walls use local Z directly,
-    // while the builder's +90 degree vertical rotation maps it to world X.
-    // Mount wall props on the slab faces, not on the moulding's outer bounds.
-    private const float WallFrontFaceOffset = 0.4f;
-    private const float WallBackFaceOffset = 1f;
-    private const float BannerMeshDepthOffset = 1.05f;
-
-    // Half width of the hanging banner mesh, used to keep it off a doorway.
-    private const float BannerDoorwayClearance = 1.2f;
+    // Wall props sit against the structural slab's faces, not the outer bounds
+    // of the mesh's floor-level moulding. See DungeonWallPiece.
+    private const float WallFrontFaceOffset = DungeonWallPiece.SlabNearFace;
+    private const float WallBackFaceOffset = DungeonWallPiece.SlabFarFace;
 
     // Independent obstacles reserve a lane wider than the player's 0.86-unit
     // capsule. This prevents procedural placement from creating tempting gaps
@@ -179,18 +172,18 @@ public partial class DungeonPropPlacer : MonoBehaviour
                 DungeonLayout.RoomTheme.Arena => 6,
                 _ => 2 + random.Next(0, 3),
             };
-            List<(Vector2 pos, float yaw)> spots = AvailableTorchSpots(
+            List<DungeonWallMount> mounts = DungeonWallDressing.TorchMounts(
                 archetype,
                 roomDoorways,
                 torchCount,
                 random
             );
-            for (int i = 0; i < torchCount && i < spots.Count; i++)
+            for (int i = 0; i < torchCount && i < mounts.Count; i++)
             {
                 Instantiate(
                     torchPrefab,
-                    (center + spots[i].pos).ToWorld(),
-                    Quaternion.Euler(0f, spots[i].yaw, 0f),
+                    (center + mounts[i].Local).ToWorld(),
+                    GroundPlane.YawRotation(mounts[i].Yaw),
                     parent
                 );
             }
