@@ -76,6 +76,13 @@ jobs:
         with:
           targetPlatform: WebGL
 
+      # unity-builder produces the player as root from inside its container.
+      # This job then writes version.json and the staging manifest into that
+      # same tree, which the runner user cannot do until it owns the files.
+      - name: Take ownership of the built player
+        shell: bash
+        run: sudo chown -R "$(id -u):$(id -g)" build
+
       - name: Remove licensed asset build inputs
         if: always()
         shell: bash
