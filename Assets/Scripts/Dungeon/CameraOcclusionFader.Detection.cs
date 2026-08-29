@@ -182,5 +182,4 @@ public sealed partial class CameraOcclusionFader
         return (gameplayCamera.cullingMask & (1 << layer)) != 0
             && GeometryUtility.TestPlanesAABB(frustumPlanes, bounds);
     }
-
 }
