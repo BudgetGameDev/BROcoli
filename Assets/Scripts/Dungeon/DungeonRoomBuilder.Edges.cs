@@ -5,7 +5,6 @@ public partial class DungeonRoomBuilder
 {
     private readonly List<DungeonWallPiece> edgeWalls = new();
     private readonly List<DungeonArchway> edgeArchways = new();
-    private readonly List<DungeonJunctionPost> edgePosts = new();
 
     /// <summary>
     /// Builds one shared wall run between two rooms from its planned geometry.
@@ -27,22 +26,7 @@ public partial class DungeonRoomBuilder
             InstantiateWall(wallRun, piece);
 
         BuildArchways(wallRun, edge, passage);
-        BuildJunctionPosts(root.transform, edge);
         return root;
-    }
-
-    /// <summary>
-    /// Caps the grid post this run ends at. It sits outside the run's occlusion
-    /// section on purpose: the two runs meeting at a post are kept apart so a
-    /// room's south wall never drops its east wall, and a post that belongs to
-    /// both is judged on its own instead of being dragged down by either.
-    /// </summary>
-    private void BuildJunctionPosts(Transform parent, DungeonEdge edge)
-    {
-        edgePosts.Clear();
-        DungeonRoomGeometry.AppendEdgeJunctions(edgePosts, edge);
-        foreach (DungeonJunctionPost post in edgePosts)
-            InstantiateJunctionPost(parent, post);
     }
 
     private void BuildArchways(Transform wallRun, DungeonEdge edge, DungeonPassage passage)

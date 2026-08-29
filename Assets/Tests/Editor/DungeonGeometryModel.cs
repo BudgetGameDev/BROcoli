@@ -35,9 +35,6 @@ internal sealed class DungeonGeometryModel
     /// <summary>Every archway in the block.</summary>
     public readonly List<DungeonArchway> Archways = new();
 
-    /// <summary>Every junction post in the block, capping a wall crossing.</summary>
-    public readonly List<DungeonJunctionPost> Posts = new();
-
     private readonly HashSet<DungeonEdge> builtEdges = new();
     private readonly List<Vector2Int> rooms = new();
 
@@ -136,7 +133,6 @@ internal sealed class DungeonGeometryModel
         rooms.Add(room);
         var interior = new List<DungeonWallPiece>();
         DungeonRoomGeometry.AppendInteriorWalls(interior, room, Layout.Archetype(room));
-        DungeonRoomGeometry.AppendInteriorJunctions(Posts, interior);
         Walls.AddRange(interior);
 
         for (int direction = 0; direction < 4; direction++)
@@ -148,7 +144,6 @@ internal sealed class DungeonGeometryModel
             DungeonPassage passage = Passage(room, direction);
             DungeonRoomGeometry.AppendEdgeWalls(Walls, edge, passage);
             DungeonRoomGeometry.AppendEdgeArchways(Archways, edge, passage);
-            DungeonRoomGeometry.AppendEdgeJunctions(Posts, edge);
         }
     }
 }

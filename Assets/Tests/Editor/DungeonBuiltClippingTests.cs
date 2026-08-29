@@ -5,9 +5,9 @@ using UnityEngine;
 
 /// <summary>
 /// Regression guard against pieces clipping into a shared, fighting surface.
-/// The kit assembles by interpenetration: slabs cross inside junction posts,
-/// gates swallow wall ends inside their own posts, seam caps hide inside butt
-/// joints. That is fine, because none of it is ever seen. What flickers is
+/// The kit assembles by interpenetration: crossing slabs bury each other's
+/// end caps, gates swallow wall ends inside their own posts, seam caps hide
+/// inside butt joints. That is fine, because none of it is ever seen. What flickers is
 /// two different pieces drawing the same plane - the shimmer at the base of
 /// crossing wall runs was their identical floor decals fighting - which is
 /// why walls and gates are seated at slightly different heights. These tests
@@ -18,7 +18,6 @@ public sealed class DungeonBuiltClippingTests
 {
     private const string WallPrefabPath = "Assets/Prefabs/Dungeon/DungeonWall.prefab";
     private const string GatePrefabPath = "Assets/Prefabs/Dungeon/DungeonGateOpen.prefab";
-    private const string ColumnPrefabPath = "Assets/Prefabs/Dungeon/DungeonColumn.prefab";
     private const string FloorPrefabPath = "Assets/Prefabs/Dungeon/DungeonFloor.prefab";
 
     /// <summary>Faces this close to one plane count as coplanar. Well under
@@ -44,7 +43,6 @@ public sealed class DungeonBuiltClippingTests
         var serialized = new SerializedObject(builder);
         SetPrefab(serialized, "wallPrefab", WallPrefabPath);
         SetPrefab(serialized, "gateOpenPrefab", GatePrefabPath);
-        SetPrefab(serialized, "junctionPostPrefab", ColumnPrefabPath);
         SetPrefab(serialized, "floorPrefab", FloorPrefabPath);
         serialized.ApplyModifiedProperties();
     }
@@ -156,7 +154,7 @@ public sealed class DungeonBuiltClippingTests
     ///   the plane and their caps close the seam between them;
     /// - a patch buried inside a piece whose body continues past both sides
     ///   of the plane, such as a wall cap swallowed by a crossing slab or a
-    ///   gate post, or the moulding contact inside a junction's column;
+    ///   gate post;
     /// - down-facing faces at floor level, which nothing is ever under.
     /// </summary>
     public static List<string> ExposedCoplanarOverlaps(Transform parent)

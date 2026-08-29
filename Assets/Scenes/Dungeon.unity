@@ -4572,7 +4572,6 @@ MonoBehaviour:
   - {fileID: 6457426828032582540, guid: 5f9b17e327df849d1a1126a827b9add9, type: 3}
   wallPrefab: {fileID: 1656019326883635403, guid: cb85b3812063e4ec7ab39daf1e1000ef, type: 3}
   gateOpenPrefab: {fileID: 8584222620348506169, guid: 6ad6e09ffdc13409e84c2b24c52b09b2, type: 3}
-  junctionPostPrefab: {fileID: 5885588032764245486, guid: 2b5e48f7163a94cb3bd351e415381f5e, type: 3}
   floorVariantChance: 0.18
 --- !u!4 &1804916125
 Transform:

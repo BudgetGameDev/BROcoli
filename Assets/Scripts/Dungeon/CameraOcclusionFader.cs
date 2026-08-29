@@ -76,7 +76,7 @@ public sealed partial class CameraOcclusionFader : MonoBehaviour
             BaseColors = new Color[OriginalMaterials.Length];
             DungeonOcclusionSection section =
                 renderer.GetComponentInParent<DungeonOcclusionSection>();
-            bool structural = section != null || IsFreestandingColumn(renderer);
+            bool structural = section != null;
             float fadeReferenceMinY = renderer.bounds.min.y;
             float fadeReferenceHeight = renderer.bounds.size.y;
             if (

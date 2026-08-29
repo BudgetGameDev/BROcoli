@@ -106,27 +106,6 @@ public sealed class DungeonOcclusionSection : MonoBehaviour
         }
     }
 
-    /// <summary>Every renderer under a transform that is standing in the way.</summary>
-    public static void CollectFadeRenderers(
-        Transform root,
-        WallVisibilityResolver resolver,
-        Plane[] frustumPlanes,
-        HashSet<Renderer> results,
-        List<Renderer> rendererBuffer
-    )
-    {
-        foreach (FadeCandidate candidate in BuildFadeCandidates(root, null, rendererBuffer))
-        {
-            if (
-                candidate.Renderer != null
-                && candidate.Renderer.enabled
-                && GeometryUtility.TestPlanesAABB(frustumPlanes, candidate.Renderer.bounds)
-                && resolver.IsPieceInTheWay(candidate.Structure)
-            )
-                results.Add(candidate.Renderer);
-        }
-    }
-
     /// <summary>
     /// Pairs each renderer with the solid extent of the prefab it belongs to.
     /// Dungeon architecture never moves once built, so this is worked out once.

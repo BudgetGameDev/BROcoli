@@ -57,7 +57,6 @@ public sealed partial class CameraOcclusionFader
         MaximumDetectedCoverage = 0f;
         QualifyingGroupCount = 0;
         VisibleEnemyTargetCount = 0;
-        columnRoots.Clear();
         resolver?.Clear();
     }
 }

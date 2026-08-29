@@ -69,7 +69,7 @@ public readonly struct DungeonArchway
 }
 
 /// <summary>
-/// Where every wall piece, archway, and junction of the dungeon goes, as pure
+/// Where every wall piece and archway of the dungeon goes, as pure
 /// ground-plane arithmetic. <see cref="DungeonRoomBuilder"/> is the only thing
 /// that turns these placements into GameObjects, so the geometry the tests
 /// reason about is exactly the geometry the game builds.

@@ -18,8 +18,6 @@ public sealed partial class CameraOcclusionFader
     private float releaseDelay = 0.2f;
 
     private readonly Plane[] frustumPlanes = new Plane[6];
-    private readonly Dictionary<int, Transform> columnRoots = new();
-    private readonly List<int> expiredColumns = new();
     private OccluderQuery occluderQuery;
     private Camera gameplayCamera;
     private OcclusionCameraModel cameraModel;
@@ -100,27 +98,13 @@ public sealed partial class CameraOcclusionFader
         {
             DungeonOcclusionSection section = DungeonOcclusionSection.ForGroup(groupId);
             if (section != null)
-            {
                 section.CollectFadeRenderers(
                     Resolver,
                     frustumPlanes,
                     currentOccluders,
                     hitRenderers
                 );
-                continue;
-            }
-
-            if (columnRoots.TryGetValue(groupId, out Transform column) && column != null)
-                DungeonOcclusionSection.CollectFadeRenderers(
-                    column,
-                    Resolver,
-                    frustumPlanes,
-                    currentOccluders,
-                    hitRenderers
-                );
         }
-
-        PruneColumnRoots();
     }
 
     private void CollectAlongRay(Ray ray, float maximumDistance, List<OcclusionCandidate> results)
@@ -174,23 +158,12 @@ public sealed partial class CameraOcclusionFader
         )
             return;
 
+        // Objects on the Wall layer without a section - barrels, chests,
+        // rocks - do not obscure a character enough to justify lowering
+        // anything.
         DungeonOcclusionSection section = DungeonOcclusionSection.Owning(candidate);
         if (section != null)
-        {
             results.Add(new OcclusionCandidate(section.GroupId, candidate.bounds));
-            return;
-        }
-
-        // Freestanding columns are full-height architecture and fade on their
-        // own. Other objects on the Wall layer - barrels, chests, rocks - do
-        // not obscure a character enough to justify lowering anything.
-        Transform column = FreestandingColumnRoot(candidate.transform);
-        if (column == null)
-            return;
-
-        int groupId = column.GetInstanceID();
-        columnRoots[groupId] = column;
-        results.Add(new OcclusionCandidate(groupId, candidate.bounds));
     }
 
     private void AddVolumeCandidate(
@@ -210,32 +183,4 @@ public sealed partial class CameraOcclusionFader
             && GeometryUtility.TestPlanesAABB(frustumPlanes, bounds);
     }
 
-    private void PruneColumnRoots()
-    {
-        expiredColumns.Clear();
-        foreach (KeyValuePair<int, Transform> column in columnRoots)
-        {
-            if (column.Value == null)
-                expiredColumns.Add(column.Key);
-        }
-        foreach (int groupId in expiredColumns)
-            columnRoots.Remove(groupId);
-    }
-
-    private static Transform FreestandingColumnRoot(Transform candidate)
-    {
-        Transform current = candidate;
-        while (current != null)
-        {
-            if (current.name.StartsWith("DungeonColumn", System.StringComparison.Ordinal))
-                return current;
-            current = current.parent;
-        }
-        return null;
-    }
-
-    private static bool IsFreestandingColumn(Component candidate)
-    {
-        return candidate != null && FreestandingColumnRoot(candidate.transform) != null;
-    }
 }

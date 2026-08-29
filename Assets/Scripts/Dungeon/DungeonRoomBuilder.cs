@@ -26,10 +26,6 @@ public partial class DungeonRoomBuilder : MonoBehaviour
     [SerializeField]
     private GameObject gateOpenPrefab;
 
-    [SerializeField]
-    [Tooltip("Column that caps the junction where two wall runs cross.")]
-    private GameObject junctionPostPrefab;
-
     [SerializeField, Range(0f, 1f)]
     private float floorVariantChance = 0.18f;
 
@@ -81,12 +77,9 @@ public partial class DungeonRoomBuilder : MonoBehaviour
         if (interiorWalls.Count == 0)
             return;
 
-        interiorPosts.Clear();
-        DungeonRoomGeometry.AppendInteriorJunctions(interiorPosts, interiorWalls);
-
         GameObject root = new GameObject($"Interior - {archetype.Shape}");
         root.transform.SetParent(parent, false);
-        InstantiateWallRuns(root.transform, interiorWalls, interiorPosts);
+        InstantiateWallRuns(root.transform, interiorWalls);
     }
 
     private static Vector2 TileCenter(Vector2 roomCenter, int i, int j)
