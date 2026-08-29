@@ -1,18 +1,12 @@
 #!/usr/bin/env bash
-# One local/CI quality gate. Use --skip-unity only where a separate Unity player
-# build in the same workflow supplies the authoritative compilation step.
+# Complete host-side quality gate used by the repository pre-push hook.
 set -euo pipefail
 
 PROJECT_PATH="$(cd "$(dirname "$0")" && pwd)"
 cd "$PROJECT_PATH"
 
-SKIP_UNITY=0
-if [ "${1:-}" = "--skip-unity" ]; then
-    SKIP_UNITY=1
-    shift
-fi
 if [ "$#" -ne 0 ]; then
-    echo "Usage: ./ci.sh [--skip-unity]" >&2
+    echo "Usage: ./ci.sh" >&2
     exit 2
 fi
 
@@ -31,31 +25,13 @@ run_gate() {
     "$@"
 }
 
-has_connected_editor() {
-    command -v unity >/dev/null 2>&1 || return 1
-
-    unity status --format json 2>/dev/null | python3 -c '
-import json, os, sys
-
-project = os.path.realpath(os.getcwd())
-document = json.load(sys.stdin)
-instances = (document.get("data") or {}).get("instances") or []
-connected = any(
-    isinstance(instance, dict)
-    and os.path.realpath(instance.get("project") or "") == project
-    and instance.get("state") == "ready"
-    for instance in instances
-)
-raise SystemExit(not connected)
-'
-}
-
 require_tool dotnet
 require_tool python3
 require_tool node
 require_tool uv
 require_tool shellcheck
 require_tool shfmt
+require_tool unity
 
 export DOTNET_CLI_TELEMETRY_OPTOUT=1
 export SEMGREP_ENABLE_VERSION_CHECK=0
@@ -78,18 +54,12 @@ run_gate \
     Assets/Scripts Assets/Editor Assets/Tests scripts ci.sh .githooks
 run_gate "Source file size" python3 scripts/check_source_size.py
 
-if [ "$SKIP_UNITY" -eq 1 ]; then
-    echo ""
-    echo "==> Unity compilation: supplied by the separate Unity player-build job"
-    echo "==> Unity EditMode tests: supplied by the separate Unity test job"
-else
-    if has_connected_editor; then
-        run_gate "Unity compilation (connected Editor)" ./scripts/unity-live-compile-check.sh
-    else
-        run_gate "Unity compilation (batch mode)" ./scripts/unity-build-check.sh
-    fi
-    run_gate "Unity EditMode tests" ./scripts/unity-test-check.sh
-fi
+run_gate "Unity EditMode tests" ./scripts/unity-test-check.sh
+run_gate "WebGL player build" ./scripts/unity-webgl-build.sh
+run_gate "WebGL desktop smoke test" ./scripts/webgl-smoke.sh build/WebGL
+run_gate \
+    "WebGL iOS smoke test" \
+    env WEBGL_SMOKE_PLATFORM=ios ./scripts/webgl-smoke.sh build/WebGL
 
 echo ""
 echo "ci: all gates passed"

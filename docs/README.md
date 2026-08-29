@@ -19,9 +19,10 @@ pre-push hook no longer target `main`.
 
 ## Production promotion
 
-Promote a verified `staging` revision with a normal pull-request merge into
-`production`; do not force-replace the production branch. The resulting push runs
-the repository quality gate, builds WebGL, and deploys `build/WebGL` to the root of
-`gh-pages`. Before deleting the retired `release` branch, verify that the production
-workflow succeeds, the root `version.json` references the promoted production
-commit, and both staging URLs still respond.
+Promote a locally verified `staging` revision with a normal pull-request merge into
+`production`; do not force-replace the production branch. The pre-push hook owns the
+quality gate. The resulting GitHub workflow only builds the WebGL artifact required
+by Pages and deploys it to the root of `gh-pages`; documentation, test-only, and
+local-tooling changes skip the Pages build. Before deleting the retired `release`
+branch, verify that the production workflow succeeds, the root `version.json`
+references the promoted production commit, and both staging URLs still respond.

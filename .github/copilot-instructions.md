@@ -110,13 +110,12 @@ compilation check only, use:
 .\scripts\unity-build-check.ps1
 ```
 
-The gate performs formatting, lint, static analysis, source-size checks, and Unity
-compilation. It recompiles through a connected Editor for this project when one is
-available; otherwise the batch checker opens the editor with the WebGL target. The
-compilation scripts read the required editor version from
-`ProjectSettings/ProjectVersion.txt`. The check resolves packages, imports assets,
-and compiles scripts, but does not produce a deployable WebGL player; the GitHub
-Actions workflow performs the full WebGL build.
+The gate performs formatting, lint, static analysis, source-size checks, Unity
+EditMode tests, a full WebGL build, and desktop and iOS-profile smoke probes. The
+WebGL wrapper reuses a connected automated Editor when one is available and
+otherwise builds through the Unity CLI. It reads the required editor version from
+`ProjectSettings/ProjectVersion.txt`, resolves packages, imports assets, compiles
+scripts, and produces the player under `build/WebGL`.
 
 All new first-party source files are limited to 300 physical lines. The legacy
 ceilings in `.quality/loc-baseline.tsv` may only decrease and must be removed as
@@ -143,10 +142,9 @@ Unity compilation check above.
 
 ### Full WebGL Build
 
-The CI workflow performs the authoritative player build with
-`game-ci/unity-builder`. To reproduce a player build locally, build the WebGL target
-from Unity rather than treating a successful batch-mode compile check as a player
-artifact.
+The authoritative verification build runs locally through `./ci.sh`. GitHub Actions
+performs one additional WebGL build only because GitHub Pages needs an artifact on
+the hosted runner; no quality checks, tests, or smoke probes run there.
 
 ## Unity CLI Compilation (Headless/Batch Mode)
 

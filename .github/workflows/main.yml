@@ -1,109 +1,52 @@
-name: GameCI
+name: Deploy GitHub Pages
 
 on:
   push:
-    branches: [ "staging", "production" ]
-
-  pull_request:
-    branches: [ "staging", "production" ]
-
+    branches: ["staging", "production"]
+    paths-ignore:
+      - "**/*.md"
+      - ".github/**"
+      - ".githooks/**"
+      - ".quality/**"
+      - ".semgrep.yml"
+      - "Assets/Tests/**"
+      - "ci.sh"
+      - "format.sh"
+      - "scripts/autoplay-*"
+      - "scripts/check-webgl-build.cjs"
+      - "scripts/check_source_size.py"
+      - "scripts/install-git-hooks.sh"
+      - "scripts/test-*.cjs"
+      - "scripts/unity-*-check.*"
+      - "scripts/unity-webgl-build.sh"
+      - "scripts/webgl-smoke.*"
   workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
-  quality:
-    name: Static analysis, lint, and formatting
+  deployPages:
+    name: Build and deploy GitHub Pages
+    if: github.ref_name == 'staging' || github.ref_name == 'production'
     runs-on: ubuntu-latest
+    concurrency:
+      # Both branches write to gh-pages, so serialize them to prevent push races.
+      group: brocoli-gh-pages-deployment
+      cancel-in-progress: false
+    env:
+      WEBGL_DEPLOY_DIR: build/WebGL/WebGL
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
-      - name: Set up .NET
-        uses: actions/setup-dotnet@v5
-        with:
-          dotnet-version: 10.0.x
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-
-      - name: Set up uv
-        uses: astral-sh/setup-uv@v6
-        with:
-          version: 0.11.6
-          enable-cache: true
-
-      - name: Install shell quality tools
-        run: |
-          sudo apt-get update
-          sudo apt-get install --yes shellcheck shfmt
-
-      - name: Run repository gate
-        run: ./ci.sh --skip-unity
-
-  editModeTests:
-    name: Unity EditMode tests
-    needs: quality
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Restore Library cache
-        uses: actions/cache/restore@v4
+      - name: Cache Unity Library
+        uses: actions/cache@v5
         with:
           path: Library
-          key: Library-test-EditMode
+          key: Library-WebGL-${{ hashFiles('Assets/**', 'Packages/**', 'ProjectSettings/**') }}
           restore-keys: |
-            Library-build-
-            Library-
-
-      - name: Run EditMode tests
-        uses: game-ci/unity-test-runner@v4
-        env:
-          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
-          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
-          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
-        with:
-          testMode: EditMode
-          artifactsPath: editmode-artifacts
-          githubToken: ${{ secrets.GITHUB_TOKEN }}
-          checkName: EditMode test results
-
-      - name: Upload test results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: editmode-test-results
-          path: editmode-artifacts
-
-  buildWebGL:
-    name: Build for WebGL
-    needs: [quality, editModeTests]
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-
-      - name: Restore Library cache
-        uses: actions/cache/restore@v4
-        with:
-          path: Library
-          key: Library-build-WebGL
-          restore-keys: |
-            Library-build-
+            Library-WebGL-
             Library-
 
       - name: Configure licensed asset key
@@ -119,8 +62,10 @@ jobs:
           umask 077
           printf 'BROCOLI_LICENSED_ASSET_KEY=%s\n' "$BROCOLI_LICENSED_ASSET_KEY" > .env
 
-      - name: Build Unity
-        uses: game-ci/unity-builder@v4
+      # This is the only GitHub-hosted build: Pages needs a deployable player.
+      # Tests and quality gates run locally through the pre-push hook instead.
+      - name: Build Pages player
+        uses: game-ci/unity-builder@v5
         env:
           UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
           UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
@@ -144,45 +89,16 @@ jobs:
             sudo find "$licensed_package_dir" -mindepth 1 -delete
           fi
 
-      - name: Smoke test built WebGL player
-        timeout-minutes: 5
-        run: |
-          ./scripts/webgl-smoke.sh build/WebGL/WebGL
-          WEBGL_SMOKE_PLATFORM=ios ./scripts/webgl-smoke.sh build/WebGL/WebGL
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-WebGL
-          path: build/WebGL
-
-  deployPages:
-    needs: buildWebGL
-    if: github.event_name != 'pull_request'
-    name: Deploy to Github Pages
-    runs-on: ubuntu-latest
-    concurrency:
-      group: brocoli-gh-pages-deployment
-      cancel-in-progress: false
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Download artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: build-WebGL
-          path: build
-
       - name: Generate version.json
+        shell: bash
         run: |
           BUILD_ID="build-$(date +%s)-$(echo "$GITHUB_SHA" | cut -c1-7)"
           BUILD_TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
           BUILD_NUMBER=$GITHUB_RUN_NUMBER
           COMMIT_SHA=$GITHUB_SHA
           COMMIT_MSG=$(git log -1 --pretty=%B | head -n 1)
-          
-          cat > build/WebGL/version.json << EOF
+
+          cat > "$WEBGL_DEPLOY_DIR/version.json" << EOF
           {
             "buildId": "$BUILD_ID",
             "buildTimestamp": "$BUILD_TIMESTAMP",
@@ -191,34 +107,30 @@ jobs:
             "description": "$COMMIT_MSG"
           }
           EOF
-          
-          echo "Generated version.json:"
-          cat build/WebGL/version.json
 
-      - name: Generate staging manifest (for staging branch only)
+      - name: Generate staging manifest
         if: github.ref_name == 'staging'
+        shell: bash
         run: |
-          # Read the base name from the production manifest and append " Staging"
-          BASE_NAME=$(jq -r '.name' build/WebGL/manifest.json)
-          SHORT_NAME=$(jq -r '.short_name' build/WebGL/manifest.json)
-          
-          # Update staging manifest with dynamic names
+          BASE_NAME=$(jq -r '.name' "$WEBGL_DEPLOY_DIR/manifest.json")
+          SHORT_NAME=$(jq -r '.short_name' "$WEBGL_DEPLOY_DIR/manifest.json")
+
           jq --arg name "${BASE_NAME} Staging" \
-             --arg short_name "${SHORT_NAME} Staging" \
-             --arg desc "${BASE_NAME} Staging Build - Development/Testing Version" \
-             '.name = $name | .short_name = $short_name | .description = $desc' \
-             build/WebGL/manifest-staging.json > build/WebGL/manifest-staging-tmp.json
-          mv build/WebGL/manifest-staging-tmp.json build/WebGL/manifest-staging.json
-          
-          echo "Generated staging manifest:"
-          cat build/WebGL/manifest-staging.json
+            --arg short_name "${SHORT_NAME} Staging" \
+            --arg desc "${BASE_NAME} Staging Build - Development/Testing Version" \
+            '.name = $name | .short_name = $short_name | .description = $desc' \
+            "$WEBGL_DEPLOY_DIR/manifest-staging.json" > \
+            "$WEBGL_DEPLOY_DIR/manifest-staging-tmp.json"
+          mv \
+            "$WEBGL_DEPLOY_DIR/manifest-staging-tmp.json" \
+            "$WEBGL_DEPLOY_DIR/manifest-staging.json"
 
       - name: Deploy staging to BranchStaging
         if: github.ref_name == 'staging'
         uses: JamesIves/github-pages-deploy-action@v4.8.0
         with:
           branch: gh-pages
-          folder: build/WebGL
+          folder: ${{ env.WEBGL_DEPLOY_DIR }}
           target-folder: BranchStaging
           clean: true
 
@@ -227,7 +139,7 @@ jobs:
         uses: JamesIves/github-pages-deploy-action@v4.8.0
         with:
           branch: gh-pages
-          folder: build/WebGL
+          folder: ${{ env.WEBGL_DEPLOY_DIR }}
           target-folder: BranchMain
           clean: true
 
@@ -236,7 +148,7 @@ jobs:
         uses: JamesIves/github-pages-deploy-action@v4.8.0
         with:
           branch: gh-pages
-          folder: build/WebGL
+          folder: ${{ env.WEBGL_DEPLOY_DIR }}
           clean: true
           # Production owns the root; preserve both staging paths during cleanup.
           clean-exclude: |

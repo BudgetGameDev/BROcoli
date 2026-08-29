@@ -19,9 +19,10 @@ Run the complete local gate before pushing:
 ```
 
 It runs pinned C# and Python formatting checks, Python and shell linting, local
-Semgrep static-analysis rules, the 300-line source-size ratchet, and Unity
-compilation. `Assets/csc.rsp` promotes every C# compiler warning to an error, and
-the Unity check also rejects any first-party compiler warnings found in its log.
+Semgrep static-analysis rules, the 300-line source-size ratchet, Unity EditMode
+tests, a release WebGL player build, and desktop and iOS-profile smoke probes.
+`Assets/csc.rsp` promotes every C# compiler warning to an error, so the player
+build is also the authoritative compilation check.
 
 Install the prerequisites once:
 
@@ -29,18 +30,19 @@ Install the prerequisites once:
 - Astral `uv`
 - ShellCheck
 - `shfmt`
+- Unity CLI (`unity`)
 - Unity matching `ProjectSettings/ProjectVersion.txt`
+- Chrome or Chromium
 
 The pinned CSharpier, Ruff, and Semgrep versions are restored on demand. Apply all
 formatters with `./format.sh`.
 
-### Test coverage status
+### Test coverage
 
-The Unity Test Framework package is installed, but the repository currently has no
-Edit Mode or Play Mode test assemblies, so `ci.sh` does not claim a unit- or
-integration-test gate. The `scripts/autoplay-*.sh` player harness provides opt-in
-runtime/E2E smoke coverage; it is not part of the default pre-push gate because it
-requires a built desktop player and takes substantially longer than compilation.
+`ci.sh` runs the Unity EditMode test assemblies and launches the built WebGL player
+in headless Chrome with desktop and iOS browser profiles. The
+`scripts/autoplay-*.sh` desktop-player harness remains opt-in because it requires a
+separate desktop player build.
 
 Enable the repository-managed pre-push hook with:
 
@@ -48,10 +50,10 @@ Enable the repository-managed pre-push hook with:
 ./scripts/install-git-hooks.sh
 ```
 
-The hook runs `./ci.sh` when a push updates `staging` or `production`,
-and blocks that push if any gate fails. Pushes exclusively to other branches or tags
-skip the gate. Git hooks are local and are not activated merely by cloning the
-repository, which is why the installer is required once per clone.
+The hook runs `./ci.sh` when a push updates `staging` or `production`, and blocks
+that push if any gate fails. Pushes exclusively to other branches or tags skip the
+gate. Git hooks are local and are not activated merely by cloning the repository,
+which is why the installer is required once per clone.
 
 ### 300-line source-file limit
 
@@ -61,14 +63,22 @@ had 35 larger files when the rule was introduced, so
 but may not grow, and the baseline entry must be removed once a file reaches 300
 lines. This is a ratchet, not a general exemption.
 
-### Unity compilation
+### Unity compilation and player verification
 
-When the project Editor is open, `ci.sh` recompiles through the connected Editor.
-Otherwise it uses the batch-mode checker. On Windows PowerShell, the standalone
-batch checker is `.\scripts\unity-build-check.ps1`. The check uses the editor
-version in `ProjectSettings/ProjectVersion.txt`, resolves Unity packages, imports
-assets, and compiles for the WebGL target. It does not create the deployable WebGL
-player; the separate CI build job performs that full build.
+`ci.sh` uses `scripts/unity-webgl-build.sh` to create `build/WebGL` on the host. The
+wrapper reuses a connected automated Editor when one is available and otherwise
+uses `unity build` with the editor version from
+`ProjectSettings/ProjectVersion.txt`. The build resolves packages, imports assets,
+compiles scripts, and creates the player exercised by both smoke profiles.
+If the project is already open, launch that Editor with `unity-open` so the gate can
+drive the build safely.
+
+The standalone compile-only check remains available as
+`./scripts/unity-build-check.sh` or `.\scripts\unity-build-check.ps1`, but it does
+not replace the full local gate. GitHub Actions repeats only the player build
+because Pages cannot deploy the host's local artifact; it does not rerun quality
+checks, tests, or smoke probes. Changes limited to documentation, local tooling, or
+tests do not trigger that Pages build.
 
 Do not use `dotnet build` as the repository verification step. Unity generates the
 gitignored `Assembly-CSharp*.csproj` files locally, so they are absent from a clean
