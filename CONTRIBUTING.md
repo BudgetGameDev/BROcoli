@@ -18,11 +18,16 @@ Run the complete local gate before pushing:
 ./ci.sh
 ```
 
-It runs pinned C# and Python formatting checks, Python and shell linting, local
-Semgrep static-analysis rules, the 300-line source-size ratchet, Unity EditMode
-tests, a release WebGL player build, and desktop and iOS-profile smoke probes.
-`Assets/csc.rsp` promotes every C# compiler warning to an error, so the player
-build is also the authoritative compilation check.
+It runs pinned C# and Python formatting checks, Python and shell linting, the
+host Python and Node unit tests, local Semgrep static-analysis rules, the
+300-line source-size ratchet, Unity EditMode tests, a release WebGL player
+build, and desktop and iOS-profile smoke probes. `Assets/csc.rsp` promotes every
+C# compiler warning to an error, so the player build is also the authoritative
+compilation check.
+
+`./ci.sh --fast` runs only the gates that need neither Unity nor a player build.
+It finishes in seconds and is what the pre-push hook applies to development
+branches.
 
 Install the prerequisites once:
 
@@ -39,8 +44,9 @@ formatters with `./format.sh`.
 
 ### Test coverage
 
-`ci.sh` runs the Unity EditMode test assemblies and launches the built WebGL player
-in headless Chrome with desktop and iOS browser profiles. The
+`ci.sh` runs the `scripts/tests` Python suite, the Node WebGL template and
+service-worker suites, and the Unity EditMode test assemblies, then launches the
+built WebGL player in headless Chrome with desktop and iOS browser profiles. The
 `scripts/autoplay-*.sh` desktop-player harness remains opt-in because it requires a
 separate desktop player build.
 
@@ -50,10 +56,13 @@ Enable the repository-managed pre-push hook with:
 ./scripts/install-git-hooks.sh
 ```
 
-The hook runs `./ci.sh` when a push updates `staging` or `production`, and blocks
-that push if any gate fails. Pushes exclusively to other branches or tags skip the
-gate. Git hooks are local and are not activated merely by cloning the repository,
-which is why the installer is required once per clone.
+The hook runs the complete `./ci.sh` when a push updates `staging` or
+`production`, and blocks that push if any gate fails. Every other push runs
+`./ci.sh --fast` instead, so formatting, lint, static-analysis, and source-size
+regressions are caught on the branch that introduces them rather than piling up
+until someone promotes that branch to `staging`. Only branch deletions skip the
+gate entirely. Git hooks are local and are not activated merely by cloning the
+repository, which is why the installer is required once per clone.
 
 ### 300-line source-file limit
 
