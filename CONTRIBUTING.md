@@ -77,7 +77,13 @@ lines. This is a ratchet, not a general exemption.
 `ci.sh` uses `scripts/unity-webgl-build.sh` to create `build/WebGL` on the host. The
 wrapper reuses a connected automated Editor when one is available and otherwise
 uses `unity build` with the editor version from
-`ProjectSettings/ProjectVersion.txt`. `scripts/unity-test-check.sh` picks its
+`ProjectSettings/ProjectVersion.txt`. Against a connected Editor it queues the
+pipeline's asynchronous `build` command and polls `build_status` for the
+BuildReport, because the pipeline will not hold the Editor's main thread for the
+length of a player build; the batch-mode path still runs
+`WebGLBuildScript.Build`. Both produce a release WebGL player from the enabled
+build-settings scenes, and `scripts/check-webgl-build.cjs` plus the two smoke
+profiles verify the artifact either way. `scripts/unity-test-check.sh` picks its
 Editor the same way, through the shared
 `scripts/unity-editor-connection.sh` helper: an open Editor holds the project
 lock, so the gate drives the attached instance rather than starting a second one
