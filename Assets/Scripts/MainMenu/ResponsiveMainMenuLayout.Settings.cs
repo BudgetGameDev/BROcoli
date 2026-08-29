@@ -38,7 +38,6 @@ public sealed partial class ResponsiveMainMenuLayout
             mainButtons[2],
             mainButtons[3],
         };
-        GetComponent<GameModeMenu>()?.RegisterMainButton(settingsButton.gameObject);
 
         settingsPanel = CreateRect("SettingsPanel", card);
         settingsTitle = CreateText(

@@ -22,12 +22,9 @@ public sealed partial class ResponsiveMainMenuLayout : MonoBehaviour
     private TMP_Text title;
     private TMP_Text subtitle;
     private TMP_Text footer;
-    private TMP_Text modeTitle;
     private TMP_FontAsset materialFont;
     private CanvasScaler canvasScaler;
     private Button[] mainButtons;
-    private Button[] modeButtons;
-    private RectTransform modePanel;
 
     private Rect lastSafeArea;
     private Vector2 lastRootSize;
@@ -66,16 +63,6 @@ public sealed partial class ResponsiveMainMenuLayout : MonoBehaviour
             FindButton("InstallAppButton"),
             FindButton("QuitButton"),
         };
-
-        modeButtons = new[]
-        {
-            FindButton("WavesButton"),
-            FindButton("DungeonButton"),
-            FindButton("BackButton"),
-        };
-
-        Transform panel = FindDescendant(transform, "ModeSelectPanel");
-        modePanel = panel as RectTransform;
     }
 
     private void BuildPresentation()
@@ -128,23 +115,13 @@ public sealed partial class ResponsiveMainMenuLayout : MonoBehaviour
         BuildSettingsPresentation();
         ReparentButtons(mainButtons, card);
 
-        if (modePanel != null)
-        {
-            modePanel.SetParent(card, false);
-            modeTitle = CreateText("ModeTitle", modePanel, "CHOOSE A MODE", 22f, OnSurface);
-        }
-
         StyleButtons(mainButtons);
-        StyleButtons(modeButtons);
         StyleButtons(settingsActionButtons);
         SetButtonLabel("PlayButton", "PLAY");
         SetButtonLabel("PlayMobileButton", "PLAY WITH TOUCH");
         SetButtonLabel("SettingsButton", "SETTINGS");
         SetButtonLabel("InstallAppButton", "INSTALL APP");
         SetButtonLabel("QuitButton", "QUIT");
-        SetButtonLabel("WavesButton", "WAVES");
-        SetButtonLabel("DungeonButton", "DUNGEON");
-        SetButtonLabel("BackButton", "BACK");
 
         built = true;
     }
@@ -154,10 +131,7 @@ public sealed partial class ResponsiveMainMenuLayout : MonoBehaviour
     /// </summary>
     private void PublishNavigationOrder()
     {
-        Button[] ordered = new Button[mainButtons.Length + modeButtons.Length];
-        mainButtons.CopyTo(ordered, 0);
-        modeButtons.CopyTo(ordered, mainButtons.Length);
-        GetComponent<MainMenu>()?.SetNavigationOrder(ordered);
+        GetComponent<MainMenu>()?.SetNavigationOrder(mainButtons);
     }
 
     private void ConfigureCanvasScaler()

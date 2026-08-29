@@ -90,11 +90,6 @@ public partial class DungeonPropPlacer : MonoBehaviour
 
     private readonly Dictionary<GameObject, float> footprintRadii = new();
 
-    // The passages around the room currently being dressed. Generation is
-    // synchronous per room, so wall-mounted helpers deep in the theme code can
-    // read this instead of threading it through every call.
-    private DungeonLayout.RoomDoorways doorways;
-
     /// <summary>
     /// Places deterministic chest slots and the room's prop pattern. Opened
     /// slots still reserve their positions so rebuilt rooms never rearrange.
@@ -103,12 +98,10 @@ public partial class DungeonPropPlacer : MonoBehaviour
         Transform parent,
         Vector2Int room,
         DungeonLayout.RoomArchetype archetype,
-        DungeonLayout.RoomDoorways roomDoorways,
         System.Random random,
         ISet<int> openedChestSlots
     )
     {
-        doorways = roomDoorways;
         Vector2 center = DungeonLayout.RoomCenter(room);
         var placedChests = new List<PlacedChest>();
         var occupied = new List<OccupiedSpot>();
@@ -158,7 +151,6 @@ public partial class DungeonPropPlacer : MonoBehaviour
         System.Random random
     )
     {
-        doorways = roomDoorways;
         Vector2 center = DungeonLayout.RoomCenter(room);
         if (torchPrefab != null)
         {

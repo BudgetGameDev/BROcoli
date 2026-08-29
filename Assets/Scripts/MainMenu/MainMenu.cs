@@ -75,21 +75,23 @@ public partial class MainMenu : MonoBehaviour
         PWAHelper.ToggleFullscreen();
     }
 
-    public void playGame()
-    {
-        ProceduralUIAudio.PlaySelect();
-        PlayerPrefs.SetInt("ShowVirtualController", 0);
-        PlayerPrefs.Save();
-        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex + 1);
-    }
+    /// <summary>Called by the Play button.</summary>
+    public void playGame() => LaunchDungeon(false);
 
-    public void playGameMobile()
+    /// <summary>Called by the Play (touch) button.</summary>
+    public void playGameMobile() => LaunchDungeon(true);
+
+    /// <summary>
+    /// The dungeon is the only game mode, so Play starts it outright. The scene
+    /// is named rather than reached by build index so reordering the build
+    /// settings cannot silently launch something else.
+    /// </summary>
+    private static void LaunchDungeon(bool mobileControls)
     {
         ProceduralUIAudio.PlaySelect();
-        Debug.Log("Play Game (Mobile) has been pressed - Virtual Controller SHOWN");
-        PlayerPrefs.SetInt("ShowVirtualController", 1);
+        PlayerPrefs.SetInt("ShowVirtualController", mobileControls ? 1 : 0);
         PlayerPrefs.Save();
-        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex + 1);
+        SceneManager.LoadScene("Dungeon");
     }
 
     public void GoToSettingsMenu()

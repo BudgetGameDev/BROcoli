@@ -421,7 +421,7 @@ public class EnemyScript : EnemyBase
 
     private bool IsPlayerInAttackStartRange()
     {
-        // Collider gap works for every wave scale. A centre-distance check does
+        // Collider gap works at every enemy scale. A centre-distance check does
         // not: a smaller enemy could begin an attack that cannot visually reach.
         return IsPlayerWithinColliderGap(GetAttackReach());
     }

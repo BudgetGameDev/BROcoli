@@ -24,7 +24,7 @@ public sealed partial class GameOverOverlay : MonoBehaviour
     public static GameOverOverlay Active => active;
     public bool IsVisible { get; private set; }
     public int DisplayedScore { get; private set; }
-    public int DisplayedWave { get; private set; }
+    public int DisplayedRooms { get; private set; }
     public Button RestartButton => restartButton;
     public Button MainMenuButton => mainMenuButton;
 
@@ -34,21 +34,20 @@ public sealed partial class GameOverOverlay : MonoBehaviour
         active = null;
     }
 
-    public static GameOverOverlay Show(int score, int wave, bool infiniteMode)
+    public static GameOverOverlay Show(int score, int rooms)
     {
         if (active == null)
             active = CreateOverlay();
 
-        active.Display(score, wave, infiniteMode);
+        active.Display(score, rooms);
         return active;
     }
 
-    private void Display(int score, int wave, bool infiniteMode)
+    private void Display(int score, int rooms)
     {
         DisplayedScore = Mathf.Max(0, score);
-        DisplayedWave = Mathf.Max(1, wave);
-        string mode = infiniteMode ? "  •  INFINITE MODE" : string.Empty;
-        statsText.text = $"SCORE  {DisplayedScore:N0}\nWAVE  {DisplayedWave}{mode}";
+        DisplayedRooms = Mathf.Max(0, rooms);
+        statsText.text = $"SCORE  {DisplayedScore:N0}\nROOMS  {DisplayedRooms:N0}";
 
         EnsureEventSystem();
         gameObject.SetActive(true);
@@ -123,7 +122,7 @@ public sealed partial class GameOverOverlay : MonoBehaviour
     public void RestartGame()
     {
         ProceduralUIAudio.PlaySelect();
-        // Restart whichever game mode is being played (wave or dungeon scene).
+        // Reload the active scene so a run restarts on a fresh dungeon.
         TransitionToScene(SceneManager.GetActiveScene().name);
     }
 

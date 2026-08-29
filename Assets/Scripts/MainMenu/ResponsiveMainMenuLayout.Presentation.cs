@@ -9,8 +9,7 @@ public sealed partial class ResponsiveMainMenuLayout
     {
         foreach (Button button in buttons)
         {
-            bool primaryAction =
-                button != null && button.name is "PlayButton" or "WavesButton" or "DungeonButton";
+            bool primaryAction = button != null && button.name is "PlayButton";
             StyleButton(button, primaryAction, materialFont);
         }
     }
@@ -51,11 +50,11 @@ public sealed partial class ResponsiveMainMenuLayout
 
     private int GetVisibilitySignature()
     {
-        int signature = modePanel != null && modePanel.gameObject.activeInHierarchy ? 1 : 0;
+        int signature = 0;
         for (int i = 0; i < mainButtons.Length; i++)
         {
             if (mainButtons[i] != null && mainButtons[i].gameObject.activeInHierarchy)
-                signature |= 1 << (i + 1);
+                signature |= 1 << i;
         }
         return signature;
     }

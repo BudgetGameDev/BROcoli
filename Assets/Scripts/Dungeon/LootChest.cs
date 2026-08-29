@@ -5,8 +5,8 @@ using UnityEngine;
 
 /// <summary>
 /// A treasure chest placed in dungeon rooms. Walking into it bursts open a
-/// scatter of experience pickups plus one or more weighted boost powerups
-/// (reusing the wave mode's drop prefabs), then the chest pops and vanishes.
+/// scatter of experience pickups plus one or more weighted boost powerups,
+/// then the chest pops and vanishes.
 /// </summary>
 [DisallowMultipleComponent]
 public class LootChest : MonoBehaviour

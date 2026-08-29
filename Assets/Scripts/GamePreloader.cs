@@ -5,7 +5,7 @@ using UnityEngine;
 /// <summary>
 /// Preloads and warms up assets, shaders, and prefabs before gameplay starts.
 /// Shows a loading screen with progress bar while hiding game graphics.
-/// This eliminates the hitch/stutter during the first wave.
+/// This eliminates the hitch/stutter when the first room comes alive.
 /// </summary>
 [DefaultExecutionOrder(-500)] // Run early, but after iOSSafariWebGLOptimizer
 public partial class GamePreloader : MonoBehaviour
@@ -79,7 +79,7 @@ public partial class GamePreloader : MonoBehaviour
             return;
         }
 
-        // Pause game time during loading so waves don't start
+        // Pause game time during loading so enemies don't wake
         Time.timeScale = 0f;
 
         _loadingScreen = new LoadingScreenUI(

@@ -1,11 +1,11 @@
 # Copilot Instructions for BROcoli
 
-Unity 2D survival game (WebGL-first, PWA-enabled) where a broccoli with a corona mask survives enemy waves.
+Unity survival game (WebGL-first, PWA-enabled) where a broccoli with a corona mask fights through a procedurally generated dungeon.
 
 ## Primary Scenes
 Work primarily in these two scenes (`Assets/Scenes/`):
 - **MainMenuScene** - Title screen, play buttons (desktop vs mobile), PWA install prompt
-- **Game** - Main gameplay with player, enemies, waves, pause menu
+- **Dungeon** - Main gameplay: procedurally generated rooms, player, enemies, pause menu
 
 ## Responsive Design (CRITICAL)
 - **Landscape orientation only** - Game enforces horizontal layout via `ForceLandscapeAspect.cs`
@@ -20,7 +20,7 @@ Work primarily in these two scenes (`Assets/Scenes/`):
 - **Game State**: `GameStates` tracks score, time, and experience globally. Found via `FindFirstObjectByType<GameStates>()`
 - **Player Stats**: `PlayerStats` component manages health, damage, speed, XP, level-ups. Uses `Bar` UI component for health/XP bars
 - **Enemy System**: Abstract `EnemyBase` class extended by `EnemyScript` (melee) and `ShootingEnemyScript` (ranged). Enemies auto-find player via tag
-- **Wave System**: `WaveGenerator` → spawns `EnemySpawner` instances per wave. Spawner uses exponential difficulty scaling
+- **Dungeon System**: `DungeonLayout` generates rooms deterministically from a seed; `DungeonManager` streams them in and out around the player, and `DungeonRoomBuilder` / `DungeonPropPlacer` build their geometry, props, and enemies
 
 ### Key Patterns
 
@@ -40,12 +40,11 @@ public class MyBoost : BoostBase {
 Boosts auto-destroy after `_lifetime` seconds and trigger on player collision.
 
 **Enemy Creation** - Extend `EnemyBase`:
-- Set `TimeToStartSpawning` / `TimeToEndSpawning` for wave-based appearance
 - Override `FixedUpdate()` for movement, call `base.FixedUpdate()` for separation forces
 - Use `TakeDamage(damage, knockbackDirection)` for hits with knockback
 
 ## Scene Structure
-- `MainMenuScene` → `Game`; run results use an in-scene `GameOverOverlay`
+- `MainMenuScene` → `Dungeon`; run results use an in-scene `GameOverOverlay`
 - Scene loading: `SceneManager.LoadScene("SceneName")` or by build index
 - Pause uses `Time.timeScale = 0` (see `PauseMenu.cs`)
 
@@ -349,7 +348,7 @@ After implementing UI or visual changes, **verify by running in Unity Editor and
 1. **Open scene in Unity**: Use Unity Editor CLI or UI automation
    ```powershell
    # Example: Open Unity with specific scene
-   & "C:\Program Files\Unity\Hub\Editor\<version>\Editor\Unity.exe" -projectPath . -openScene "Assets/Scenes/Game.unity"
+   & "C:\Program Files\Unity\Hub\Editor\<version>\Editor\Unity.exe" -projectPath . -openScene "Assets/Scenes/Dungeon.unity"
    ```
 
 2. **Enter Play Mode**: Use Unity's `-executeMethod` to run custom editor scripts
@@ -453,7 +452,7 @@ hard-fail `./ci.sh`.
 **The agent MUST directly edit Unity scene files - never ask the human to make scene changes manually.**
 
 Unity scene files (`.unity`) are YAML-based text files that can be edited directly:
-- `Assets/Scenes/Game.unity` - Main gameplay scene
+- `Assets/Scenes/Dungeon.unity` - Main gameplay scene
 - `Assets/Scenes/MainMenuScene.unity` - Title/menu scene
 
 **What the agent should do:**

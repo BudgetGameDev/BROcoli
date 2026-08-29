@@ -186,13 +186,6 @@ public abstract class EnemyBase : MonoBehaviour
         alwaysShowHealthBar = true;
     }
 
-    /// <summary>Applies a per-wave size without losing the prefab scale used by pooling.</summary>
-    public void ApplyWaveScale(float scaleMultiplier)
-    {
-        float safeScale = Mathf.Clamp(scaleMultiplier, 0.5f, 1.1f);
-        transform.localScale = baseLocalScale * safeScale;
-    }
-
     protected virtual void OnEnable()
     {
         // OnEnable also runs after an editor script reload. Clamp live enemies
@@ -810,7 +803,7 @@ public abstract class EnemyBase : MonoBehaviour
         UnlockBodyAfterAttack(false);
 
         // Elite instances are pooled. Restore the prefab's baseline before the
-        // spawner applies wave scaling or rolls elite status for this spawn.
+        // placer rolls elite status for this spawn.
         var eliteEffects = GetComponent<EliteEnemyEffects>();
         if (eliteEffects != null)
             eliteEffects.RemoveEliteVisuals();

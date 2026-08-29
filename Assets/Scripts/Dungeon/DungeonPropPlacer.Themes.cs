@@ -64,7 +64,6 @@ public partial class DungeonPropPlacer
                     "Barrel",
                     "Pot"
                 );
-                PlaceWallBanner(parent, center, archetype, archetype.Variant);
                 break;
             case DungeonLayout.RoomTheme.Banquet:
                 BuildBanquet(parent, center, archetype, random, occupied);
@@ -95,8 +94,6 @@ public partial class DungeonPropPlacer
                 break;
             case DungeonLayout.RoomTheme.Arena:
                 Scatter(parent, center, archetype, random, occupied, random.Next(1, 4), "Stones");
-                PlaceWallBanner(parent, center, archetype, archetype.Variant);
-                PlaceWallBanner(parent, center, archetype, archetype.Variant + 2);
                 break;
         }
     }
@@ -121,8 +118,6 @@ public partial class DungeonPropPlacer
             PlaceNamed(parent, center, "Chair", table + side, horizontal ? 180f : -90f, occupied);
             PlaceNamed(parent, center, "Chair", table - side, horizontal ? 0f : 90f, occupied);
         }
-        PlaceWallBanner(parent, center, archetype, archetype.Variant);
-        PlaceWallBanner(parent, center, archetype, archetype.Variant + 2);
         PlaceSmallClusters(
             parent,
             center,
@@ -216,6 +211,5 @@ public partial class DungeonPropPlacer
             _ => "Key",
         };
         PlaceNamed(parent, center, offering, Vector2.zero, archetype.Variant * 90f, occupied, 1f);
-        PlaceWallBanner(parent, center, archetype, archetype.Variant);
     }
 }

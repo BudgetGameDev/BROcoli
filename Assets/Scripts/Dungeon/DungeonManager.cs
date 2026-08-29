@@ -52,8 +52,12 @@ public partial class DungeonManager : MonoBehaviour
     private float nextRoomCheck;
     private NavMeshSurface navSurface;
     private bool navMeshDirty;
+    private int roomsVisited;
 
     public int Seed => seed;
+
+    /// <summary>How many distinct rooms the player has walked into this run.</summary>
+    public int RoomsVisited => roomsVisited;
 
     private void Start()
     {
@@ -103,7 +107,7 @@ public partial class DungeonManager : MonoBehaviour
         if (navSurface.navMeshData != null)
         {
             DungeonEnemyPlacer.Activate(loadedRooms[room].DormantEnemies);
-            GetState(room).Visited = true;
+            MarkVisited(room);
             RequestRoomStreaming();
             return;
         }
@@ -121,7 +125,7 @@ public partial class DungeonManager : MonoBehaviour
             DungeonEnemyPlacer.AlignToNavMesh(loaded.DormantEnemies);
 
         DungeonEnemyPlacer.Activate(loadedRooms[room].DormantEnemies);
-        GetState(room).Visited = true;
+        MarkVisited(room);
     }
 
     private void EnsureRoom(Vector2Int room)
@@ -141,7 +145,6 @@ public partial class DungeonManager : MonoBehaviour
             root.transform,
             room,
             archetype,
-            doorways,
             layout.RoomRandom(room, 505),
             state.OpenedChestSlots
         );
@@ -182,6 +185,21 @@ public partial class DungeonManager : MonoBehaviour
 
         loadedRooms[room] = loaded;
         navMeshDirty = true;
+    }
+
+    /// <summary>
+    /// Records the first entry into a room. Rooms unload and rebuild as the
+    /// player moves, so the run's room count is kept here rather than derived
+    /// from what happens to be loaded.
+    /// </summary>
+    private void MarkVisited(Vector2Int room)
+    {
+        RoomState state = GetState(room);
+        if (state.Visited)
+            return;
+
+        state.Visited = true;
+        roomsVisited++;
     }
 
     private RoomState GetState(Vector2Int room)

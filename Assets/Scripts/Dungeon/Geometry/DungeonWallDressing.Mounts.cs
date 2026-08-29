@@ -2,8 +2,6 @@ using UnityEngine;
 
 public static partial class DungeonWallDressing
 {
-    private const float BannerMeshDepthOffset = 1.05f;
-
     /// <summary>
     /// The mounting points a room shape offers, before doorways are consulted.
     /// Compact shapes hang their torches on interior runs; open ones use the
@@ -71,43 +69,5 @@ public static partial class DungeonWallDressing
         // Bottom walls become half walls from the gameplay camera. Keep their
         // torches on the outward face so the bracket remains attached.
         return new DungeonWallMount(new Vector2(x, OuterFace(wallCoordinate)), 180f);
-    }
-
-    private static DungeonWallMount BannerMount(DungeonLayout.RoomArchetype archetype, int side)
-    {
-        float wallX = archetype.Shape switch
-        {
-            DungeonLayout.RoomShape.Tiny => 4f,
-            DungeonLayout.RoomShape.NarrowVertical => 4f,
-            DungeonLayout.RoomShape.Compact => 6f,
-            DungeonLayout.RoomShape.LongVertical => 6f,
-            DungeonLayout.RoomShape.LargeSquare => 10f,
-            _ => HalfRoomWidth,
-        };
-        float wallZ = archetype.Shape switch
-        {
-            DungeonLayout.RoomShape.Tiny => 4f,
-            DungeonLayout.RoomShape.NarrowHorizontal => 4f,
-            DungeonLayout.RoomShape.Compact => 6f,
-            DungeonLayout.RoomShape.LongHorizontal => 6f,
-            _ => HalfRoomDepth,
-        };
-
-        return (((side % 4) + 4) % 4) switch
-        {
-            0 => new DungeonWallMount(new Vector2(-3.5f, BannerDepth(wallZ)), 0f),
-            1 => new DungeonWallMount(new Vector2(BannerDepth(wallX), -3f), 90f),
-            2 => new DungeonWallMount(new Vector2(3.5f, BannerDepth(-wallZ)), 180f),
-            _ => new DungeonWallMount(new Vector2(BannerDepth(-wallX), 3f), -90f),
-        };
-    }
-
-    /// <summary>
-    /// A banner's pivot sits behind the cloth, so it hangs off the wall's inner
-    /// face by the mesh's own depth.
-    /// </summary>
-    private static float BannerDepth(float wallCoordinate)
-    {
-        return InnerFace(wallCoordinate) + Mathf.Sign(wallCoordinate) * BannerMeshDepthOffset;
     }
 }

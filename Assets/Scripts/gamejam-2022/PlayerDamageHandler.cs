@@ -233,13 +233,13 @@ public class PlayerDamageHandler : MonoBehaviour
         _audioHandler?.PlayDeathSound();
 
         // Save and display the final run state without loading another scene.
-        SaveFinalRunStats(out int finalScore, out int finalWave, out bool wasInfiniteMode);
+        SaveFinalRunStats(out int finalScore, out int finalRooms);
 
         // Notify listeners
         OnGameOver?.Invoke();
 
         StopPlayerSimulation();
-        StartCoroutine(PlayDeathSequence(finalScore, finalWave, wasInfiniteMode));
+        StartCoroutine(PlayDeathSequence(finalScore, finalRooms));
     }
 
     private void StopPlayerSimulation()
@@ -256,7 +256,7 @@ public class PlayerDamageHandler : MonoBehaviour
         _deathVisual?.Prepare();
     }
 
-    private IEnumerator PlayDeathSequence(int score, int wave, bool infiniteMode)
+    private IEnumerator PlayDeathSequence(int score, int rooms)
     {
         _deathAnimationPlaying = true;
         if (_deathVisual != null)
@@ -264,21 +264,19 @@ public class PlayerDamageHandler : MonoBehaviour
         else
             yield return new WaitForSecondsRealtime(DeathAnimationDuration);
         _deathAnimationPlaying = false;
-        GameOverOverlay.Show(score, wave, infiniteMode);
+        GameOverOverlay.Show(score, rooms);
     }
 
-    private void SaveFinalRunStats(out int score, out int wave, out bool infiniteMode)
+    private void SaveFinalRunStats(out int score, out int rooms)
     {
         GameStates gameStates = FindAnyObjectByType<GameStates>();
-        WaveGenerator waveGenerator = FindAnyObjectByType<WaveGenerator>();
+        DungeonManager dungeon = FindAnyObjectByType<DungeonManager>();
         score = gameStates != null ? gameStates.score : 0;
-        wave = waveGenerator != null ? waveGenerator.CurrentWaveNumber : 1;
-        infiniteMode = waveGenerator != null && waveGenerator.IsInfiniteMode;
+        rooms = dungeon != null ? dungeon.RoomsVisited : 0;
 
         PlayerPrefs.SetInt("LastScore", score);
-        PlayerPrefs.SetInt("LastWave", wave);
-        PlayerPrefs.SetInt("WasInfiniteMode", infiniteMode ? 1 : 0);
+        PlayerPrefs.SetInt("LastRooms", rooms);
         PlayerPrefs.Save();
-        Debug.Log($"Saved final run: score {score}, wave {wave}, infinite {infiniteMode}");
+        Debug.Log($"Saved final run: score {score}, rooms {rooms}");
     }
 }

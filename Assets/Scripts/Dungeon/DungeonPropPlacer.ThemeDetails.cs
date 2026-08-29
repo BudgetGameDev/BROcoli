@@ -34,8 +34,6 @@ public partial class DungeonPropPlacer
             }
         )
             PlaceNamed(parent, center, "Coin", p, random.Next(0, 360), occupied);
-        PlaceWallBanner(parent, center, archetype, archetype.Variant);
-        PlaceWallBanner(parent, center, archetype, archetype.Variant + 2);
     }
 
     private void BuildCollapsed(
@@ -181,35 +179,6 @@ public partial class DungeonPropPlacer
                 return true;
         }
         return false;
-    }
-
-    private void PlaceWallBanner(
-        Transform parent,
-        Vector2 center,
-        DungeonLayout.RoomArchetype archetype,
-        int side
-    )
-    {
-        GameObject prefab = FindProp("Banner");
-        if (prefab == null)
-            return;
-
-        if (
-            !DungeonWallDressing.TryBannerMount(
-                archetype,
-                doorways,
-                side,
-                out DungeonWallMount mount
-            )
-        )
-            return;
-
-        Instantiate(
-            prefab,
-            (center + mount.Local).ToWorld(),
-            Quaternion.Euler(0f, mount.Yaw, 0f),
-            parent
-        );
     }
 
     private GameObject FindProp(string token)

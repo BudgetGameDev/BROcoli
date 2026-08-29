@@ -4,7 +4,6 @@
 /// Provides powerup/boost prefabs for enemy drop system.
 /// Timer-based spawning is disabled; enemy drops use weighted rarity,
 /// a cooldown, and one-screen spatial spacing.
-/// Assign powerupPrefabs in WaveGenerator instead for the new drop system.
 /// </summary>
 public class BoostHandler : MonoBehaviour
 {
@@ -31,7 +30,7 @@ public class BoostHandler : MonoBehaviour
     /// </summary>
     public GameObject[] BoostPrefabs => _boosters;
 
-    // Timer-based spawning disabled - powerups now drop from enemies via EnemySpawner
+    // Timer-based spawning disabled - powerups now drop from enemies and chests
     // To re-enable, uncomment the Update method below
 
     /*

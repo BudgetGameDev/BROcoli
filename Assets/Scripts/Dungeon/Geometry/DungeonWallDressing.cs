@@ -16,9 +16,9 @@ public readonly struct DungeonWallMount
 }
 
 /// <summary>
-/// Chooses where torches and banners hang. Kept apart from the prop placer so
-/// the one rule that matters - nothing is ever mounted in a doorway - can be
-/// checked arithmetically instead of by looking at the room.
+/// Chooses where torches hang. Kept apart from the prop placer so the one rule
+/// that matters - nothing is ever mounted in a doorway - can be checked
+/// arithmetically instead of by looking at the room.
 /// </summary>
 public static partial class DungeonWallDressing
 {
@@ -29,9 +29,6 @@ public static partial class DungeonWallDressing
     // closer than this to an opening's centre line reads as hanging in the
     // doorway rather than being mounted on the wall beside it.
     public const float TorchDoorwayClearance = 0.9f;
-
-    /// <summary>Half width of the hanging banner mesh.</summary>
-    public const float BannerDoorwayClearance = 1.2f;
 
     private const float TorchSpacing = 3f;
 
@@ -69,27 +66,6 @@ public static partial class DungeonWallDressing
             mounts.Add(mount);
         }
         return mounts;
-    }
-
-    /// <summary>
-    /// A banner mount on the requested wall, or on the next solid wall round
-    /// from it. Fails only when all four walls are opened where a banner hangs.
-    /// </summary>
-    public static bool TryBannerMount(
-        DungeonLayout.RoomArchetype archetype,
-        DungeonLayout.RoomDoorways doorways,
-        int side,
-        out DungeonWallMount mount
-    )
-    {
-        for (int attempt = 0; attempt < 4; attempt++)
-        {
-            mount = BannerMount(archetype, side + attempt);
-            if (!doorways.BlocksDoorway(mount.Local, BannerDoorwayClearance))
-                return true;
-        }
-        mount = default;
-        return false;
     }
 
     /// <summary>

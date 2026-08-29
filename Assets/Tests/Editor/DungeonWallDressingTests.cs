@@ -10,10 +10,8 @@ public sealed class DungeonWallDressingTests
 {
     private const int MaxTorchesPerRoom = 6;
 
-    // A torch bracket sits flat against the slab face; a banner's mesh hangs a
-    // little clear of it.
+    // A torch bracket sits flat against the slab face.
     private const float TorchMountDepth = 0.05f;
-    private const float BannerMountDepth = 1.3f;
 
     /// <summary>A torch must never end up floating in a doorway.</summary>
     [Test]
@@ -72,43 +70,6 @@ public sealed class DungeonWallDressingTests
                     Is.GreaterThan(0),
                     $"seed {seed}: room {room} has nowhere to mount a torch"
                 );
-            }
-        }
-    }
-
-    /// <summary>A banner moves to a solid wall rather than hanging in a gap.</summary>
-    [Test]
-    public void BannersNeverHangInADoorway()
-    {
-        foreach (int seed in DungeonGeometryModel.Seeds)
-        {
-            var layout = new DungeonLayout(seed);
-            foreach (Vector2Int room in SweepRooms())
-            {
-                DungeonLayout.RoomArchetype archetype = layout.Archetype(room);
-                DungeonLayout.RoomDoorways doorways = layout.Doorways(room);
-                for (int side = 0; side < 4; side++)
-                {
-                    if (
-                        !DungeonWallDressing.TryBannerMount(
-                            archetype,
-                            doorways,
-                            side,
-                            out DungeonWallMount mount
-                        )
-                    )
-                        continue;
-
-                    Assert.That(
-                        doorways.BlocksDoorway(
-                            mount.Local,
-                            DungeonWallDressing.BannerDoorwayClearance
-                        ),
-                        Is.False,
-                        $"seed {seed}: room {room} ({archetype}) hangs a banner at "
-                            + $"{mount.Local}, inside a doorway"
-                    );
-                }
             }
         }
     }
@@ -209,30 +170,6 @@ public sealed class DungeonWallDressingTests
                         ),
                         $"seed {seed}: room {room} ({archetype}) mounts a torch at "
                             + $"{mount.Local} with no wall behind it"
-                    );
-                }
-
-                for (int side = 0; side < 4; side++)
-                {
-                    if (
-                        !DungeonWallDressing.TryBannerMount(
-                            archetype,
-                            doorways,
-                            side,
-                            out DungeonWallMount banner
-                        )
-                    )
-                        continue;
-
-                    Assert.That(
-                        HasWallBehind(
-                            center + banner.Local,
-                            banner.Yaw,
-                            block.Walls,
-                            BannerMountDepth
-                        ),
-                        $"seed {seed}: room {room} ({archetype}) hangs a banner at "
-                            + $"{banner.Local} with no wall behind it"
                     );
                 }
             }

@@ -96,10 +96,7 @@ public sealed class LicensedAssetDecryptor : IPreprocessBuildWithReport
         try
         {
             foreach (
-                string encryptedPath in encryptedFiles.OrderBy(
-                    path => path,
-                    StringComparer.Ordinal
-                )
+                string encryptedPath in encryptedFiles.OrderBy(path => path, StringComparer.Ordinal)
             )
                 changed |= DecryptAsset(encryptedPath, secret);
         }
@@ -155,20 +152,17 @@ public sealed class LicensedAssetDecryptor : IPreprocessBuildWithReport
         if (metadata.formatVersion == 1)
         {
             return File.Exists(generatedPath)
-                && HashFile(generatedPath).Equals(
-                    metadata.sha256,
-                    StringComparison.OrdinalIgnoreCase
-                );
+                && HashFile(generatedPath)
+                    .Equals(metadata.sha256, StringComparison.OrdinalIgnoreCase);
         }
 
         string markerPath = Path.Combine(generatedPath, PackageMarkerName);
         string rootMetaPath = generatedPath.TrimEnd(Path.DirectorySeparatorChar) + ".meta";
         return Directory.Exists(generatedPath)
             && File.Exists(markerPath)
-            && File.ReadAllText(markerPath).Trim().Equals(
-                metadata.sha256,
-                StringComparison.OrdinalIgnoreCase
-            )
+            && File.ReadAllText(markerPath)
+                .Trim()
+                .Equals(metadata.sha256, StringComparison.OrdinalIgnoreCase)
             && File.Exists(rootMetaPath)
             && File.ReadAllText(rootMetaPath).Contains($"guid: {metadata.rootGuid}");
     }
@@ -284,7 +278,9 @@ public sealed class LicensedAssetDecryptor : IPreprocessBuildWithReport
             fileCount++;
             uncompressedSize = checked(uncompressedSize + entry.Length);
             if (fileCount > MaximumPackageFiles || uncompressedSize > MaximumPackageBytes)
-                throw new InvalidDataException("Licensed package exceeds extraction safety limits.");
+                throw new InvalidDataException(
+                    "Licensed package exceeds extraction safety limits."
+                );
         }
 
         if (fileCount != metadata.fileCount || uncompressedSize != metadata.uncompressedSize)
@@ -326,12 +322,12 @@ public sealed class LicensedAssetDecryptor : IPreprocessBuildWithReport
         string[] parts = normalized.Split('/');
         if (
             parts.Length == 0
-            || parts.Any(
-                part => string.IsNullOrWhiteSpace(part)
-                    || part == "."
-                    || part == ".."
-                    || part.Contains(':')
-                    || part.Any(char.IsControl)
+            || parts.Any(part =>
+                string.IsNullOrWhiteSpace(part)
+                || part == "."
+                || part == ".."
+                || part.Contains(':')
+                || part.Any(char.IsControl)
             )
         )
             throw new InvalidDataException($"Unsafe licensed package archive entry: {name}");
@@ -369,9 +365,10 @@ public sealed class LicensedAssetDecryptor : IPreprocessBuildWithReport
         string destination = Path.GetFullPath(
             Path.Combine(root, relativePath.Replace('/', Path.DirectorySeparatorChar))
         );
-        StringComparison comparison = Path.DirectorySeparatorChar == '\\'
-            ? StringComparison.OrdinalIgnoreCase
-            : StringComparison.Ordinal;
+        StringComparison comparison =
+            Path.DirectorySeparatorChar == '\\'
+                ? StringComparison.OrdinalIgnoreCase
+                : StringComparison.Ordinal;
         if (!destination.StartsWith(root + Path.DirectorySeparatorChar, comparison))
             throw new InvalidDataException(
                 $"Licensed package archive entry escapes its target: {relativePath}"
@@ -383,10 +380,7 @@ public sealed class LicensedAssetDecryptor : IPreprocessBuildWithReport
     {
         string temporaryRoot = ProjectPath("Library/BROcoli/LicensedAssets");
         Directory.CreateDirectory(temporaryRoot);
-        string outputPath = Path.Combine(
-            temporaryRoot,
-            Guid.NewGuid().ToString("N") + ".payload"
-        );
+        string outputPath = Path.Combine(temporaryRoot, Guid.NewGuid().ToString("N") + ".payload");
 
         try
         {
@@ -488,12 +482,12 @@ public sealed class LicensedAssetDecryptor : IPreprocessBuildWithReport
         string[] parts = normalized.Split('/');
         if (
             parts.Length == 0
-            || parts.Any(
-                part => string.IsNullOrWhiteSpace(part)
-                    || part == "."
-                    || part == ".."
-                    || part.Contains(':')
-                    || part.Any(char.IsControl)
+            || parts.Any(part =>
+                string.IsNullOrWhiteSpace(part)
+                || part == "."
+                || part == ".."
+                || part.Contains(':')
+                || part.Any(char.IsControl)
             )
         )
             throw new InvalidDataException("Generated asset path is unsafe.");
@@ -508,9 +502,10 @@ public sealed class LicensedAssetDecryptor : IPreprocessBuildWithReport
         string result = Path.GetFullPath(
             Path.Combine(projectRoot, normalized.Replace('/', Path.DirectorySeparatorChar))
         );
-        StringComparison comparison = Path.DirectorySeparatorChar == '\\'
-            ? StringComparison.OrdinalIgnoreCase
-            : StringComparison.Ordinal;
+        StringComparison comparison =
+            Path.DirectorySeparatorChar == '\\'
+                ? StringComparison.OrdinalIgnoreCase
+                : StringComparison.Ordinal;
         if (!result.StartsWith(projectRoot + Path.DirectorySeparatorChar, comparison))
             throw new InvalidDataException($"Project path escapes the project: {relativePath}");
         return result;

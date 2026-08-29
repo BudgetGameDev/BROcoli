@@ -69,12 +69,12 @@ public class AutoplayController : MonoBehaviour
         SceneManager.sceneLoaded += OnSceneLoaded;
 
         // Skip the main menu and go straight to gameplay.
-        SceneManager.LoadScene("Game");
+        SceneManager.LoadScene("Dungeon");
     }
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
-        if (scene.name != "Game" || _wired)
+        if (scene.name != "Dungeon" || _wired)
             return;
 
         _wired = true;
@@ -91,7 +91,9 @@ public class AutoplayController : MonoBehaviour
         var telemetry = gameObject.AddComponent<RunTelemetry>();
         telemetry.Configure(_config);
 
-        Debug.Log("[Autoplay] Game scene wired (bot + capture + telemetry + level-up resolver).");
+        Debug.Log(
+            "[Autoplay] Dungeon scene wired (bot + capture + telemetry + level-up resolver)."
+        );
     }
 }
 
