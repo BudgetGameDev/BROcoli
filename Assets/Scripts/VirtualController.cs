@@ -46,10 +46,14 @@ public class VirtualController : MonoBehaviour
 
     [Header("Joystick Settings")]
     [SerializeField]
-    private float joystickRange = 65f;
+    private float joystickRange = 82f;
 
     [SerializeField]
-    private float deadZone = 0.1f;
+    private float deadZone = 0.06f;
+
+    [SerializeField, Min(0.1f)]
+    [Tooltip("Values above 1 give the inner stick travel more fine-speed control.")]
+    private float analogResponseExponent = 1.25f;
 
     [Header("Joystick Visuals")]
     [SerializeField]
@@ -69,7 +73,7 @@ public class VirtualController : MonoBehaviour
 
     [Header("Portrait Position")]
     [SerializeField]
-    private Vector2 portraitJoystickAnchor = new Vector2(0.82f, 0.78f);
+    private Vector2 portraitJoystickAnchor = new Vector2(0.75f, 0.7f);
 
     [SerializeField]
     private Vector2 portraitButtonAnchor = new Vector2(0.85f, 0.25f);
@@ -77,9 +81,9 @@ public class VirtualController : MonoBehaviour
     [SerializeField]
     private Vector2 portraitPauseButtonAnchor = new Vector2(0.08f, 0.92f);
 
-    [Header("Landscape Position (top right)")]
+    [Header("Landscape Position")]
     [SerializeField]
-    private Vector2 landscapeJoystickAnchor = new Vector2(0.86f, 0.76f);
+    private Vector2 landscapeJoystickAnchor = new Vector2(0.78f, 0.68f);
 
     [SerializeField]
     private Vector2 landscapeButtonAnchor = new Vector2(0.85f, 0.5f);
@@ -784,21 +788,12 @@ public class VirtualController : MonoBehaviour
         Vector2 clampedPoint = Vector2.ClampMagnitude(localPoint, joystickRange);
         joystickHandle.anchoredPosition = clampedPoint;
 
-        // Calculate normalized input
-        joystickInput = clampedPoint / joystickRange;
-
-        // Apply a radial dead zone and remap the remaining range back to 0..1.
-        // This avoids the delayed-feeling jump at the edge of the dead zone.
-        float magnitude = joystickInput.magnitude;
-        if (magnitude <= deadZone)
-        {
-            joystickInput = Vector2.zero;
-        }
-        else
-        {
-            float remappedMagnitude = Mathf.InverseLerp(deadZone, 1f, magnitude);
-            joystickInput = joystickInput.normalized * remappedMagnitude;
-        }
+        joystickInput = VirtualJoystickMath.AnalogInput(
+            clampedPoint,
+            joystickRange,
+            deadZone,
+            analogResponseExponent
+        );
     }
 
     private void ResetJoystick()

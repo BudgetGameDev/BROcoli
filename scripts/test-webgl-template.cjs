@@ -120,9 +120,9 @@ assert.match(
   /navigator\.serviceWorker\.controller\s*&&\s*isMobile\s*&&\s*!isiOSDevice/,
   'iOS must not re-fetch the full Unity payload immediately after startup'
 );
-assert.match(serviceWorker, /const CACHE_VERSION = 'v5'/);
-assert.match(versionChecker, /cacheVersion:\s*'v5'/);
-assert.match(versionChecker, /unity-game-cache-v5-/);
+assert.match(serviceWorker, /const CACHE_VERSION = 'v6'/);
+assert.match(versionChecker, /cacheVersion:\s*'v6'/);
+assert.match(versionChecker, /unity-game-cache-v6-/);
 assert.doesNotMatch(
   iosOptimizer,
   /Shader\.WarmupAllShaders\(\)/,

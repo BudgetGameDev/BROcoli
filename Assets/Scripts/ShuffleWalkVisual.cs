@@ -42,7 +42,9 @@ public partial class ShuffleWalkVisual : MonoBehaviour
     // Bhop variation - organic feel through landing quality
     private const float BhopTwistMax = 5f; // Reduced - subtle rotation only
 
-    private const float DeadZone = 0.05f;
+    // The virtual controller already applies its radial dead zone. This only
+    // rejects floating-point residue from other input sources.
+    private const float DeadZone = 0.01f;
     private const float WallVisualSkin = 0.02f;
     private const float WallAnimationClearance = 0.3f;
     private const float VerticalHopFallbackScale = 0.9f;
@@ -287,10 +289,11 @@ public partial class ShuffleWalkVisual : MonoBehaviour
                     );
                 }
 
-                // Movement during airborne - carry momentum (reduced if stumbling)
+                // Direction keeps the hop's momentum, while live stick travel
+                // controls its speed so mobile input remains genuinely analog.
                 float stumbleMultiplier = Mathf.Lerp(1f, StumbleSpeedMultiplier, stumblePenalty);
                 targetMovement =
-                    committedDirection * currentPower * launchInputMagnitude * stumbleMultiplier;
+                    committedDirection * currentPower * inputMagnitude * stumbleMultiplier;
 
                 if (jumpT >= 1f)
                 {
@@ -338,10 +341,7 @@ public partial class ShuffleWalkVisual : MonoBehaviour
                     stumblePenalty
                 );
                 targetMovement =
-                    committedDirection
-                    * currentPower
-                    * launchInputMagnitude
-                    * bhopStumbleMultiplier;
+                    committedDirection * currentPower * inputMagnitude * bhopStumbleMultiplier;
 
                 // Build up power while bhopping if holding direction
                 if (wantsToMove)
@@ -368,7 +368,7 @@ public partial class ShuffleWalkVisual : MonoBehaviour
                         float maxHeight = GetScaledMaxJumpHeight();
                         float baseJumpTime = GetScaledJumpTime();
 
-                        launchInputMagnitude = Mathf.Max(launchInputMagnitude, 0.8f); // Keep momentum high
+                        launchInputMagnitude = inputMagnitude;
                         currentJumpHeight = Mathf.Lerp(minHeight, maxHeight, currentPower);
                         currentJumpHeight *= landingQuality * Random.Range(0.9f, 1.1f);
                         currentJumpTime = baseJumpTime * Mathf.Lerp(0.8f, 1.1f, landingQuality);

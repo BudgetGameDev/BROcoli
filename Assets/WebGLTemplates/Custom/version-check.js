@@ -67,8 +67,8 @@ const VersionChecker = (function() {
     // Local storage key for cached version - separate for production vs staging
     localVersionKey: `brocoli_cached_version_${BUILD_INFO.cachePrefix}`,
     // Cache name used by service worker (must match sw.js)
-    cacheVersion: 'v5',
-    cacheName: `unity-game-cache-v5-${BUILD_INFO.cachePrefix}`,
+    cacheVersion: 'v6',
+    cacheName: `unity-game-cache-v6-${BUILD_INFO.cachePrefix}`,
     cachePrefix: 'unity-game-cache-',
     // Timeout for version check (ms)
     checkTimeout: 5000,

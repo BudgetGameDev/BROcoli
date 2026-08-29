@@ -33,10 +33,14 @@
     if (!Number.isFinite(browserDevicePixelRatio) || browserDevicePixelRatio <= 0) {
       browserDevicePixelRatio = 1;
     }
-    // iPhones and iPads have a tighter WebGL GPU-memory budget. Keeping this
-    // policy beside platform detection makes it independently regression-testable
-    // and prevents touch-capable Macs from accidentally receiving the iOS scale.
-    var unityDevicePixelRatio = isAppleMobile ? 1 : browserDevicePixelRatio;
+    // A 1x drawing buffer is visibly blurry on Retina iPhones and iPads because
+    // Safari stretches it across several physical pixels. Cap Apple mobile at
+    // 2x for crisp UI and world rendering without paying the 9x pixel cost of a
+    // full 3x iPhone framebuffer. Keeping this policy here also prevents a
+    // touch-capable Mac from accidentally receiving the mobile cap.
+    var unityDevicePixelRatio = isAppleMobile
+      ? Math.min(browserDevicePixelRatio, 2)
+      : browserDevicePixelRatio;
     var isAndroid = /Android/i.test(userAgent);
     var isOtherMobile = /webOS|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
     var isSmallTouchScreen =

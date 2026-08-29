@@ -72,7 +72,7 @@ const ipad = platform.detect(environment({
 assert.equal(ipad.isIPadOS, true);
 assert.equal(ipad.isAppleMobile, true);
 assert.equal(ipad.isMobile, true);
-assert.equal(ipad.unityDevicePixelRatio, 1, 'iPadOS must use its bounded WebGL render scale');
+assert.equal(ipad.unityDevicePixelRatio, 2, 'iPadOS must retain capped Retina rendering');
 
 const iphone = platform.detect(environment({
   userAgent:
@@ -86,7 +86,7 @@ const iphone = platform.detect(environment({
 }));
 assert.equal(iphone.isIOS, true);
 assert.equal(iphone.isAppleMobile, true);
-assert.equal(iphone.unityDevicePixelRatio, 1, 'iPhone Safari must use a bounded render scale');
+assert.equal(iphone.unityDevicePixelRatio, 2, 'iPhone Safari must use capped Retina rendering');
 
 const iosChrome = platform.detect(environment({
   userAgent:
@@ -101,7 +101,7 @@ const iosChrome = platform.detect(environment({
 assert.equal(iosChrome.isIOS, true);
 assert.equal(iosChrome.isSafari, false);
 assert.equal(iosChrome.isAppleMobile, true);
-assert.equal(iosChrome.unityDevicePixelRatio, 1, 'iOS Chrome shares the iOS GPU budget');
+assert.equal(iosChrome.unityDevicePixelRatio, 2, 'iOS Chrome shares the capped Retina policy');
 
 const android = platform.detect(environment({
   userAgent:

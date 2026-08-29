@@ -135,7 +135,10 @@ public partial class DungeonPropPlacer : MonoBehaviour
             );
             LootChest chest = spawned.GetComponent<LootChest>();
             if (chest != null)
+            {
+                chest.ConfigureForRoom(DungeonLayout.Ring(room));
                 placedChests.Add(new PlacedChest(chest, slot));
+            }
         }
 
         BuildThemeProps(parent, center, archetype, random, occupied);

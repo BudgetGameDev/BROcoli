@@ -7,6 +7,7 @@ using UnityEngine;
 public class PlayerInputHandler : MonoBehaviour
 {
     private const float InputSmoothSpeed = 15f;
+    private const float InputEpsilonSquared = 0.000001f;
 
     private Vector2 _rawInput;
     private Vector2 _smoothedInput;
@@ -31,7 +32,7 @@ public class PlayerInputHandler : MonoBehaviour
     /// <summary>
     /// Whether the player is currently providing any input.
     /// </summary>
-    public bool HasInput => _rawInput.sqrMagnitude > 0.01f;
+    public bool HasInput => _rawInput.sqrMagnitude > InputEpsilonSquared;
 
     private void Awake()
     {
@@ -96,7 +97,7 @@ public class PlayerInputHandler : MonoBehaviour
         {
             targetInput = keyboardInput;
         }
-        else if (virtualInput.sqrMagnitude > 0.01f)
+        else if (virtualInput.sqrMagnitude > InputEpsilonSquared)
         {
             targetInput = virtualInput;
         }
@@ -111,7 +112,7 @@ public class PlayerInputHandler : MonoBehaviour
         _smoothedInput = Vector2.Lerp(_smoothedInput, _rawInput, InputSmoothSpeed * Time.deltaTime);
 
         // Track last non-zero input for facing direction
-        if (_rawInput.sqrMagnitude > 0.01f)
+        if (_rawInput.sqrMagnitude > InputEpsilonSquared)
         {
             _lastNonZeroInput = _rawInput.normalized;
         }

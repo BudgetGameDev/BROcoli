@@ -84,6 +84,7 @@ public partial class PlayerStats : MonoBehaviour
     private Bar _healthBar;
     private Bar _experienceBar;
     private LevelUpScreen _levelUpScreen;
+    private bool _levelUpChoicePending;
 
     // Public read-only properties (include temporary bonuses)
     public bool IsAlive => _currentHealth > 0f;
@@ -324,6 +325,7 @@ public partial class PlayerStats : MonoBehaviour
         _currentExperience = 0f;
         _currentMaxExperience = DefaultMaxExperience;
         _currentLevel = 1f;
+        _levelUpChoicePending = false;
         _currentDetectionRadius = DefaultDetectionRadius;
         _currentSprayRange = SpraySettings.BaseSprayRange;
         _currentSprayWidth = SpraySettings.BaseSprayAngle;
@@ -432,8 +434,8 @@ public partial class PlayerStats : MonoBehaviour
         _currentHealth += healthGain;
         _currentMaxHealth += healthGain;
 
-        // Reset XP to 0 (no carry-over) and double the requirement
-        _currentExperience = 0f;
+        // The paid requirement was removed before entering this method, so
+        // overflow remains available for the next level instead of being lost.
         _currentMaxExperience *= 2f; // Double XP needed each level (30 -> 60 -> 120 -> 240...)
 
         _healthBar?.UpdateBar(_currentHealth, _currentMaxHealth);
@@ -447,7 +449,15 @@ public partial class PlayerStats : MonoBehaviour
         if (_levelUpScreen != null)
         {
             _levelUpScreen.Show((int)_currentLevel, this);
+            _levelUpChoicePending = _levelUpScreen.IsShowing();
         }
+    }
+
+    /// <summary>Continues resolving banked XP after the current upgrade was chosen.</summary>
+    public void CompleteLevelUpChoice()
+    {
+        _levelUpChoicePending = false;
+        ResolveLevelUps();
     }
 
     private void AddHealth(float amount)
@@ -473,15 +483,22 @@ public partial class PlayerStats : MonoBehaviour
 
     private void AddExperience(float amount)
     {
+        if (amount <= 0f)
+            return;
+
         _currentExperience += amount;
-        if (_currentExperience >= _currentMaxExperience)
+        ResolveLevelUps();
+    }
+
+    private void ResolveLevelUps()
+    {
+        while (!_levelUpChoicePending && _currentExperience >= _currentMaxExperience)
         {
+            _currentExperience -= _currentMaxExperience;
             LevelUp();
         }
-        else
-        {
-            _experienceBar?.UpdateBar(_currentExperience, _currentMaxExperience);
-        }
+
+        _experienceBar?.UpdateBar(_currentExperience, _currentMaxExperience);
     }
 
     private void AddDetectionRadius(float amount)

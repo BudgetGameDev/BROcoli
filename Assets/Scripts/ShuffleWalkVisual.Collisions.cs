@@ -103,8 +103,9 @@ public partial class ShuffleWalkVisual
         State = HopState.Airborne;
         stateTimer = 0f;
 
-        // Lock input magnitude at launch - no changes during flight
-        launchInputMagnitude = Mathf.Max(inputMagnitude, 0.5f); // Minimum 50% power on tap
+        // Lock the launch magnitude for hop visuals. Movement speed continues
+        // to follow live stick travel, including values below half strength.
+        launchInputMagnitude = inputMagnitude;
 
         // Get speed-scaled animation parameters
         float minHeight = GetScaledMinJumpHeight();

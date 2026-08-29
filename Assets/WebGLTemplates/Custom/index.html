@@ -982,9 +982,10 @@
           companyName: {{{ JSON.stringify(COMPANY_NAME) }}},
           productName: {{{ JSON.stringify(PRODUCT_NAME) }}},
           productVersion: {{{ JSON.stringify(PRODUCT_VERSION) }}},
-          // Unity synchronizes its drawing buffer to the CSS size and current DPR.
-          // iOS Safari has a tighter GPU-memory budget, so render its Retina canvas
-          // at standard DPI. Desktop browsers retain their native DPR.
+          // Unity synchronizes its drawing buffer to the CSS size and selected DPR.
+          // Apple mobile uses a capped 2x Retina buffer so text and world rendering
+          // stay sharp without the 9x pixel cost of a full 3x iPhone framebuffer.
+          // Desktop browsers retain their native DPR.
           matchWebGLToCanvasSize: true,
           devicePixelRatio: unityDevicePixelRatio,
           // Progress callback

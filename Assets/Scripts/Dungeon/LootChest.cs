@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using Pooling;
 using UnityEngine;
 
@@ -15,7 +16,12 @@ public class LootChest : MonoBehaviour
     private int expDropCount = 5;
 
     [SerializeField, Min(1)]
-    private int experiencePerPickup = 3;
+    [Tooltip("XP in each orb in the first dungeon ring. Matches the earliest enemy reward.")]
+    private int experiencePerPickup = 10;
+
+    [SerializeField, Min(0f)]
+    [Tooltip("Additional XP per orb for each dungeon ring beyond the first.")]
+    private float experienceGrowthPerRing = 0.5f;
 
     [SerializeField, Min(0)]
     private int boostDropCount = 1;
@@ -30,12 +36,27 @@ public class LootChest : MonoBehaviour
     public event Action Opened;
 
     private bool opened;
+    private int dungeonRing = 1;
+
+    /// <summary>Configures this chest for the same room-depth progression as its enemies.</summary>
+    public void ConfigureForRoom(int ring)
+    {
+        dungeonRing = Mathf.Max(1, ring);
+    }
+
+    /// <summary>Calculates a chest orb's reward at a dungeon ring.</summary>
+    public static int ScaledExperiencePerPickup(int baseExperience, float growthPerRing, int ring)
+    {
+        float multiplier = 1f + Mathf.Max(0, ring - 1) * Mathf.Max(0f, growthPerRing);
+        return Mathf.Max(1, Mathf.RoundToInt(Mathf.Max(1, baseExperience) * multiplier));
+    }
 
     private void OnTriggerEnter(Collider other)
     {
         if (opened)
             return;
-        if (other.GetComponentInParent<PlayerStats>() == null)
+        PlayerStats playerStats = other.GetComponentInParent<PlayerStats>();
+        if (playerStats == null)
             return;
 
         opened = true;
@@ -44,22 +65,14 @@ public class LootChest : MonoBehaviour
         foreach (Collider chestCollider in GetComponentsInChildren<Collider>())
             chestCollider.enabled = false;
 
-        SpawnLoot();
+        SpawnLoot(playerStats);
         StartCoroutine(PopAndVanish());
     }
 
-    private void SpawnLoot()
+    private void SpawnLoot(PlayerStats playerStats)
     {
         Vector2 center = transform.position.ToGround();
-
-        for (int i = 0; i < expDropCount; i++)
-        {
-            Vector2 spot = center + ScatterOffset(i, expDropCount);
-            ExpGain gain = PoolManager.Instance?.GetExpGain(spot.ToWorld(0.5f));
-            if (gain == null)
-                break;
-            gain.Init(experiencePerPickup);
-        }
+        SpawnExperience(center, playerStats);
 
         GameObject[] boostPrefabs = FindAnyObjectByType<BoostHandler>()?.BoostPrefabs;
         if (boostPrefabs == null || boostPrefabs.Length == 0)
@@ -72,6 +85,44 @@ public class LootChest : MonoBehaviour
                 return;
             Vector2 spot = center + ScatterOffset(i, boostDropCount) * 1.4f;
             Instantiate(prefab, spot.ToWorld(), Quaternion.identity);
+        }
+    }
+
+    private void SpawnExperience(Vector2 center, PlayerStats playerStats)
+    {
+        if (expDropCount <= 0)
+            return;
+
+        int experiencePerOrb = ScaledExperiencePerPickup(
+            experiencePerPickup,
+            experienceGrowthPerRing,
+            dungeonRing
+        );
+        int totalExperience = experiencePerOrb * expDropCount;
+        var spawned = new List<ExpGain>(expDropCount);
+
+        for (int i = 0; i < expDropCount; i++)
+        {
+            Vector2 spot = center + ScatterOffset(i, expDropCount);
+            ExpGain gain = PoolManager.Instance?.GetExpGain(spot.ToWorld(0.5f));
+            if (gain == null)
+                break;
+            spawned.Add(gain);
+        }
+
+        // A busy room can exhaust the shared orb pool. Preserve the chest's
+        // complete reward by concentrating it into the orbs that were available.
+        if (spawned.Count == 0)
+        {
+            playerStats.ApplyExperience(totalExperience);
+            return;
+        }
+
+        int experienceEach = totalExperience / spawned.Count;
+        int remainder = totalExperience % spawned.Count;
+        for (int i = 0; i < spawned.Count; i++)
+        {
+            spawned[i].Init(experienceEach + (i < remainder ? 1 : 0));
         }
     }
 

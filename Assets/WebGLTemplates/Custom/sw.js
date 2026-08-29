@@ -3,7 +3,7 @@
 // IMPORTANT: Change CACHE_VERSION to force ALL clients to get fresh content!
 // This is the nuclear option - change this string and deploy to bust all caches.
 // =============================================================================
-const CACHE_VERSION = 'v5';
+const CACHE_VERSION = 'v6';
 
 // Detect if we're on a staging path or the production build (root)
 function detectBuildPath() {

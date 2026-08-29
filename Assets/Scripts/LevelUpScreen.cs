@@ -374,8 +374,10 @@ public class LevelUpScreen : MonoBehaviour
 
         // Use hyped sound for level-up stat selection!
         ProceduralUIAudio.PlayLevelUpSelect();
-        currentOptions[index].ApplyTo(playerStats);
+        PlayerStats upgradedStats = playerStats;
+        currentOptions[index].ApplyTo(upgradedStats);
         Hide();
+        upgradedStats.CompleteLevelUpChoice();
     }
 
     public void Hide()

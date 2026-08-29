@@ -37,7 +37,7 @@ public class VirtualControllerSetup
         GameObject joystickBg = new GameObject("JoystickBackground");
         joystickBg.transform.SetParent(controllerObj.transform, false);
         RectTransform bgRect = joystickBg.AddComponent<RectTransform>();
-        bgRect.sizeDelta = new Vector2(150, 150);
+        bgRect.sizeDelta = new Vector2(260, 260);
         Image bgImage = joystickBg.AddComponent<Image>();
         bgImage.sprite = bgSprite;
         bgImage.color = new Color(1, 1, 1, 0.5f);
@@ -47,7 +47,7 @@ public class VirtualControllerSetup
         GameObject joystickHandle = new GameObject("JoystickHandle");
         joystickHandle.transform.SetParent(joystickBg.transform, false);
         RectTransform handleRect = joystickHandle.AddComponent<RectTransform>();
-        handleRect.sizeDelta = new Vector2(60, 60);
+        handleRect.sizeDelta = new Vector2(96, 96);
         handleRect.anchoredPosition = Vector2.zero;
         Image handleImage = joystickHandle.AddComponent<Image>();
         handleImage.sprite = uiSprite;

@@ -9,7 +9,7 @@ using UnityEngine.Rendering.Universal;
 ///
 /// Settings applied:
 /// - Preserve the normal WebGL quality level and scene-light budget
-/// - Standard-DPI rendering (paired with the WebGL template's iOS DPR policy)
+/// - Capped 2x Retina rendering (paired with the WebGL template's iOS DPR policy)
 /// - MSAA disabled
 /// - Non-lighting quality reductions
 ///
@@ -132,9 +132,9 @@ public class iOSSafariWebGLOptimizer : MonoBehaviour
         urpAsset.msaaSampleCount = 1;
         Debug.Log("[iOSSafariOptimizer] URP MSAA disabled");
 
-        // Set render scale to 1.0 (native resolution)
+        // Preserve every pixel supplied by the template's capped Retina buffer.
         urpAsset.renderScale = 1.0f;
-        Debug.Log("[iOSSafariOptimizer] URP render scale set to 1.0 (native)");
+        Debug.Log("[iOSSafariOptimizer] URP render scale set to 1.0 (full buffer resolution)");
 
         // Disable HDR
         // Note: HDR property might not be directly settable at runtime
