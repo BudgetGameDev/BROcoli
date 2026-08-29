@@ -25,10 +25,6 @@ build, and desktop and iOS-profile smoke probes. `Assets/csc.rsp` promotes every
 C# compiler warning to an error, so the player build is also the authoritative
 compilation check.
 
-`./ci.sh --fast` runs only the gates that need neither Unity nor a player build.
-It finishes in seconds and is what the pre-push hook applies to development
-branches.
-
 Install the prerequisites once:
 
 - .NET SDK 8 or newer (`dotnet`)
@@ -56,13 +52,11 @@ Enable the repository-managed pre-push hook with:
 ./scripts/install-git-hooks.sh
 ```
 
-The hook runs the complete `./ci.sh` when a push updates `staging` or
-`production`, and blocks that push if any gate fails. Every other push runs
-`./ci.sh --fast` instead, so formatting, lint, static-analysis, and source-size
-regressions are caught on the branch that introduces them rather than piling up
-until someone promotes that branch to `staging`. Only branch deletions skip the
-gate entirely. Git hooks are local and are not activated merely by cloning the
-repository, which is why the installer is required once per clone.
+The hook runs `./ci.sh` when a push updates `staging` or `production`, and blocks
+that push if any gate fails. Pushes exclusively to other branches or tags skip the
+gate; `dev` is deliberately ungated, so the gate runs once at promotion rather
+than on day-to-day work. Git hooks are local and are not activated merely by
+cloning the repository, which is why the installer is required once per clone.
 
 ### 300-line source-file limit
 

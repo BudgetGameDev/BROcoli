@@ -6,6 +6,29 @@ Always open the Unity Editor in automated mode by using the `unity-open` command
 available on the shell `PATH`. Do not launch the Unity Editor directly through Unity
 Hub, an editor executable, or another command.
 
+## Verification gates
+
+`dev` is ungated on purpose. Never run CI or a pre-push gate on it.
+
+This is a hard requirement, not a default to be improved on:
+
+- The pre-push hook runs `./ci.sh` only when a push updates `staging` or
+  `production`. Do not widen it to `dev`, to other branches, or to a
+  "fast subset" of gates on every push.
+- Do not add a GitHub Actions workflow that runs quality checks, tests, or
+  builds on `dev`, or on pull requests targeting it. The only hosted job is the
+  Pages player build for `staging` and `production`, because Pages cannot deploy
+  a local artifact.
+- Do not add commit hooks, watchers, or scheduled jobs that verify `dev`.
+
+The cost of this is real and accepted: formatting, lint, and source-size
+regressions accumulate on `dev` and surface together at promotion, where the
+gate catches them. Fix them there. That backlog is not evidence the setup is
+broken, and it is not a reason to gate `dev`.
+
+Running `./ci.sh`, or any individual check, by hand at any time is fine. What is
+forbidden is wiring one to run automatically on `dev`.
+
 ## Asset acquisition
 
 ### Acquisition-first rule

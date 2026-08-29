@@ -3,38 +3,26 @@ set -euo pipefail
 
 PROJECT_PATH="$(git rev-parse --show-toplevel)"
 TARGET_BRANCHES=""
-HAS_REVISION=0
 
 while read -r _local_ref local_oid remote_ref _remote_oid; do
-    # Deleting a remote branch sends an all-zero local object ID. There is no
-    # source revision to validate in that case.
-    if [[ "$local_oid" =~ ^0+$ ]]; then
-        continue
-    fi
-
-    HAS_REVISION=1
-
     case "$remote_ref" in
         refs/heads/staging | refs/heads/production)
+            # Deleting a remote branch sends an all-zero local object ID. There is
+            # no source revision to validate in that case.
+            if [[ "$local_oid" =~ ^0+$ ]]; then
+                continue
+            fi
+
             branch="${remote_ref#refs/heads/}"
             TARGET_BRANCHES="${TARGET_BRANCHES:+$TARGET_BRANCHES, }$branch"
             ;;
     esac
 done
 
-if [ -n "$TARGET_BRANCHES" ]; then
-    echo "pre-push: pushing to $TARGET_BRANCHES; running the complete repository CI gate"
-    exec "$PROJECT_PATH/ci.sh"
-fi
-
-if [ "$HAS_REVISION" -eq 0 ]; then
-    echo "pre-push: no source revision to validate; skipping the repository CI gate"
+if [ -z "$TARGET_BRANCHES" ]; then
+    echo "pre-push: no gated destination branches; skipping repository CI gate"
     exit 0
 fi
 
-# Every other branch still gets the gates that need neither Unity nor a player
-# build. They cost seconds, and running them here is what stops formatting,
-# lint, and source-size regressions from accumulating on a development branch
-# that is later promoted to staging.
-echo "pre-push: no gated destination branches; running the fast repository CI gate"
-exec "$PROJECT_PATH/ci.sh" --fast
+echo "pre-push: pushing to $TARGET_BRANCHES; running repository CI gate"
+exec "$PROJECT_PATH/ci.sh"

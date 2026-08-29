@@ -5,37 +5,9 @@ set -euo pipefail
 PROJECT_PATH="$(cd "$(dirname "$0")" && pwd)"
 cd "$PROJECT_PATH"
 
-MODE="full"
-
-usage() {
-    cat >&2 <<'USAGE'
-Usage: ./ci.sh [--fast]
-
-  (no flag)  Every gate, including the Unity EditMode tests, the WebGL player
-             build, and the desktop and iOS smoke probes.
-  --fast     Only the gates that need neither Unity nor a player build:
-             formatting, linting, host unit tests, static analysis, and the
-             source-size ratchet. Runs in seconds.
-USAGE
-}
-
-if [ "$#" -gt 1 ]; then
-    usage
+if [ "$#" -ne 0 ]; then
+    echo "Usage: ./ci.sh" >&2
     exit 2
-fi
-
-if [ "$#" -eq 1 ]; then
-    case "$1" in
-        --fast) MODE="fast" ;;
-        -h | --help)
-            usage
-            exit 0
-            ;;
-        *)
-            usage
-            exit 2
-            ;;
-    esac
 fi
 
 require_tool() {
@@ -59,9 +31,7 @@ require_tool node
 require_tool uv
 require_tool shellcheck
 require_tool shfmt
-if [ "$MODE" = "full" ]; then
-    require_tool unity
-fi
+require_tool unity
 
 export DOTNET_CLI_TELEMETRY_OPTOUT=1
 export SEMGREP_ENABLE_VERSION_CHECK=0
@@ -84,12 +54,6 @@ run_gate \
     --config .semgrep.yml --error --strict --metrics=off \
     Assets/Scripts Assets/Editor Assets/Tests scripts ci.sh .githooks
 run_gate "Source file size" python3 scripts/check_source_size.py
-
-if [ "$MODE" = "fast" ]; then
-    echo ""
-    echo "ci: fast gates passed (Unity tests, player build, and smoke probes skipped)"
-    exit 0
-fi
 
 run_gate "Unity EditMode tests" ./scripts/unity-test-check.sh
 run_gate "WebGL player build" ./scripts/unity-webgl-build.sh
