@@ -1,0 +1,13 @@
+using UnityEngine;
+
+namespace BudgetGameDev.Games.Brocoli
+{
+    public class player_enemy_collition_event : MonoBehaviour
+    {
+        // Start is called once before the first execution of Update after the MonoBehaviour is created
+        void Start() { }
+
+        // Update is called once per frame
+        void Update() { }
+    }
+}

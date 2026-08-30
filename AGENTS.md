@@ -6,6 +6,31 @@ Always open the Unity Editor in automated mode by using the `unity-open` command
 available on the shell `PATH`. Do not launch the Unity Editor directly through Unity
 Hub, an editor executable, or another command.
 
+## Project structure
+
+This repository hosts several games in one Unity project. Read
+`docs/adding-a-game.md` before adding, removing, or restructuring a game.
+
+- Every game is a local Unity package under `LocalPackages/`, mounted through
+  `Packages/manifest.json` with a `file:` reference. Adding or removing that one
+  line loads or unloads the game, its scenes, its resources, its tests, and its
+  licensed assets.
+- `com.budgetgamedev.hub` is the brand-neutral launcher. Games register by
+  shipping a `GameDefinition` asset under `Resources/GameRegistry/`; the hub
+  never references a game's code.
+- `com.budgetgamedev.shared` holds reusable runtime services and must name no
+  specific game. Inject game-specific values instead, as
+  `GameAudioSettings.Configure` and `IPauseController` do.
+- A game package declares its own Unity dependencies in its `package.json`, so
+  they resolve transitively and disappear when the game is unloaded. Do not move
+  a game-specific dependency into the project manifest.
+- `Assets/` is for project-wide concerns only: render pipeline settings, TextMesh
+  Pro, the WebGL template, and build/licensing editor tooling. Do not add game
+  content there.
+- Scene names and Resources paths are global across the whole build. Prefix
+  scenes with the game id (`Brocoli_Dungeon`) and nest resources under
+  `Resources/<GameId>/`.
+
 ## Verification gates
 
 `dev` is ungated on purpose. Never run CI or a pre-push gate on it.
@@ -121,10 +146,12 @@ and linked terms and verify all of the following:
   other restricted third-party assets. Commit only encrypted payloads and their metadata
   sidecars; never commit the download archive, plaintext source files, `.env`, or
   generated decrypted files. For a multi-file package, preserve its folder structure
-  and Unity `.meta` files in a single encrypted package payload. Restore it only under
-  `Assets/Generated/Licensed/`; keep all integration scenes, prefabs, and configuration
-  outside that ignored generated tree so source package updates cannot overwrite
-  project-authored work.
+  and Unity `.meta` files in a single encrypted package payload. Store it under the
+  owning game package's `Encrypted/Licensed/` folder and restore it only under that
+  same package's `Generated/Licensed/`, so unloading the game removes its restricted
+  assets too; keep all integration scenes, prefabs, and configuration outside that
+  ignored generated tree so source package updates cannot overwrite project-authored
+  work.
 
 Encryption prevents the repository from exposing a usable stand-alone source package;
 it does not create license rights or override the Asset Store EULA or provider terms.
@@ -215,8 +242,7 @@ game's intended commercial use, modification, or embedding—or is unclear—do 
 model; find another free, compatible model or use the allowed procedural fallback.
 
 Read `docs/licensed-assets.md` before importing, replacing, decrypting, or re-encrypting
-any licensed model. Never commit `.env` or anything under
-`Assets/Resources/Generated/Licensed/` or `Assets/Generated/Licensed/`.
+any licensed model. Never commit `.env` or anything under a `Generated/Licensed/` folder.
 
 ### Other game assets: Unity Asset Store, then Kenney
 

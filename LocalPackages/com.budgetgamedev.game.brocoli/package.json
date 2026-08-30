@@ -1,0 +1,26 @@
+{
+  "name": "com.budgetgamedev.game.brocoli",
+  "version": "0.1.0",
+  "displayName": "BROcoli",
+  "description": "BROcoli: a top-down roguelite where a broccoli sprays its way through a procedurally generated dungeon of coronaviruses. Registers itself with the Budget GameDev Game Hub.",
+  "unity": "6000.3",
+  "license": "Elastic-2.0",
+  "author": {
+    "name": "Budget GameDev",
+    "url": "https://github.com/BudgetGameDev"
+  },
+  "dependencies": {
+    "com.budgetgamedev.hub": "0.1.0",
+    "com.budgetgamedev.shared": "0.1.0",
+    "com.unity.ai.navigation": "2.0.9",
+    "com.unity.inputsystem": "1.18.0",
+    "com.unity.render-pipelines.universal": "17.3.0",
+    "com.unity.ugui": "2.0.0",
+    "com.unity.modules.animation": "1.0.0",
+    "com.unity.modules.audio": "1.0.0",
+    "com.unity.modules.particlesystem": "1.0.0",
+    "com.unity.modules.physics": "1.0.0",
+    "com.unity.modules.ui": "1.0.0"
+  },
+  "keywords": ["game", "roguelite", "dungeon"]
+}

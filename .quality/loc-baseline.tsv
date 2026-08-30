@@ -1,26 +1,30 @@
 # Existing source-size debt at introduction of the 300-line gate.
 # Entries may only decrease. Remove an entry once the file reaches 300 lines.
-727	Assets/Scripts/Boost/ProceduralBoostAudio.cs
-983	Assets/Scripts/Enemy Spawner/Enemies/EnemyBase.cs
-483	Assets/Scripts/Enemy Spawner/Enemies/EnemyScript.cs
-569	Assets/Scripts/ForceLandscapeAspect.cs
-312	Assets/Scripts/GamePreloader.cs
-591	Assets/Scripts/HydraEnemyScript.cs
-426	Assets/Scripts/LevelUpScreen.cs
-626	Assets/Scripts/PauseMenu.cs
-427	Assets/Scripts/PickupVisual3D.cs
-532	Assets/Scripts/Player/PlayerStats.cs
-427	Assets/Scripts/Pooling/PoolManager.cs
-1276	Assets/Scripts/ProceduralEnemyGunAudio.cs
-795	Assets/Scripts/ProceduralEnemyMeleeAudio.cs
-542	Assets/Scripts/ProceduralEnemyProjectileHitAudio.cs
-915	Assets/Scripts/ProceduralEnemyWalkAudio.cs
-988	Assets/Scripts/ProceduralGunAudio.cs
-448	Assets/Scripts/ProceduralProjectileHitAudio.cs
-306	Assets/Scripts/ProceduralXPPickupAudio.cs
-528	Assets/Scripts/ShuffleWalkVisual.cs
-357	Assets/Scripts/Spray/SanitizerSpray.cs
-372	Assets/Scripts/Spray/SprayParticleController.cs
-683	Assets/Scripts/TouchAction.cs
-417	Assets/Scripts/UpgradeOption.cs
-910	Assets/Scripts/VirtualController.cs
+# Rebased when games moved into LocalPackages/: paths changed, and counts rose
+# by the namespace wrapper and the reformatting its indentation caused.
+1284	LocalPackages/com.budgetgamedev.game.brocoli/Runtime/Audio/ProceduralEnemyGunAudio.cs
+799	LocalPackages/com.budgetgamedev.game.brocoli/Runtime/Audio/ProceduralEnemyMeleeAudio.cs
+551	LocalPackages/com.budgetgamedev.game.brocoli/Runtime/Audio/ProceduralEnemyProjectileHitAudio.cs
+936	LocalPackages/com.budgetgamedev.game.brocoli/Runtime/Audio/ProceduralEnemyWalkAudio.cs
+308	LocalPackages/com.budgetgamedev.game.brocoli/Runtime/Audio/ProceduralFootstepAudio.cs
+1004	LocalPackages/com.budgetgamedev.game.brocoli/Runtime/Audio/ProceduralGunAudio.cs
+452	LocalPackages/com.budgetgamedev.game.brocoli/Runtime/Audio/ProceduralProjectileHitAudio.cs
+309	LocalPackages/com.budgetgamedev.game.brocoli/Runtime/Audio/ProceduralXPPickupAudio.cs
+734	LocalPackages/com.budgetgamedev.game.brocoli/Runtime/Boost/ProceduralBoostAudio.cs
+322	LocalPackages/com.budgetgamedev.game.brocoli/Runtime/Core/GamePreloader.cs
+1005	LocalPackages/com.budgetgamedev.game.brocoli/Runtime/Enemies/EnemyBase.cs
+486	LocalPackages/com.budgetgamedev.game.brocoli/Runtime/Enemies/EnemyScript.cs
+593	LocalPackages/com.budgetgamedev.game.brocoli/Runtime/Enemies/HydraEnemyScript.cs
+439	LocalPackages/com.budgetgamedev.game.brocoli/Runtime/Pickups/PickupVisual3D.cs
+537	LocalPackages/com.budgetgamedev.game.brocoli/Runtime/Player/PlayerStats.cs
+428	LocalPackages/com.budgetgamedev.game.brocoli/Runtime/Pooling/PoolManager.cs
+361	LocalPackages/com.budgetgamedev.game.brocoli/Runtime/Spray/SanitizerSpray.cs
+389	LocalPackages/com.budgetgamedev.game.brocoli/Runtime/Spray/SprayParticleController.cs
+432	LocalPackages/com.budgetgamedev.game.brocoli/Runtime/UI/LevelUpScreen.cs
+660	LocalPackages/com.budgetgamedev.game.brocoli/Runtime/UI/PauseMenu.cs
+425	LocalPackages/com.budgetgamedev.game.brocoli/Runtime/UI/UpgradeOption.cs
+537	LocalPackages/com.budgetgamedev.game.brocoli/Runtime/Visuals/ShuffleWalkVisual.cs
+306	LocalPackages/com.budgetgamedev.game.brocoli/Tests/Editor/OcclusionCoverageTests.cs
+686	LocalPackages/com.budgetgamedev.shared/Runtime/Input/TouchAction.cs
+936	LocalPackages/com.budgetgamedev.shared/Runtime/Input/VirtualController.cs
+574	LocalPackages/com.budgetgamedev.shared/Runtime/Platform/ForceLandscapeAspect.cs

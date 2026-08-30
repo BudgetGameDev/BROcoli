@@ -41,7 +41,7 @@ export SEMGREP_ENABLE_VERSION_CHECK=0
 python3 scripts/ci_receipt.py clear
 
 run_gate "Restore pinned .NET tools" dotnet tool restore
-run_gate "C# formatting" dotnet csharpier check Assets/Scripts Assets/Editor Assets/Tests
+run_gate "C# formatting" dotnet csharpier check LocalPackages Assets/Editor
 run_gate "Python lint" uvx ruff@0.12.11 check scripts
 run_gate "Python formatting" uvx ruff@0.12.11 format --check scripts
 run_gate "Python unit tests" python3 -m unittest discover --start-directory scripts/tests --quiet
@@ -56,7 +56,7 @@ run_gate \
     "Static analysis" \
     uvx --from semgrep==1.169.0 semgrep scan \
     --config .semgrep.yml --error --strict --metrics=off \
-    Assets/Scripts Assets/Editor Assets/Tests scripts ci.sh cd.sh .githooks
+    LocalPackages Assets/Editor scripts ci.sh cd.sh .githooks
 run_gate "Source file size" python3 scripts/check_source_size.py
 
 run_gate "Unity EditMode tests" ./scripts/unity-test-check.sh

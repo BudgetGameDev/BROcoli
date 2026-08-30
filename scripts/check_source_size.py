@@ -8,10 +8,8 @@ ROOT = Path(__file__).resolve().parent.parent
 LIMIT = 300
 BASELINE = ROOT / ".quality" / "loc-baseline.tsv"
 SOURCE_ROOTS = (
-    ROOT / "Assets" / "Scripts",
+    ROOT / "LocalPackages",
     ROOT / "Assets" / "Editor",
-    ROOT / "Assets" / "Tests",
-    ROOT / "Assets" / "Plugins" / "WebGL",
     ROOT / "scripts",
 )
 SOURCE_SUFFIXES = {".cs", ".jslib", ".ps1", ".py", ".sh"}

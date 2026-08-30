@@ -1,0 +1,18 @@
+{
+  "formatVersion": 2,
+  "payloadType": "directory",
+  "archiveFormat": "zip",
+  "generatedPath": "LocalPackages/com.budgetgamedev.game.brocoli/Generated/Licensed/StylisedWaterShader",
+  "rootGuid": "55e6c6ab2ab32ed299a39ca7c7e1c5d1",
+  "sha256": "e532e508f96ff748dcf1e47d372e9c0c2de0b9dc5dd08e458806575aee3ebcbb",
+  "fileCount": 8,
+  "uncompressedSize": 1189265,
+  "title": "URP Stylized Water Shader - Proto Series",
+  "sourceUrl": "https://assetstore.unity.com/packages/vfx/shaders/urp-stylized-water-shader-proto-series-187485",
+  "author": "BitGem",
+  "license": "Standard Unity Asset Store EULA",
+  "assetVersion": "1.0",
+  "licenseType": "Extension Asset",
+  "acquiredDate": "2026-08-29",
+  "price": "Free"
+}

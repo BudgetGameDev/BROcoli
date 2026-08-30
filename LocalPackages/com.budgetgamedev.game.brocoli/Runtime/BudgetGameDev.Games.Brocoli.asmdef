@@ -1,0 +1,23 @@
+{
+  "name": "BudgetGameDev.Games.Brocoli",
+  "rootNamespace": "BudgetGameDev.Games.Brocoli",
+  "references": [
+    "BudgetGameDev.Hub",
+    "BudgetGameDev.Shared",
+    "Unity.AI.Navigation",
+    "Unity.InputSystem",
+    "Unity.RenderPipelines.Universal.Runtime",
+    "Unity.RenderPipelines.Universal.2D.Runtime",
+    "Unity.TextMeshPro",
+    "UnityEngine.UI"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

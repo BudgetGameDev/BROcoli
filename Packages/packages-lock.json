@@ -1,5 +1,45 @@
 {
   "dependencies": {
+    "com.budgetgamedev.game.brocoli": {
+      "version": "file:../LocalPackages/com.budgetgamedev.game.brocoli",
+      "depth": 0,
+      "source": "local",
+      "dependencies": {
+        "com.budgetgamedev.hub": "0.1.0",
+        "com.budgetgamedev.shared": "0.1.0",
+        "com.unity.ai.navigation": "2.0.9",
+        "com.unity.inputsystem": "1.18.0",
+        "com.unity.render-pipelines.universal": "17.3.0",
+        "com.unity.ugui": "2.0.0",
+        "com.unity.modules.animation": "1.0.0",
+        "com.unity.modules.audio": "1.0.0",
+        "com.unity.modules.particlesystem": "1.0.0",
+        "com.unity.modules.physics": "1.0.0",
+        "com.unity.modules.ui": "1.0.0"
+      }
+    },
+    "com.budgetgamedev.hub": {
+      "version": "file:../LocalPackages/com.budgetgamedev.hub",
+      "depth": 0,
+      "source": "local",
+      "dependencies": {
+        "com.budgetgamedev.shared": "0.1.0",
+        "com.unity.ugui": "2.0.0",
+        "com.unity.modules.ui": "1.0.0"
+      }
+    },
+    "com.budgetgamedev.shared": {
+      "version": "file:../LocalPackages/com.budgetgamedev.shared",
+      "depth": 0,
+      "source": "local",
+      "dependencies": {
+        "com.unity.inputsystem": "1.18.0",
+        "com.unity.render-pipelines.universal": "17.3.0",
+        "com.unity.ugui": "2.0.0",
+        "com.unity.modules.audio": "1.0.0",
+        "com.unity.modules.ui": "1.0.0"
+      }
+    },
     "com.unity.2d.sprite": {
       "version": "1.0.0",
       "depth": 0,
@@ -8,7 +48,7 @@
     },
     "com.unity.ai.navigation": {
       "version": "2.0.9",
-      "depth": 0,
+      "depth": 1,
       "source": "registry",
       "dependencies": {
         "com.unity.modules.ai": "1.0.0"
@@ -55,7 +95,7 @@
     },
     "com.unity.inputsystem": {
       "version": "1.18.0",
-      "depth": 0,
+      "depth": 1,
       "source": "registry",
       "dependencies": {
         "com.unity.modules.uielements": "1.0.0"
@@ -176,7 +216,7 @@
     },
     "com.unity.modules.ai": {
       "version": "1.0.0",
-      "depth": 1,
+      "depth": 2,
       "source": "builtin",
       "dependencies": {}
     },

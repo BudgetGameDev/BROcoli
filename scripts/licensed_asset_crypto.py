@@ -18,9 +18,13 @@ from licensed_asset_archive import create_directory_archive, extract_directory_a
 KEY_NAME = "BROCOLI_LICENSED_ASSET_KEY"
 ITERATIONS = 200_000
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-ENCRYPTED_ROOT = PurePosixPath("Assets/Encrypted/Licensed")
-LEGACY_GENERATED_ROOT = PurePosixPath("Assets/Resources/Generated/Licensed")
-PACKAGE_GENERATED_ROOT = PurePosixPath("Assets/Generated/Licensed")
+# Each game package owns its payloads under <owner>/Encrypted/Licensed and
+# restores them under <owner>/**/Generated/Licensed, so unloading a game takes
+# its restricted third-party assets with it. Roots are derived from the
+# encrypted path rather than fixed, which is what lets a second game exist.
+ENCRYPTED_SUFFIX = PurePosixPath("Encrypted/Licensed")
+GENERATED_SEGMENTS = ("Generated", "Licensed")
+OWNER_ROOTS = ("Assets", "LocalPackages")
 PACKAGE_FORMAT_VERSION = 2
 
 
@@ -91,18 +95,36 @@ def require_path_under(path: PurePosixPath, root: PurePosixPath, label: str) -> 
         raise RuntimeError(f"{label} must stay under {root.as_posix()}/")
 
 
+def owner_root(encrypted: PurePosixPath) -> PurePosixPath:
+    """Directory that owns a payload: the tree holding its Encrypted/Licensed folder."""
+    parent = encrypted.parent
+    if parent.parts[-2:] != ENCRYPTED_SUFFIX.parts:
+        raise RuntimeError(
+            f"Encrypted output path must sit in a {ENCRYPTED_SUFFIX.as_posix()}/ folder"
+        )
+    owner = PurePosixPath(*parent.parts[:-2])
+    if not owner.parts or owner.parts[0] not in OWNER_ROOTS:
+        raise RuntimeError(f"Encrypted output path must live under one of {OWNER_ROOTS}")
+    return owner
+
+
 def resolve_encrypted_path(value: str) -> Path:
     relative = normalized_project_path(value, "Encrypted output path")
-    require_path_under(relative, ENCRYPTED_ROOT, "Encrypted output path")
+    owner_root(relative)
     if not relative.name.endswith(".enc"):
         raise RuntimeError("Encrypted output path must end in .enc")
     return PROJECT_ROOT.joinpath(*relative.parts)
 
 
-def validate_generated_path(value: str, directory: bool) -> str:
+def validate_generated_path(value: str, directory: bool, encrypted: str) -> str:
     relative = normalized_project_path(value, "Generated path")
-    root = PACKAGE_GENERATED_ROOT if directory else LEGACY_GENERATED_ROOT
-    require_path_under(relative, root, "Generated path")
+    owner = owner_root(normalized_project_path(encrypted, "Encrypted output path"))
+    require_path_under(relative, owner, "Generated path")
+    parts = relative.parts
+    if not any(parts[i : i + 2] == GENERATED_SEGMENTS for i in range(len(parts) - 1)):
+        raise RuntimeError(
+            f"Generated path must sit under a {'/'.join(GENERATED_SEGMENTS)}/ folder"
+        )
     return relative.as_posix()
 
 
@@ -122,7 +144,9 @@ def package_metadata(args: argparse.Namespace, archive: Path) -> Dict[str, objec
     if missing:
         raise RuntimeError("Directory packages require metadata options: " + ", ".join(missing))
 
-    generated_path = validate_generated_path(args.generated_path, directory=True)
+    generated_path = validate_generated_path(
+        args.generated_path, directory=True, encrypted=args.output
+    )
     file_count, uncompressed_size = create_directory_archive(Path(args.input).resolve(), archive)
     return {
         "formatVersion": PACKAGE_FORMAT_VERSION,
@@ -147,7 +171,9 @@ def package_metadata(args: argparse.Namespace, archive: Path) -> Dict[str, objec
 def file_metadata(args: argparse.Namespace, source: Path) -> Dict[str, object]:
     metadata = {
         "formatVersion": 1,
-        "generatedPath": validate_generated_path(args.generated_path, directory=False),
+        "generatedPath": validate_generated_path(
+            args.generated_path, directory=False, encrypted=args.output
+        ),
         "sha256": sha256(source),
         "sourceUrl": args.source_url,
         "author": args.author,

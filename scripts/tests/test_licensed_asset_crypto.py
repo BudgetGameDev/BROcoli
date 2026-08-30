@@ -131,7 +131,43 @@ class LicensedAssetCryptoTests(unittest.TestCase):
     def test_generated_package_path_cannot_escape_ignored_root(self):
         with self.assertRaisesRegex(RuntimeError, "safe project-relative path"):
             licensed_asset_crypto.validate_generated_path(
-                "Assets/Generated/Licensed/../Plaintext", directory=True
+                "Assets/Generated/Licensed/../Plaintext",
+                directory=True,
+                encrypted="Assets/Encrypted/Licensed/package.zip.enc",
+            )
+
+    def test_generated_path_may_live_in_the_owning_game_package(self):
+        """A game package restores its own payloads, so they leave with it."""
+        owner = "LocalPackages/com.budgetgamedev.game.brocoli"
+        self.assertEqual(
+            licensed_asset_crypto.validate_generated_path(
+                f"{owner}/Generated/Licensed/FogParticles",
+                directory=True,
+                encrypted=f"{owner}/Encrypted/Licensed/fog-particles.zip.enc",
+            ),
+            f"{owner}/Generated/Licensed/FogParticles",
+        )
+
+    def test_generated_path_cannot_restore_into_another_package(self):
+        """One game must not be able to write generated files into another."""
+        with self.assertRaisesRegex(RuntimeError, "must stay under"):
+            licensed_asset_crypto.validate_generated_path(
+                "LocalPackages/com.budgetgamedev.game.other/Generated/Licensed/Stolen",
+                directory=True,
+                encrypted=(
+                    "LocalPackages/com.budgetgamedev.game.brocoli"
+                    "/Encrypted/Licensed/fog-particles.zip.enc"
+                ),
+            )
+
+    def test_generated_path_must_sit_under_a_generated_licensed_folder(self):
+        """Restores stay inside the git-ignored tree."""
+        owner = "LocalPackages/com.budgetgamedev.game.brocoli"
+        with self.assertRaisesRegex(RuntimeError, "Generated/Licensed"):
+            licensed_asset_crypto.validate_generated_path(
+                f"{owner}/Runtime/Committed",
+                directory=True,
+                encrypted=f"{owner}/Encrypted/Licensed/fog-particles.zip.enc",
             )
 
     def test_archive_extraction_rejects_parent_traversal(self):

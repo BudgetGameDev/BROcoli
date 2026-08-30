@@ -17,7 +17,7 @@ The epic is complete only when every acceptance criterion is verified and checke
 
 - Use **In progress** as the active status and **In review** as the review status.
 - If a processed story returns from **In review** to **In progress** with feedback, finish the currently active story and then prioritize the returned story.
-- Require use and extension of repository-root `./scripts/autoplay-run.sh`, with game-side code under `Assets/Scripts/Autoplay/`. Each story must add or update a deterministic scenario that exercises real gameplay, fails nonzero on regression, and preserves diagnostics and artifacts. Never replace or bypass this harness.
+- Require use and extension of repository-root `./scripts/autoplay-run.sh`, with game-side code under `LocalPackages/com.budgetgamedev.game.brocoli/Runtime/Autoplay/`. Each story must add or update a deterministic scenario that exercises real gameplay, fails nonzero on regression, and preserves diagnostics and artifacts. Never replace or bypass this harness.
 - After reviewing the worker's changes, run `./scripts/autoplay-run.sh --build --scenario smoke`, then `./scripts/autoplay-run.sh --scenario <story-scenario>`. Both must pass with results, telemetry, logs, and visuals. If the interface evolves, update commands and documentation while retaining this entry point. Also run focused tests, Unity compilation, and required Play Mode validation.
 - Use screenshots or video produced by that same passing story-specific autoplay run as visible evidence. Reject manual, generic, stale, or unrelated-run evidence.
 - Commit only the current story using a message containing `Refs #NN`; never use `Closes`, `Fixes`, or another auto-closing keyword.

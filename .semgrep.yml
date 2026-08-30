@@ -8,7 +8,7 @@ rules:
       - pattern: new System.Runtime.Serialization.Formatters.Binary.BinaryFormatter(...)
     paths:
       include:
-        - /Assets/Scripts/**
+        - /LocalPackages/**
         - /Assets/Editor/**
 
   - id: csharp-weak-cryptographic-hash
@@ -22,7 +22,7 @@ rules:
       - pattern: System.Security.Cryptography.SHA1.Create(...)
     paths:
       include:
-        - /Assets/Scripts/**
+        - /LocalPackages/**
         - /Assets/Editor/**
 
   - id: python-shell-true

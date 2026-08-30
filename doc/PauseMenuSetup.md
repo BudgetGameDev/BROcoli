@@ -2,7 +2,7 @@
 
 ## Runtime UI
 
-### PauseMenu.cs (`Assets/Scripts/PauseMenu.cs`)
+### PauseMenu.cs (`LocalPackages/com.budgetgamedev.game.brocoli/Runtime/UI/PauseMenu.cs`)
 
 Handles the pause menu:
 
@@ -10,7 +10,7 @@ Handles the pause menu:
 - Pauses gameplay with `Time.timeScale = 0`.
 - Provides Resume and Main Menu buttons.
 
-### GameOverOverlay.cs (`Assets/Scripts/UI/GameOverOverlay.cs`)
+### GameOverOverlay.cs (`LocalPackages/com.budgetgamedev.game.brocoli/Runtime/UI/GameOverOverlay.cs`)
 
 Builds the game-over interface inside the active `Game` scene when a run ends:
 

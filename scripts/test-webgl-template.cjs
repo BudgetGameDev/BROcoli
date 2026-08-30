@@ -30,11 +30,28 @@ const versionChecker = fs.readFileSync(
   'utf8'
 );
 const iosOptimizer = fs.readFileSync(
-  path.join(__dirname, '..', 'Assets', 'Scripts', 'iOSSafariWebGLOptimizer.cs'),
+  path.join(
+    __dirname,
+    '..',
+    'LocalPackages',
+    'com.budgetgamedev.shared',
+    'Runtime',
+    'Platform',
+    'iOSSafariWebGLOptimizer.cs'
+  ),
   'utf8'
 );
 const mobileDetection = fs.readFileSync(
-  path.join(__dirname, '..', 'Assets', 'Plugins', 'WebGL', 'MobileDetection.jslib'),
+  path.join(
+    __dirname,
+    '..',
+    'LocalPackages',
+    'com.budgetgamedev.shared',
+    'Runtime',
+    'Plugins',
+    'WebGL',
+    'MobileDetection.jslib'
+  ),
   'utf8'
 );
 const qualitySettings = fs.readFileSync(

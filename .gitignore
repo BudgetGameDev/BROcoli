@@ -76,8 +76,11 @@ UserSettings/Layouts/default-6000.dwlt
 .semgrep/
 
 # Licensed asset pipeline: local secret and decrypted Unity imports.
+# Each game package restores its own payloads, so the patterns are per-package.
 .env
-Assets/Resources/Generated/Licensed/
-Assets/Generated/Licensed/
-Assets/Generated/Licensed.meta
-Assets/Generated.meta
+Assets/Generated/
+Assets/Resources/Generated/
+LocalPackages/*/Generated/
+LocalPackages/*/Generated.meta
+LocalPackages/*/Resources/*/Generated/
+LocalPackages/*/Resources/*/Generated.meta

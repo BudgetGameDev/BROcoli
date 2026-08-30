@@ -5,13 +5,45 @@ inside the game but prohibit exposing the stand-alone source files. The real key
 stored in the team password manager, in CI secrets, and in each developer's ignored
 `.env` file as `BROCOLI_LICENSED_ASSET_KEY`.
 
+## One key, whatever the layout
+
+There is exactly one key and one variable for the whole repository. Payloads are
+split per game package, but the key is not: never add a second key, a per-package
+key, or a `.env` inside a package.
+
+Both tools resolve it the same way, in this order:
+
+1. the `BROCOLI_LICENSED_ASSET_KEY` environment variable, which is how CI supplies
+   it and how `scripts/licensed_asset_crypto.py` passes it to `openssl`;
+2. otherwise `BROCOLI_LICENSED_ASSET_KEY` in the single `.env` at the repository
+   root.
+
+The root is resolved from the project, not from the package a payload belongs to,
+so a payload in any game package decrypts with the same key. Adding a game
+therefore needs no key work at all.
+
+## Where payloads live
+
+Licensed payloads belong to whichever tree uses them, called the *owner*:
+
+- A game package owns its own, under
+  `LocalPackages/<package>/Encrypted/Licensed/`, restoring into
+  `LocalPackages/<package>/**/Generated/Licensed/`. Removing that package from
+  `Packages/manifest.json` therefore removes its restricted third-party assets too.
+- `LocalPackages/com.budgetgamedev.game.brocoli/Encrypted/Licensed/` stays available for payloads no single game owns.
+
+Both the encrypter and the decrypter derive the owner from the `.enc` file's own
+location and refuse a `generatedPath` outside it, so one game cannot restore files
+into another. A `generatedPath` must also sit under a `Generated/Licensed/` folder,
+which is what keeps it git-ignored.
+
 The pipeline supports two encrypted payload formats:
 
-- Format 1 restores one file under `Assets/Resources/Generated/Licensed/`. It remains
-  supported for existing assets such as `theHand.fbx`.
-- Format 2 restores a complete directory under `Assets/Generated/Licensed/`. It stores
-  traditional Asset Store packages and other multi-file assets as an encrypted ZIP,
-  preserving their directory structure, empty directories, and Unity `.meta` GUIDs.
+- Format 1 restores one file under an owner's `Resources/**/Generated/Licensed/`. It
+  remains supported for existing assets such as `theHand.fbx`.
+- Format 2 restores a complete directory under an owner's `Generated/Licensed/`. It
+  stores traditional Asset Store packages and other multi-file assets as an encrypted
+  ZIP, preserving their directory structure, empty directories, and Unity `.meta` GUIDs.
 
 ## Rules
 
@@ -21,7 +53,7 @@ The pipeline supports two encrypted payload formats:
   Commit those normally with their required attribution and license notice rather than
   encrypting them merely for convenience.
 - Never commit `.env`, a download archive, a decrypted restricted asset, or anything
-  under `Assets/Resources/Generated/Licensed/` or `Assets/Generated/Licensed/`.
+  under any `Generated/Licensed/` folder.
 - Commit the encrypted `.enc` payload, its `.enc.json` metadata sidecar, and the Unity
   `.meta` files Unity creates for those two committed files.
 - Encryption is source-control protection, not a substitute for a valid license. Every
@@ -59,7 +91,7 @@ canonical imported copy for the repository.
    package-content or imported-assets view to identify every imported file.
 4. Import only the required runtime and editor files into BROcoli. Place them together
    under a package-specific directory such as
-   `Assets/Generated/Licensed/ExampleWater/`, preserving their `.meta` files. Prefer
+   `LocalPackages/com.budgetgamedev.game.brocoli/Generated/Licensed/ExampleWater/`, preserving their `.meta` files. Prefer
    moving files in Unity so references keep their GUIDs.
 5. Verify the package from that generated location before encryption. Packages that
    depend on an exact top-level path such as `Assets/StreamingAssets`, `Assets/Gizmos`,
@@ -77,8 +109,8 @@ Put `BROCOLI_LICENSED_ASSET_KEY` in the local `.env` or process environment, the
 ```bash
 python3 scripts/licensed_asset_crypto.py encrypt \
   --input /absolute/path/to/model.fbx \
-  --output Assets/Encrypted/Licensed/model.fbx.enc \
-  --generated-path Assets/Resources/Generated/Licensed/model.fbx \
+  --output LocalPackages/com.budgetgamedev.game.brocoli/Encrypted/Licensed/model.fbx.enc \
+  --generated-path LocalPackages/com.budgetgamedev.game.brocoli/Resources/Brocoli/Generated/Licensed/model.fbx \
   --source-url https://example.com/model \
   --author "Model Author" \
   --license "Exact license name"
@@ -93,9 +125,9 @@ directory. Then run, substituting the values from the exact Asset Store listing:
 
 ```bash
 python3 scripts/licensed_asset_crypto.py encrypt \
-  --input Assets/Generated/Licensed/ExampleWater \
-  --output Assets/Encrypted/Licensed/example-water.zip.enc \
-  --generated-path Assets/Generated/Licensed/ExampleWater \
+  --input LocalPackages/com.budgetgamedev.game.brocoli/Generated/Licensed/ExampleWater \
+  --output LocalPackages/com.budgetgamedev.game.brocoli/Encrypted/Licensed/example-water.zip.enc \
+  --generated-path LocalPackages/com.budgetgamedev.game.brocoli/Generated/Licensed/ExampleWater \
   --title "Example Water" \
   --author "Example Publisher" \
   --source-url https://assetstore.unity.com/packages/example \
@@ -151,14 +183,14 @@ ignored generated directory locally. Do not delete another package's generated p
   Source: https://sketchfab.com/3d-models/the-hand-a0bd25ee25544603a8455121aa1242ec
 - `fog-particles.zip.enc` — “Fog Particles” version 1.0.0 by Game Seed Assets,
   acquired free on 2026-08-29 under the Standard Unity Asset Store EULA as an
-  Extension Asset. The payload restores to `Assets/Generated/Licensed/FogParticles/`
+  Extension Asset. The payload restores to `LocalPackages/com.budgetgamedev.game.brocoli/Generated/Licensed/FogParticles/`
   and retains only the bluish fog prefab and its material/texture dependencies. It is
   instantiated under `DungeonManager` as the dungeon's general atmospheric fog.
   Source: https://assetstore.unity.com/packages/vfx/particles/fog-particles-351840
 - `free-fire-vfx-urp.zip.enc` — “Free Fire VFX - URP” version 1.0.2023.1 by
   Vefects, acquired free on 2026-08-29 under the Standard Unity Asset Store EULA as
   an Extension Asset. The payload restores to
-  `Assets/Generated/Licensed/FreeFireVFXURP/` and contains the selected small fire
+  `LocalPackages/com.budgetgamedev.game.brocoli/Generated/Licensed/FreeFireVFXURP/` and contains the selected small fire
   prefab plus its runtime dependencies; unused audio, light, heat-haze, demo, and
   alternate-effect content was removed. `DungeonTorch.prefab` uses the selected fire
   effect for every generated torch.
@@ -166,14 +198,14 @@ ignored generated directory locally. Do not delete another package's generated p
 - `urp-stylized-water-shader.zip.enc` — “URP Stylized Water Shader - Proto Series”
   version 1.0 by BitGem, acquired free on 2026-08-29 under the Standard Unity Asset
   Store EULA as an Extension Asset. The payload restores to
-  `Assets/Generated/Licensed/StylisedWaterShader/` and retains the water Shader Graph
+  `LocalPackages/com.budgetgamedev.game.brocoli/Generated/Licensed/StylisedWaterShader/` and retains the water Shader Graph
   and normal texture. A BROcoli-authored integration material applies it to the
   shallow volume mesh used by `DungeonWater.prefab`.
   Source: https://assetstore.unity.com/packages/vfx/shaders/urp-stylized-water-shader-proto-series-187485
 - `stylized-water-effect-pack.zip.enc` — “Stylized Water Effect Pack” version 1.0
   by Namu, acquired free on 2026-08-29 under the Standard Unity Asset Store EULA as
   an Extension Asset. The payload restores to
-  `Assets/Generated/Licensed/StylizedWaterEffectPack/` and retains only the particle
+  `LocalPackages/com.budgetgamedev.game.brocoli/Generated/Licensed/StylizedWaterEffectPack/` and retains only the particle
   Shader Graph and its texture/subgraph dependencies. The existing gameplay spray
   keeps its range, collision, and burst logic while its core particles use this
   acquired water-effect shader through a BROcoli-authored Resources material.

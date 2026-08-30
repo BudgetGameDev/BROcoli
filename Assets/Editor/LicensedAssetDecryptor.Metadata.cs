@@ -17,7 +17,7 @@ public sealed partial class LicensedAssetDecryptor
 
         if (metadata.formatVersion == 1)
         {
-            ValidateGeneratedPath(metadata.generatedPath, LegacyGeneratedRoot, metadataPath);
+            ValidateGeneratedPath(metadata.generatedPath, metadataPath);
             return;
         }
 
@@ -34,19 +34,47 @@ public sealed partial class LicensedAssetDecryptor
             || metadata.rootGuid.Any(character => !Uri.IsHexDigit(character))
         )
             throw new InvalidDataException($"Invalid licensed package metadata: {metadataPath}");
-        ValidateGeneratedPath(metadata.generatedPath, PackageGeneratedRoot, metadataPath);
+        ValidateGeneratedPath(metadata.generatedPath, metadataPath);
     }
 
-    private static void ValidateGeneratedPath(
-        string generatedPath,
-        string requiredRoot,
-        string metadataPath
-    )
+    /// <summary>
+    /// Project-relative directory that owns a payload: the tree holding its
+    /// Encrypted/Licensed folder. Restoring is confined to that owner, so a
+    /// game package can never write generated files into another game.
+    /// </summary>
+    private static string OwnerRoot(string metadataPath)
+    {
+        string projectRoot = Path.GetFullPath(Path.Combine(Application.dataPath, ".."))
+            .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        string owner = Path.GetDirectoryName(
+            Path.GetDirectoryName(Path.GetDirectoryName(Path.GetFullPath(metadataPath)))
+        );
+        if (
+            owner == null
+            || !owner.StartsWith(projectRoot + Path.DirectorySeparatorChar, PathComparison)
+        )
+            throw new InvalidDataException(
+                $"Licensed metadata sits outside the project: {metadataPath}"
+            );
+        return owner[(projectRoot.Length + 1)..].Replace(Path.DirectorySeparatorChar, '/');
+    }
+
+    private static StringComparison PathComparison =>
+        Path.DirectorySeparatorChar == '\\'
+            ? StringComparison.OrdinalIgnoreCase
+            : StringComparison.Ordinal;
+
+    private static void ValidateGeneratedPath(string generatedPath, string metadataPath)
     {
         string normalized = NormalizeProjectRelativePath(generatedPath);
+        string requiredRoot = OwnerRoot(metadataPath);
         if (!normalized.StartsWith(requiredRoot + "/", StringComparison.Ordinal))
             throw new InvalidDataException(
                 $"Generated path in {metadataPath} must stay under {requiredRoot}/"
+            );
+        if (!normalized.Contains("/" + GeneratedSegment + "/", StringComparison.Ordinal))
+            throw new InvalidDataException(
+                $"Generated path in {metadataPath} must sit under a {GeneratedSegment}/ folder"
             );
     }
 

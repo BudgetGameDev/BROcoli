@@ -44,7 +44,11 @@ jobs:
         uses: actions/cache@v5
         with:
           path: Library
-          key: Library-WebGL-${{ hashFiles('Assets/**', 'Packages/**', 'ProjectSettings/**') }}
+          # LocalPackages holds the games and shared code, so it must be in the
+          # key: without it the cache would survive changes to almost all source.
+          key: >-
+            Library-WebGL-${{ hashFiles('Assets/**', 'LocalPackages/**',
+            'Packages/**', 'ProjectSettings/**') }}
           restore-keys: |
             Library-WebGL-
             Library-
@@ -86,15 +90,13 @@ jobs:
         run: |
           rm -f .env
 
-          licensed_asset_dir="Assets/Resources/Generated/Licensed"
-          if [[ -d "$licensed_asset_dir" ]]; then
-            sudo find "$licensed_asset_dir" -mindepth 1 -delete
-          fi
-
-          licensed_package_dir="Assets/Generated/Licensed"
-          if [[ -d "$licensed_package_dir" ]]; then
-            sudo find "$licensed_package_dir" -mindepth 1 -delete
-          fi
+          # Each game package restores its own licensed payloads, so scrub
+          # every Generated/Licensed tree rather than two fixed paths.
+          while IFS= read -r licensed_dir; do
+            sudo find "$licensed_dir" -mindepth 1 -delete
+          done < <(
+            find Assets LocalPackages -type d -path "*/Generated/Licensed" 2>/dev/null
+          )
 
       - name: Generate version.json
         shell: bash

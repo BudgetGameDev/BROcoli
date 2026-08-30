@@ -1,0 +1,23 @@
+{
+  "name": "BudgetGameDev.Games.Brocoli.Tests",
+  "rootNamespace": "BudgetGameDev.Games.Brocoli.Tests",
+  "references": [
+    "BudgetGameDev.Games.Brocoli",
+    "BudgetGameDev.Games.Brocoli.Editor",
+    "BudgetGameDev.Hub",
+    "BudgetGameDev.Shared",
+    "Unity.AI.Navigation",
+    "Unity.RenderPipelines.Universal.Runtime",
+    "UnityEngine.TestRunner",
+    "UnityEditor.TestRunner"
+  ],
+  "includePlatforms": ["Editor"],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": true,
+  "precompiledReferences": ["nunit.framework.dll"],
+  "autoReferenced": false,
+  "defineConstraints": ["UNITY_INCLUDE_TESTS"],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

@@ -13,9 +13,9 @@ using UnityEngine;
 public sealed partial class LicensedAssetDecryptor : IPreprocessBuildWithReport
 {
     private const string KeyName = "BROCOLI_LICENSED_ASSET_KEY";
-    private const string EncryptedRoot = "Assets/Encrypted/Licensed";
-    private const string LegacyGeneratedRoot = "Assets/Resources/Generated/Licensed";
-    private const string PackageGeneratedRoot = "Assets/Generated/Licensed";
+    private const string EncryptedSuffix = "Encrypted/Licensed";
+    private const string GeneratedSegment = "Generated/Licensed";
+    private const string LocalPackageRoot = "LocalPackages";
     private const string PackageMarkerName = ".brocoli-package.sha256";
     private const int Iterations = 200000;
     private const int PackageFormatVersion = 2;
@@ -67,17 +67,40 @@ public sealed partial class LicensedAssetDecryptor : IPreprocessBuildWithReport
             Debug.Log("Licensed assets are ready.");
     }
 
+    /// <summary>
+    /// Every game package owns its own licensed payloads, so unloading a game
+    /// takes its restricted third-party assets with it. Project-level payloads
+    /// stay under Assets/ for content no single game owns.
+    /// </summary>
+    private static string[] EncryptedRoots()
+    {
+        var roots = new System.Collections.Generic.List<string>
+        {
+            ProjectPath("Assets/" + EncryptedSuffix),
+        };
+
+        string packagesRoot = ProjectPath(LocalPackageRoot);
+        if (Directory.Exists(packagesRoot))
+            roots.AddRange(
+                Directory
+                    .GetDirectories(packagesRoot)
+                    .Select(package =>
+                        Path.Combine(
+                            package,
+                            EncryptedSuffix.Replace('/', Path.DirectorySeparatorChar)
+                        )
+                    )
+                    .OrderBy(path => path, StringComparer.Ordinal)
+            );
+
+        return roots.Where(Directory.Exists).ToArray();
+    }
+
     private static bool DecryptAll(bool logMissingKey)
     {
-        string encryptedRoot = ProjectPath(EncryptedRoot);
-        if (!Directory.Exists(encryptedRoot))
-            return true;
-
-        string[] encryptedFiles = Directory.GetFiles(
-            encryptedRoot,
-            "*.enc",
-            SearchOption.TopDirectoryOnly
-        );
+        string[] encryptedFiles = EncryptedRoots()
+            .SelectMany(root => Directory.GetFiles(root, "*.enc", SearchOption.TopDirectoryOnly))
+            .ToArray();
         if (encryptedFiles.Length == 0)
             return true;
 

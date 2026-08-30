@@ -15,7 +15,7 @@ done
 export DOTNET_CLI_TELEMETRY_OPTOUT=1
 
 dotnet tool restore
-dotnet csharpier format Assets/Scripts Assets/Editor Assets/Tests
+dotnet csharpier format LocalPackages Assets/Editor
 uvx ruff@0.12.11 check scripts --fix
 uvx ruff@0.12.11 format scripts
 shfmt -w -i 4 -ci ci.sh cd.sh format.sh scripts/*.sh .githooks/pre-push

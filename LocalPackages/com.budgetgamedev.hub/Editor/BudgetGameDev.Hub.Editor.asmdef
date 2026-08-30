@@ -1,0 +1,14 @@
+{
+  "name": "BudgetGameDev.Hub.Editor",
+  "rootNamespace": "BudgetGameDev.Hub.Editor",
+  "references": ["BudgetGameDev.Hub", "BudgetGameDev.Shared"],
+  "includePlatforms": ["Editor"],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}
