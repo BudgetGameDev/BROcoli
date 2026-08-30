@@ -87,6 +87,7 @@ namespace BudgetGameDev.Shared
             instance = null;
             valuesLoaded = false;
             pauseMenuOpen = false;
+            AudioListener.pause = false;
             ValuesChanged = null;
         }
 
@@ -152,6 +153,7 @@ namespace BudgetGameDev.Shared
         private void HandleSceneLoaded(Scene scene, LoadSceneMode mode)
         {
             pauseMenuOpen = false;
+            AudioListener.pause = false;
             ApplyMixerVolumes();
             RouteAllSources();
         }
@@ -159,6 +161,7 @@ namespace BudgetGameDev.Shared
         public static void SetPauseMenuOpen(bool isOpen)
         {
             pauseMenuOpen = isOpen;
+            AudioListener.pause = isOpen;
             instance?.ApplyMixerVolumes();
         }
 

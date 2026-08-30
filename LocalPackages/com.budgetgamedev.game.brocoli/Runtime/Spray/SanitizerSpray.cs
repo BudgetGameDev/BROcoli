@@ -219,6 +219,7 @@ namespace BudgetGameDev.Games.Brocoli
                 damageHandler?.ResetDamageTick();
                 particleController?.Play();
                 sprayAudio?.StartSpray();
+                handVisuals?.TriggerRecoil();
                 handVisuals?.SetVisible(true);
             }
             // Particle position updated in Update() via UpdateParticlePosition()
@@ -326,6 +327,7 @@ namespace BudgetGameDev.Games.Brocoli
             );
             particleController?.PlayBurst();
             sprayAudio?.PlaySprayBurst();
+            handVisuals?.TriggerRecoil();
 
             if (!SpraySettings.ShowHandAlways)
                 Invoke(nameof(HideHand), SpraySettings.BurstDuration + 0.1f);

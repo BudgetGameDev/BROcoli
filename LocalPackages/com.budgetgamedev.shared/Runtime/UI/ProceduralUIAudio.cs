@@ -29,6 +29,7 @@ namespace BudgetGameDev.Shared
                 sharedAudioSource = audioObj.AddComponent<AudioSource>();
                 sharedAudioSource.playOnAwake = false;
                 sharedAudioSource.spatialBlend = 0f;
+                sharedAudioSource.ignoreListenerPause = true;
 
                 sampleRate = AudioSettings.outputSampleRate;
                 int maxSamples = Mathf.CeilToInt(0.3f * sampleRate);

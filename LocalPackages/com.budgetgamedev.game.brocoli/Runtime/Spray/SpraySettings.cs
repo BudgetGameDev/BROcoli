@@ -42,11 +42,20 @@ namespace BudgetGameDev.Games.Brocoli
         public const float HandWalkWobbleSpeed = 7.5f;
         public const float HandWalkBlendInSpeed = 7f;
         public const float HandWalkBlendOutSpeed = 9f;
+        public const float HandWalkWeightDuringRecoil = 0f;
         public const float HandSprayPushDistance = 0.11f;
         public const float HandSprayPushInTime = 0.055f;
         public const float HandSprayReturnTime = 0.22f;
         public const float HandSprayForwardTiltDegrees = 4f;
         public const float HandSprayHoldAfterEmission = 0.08f;
+        public const float HandSprayRecoilDistance = 0.065f;
+        public const float HandSprayRecoilLift = 0.025f;
+        public const float HandSprayRecoilDegrees = 5f;
+        public const float HandSprayRecoilAttackTime = 0.065f;
+        public const float HandSprayRecoilDuration = 0.26f;
+        public const float HandMovingRecoilMultiplier = 1.8f;
+        public const float HandBackpedalRecoilMultiplier = 1.35f;
+        public const float HandBackpedalBlendSpeed = 10f;
 
         // ==================== Particle Settings ====================
         public const float ParticleSpeedMultiplier = 2.5f;

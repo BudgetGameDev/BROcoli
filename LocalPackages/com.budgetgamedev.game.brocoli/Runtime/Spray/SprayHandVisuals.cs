@@ -14,11 +14,14 @@ namespace BudgetGameDev.Games.Brocoli
         private SprayWeaponVisual3D weaponVisual;
         private Transform sprayTransform;
         private Transform playerTransform;
+        private Rigidbody playerBody;
         private PlayerStats playerStats;
         private ParticleSystem[] sprayParticles;
         private readonly SprayWalkBob walkBob = new SprayWalkBob();
+        private readonly SprayRecoil recoil = new SprayRecoil();
         private Vector2 previousPlayerPosition;
         private bool hasPreviousPlayerPosition;
+        private float backpedalBlend;
 
         // Target tracking
         private Transform targetTransform;
@@ -38,6 +41,8 @@ namespace BudgetGameDev.Games.Brocoli
         {
             sprayTransform = parent;
             playerTransform = parent.parent;
+            playerBody =
+                playerTransform != null ? playerTransform.GetComponent<Rigidbody>() : null;
             playerStats =
                 playerTransform != null ? playerTransform.GetComponent<PlayerStats>() : null;
             if (playerTransform != null)
@@ -206,17 +211,31 @@ namespace BudgetGameDev.Games.Brocoli
 
             UpdateSprayPush();
             SprayWalkBob.Pose walkPose = walkBob.Update(ResolveMovementAmount(), Time.deltaTime);
+            SprayRecoil.Pose recoilPose = recoil.Update(Time.deltaTime);
+            float walkPoseWeight = SprayRecoil.ResolveWalkPoseWeight(recoilPose.Influence);
+            float recoilMultiplier = SprayRecoil.ResolveMovementMultiplier(
+                walkBob.MovementBlend,
+                backpedalBlend
+            );
             float hover =
                 Mathf.Sin(Time.time * SpraySettings.HandHoverSpeed)
                 * SpraySettings.HandHoverAmplitude;
             float push = sprayPushBlend * SpraySettings.HandSprayPushDistance;
             handTransform.localPosition =
-                new Vector3(SpraySettings.HandOffset + push, hover, 0f) + walkPose.LocalOffset;
+                new Vector3(SpraySettings.HandOffset + push, hover, 0f)
+                + walkPose.LocalOffset * walkPoseWeight
+                + recoilPose.LocalOffset * recoilMultiplier;
 
             float sprayTilt = -SpraySettings.HandSprayForwardTiltDegrees * sprayPushBlend;
-            Vector3 presentation = walkPose.LocalEulerAngles;
+            Vector3 presentation = walkPose.LocalEulerAngles * walkPoseWeight;
             presentation.z += sprayTilt;
+            presentation += recoilPose.LocalEulerAngles * recoilMultiplier;
             weaponVisual?.SetPresentation(presentation);
+        }
+
+        public void TriggerRecoil()
+        {
+            recoil.Trigger();
         }
 
         private float ResolveMovementAmount()
@@ -232,7 +251,8 @@ namespace BudgetGameDev.Games.Brocoli
                 return 0f;
             }
 
-            float distanceMoved = Vector2.Distance(currentPosition, previousPlayerPosition);
+            Vector2 movementDelta = currentPosition - previousPlayerPosition;
+            float distanceMoved = movementDelta.magnitude;
             previousPlayerPosition = currentPosition;
             float referenceSpeed = Mathf.Max(
                 0.1f,
@@ -241,10 +261,37 @@ namespace BudgetGameDev.Games.Brocoli
             // Scene placement and teleports are not footsteps. A normal rendered-frame
             // displacement is a small fraction of this even at boosted movement speed.
             if (distanceMoved > referenceSpeed * 0.5f)
+            {
+                UpdateBackpedalBlend(0f);
                 return 0f;
+            }
 
             float measuredSpeed = distanceMoved / Time.deltaTime;
-            return Mathf.Clamp01(measuredSpeed / referenceSpeed);
+            float movementAmount = Mathf.Clamp01(measuredSpeed / referenceSpeed);
+            Vector2 movementDirection = movementDelta;
+            if (playerBody != null)
+            {
+                Vector2 groundVelocity = playerBody.linearVelocity.ToGround();
+                if (groundVelocity.sqrMagnitude > 0.0001f)
+                    movementDirection = groundVelocity;
+            }
+            UpdateBackpedalBlend(
+                SprayRecoil.ResolveBackpedalAmount(
+                    movementDirection,
+                    CurrentDirection,
+                    movementAmount
+                )
+            );
+            return movementAmount;
+        }
+
+        private void UpdateBackpedalBlend(float target)
+        {
+            backpedalBlend = Mathf.MoveTowards(
+                backpedalBlend,
+                Mathf.Clamp01(target),
+                Time.deltaTime * SpraySettings.HandBackpedalBlendSpeed
+            );
         }
 
         private void UpdateSprayPush()
