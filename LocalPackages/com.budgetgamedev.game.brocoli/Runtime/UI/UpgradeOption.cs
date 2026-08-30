@@ -7,7 +7,7 @@ namespace BudgetGameDev.Games.Brocoli
     /// Supports normal upgrades and "troll" trade-off upgrades (+stat/-stat).
     /// </summary>
     [System.Serializable]
-    public class UpgradeOption
+    public partial class UpgradeOption
     {
         public enum Rarity
         {
@@ -46,33 +46,6 @@ namespace BudgetGameDev.Games.Brocoli
         public StatType PenaltyType;
         public float PenaltyAmount;
 
-        // Rarity colors
-        public static readonly Color CommonColor = new Color(0.7f, 0.7f, 0.7f); // Gray
-        public static readonly Color UncommonColor = new Color(0.3f, 0.9f, 0.3f); // Green
-        public static readonly Color RareColor = new Color(0.3f, 0.5f, 1f); // Blue
-        public static readonly Color EpicColor = new Color(0.7f, 0.3f, 0.9f); // Purple
-        public static readonly Color LegendaryColor = new Color(1f, 0.8f, 0.2f); // Gold
-
-        public Color GetRarityColor()
-        {
-            return RarityLevel switch
-            {
-                Rarity.Common => CommonColor,
-                Rarity.Uncommon => UncommonColor,
-                Rarity.Rare => RareColor,
-                Rarity.Epic => EpicColor,
-                Rarity.Legendary => LegendaryColor,
-                _ => CommonColor,
-            };
-        }
-
-        public string GetRarityName()
-        {
-            return RarityLevel.ToString().ToUpper();
-        }
-
-        /// <summary>
-        /// Generate a random upgrade option with weighted rarity.
         /// </summary>
         public static UpgradeOption GenerateRandom(int playerLevel)
         {
@@ -102,15 +75,7 @@ namespace BudgetGameDev.Games.Brocoli
             option.Type = (StatType)statTypes.GetValue(Random.Range(0, statTypes.Length));
 
             // Amount based on rarity and stat type
-            float rarityMult = option.RarityLevel switch
-            {
-                Rarity.Common => 1f,
-                Rarity.Uncommon => 1.5f,
-                Rarity.Rare => 2.5f,
-                Rarity.Epic => 4f,
-                Rarity.Legendary => 6f,
-                _ => 1f,
-            };
+            float rarityMult = RarityMultiplier(option.RarityLevel);
 
             // Set amount and description based on stat type
             switch (option.Type)
@@ -204,13 +169,7 @@ namespace BudgetGameDev.Games.Brocoli
                 option.RarityLevel = Rarity.Rare;
 
             // Bigger multipliers for troll upgrades (high risk, high reward)
-            float rarityMult = option.RarityLevel switch
-            {
-                Rarity.Rare => 3f,
-                Rarity.Epic => 5f,
-                Rarity.Legendary => 8f,
-                _ => 3f,
-            };
+            float rarityMult = TrollRarityMultiplier(option.RarityLevel);
 
             // Pick random stat types (bonus and penalty must be different)
             var statTypes = System.Enum.GetValues(typeof(StatType));
@@ -244,7 +203,7 @@ namespace BudgetGameDev.Games.Brocoli
             return option;
         }
 
-        private static void SetStatAmount(UpgradeOption option, float rarityMult)
+        internal static void SetStatAmount(UpgradeOption option, float rarityMult)
         {
             switch (option.Type)
             {
@@ -290,7 +249,7 @@ namespace BudgetGameDev.Games.Brocoli
             }
         }
 
-        private static float GetPenaltyAmount(StatType type, float mult)
+        internal static float GetPenaltyAmount(StatType type, float mult)
         {
             return type switch
             {
@@ -311,7 +270,7 @@ namespace BudgetGameDev.Games.Brocoli
             };
         }
 
-        private static string GetStatDescription(StatType type, float amount, bool isBonus)
+        internal static string GetStatDescription(StatType type, float amount, bool isBonus)
         {
             string sign = isBonus ? "+" : "-";
             return type switch
@@ -333,7 +292,7 @@ namespace BudgetGameDev.Games.Brocoli
             };
         }
 
-        private static string GetStatShortName(StatType type)
+        internal static string GetStatShortName(StatType type)
         {
             return type switch
             {
@@ -369,7 +328,7 @@ namespace BudgetGameDev.Games.Brocoli
             }
         }
 
-        private void ApplyStatChange(PlayerStats stats, StatType type, float amount, bool isBonus)
+        internal void ApplyStatChange(PlayerStats stats, StatType type, float amount, bool isBonus)
         {
             // For penalties, we subtract instead of add
             float finalAmount = isBonus ? amount : -amount;

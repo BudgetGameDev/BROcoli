@@ -22,7 +22,7 @@
 389	LocalPackages/com.budgetgamedev.game.brocoli/Runtime/Spray/SprayParticleController.cs
 432	LocalPackages/com.budgetgamedev.game.brocoli/Runtime/UI/LevelUpScreen.cs
 660	LocalPackages/com.budgetgamedev.game.brocoli/Runtime/UI/PauseMenu.cs
-425	LocalPackages/com.budgetgamedev.game.brocoli/Runtime/UI/UpgradeOption.cs
+384	LocalPackages/com.budgetgamedev.game.brocoli/Runtime/UI/UpgradeOption.cs
 537	LocalPackages/com.budgetgamedev.game.brocoli/Runtime/Visuals/ShuffleWalkVisual.cs
 306	LocalPackages/com.budgetgamedev.game.brocoli/Tests/Editor/OcclusionCoverageTests.cs
 686	LocalPackages/com.budgetgamedev.shared/Runtime/Input/TouchAction.cs
