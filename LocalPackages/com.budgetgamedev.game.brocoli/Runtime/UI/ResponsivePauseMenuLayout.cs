@@ -8,9 +8,9 @@ namespace BudgetGameDev.Games.Brocoli
 {
     /// <summary>
     /// Dresses the scene's pause panel in the main-menu presentation: a dimmed
-    /// backdrop, one card with an accent bar and heading, the run's stats on their
-    /// own surface and the existing buttons restyled. The scene's Button and
-    /// onClick instances are kept, so <see cref="PauseMenu"/> keeps working.
+    /// backdrop, one card with an accent bar and heading, and the existing buttons
+    /// restyled. Player stats live in the non-pausing inventory overlay. The scene's
+    /// Button and onClick instances are kept, so <see cref="PauseMenu"/> keeps working.
     /// </summary>
     [DisallowMultipleComponent]
     public sealed class ResponsivePauseMenuLayout : MonoBehaviour
@@ -22,10 +22,8 @@ namespace BudgetGameDev.Games.Brocoli
         private RectTransform safeArea;
         private RectTransform card;
         private RectTransform accentBar;
-        private RectTransform statsSurface;
         private TMP_Text eyebrow;
         private TMP_Text title;
-        private TMP_Text statsText;
         private TMP_Text footer;
         private TMP_FontAsset materialFont;
         private Button[] buttons;
@@ -75,31 +73,16 @@ namespace BudgetGameDev.Games.Brocoli
             accentBar = CreatePanel("AccentBar", card, Primary);
             eyebrow = CreateText("Eyebrow", card, "BROCOLI", 17f, Primary, materialFont);
 
-            // The scene's own heading and stats label carry on as the card's text.
+            // The scene's own heading carries on as the card's title.
             title = FindText("PausedText");
             if (title == null)
                 title = CreateText("PausedText", card, "PAUSED", 56f, OnSurface, materialFont);
             StyleText(title, "PAUSED", 56f, OnSurface, materialFont);
             title.rectTransform.SetParent(card, false);
 
-            statsSurface = CreatePanel("StatsSurface", card, SurfaceVariant);
-            statsText = FindText("StatsText");
-            if (statsText != null)
-            {
-                statsText.rectTransform.SetParent(statsSurface, false);
-                if (materialFont != null)
-                    statsText.font = materialFont;
-                statsText.color = OnSurfaceMuted;
-                statsText.alignment = TextAlignmentOptions.TopLeft;
-                statsText.fontStyle = FontStyles.Normal;
-                statsText.characterSpacing = 0f;
-                statsText.enableAutoSizing = true;
-                statsText.fontSizeMin = 10f;
-                statsText.textWrappingMode = TextWrappingModes.Normal;
-                statsText.overflowMode = TextOverflowModes.Truncate;
-                statsText.margin = new Vector4(20f, 16f, 20f, 16f);
-                Stretch(statsText.rectTransform);
-            }
+            TMP_Text oldStats = FindText("StatsText");
+            if (oldStats != null)
+                oldStats.gameObject.SetActive(false);
 
             footer = CreateText(
                 "InputHint",
@@ -192,7 +175,8 @@ namespace BudgetGameDev.Games.Brocoli
             float gap = compact ? 8f : 13f;
             float buttonHeight = compact ? 52f : 64f;
             float actionsHeight = buttonHeight * buttons.Length + gap * (buttons.Length - 1);
-            float y = contentBottom + actionsHeight - buttonHeight * 0.5f;
+            float actionsCenter = (contentTop + contentBottom) * 0.5f;
+            float y = actionsCenter + actionsHeight * 0.5f - buttonHeight * 0.5f;
 
             foreach (Button button in buttons)
             {
@@ -205,18 +189,6 @@ namespace BudgetGameDev.Games.Brocoli
                     label.fontSize = narrow ? (compact ? 17f : 20f) : (compact ? 19f : 23f);
                 y -= buttonHeight + gap;
             }
-
-            float statsBottom = contentBottom + actionsHeight + gap;
-            float statsHeight = Mathf.Max(0f, contentTop - statsBottom);
-            statsSurface.gameObject.SetActive(statsHeight > 60f);
-            SetCenteredRect(
-                statsSurface,
-                innerWidth,
-                statsHeight,
-                statsBottom + statsHeight * 0.5f
-            );
-            if (statsText != null)
-                statsText.fontSizeMax = narrow ? (compact ? 15f : 17f) : (compact ? 16f : 19f);
         }
 
         private void SetButtonLabel(string buttonName, string value)

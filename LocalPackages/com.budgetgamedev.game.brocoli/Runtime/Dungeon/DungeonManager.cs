@@ -61,11 +61,38 @@ namespace BudgetGameDev.Games.Brocoli
         /// <summary>The deterministic layout currently driving the dungeon.</summary>
         public DungeonLayout Layout => layout;
 
+        /// <summary>The room the player currently occupies.</summary>
+        public Vector2Int CurrentRoom => currentRoom;
+
+        /// <summary>Whether the player has entered the dungeon far enough to establish a room.</summary>
+        public bool HasCurrentRoom => hasCurrentRoom;
+
         /// <summary>How many distinct rooms the player has walked into this run.</summary>
         public int RoomsVisited => roomsVisited;
 
+        /// <summary>
+        /// Copies every room the player has entered into a caller-owned list. The
+        /// map uses a copy so unloading distant room geometry never erases history.
+        /// </summary>
+        public void CopyVisitedRooms(List<Vector2Int> destination)
+        {
+            if (destination == null)
+                return;
+
+            destination.Clear();
+            foreach (KeyValuePair<Vector2Int, RoomState> pair in roomStates)
+            {
+                if (pair.Value.Visited)
+                    destination.Add(pair.Key);
+            }
+        }
+
         private void Start()
         {
+            // PlayerStats can awaken before the screen canvas in some scene-load
+            // orders. Starting the dungeon is the reliable second bootstrap point.
+            ExplorationOverlay.EnsurePresent();
+
             Vector2Int initialRoom = Vector2Int.zero;
             if (BrocoliSaveSystem.TryGetPendingContinue(out BrocoliRunSave save))
             {

@@ -1,0 +1,196 @@
+using System.Collections.Generic;
+using NUnit.Framework;
+using UnityEngine;
+
+namespace BudgetGameDev.Games.Brocoli.Tests
+{
+    public sealed class ExplorationOverlayTests
+    {
+        [Test]
+        public void PaneNavigationWrapsInBothDirections()
+        {
+            Assert.That(
+                ExplorationOverlay.NextPane(ExplorationOverlay.Pane.Inventory),
+                Is.EqualTo(ExplorationOverlay.Pane.Map)
+            );
+            Assert.That(
+                ExplorationOverlay.NextPane(ExplorationOverlay.Pane.Map),
+                Is.EqualTo(ExplorationOverlay.Pane.Inventory)
+            );
+            Assert.That(
+                ExplorationOverlay.PreviousPane(ExplorationOverlay.Pane.Inventory),
+                Is.EqualTo(ExplorationOverlay.Pane.Map)
+            );
+        }
+
+        [Test]
+        public void MapProjectionCentersViewAndPreservesRoomOffsets()
+        {
+            var area = new Rect(-300f, -200f, 600f, 400f);
+            var step = new Vector2(50f, 35f);
+            var viewCenter = new Vector2(4.5f, -2f);
+
+            Vector2 centered = DungeonMapGraphic.RoomCenter(
+                area,
+                new Vector2Int(5, -2),
+                viewCenter,
+                step
+            );
+            Vector2 northeast = DungeonMapGraphic.RoomCenter(
+                area,
+                new Vector2Int(6, -1),
+                viewCenter,
+                step
+            );
+
+            Assert.That(centered, Is.EqualTo(new Vector2(25f, 0f)));
+            Assert.That(northeast - centered, Is.EqualTo(step));
+        }
+
+        [Test]
+        public void InventoryNavigationChoosesTheNearestItemInTheRequestedDirection()
+        {
+            Vector2[] grid = { new(0f, 100f), new(100f, 100f), new(0f, 0f), new(100f, 0f) };
+
+            Assert.That(
+                ExplorationOverlay.FindDirectionalItem(grid, 0, Vector2.right),
+                Is.EqualTo(1)
+            );
+            Assert.That(
+                ExplorationOverlay.FindDirectionalItem(grid, 0, Vector2.down),
+                Is.EqualTo(2)
+            );
+            Assert.That(
+                ExplorationOverlay.FindDirectionalItem(grid, 0, Vector2.up),
+                Is.EqualTo(-1)
+            );
+        }
+
+        [Test]
+        public void MovementInputUsesWasdAndKeepsControllerStickSeparate()
+        {
+            Assert.That(
+                PlayerInputHandler.ComposeWasd(false, true, false, true),
+                Is.EqualTo(new Vector2(1f, 1f).normalized)
+            );
+            Assert.That(
+                PlayerInputHandler.ResolveMovementInput(
+                    Vector2.zero,
+                    new Vector2(0.35f, -0.6f),
+                    Vector2.left
+                ),
+                Is.EqualTo(new Vector2(0.35f, -0.6f))
+            );
+        }
+
+        [Test]
+        public void MockItemsTransferIntoTheFirstOpenDestinationSlot()
+        {
+            var nearby = new List<string> { "RELIC", "KEY" };
+            string[] backpack = { "TONIC", null, null };
+
+            bool moved = ExplorationOverlay.TryMoveMockListItemToArray(
+                nearby,
+                0,
+                backpack,
+                out int destination
+            );
+
+            Assert.That(moved, Is.True);
+            Assert.That(destination, Is.EqualTo(1));
+            Assert.That(nearby, Is.EqualTo(new[] { "KEY" }));
+            Assert.That(backpack[1], Is.EqualTo("RELIC"));
+        }
+
+        [Test]
+        public void MockEquipSwapsThePreviousGearItemBackToItsSource()
+        {
+            string[] backpack = { "CHARM" };
+            string[] gear = { "SANITIZER" };
+
+            bool equipped = ExplorationOverlay.SwapMockItem(backpack, 0, gear, 0);
+
+            Assert.That(equipped, Is.True);
+            Assert.That(gear[0], Is.EqualTo("CHARM"));
+            Assert.That(backpack[0], Is.EqualTo("SANITIZER"));
+        }
+
+        [Test]
+        public void MockDropAppendsANewNearbyListRow()
+        {
+            string[] backpack = { "TONIC" };
+            var nearby = new List<string> { "RELIC" };
+
+            bool dropped = ExplorationOverlay.TryMoveMockArrayItemToList(
+                backpack,
+                0,
+                nearby,
+                out int destination
+            );
+
+            Assert.That(dropped, Is.True);
+            Assert.That(destination, Is.EqualTo(1));
+            Assert.That(nearby, Is.EqualTo(new[] { "RELIC", "TONIC" }));
+            Assert.That(backpack[0], Is.Null);
+        }
+
+        [Test]
+        public void UnequippingUsesTheFirstOpenBackpackSlot()
+        {
+            string[] gear = { "CHARM" };
+            string[] backpack = { "TONIC", null };
+            var nearby = new List<string> { "RELIC" };
+
+            bool unequipped = ExplorationOverlay.TryUnequipMockItem(
+                gear,
+                0,
+                backpack,
+                nearby,
+                out InventoryPreviewLocation destination,
+                out int destinationIndex
+            );
+
+            Assert.That(unequipped, Is.True);
+            Assert.That(destination, Is.EqualTo(InventoryPreviewLocation.Backpack));
+            Assert.That(destinationIndex, Is.EqualTo(1));
+            Assert.That(gear[0], Is.Null);
+            Assert.That(backpack[1], Is.EqualTo("CHARM"));
+            Assert.That(nearby, Is.EqualTo(new[] { "RELIC" }));
+        }
+
+        [Test]
+        public void UnequippingDropsNearbyWhenTheBackpackIsFull()
+        {
+            string[] gear = { "CHARM" };
+            string[] backpack = { "TONIC" };
+            var nearby = new List<string> { "RELIC" };
+
+            bool unequipped = ExplorationOverlay.TryUnequipMockItem(
+                gear,
+                0,
+                backpack,
+                nearby,
+                out InventoryPreviewLocation destination,
+                out int destinationIndex
+            );
+
+            Assert.That(unequipped, Is.True);
+            Assert.That(destination, Is.EqualTo(InventoryPreviewLocation.Nearby));
+            Assert.That(destinationIndex, Is.EqualTo(1));
+            Assert.That(gear[0], Is.Null);
+            Assert.That(nearby, Is.EqualTo(new[] { "RELIC", "CHARM" }));
+        }
+
+        [Test]
+        public void MockItemStatsAreStableAndComplete()
+        {
+            string[] first = ExplorationOverlay.MockItemStatValues("MOSSY CHARM");
+            string[] second = ExplorationOverlay.MockItemStatValues("MOSSY CHARM");
+            string[] different = ExplorationOverlay.MockItemStatValues("RUBBER GLOVES");
+
+            Assert.That(first, Has.Length.EqualTo(6));
+            Assert.That(first, Is.EqualTo(second));
+            Assert.That(first, Is.Not.EqualTo(different));
+        }
+    }
+}

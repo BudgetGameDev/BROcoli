@@ -1,5 +1,6 @@
 using BudgetGameDev.Shared;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 namespace BudgetGameDev.Games.Brocoli
 {
@@ -69,17 +70,22 @@ namespace BudgetGameDev.Games.Brocoli
                 return;
             }
 
-            // Get keyboard input
-            Vector2 keyboardInput = new Vector2(
-                Input.GetAxisRaw("Horizontal"),
-                Input.GetAxisRaw("Vertical")
-            );
+            // Read WASD explicitly. Unity's legacy Horizontal/Vertical axes also
+            // contain the arrow keys, which are reserved for overlay navigation.
+            Keyboard keyboard = Keyboard.current;
+            Vector2 keyboardInput =
+                keyboard != null
+                    ? ComposeWasd(
+                        keyboard.aKey.isPressed,
+                        keyboard.dKey.isPressed,
+                        keyboard.sKey.isPressed,
+                        keyboard.wKey.isPressed
+                    )
+                    : Vector2.zero;
 
-            // Normalize if exceeds unit circle (diagonal movement)
-            if (keyboardInput.sqrMagnitude > 1f)
-            {
-                keyboardInput = keyboardInput.normalized;
-            }
+            Gamepad gamepad = Gamepad.current;
+            Vector2 gamepadInput =
+                gamepad != null ? ClampMovementInput(gamepad.leftStick.ReadValue()) : Vector2.zero;
 
             // Get virtual controller input (mobile)
             Vector2 virtualInput = Vector2.zero;
@@ -94,20 +100,7 @@ namespace BudgetGameDev.Games.Brocoli
                 virtualInput = _virtualController.JoystickInput;
             }
 
-            // Prioritize keyboard over virtual controller
-            Vector2 targetInput;
-            if (keyboardInput.sqrMagnitude > 0.01f)
-            {
-                targetInput = keyboardInput;
-            }
-            else if (virtualInput.sqrMagnitude > InputEpsilonSquared)
-            {
-                targetInput = virtualInput;
-            }
-            else
-            {
-                targetInput = Vector2.zero;
-            }
+            Vector2 targetInput = ResolveMovementInput(keyboardInput, gamepadInput, virtualInput);
 
             _rawInput = targetInput;
 
@@ -133,5 +126,28 @@ namespace BudgetGameDev.Games.Brocoli
             _rawInput = Vector2.zero;
             _smoothedInput = Vector2.zero;
         }
+
+        internal static Vector2 ComposeWasd(bool left, bool right, bool down, bool up)
+        {
+            return ClampMovementInput(
+                new Vector2((right ? 1f : 0f) - (left ? 1f : 0f), (up ? 1f : 0f) - (down ? 1f : 0f))
+            );
+        }
+
+        internal static Vector2 ResolveMovementInput(
+            Vector2 keyboardInput,
+            Vector2 gamepadInput,
+            Vector2 virtualInput
+        )
+        {
+            if (keyboardInput.sqrMagnitude > InputEpsilonSquared)
+                return ClampMovementInput(keyboardInput);
+            if (gamepadInput.sqrMagnitude > InputEpsilonSquared)
+                return ClampMovementInput(gamepadInput);
+            return ClampMovementInput(virtualInput);
+        }
+
+        private static Vector2 ClampMovementInput(Vector2 input) =>
+            input.sqrMagnitude > 1f ? input.normalized : input;
     }
 }
