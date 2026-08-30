@@ -23,8 +23,8 @@ public partial class DungeonPropPlacer
                     random,
                     occupied,
                     random.Next(0, 3),
-                    "Chair",
-                    "Stones"
+                    DungeonPropTokens.Chair,
+                    DungeonPropTokens.Stones
                 );
                 if (random.NextDouble() < 0.55)
                     PlaceSmallClusters(
@@ -36,8 +36,8 @@ public partial class DungeonPropPlacer
                         1,
                         3,
                         4,
-                        "Barrel",
-                        "Pot"
+                        DungeonPropTokens.Barrel,
+                        DungeonPropTokens.Pot
                     );
                 break;
             case DungeonLayout.RoomTheme.Storage:
@@ -48,9 +48,9 @@ public partial class DungeonPropPlacer
                     random,
                     occupied,
                     3 + random.Next(0, 3),
-                    "WoodSupport",
-                    "WoodStructure",
-                    "Table"
+                    DungeonPropTokens.WoodSupport,
+                    DungeonPropTokens.WoodStructure,
+                    DungeonPropTokens.Table
                 );
                 PlaceSmallClusters(
                     parent,
@@ -61,8 +61,8 @@ public partial class DungeonPropPlacer
                     1 + random.Next(0, 2),
                     3,
                     5,
-                    "Barrel",
-                    "Pot"
+                    DungeonPropTokens.Barrel,
+                    DungeonPropTokens.Pot
                 );
                 break;
             case DungeonLayout.RoomTheme.Banquet:
@@ -82,8 +82,8 @@ public partial class DungeonPropPlacer
                     random,
                     occupied,
                     3 + random.Next(0, 3),
-                    "Rocks",
-                    "Stones"
+                    DungeonPropTokens.Rocks,
+                    DungeonPropTokens.Stones
                 );
                 break;
             case DungeonLayout.RoomTheme.TreasureVault:
@@ -93,7 +93,15 @@ public partial class DungeonPropPlacer
                 BuildCollapsed(parent, center, archetype, random, occupied);
                 break;
             case DungeonLayout.RoomTheme.Arena:
-                Scatter(parent, center, archetype, random, occupied, random.Next(1, 4), "Stones");
+                Scatter(
+                    parent,
+                    center,
+                    archetype,
+                    random,
+                    occupied,
+                    random.Next(1, 4),
+                    DungeonPropTokens.Stones
+                );
                 break;
         }
     }
@@ -113,10 +121,31 @@ public partial class DungeonPropPlacer
         foreach (float station in stations)
         {
             Vector2 table = horizontal ? new Vector2(station, 0f) : new Vector2(0f, station);
-            PlaceNamed(parent, center, "Table", table, horizontal ? 0f : 90f, occupied);
+            PlaceNamed(
+                parent,
+                center,
+                DungeonPropTokens.Table,
+                table,
+                horizontal ? 0f : 90f,
+                occupied
+            );
             Vector2 side = horizontal ? Vector2.up * 1.55f : Vector2.right * 1.55f;
-            PlaceNamed(parent, center, "Chair", table + side, horizontal ? 180f : -90f, occupied);
-            PlaceNamed(parent, center, "Chair", table - side, horizontal ? 0f : 90f, occupied);
+            PlaceNamed(
+                parent,
+                center,
+                DungeonPropTokens.Chair,
+                table + side,
+                horizontal ? 180f : -90f,
+                occupied
+            );
+            PlaceNamed(
+                parent,
+                center,
+                DungeonPropTokens.Chair,
+                table - side,
+                horizontal ? 0f : 90f,
+                occupied
+            );
         }
         PlaceSmallClusters(
             parent,
@@ -127,9 +156,9 @@ public partial class DungeonPropPlacer
             1,
             3,
             5,
-            "Pot",
-            "Potion",
-            "Barrel"
+            DungeonPropTokens.Pot,
+            DungeonPropTokens.Potion,
+            DungeonPropTokens.Barrel
         );
     }
 
@@ -143,7 +172,13 @@ public partial class DungeonPropPlacer
     {
         float w = Mathf.Max(3.3f, archetype.HalfWidth - 1.2f);
         float d = Mathf.Max(3.2f, archetype.HalfDepth - 1.1f);
-        string[] display = { "ShieldRound", "WeaponSword", "ShieldRectangle", "WeaponSpear" };
+        string[] display =
+        {
+            DungeonPropTokens.ShieldRound,
+            DungeonPropTokens.WeaponSword,
+            DungeonPropTokens.ShieldRectangle,
+            DungeonPropTokens.WeaponSpear,
+        };
         for (int i = 0; i < display.Length; i++)
         {
             float x = Mathf.Lerp(-w, w, (i + 0.5f) / display.Length);
@@ -157,8 +192,15 @@ public partial class DungeonPropPlacer
                 occupied
             );
         }
-        PlaceNamed(parent, center, "Trap", new Vector2(-2.8f, -1.5f), 45f, occupied);
-        PlaceNamed(parent, center, "Trap", new Vector2(2.8f, 1.5f), 45f, occupied);
+        PlaceNamed(
+            parent,
+            center,
+            DungeonPropTokens.Trap,
+            new Vector2(-2.8f, -1.5f),
+            45f,
+            occupied
+        );
+        PlaceNamed(parent, center, DungeonPropTokens.Trap, new Vector2(2.8f, 1.5f), 45f, occupied);
         Scatter(
             parent,
             center,
@@ -166,8 +208,8 @@ public partial class DungeonPropPlacer
             random,
             occupied,
             1 + random.Next(0, 3),
-            "WoodSupport",
-            "Stones"
+            DungeonPropTokens.WoodSupport,
+            DungeonPropTokens.Stones
         );
         if (random.NextDouble() < 0.5)
             PlaceSmallClusters(
@@ -179,8 +221,8 @@ public partial class DungeonPropPlacer
                 1,
                 3,
                 4,
-                "Barrel",
-                "Pot"
+                DungeonPropTokens.Barrel,
+                DungeonPropTokens.Pot
             );
     }
 
@@ -191,24 +233,15 @@ public partial class DungeonPropPlacer
         List<OccupiedSpot> occupied
     )
     {
-        float x = Mathf.Min(3.6f, archetype.HalfWidth - 0.9f);
-        float z = Mathf.Min(3.6f, archetype.HalfDepth - 0.9f);
-        foreach (
-            Vector2 p in new[]
-            {
-                new Vector2(-x, -z),
-                new Vector2(x, -z),
-                new Vector2(-x, z),
-                new Vector2(x, z),
-            }
-        )
-            PlaceNamed(parent, center, "Column", p, 0f, occupied);
-
+        // The four corner pillars this shrine was designed around asked for a
+        // "Column" prop that no longer exists, so they have been building as
+        // nothing at all. Restoring them needs a column prefab registered in
+        // propPrefabs, not a token nothing answers.
         string offering = (archetype.Variant % 3) switch
         {
-            0 => "Potion",
-            1 => "Coin",
-            _ => "Key",
+            0 => DungeonPropTokens.Potion,
+            1 => DungeonPropTokens.Coin,
+            _ => DungeonPropTokens.Key,
         };
         PlaceNamed(parent, center, offering, Vector2.zero, archetype.Variant * 90f, occupied, 1f);
     }

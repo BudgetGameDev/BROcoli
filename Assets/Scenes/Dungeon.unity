@@ -1906,7 +1906,7 @@ MonoBehaviour:
   targetHeight: 0.65
   flickerReacquireWindow: 0.45
   flickerStabilityHold: 0.65
-  minimumPlayerCoverage: 0.5
+  minimumPlayerCoverage: 0.8
   minimumEnemyCoverage: 0.05
   releaseDelay: 0.2
   enemyApproachRadius: 6
@@ -4608,7 +4608,6 @@ MonoBehaviour:
   propPrefabs:
   - {fileID: 1631201616987319535, guid: b6346e14d16ca4687a15519c271529ca, type: 3}
   - {fileID: 2400465401108497178, guid: 37d6fd85f2ddf4d268cbf19a5de30239, type: 3}
-  - {fileID: 5885588032764245486, guid: 2b5e48f7163a94cb3bd351e415381f5e, type: 3}
   - {fileID: 3258537138378706214, guid: c690d9973f5a243c7bde31faee2693dd, type: 3}
   - {fileID: 754501543787322167, guid: 760084823805244b3913fa1e17b14660, type: 3}
   - {fileID: 3514795203494919424, guid: 555311b6a018a437797badc231e9df96, type: 3}

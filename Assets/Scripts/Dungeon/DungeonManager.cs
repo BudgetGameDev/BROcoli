@@ -69,6 +69,11 @@ public partial class DungeonManager : MonoBehaviour
         layout = new DungeonLayout(seed);
         Debug.Log($"DungeonManager: generating dungeon with seed {seed}.");
 
+        // Rooms and edges hang off this node, so it bounds the search for what
+        // one occluding object is just as a room root does.
+        if (GetComponent<DungeonContentRoot>() == null)
+            gameObject.AddComponent<DungeonContentRoot>();
+
         // Enemies path through doorways over a NavMesh baked from the loaded
         // rooms' render meshes (see DungeonEnemyNavigator).
         navSurface = gameObject.AddComponent<NavMeshSurface>();
@@ -140,6 +145,10 @@ public partial class DungeonManager : MonoBehaviour
         DungeonLayout.RoomArchetype archetype = layout.Archetype(room);
         var root = new GameObject($"Room ({room.x}, {room.y}) [{archetype}]");
         root.transform.SetParent(transform, false);
+        // Everything below this node is a separate object as far as occlusion
+        // is concerned, so a prop standing in front of the player lowers itself
+        // rather than the room it was placed in.
+        root.AddComponent<DungeonContentRoot>();
 
         DungeonLayout.RoomDoorways doorways = layout.Doorways(room);
         builder.BuildFloor(root.transform, room, archetype, layout.RoomRandom(room, 404));

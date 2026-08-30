@@ -165,7 +165,7 @@ internal static class WallVisibilitySimulation
                 OcclusionTargetKind.Player,
                 player,
                 BodyBounds(player, PlayerWidth, PlayerHeight),
-                0.5f,
+                OcclusionTarget.PlayerCoverage,
                 out OcclusionTarget playerTarget
             )
         )
@@ -180,7 +180,7 @@ internal static class WallVisibilitySimulation
                     OcclusionTargetKind.Enemy,
                     enemy,
                     BodyBounds(enemy, EnemyWidth, EnemyHeight),
-                    0.05f,
+                    OcclusionTarget.EnemyCoverage,
                     out OcclusionTarget enemyTarget
                 )
             )

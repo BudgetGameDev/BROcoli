@@ -50,49 +50,72 @@ public interface IOcclusionCandidateSource
 }
 
 /// <summary>
-/// Decides which wall groups a single target needs out of the way. Pure: it
-/// reads geometry and returns group ids, and knows nothing about renderers,
-/// materials, or animation.
+/// Decides which occluders a single target needs out of the way, by measuring
+/// how much of that target they actually hide.
+///
+/// The measurement is taken where it matters: sight lines are traced to a grid
+/// of points spread over the character's own body, and an occluder's coverage
+/// is the fraction of those points it stands in front of. Height and width
+/// therefore decide the answer by themselves. A knee-high crate blocks the
+/// lines to the character's feet and none of the lines to their head, so it
+/// scores low however broad it is. A narrow post blocks one column of lines
+/// whatever its height. Only something both tall enough and wide enough to
+/// stand across the body blocks most of them, and only that is worth lowering.
+///
+/// This replaces comparing the screen rectangle of an occluder against the
+/// screen rectangle of a character, which answered a different question - how
+/// much the two boxes overlap - and got both of those cases wrong.
+///
+/// Pure: it reads geometry and returns group ids, and knows nothing about
+/// renderers, materials, or animation.
 /// </summary>
-public static class WallOcclusionSelector
+public sealed class WallOcclusionSelector
 {
-    /// <summary>Where inside a target's screen rectangle the probes are taken.</summary>
-    public static readonly Vector2[] TargetSamples =
-    {
-        new(0.5f, 0.5f),
-        new(0.025f, 0.2f),
-        new(0.25f, 0.2f),
-        new(0.5f, 0.2f),
-        new(0.75f, 0.2f),
-        new(0.975f, 0.2f),
-        new(0.025f, 0.5f),
-        new(0.25f, 0.5f),
-        new(0.75f, 0.5f),
-        new(0.975f, 0.5f),
-        new(0.025f, 0.8f),
-        new(0.25f, 0.8f),
-        new(0.5f, 0.8f),
-        new(0.75f, 0.8f),
-        new(0.975f, 0.8f),
-    };
+    /// <summary>
+    /// Sight lines across the body's width. Five is enough to tell something
+    /// standing across the character from something standing beside them.
+    /// </summary>
+    public const int SampleColumns = 5;
 
-    public static void Select(
+    /// <summary>
+    /// Sight lines up the body. The rows land near the feet, shins, waist,
+    /// chest, and head, which is what lets a low object be recognised as one
+    /// the character can be seen over.
+    /// </summary>
+    public const int SampleRows = 5;
+
+    /// <summary>
+    /// Where in a character's screen rectangle the sight lines are traced.
+    /// Inset from the edges, because a line grazing the silhouette says more
+    /// about the bounding box than about the body inside it.
+    /// </summary>
+    public static readonly Vector2[] TargetSamples = BuildSamples();
+
+    private readonly List<OcclusionCandidate> candidates = new();
+    private readonly Dictionary<int, int> blockedSamples = new();
+    private readonly HashSet<int> blockedHere = new();
+
+    /// <summary>How many sight lines a coverage fraction is measured over.</summary>
+    public static int SampleCount => SampleColumns * SampleRows;
+
+    public void Select(
         in OcclusionCameraModel camera,
         in OcclusionTarget target,
         IOcclusionCandidateSource source,
-        List<OcclusionCandidate> buffer,
         IDictionary<int, OcclusionActivation> activations
     )
     {
+        blockedSamples.Clear();
+
         // Geometry the target is standing under - an arch lintel, say - can sit
-        // between them and the camera without any sight-line ray reaching it,
-        // so it is asked for by position rather than found by probing.
-        buffer.Clear();
-        source.CollectEnclosing(target.Position, buffer);
-        foreach (OcclusionCandidate candidate in buffer)
+        // between them and the camera without any sight line reaching it, so it
+        // is asked for by position rather than found by tracing.
+        candidates.Clear();
+        source.CollectEnclosing(target.Position, candidates);
+        foreach (OcclusionCandidate candidate in candidates)
         {
             if (WallOcclusionMath.ContainsGroundPoint(candidate.Bounds, target.Position))
-                Activate(candidate, target, 1f, activations);
+                Activate(candidate.GroupId, target, 1f, activations);
         }
 
         float targetDepth = Vector3.Dot(target.Bounds.center - camera.Position, camera.Forward);
@@ -108,38 +131,73 @@ public static class WallOcclusionSelector
             if (forwardAmount <= 0.0001f)
                 continue;
 
-            buffer.Clear();
-            source.Collect(ray, maximumDepth / forwardAmount, buffer);
-            foreach (OcclusionCandidate candidate in buffer)
-                Evaluate(camera, candidate, target, activations);
+            candidates.Clear();
+            source.Collect(ray, maximumDepth / forwardAmount, candidates);
+
+            // One sight line is either blocked by a group or it is not; a group
+            // meeting it twice has still hidden one point of the body once.
+            blockedHere.Clear();
+            foreach (OcclusionCandidate candidate in candidates)
+            {
+                // Only geometry in the gap between the camera and the target can
+                // be hiding it: something level with or past the target has
+                // already been walked by, and something behind the camera is not
+                // on screen at all.
+                if (
+                    !WallOcclusionMath.IsBetweenCameraAndTarget(
+                        candidate.Bounds,
+                        camera,
+                        target.Position
+                    )
+                )
+                    continue;
+                if (blockedHere.Add(candidate.GroupId))
+                {
+                    blockedSamples.TryGetValue(candidate.GroupId, out int blocked);
+                    blockedSamples[candidate.GroupId] = blocked + 1;
+                }
+            }
         }
+
+        foreach (KeyValuePair<int, int> blocked in blockedSamples)
+            Activate(blocked.Key, target, blocked.Value / (float)SampleCount, activations);
     }
 
-    private static void Evaluate(
+    /// <summary>
+    /// How much of a character an occluder hides, as the fraction of sight
+    /// lines to their body that it stands in front of. Exposed so the tests
+    /// can measure the same thing the runtime does.
+    /// </summary>
+    public float CoverageOf(
         in OcclusionCameraModel camera,
-        OcclusionCandidate candidate,
         in OcclusionTarget target,
-        IDictionary<int, OcclusionActivation> activations
+        IOcclusionCandidateSource source,
+        int groupId
     )
     {
-        // Whatever the ray hit, only geometry in the gap between the camera and
-        // the target can be hiding it: a wall level with or past the target has
-        // already been walked by, and one behind the camera is not on screen.
-        if (!WallOcclusionMath.IsBetweenCameraAndTarget(candidate.Bounds, camera, target.Position))
-            return;
-        if (!WallOcclusionMath.TryProjectBounds(camera, candidate.Bounds, out Rect occluderRect))
-            return;
+        var measured = new Dictionary<int, OcclusionActivation>();
+        Select(camera, target, source, measured);
+        return measured.TryGetValue(groupId, out OcclusionActivation activation)
+            ? activation.Coverage
+            : 0f;
+    }
 
-        Activate(
-            candidate,
-            target,
-            WallOcclusionMath.CoverageOf(target.ViewportRect, occluderRect),
-            activations
-        );
+    private static Vector2[] BuildSamples()
+    {
+        var samples = new Vector2[SampleColumns * SampleRows];
+        for (int row = 0; row < SampleRows; row++)
+        for (int column = 0; column < SampleColumns; column++)
+        {
+            samples[row * SampleColumns + column] = new Vector2(
+                (column + 0.5f) / SampleColumns,
+                (row + 0.5f) / SampleRows
+            );
+        }
+        return samples;
     }
 
     private static void Activate(
-        OcclusionCandidate candidate,
+        int groupId,
         in OcclusionTarget target,
         float coverage,
         IDictionary<int, OcclusionActivation> activations
@@ -153,16 +211,12 @@ public static class WallOcclusionSelector
         // hits produces the same activation whatever order they arrive in.
         OcclusionTargetKind cause = target.Kind;
         float strongest = coverage;
-        if (activations.TryGetValue(candidate.GroupId, out OcclusionActivation existing))
+        if (activations.TryGetValue(groupId, out OcclusionActivation existing))
         {
             cause = (OcclusionTargetKind)Mathf.Min((int)existing.Cause, (int)cause);
             strongest = Mathf.Max(existing.Coverage, coverage);
         }
 
-        activations[candidate.GroupId] = new OcclusionActivation(
-            candidate.GroupId,
-            cause,
-            strongest
-        );
+        activations[groupId] = new OcclusionActivation(groupId, cause, strongest);
     }
 }

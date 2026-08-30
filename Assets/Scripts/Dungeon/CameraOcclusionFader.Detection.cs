@@ -5,14 +5,14 @@ public sealed partial class CameraOcclusionFader
 {
     [Header("Occlusion Detection")]
     [SerializeField, Range(0.05f, 0.9f)]
-    private float minimumPlayerCoverage = 0.5f;
+    private float minimumPlayerCoverage = OcclusionTarget.PlayerCoverage;
 
     [Tooltip(
         "Minimum fraction of a visible enemy that a wall must cover before the wall is lowered. "
             + "This is intentionally lower than the player threshold so even a partly hidden enemy stays readable."
     )]
     [SerializeField, Range(0.01f, 0.5f)]
-    private float minimumEnemyCoverage = 0.05f;
+    private float minimumEnemyCoverage = OcclusionTarget.EnemyCoverage;
 
     [SerializeField, Min(0f)]
     private float releaseDelay = 0.2f;
@@ -80,6 +80,8 @@ public sealed partial class CameraOcclusionFader
     {
         if (target == null || !TryGetTargetBounds(target, out Bounds bounds))
             return;
+
+        NoteTargetBodyHeight(bounds);
         if (
             OcclusionTarget.TryCreate(
                 cameraModel,
@@ -102,9 +104,9 @@ public sealed partial class CameraOcclusionFader
     {
         foreach (int groupId in Resolver.LoweredGroups)
         {
-            DungeonOcclusionSection section = DungeonOcclusionSection.ForGroup(groupId);
-            if (section != null && BelongsToPlayerRoom(section))
-                section.CollectFadeRenderers(
+            DungeonOccluder occluder = DungeonOccluder.ForGroup(groupId);
+            if (occluder != null && BelongsToPlayerRoom(occluder))
+                occluder.CollectFadeRenderers(
                     Resolver,
                     frustumPlanes,
                     currentOccluders,
@@ -164,12 +166,14 @@ public sealed partial class CameraOcclusionFader
         )
             return;
 
-        // Objects on the Wall layer without a section - barrels, chests,
-        // rocks - do not obscure a character enough to justify lowering
-        // anything.
-        DungeonOcclusionSection section = DungeonOcclusionSection.Owning(candidate);
-        if (section != null && BelongsToPlayerRoom(section))
-            results.Add(new OcclusionCandidate(section.GroupId, candidate.bounds));
+        // Anything the camera can see and physics can hit is a candidate,
+        // whatever kind of object it is. Whether it is worth lowering is
+        // settled downstream by how much of a character it covers, so a barrel
+        // that genuinely hides the player is treated exactly like a wall that
+        // does, and one that does not is left standing.
+        DungeonOccluder occluder = DungeonOccluder.Owning(candidate);
+        if (occluder != null && BelongsToPlayerRoom(occluder))
+            results.Add(new OcclusionCandidate(occluder.GroupId, candidate.bounds));
     }
 
     private void AddVolumeCandidate(
@@ -178,18 +182,18 @@ public sealed partial class CameraOcclusionFader
         List<OcclusionCandidate> results
     )
     {
-        DungeonOcclusionSection section = volume.GetComponentInParent<DungeonOcclusionSection>();
-        if (section != null && BelongsToPlayerRoom(section))
-            results.Add(new OcclusionCandidate(section.GroupId, bounds));
+        DungeonOccluder occluder = DungeonOccluder.Owning(volume);
+        if (occluder != null && BelongsToPlayerRoom(occluder))
+            results.Add(new OcclusionCandidate(occluder.GroupId, bounds));
     }
 
-    private bool BelongsToPlayerRoom(DungeonOcclusionSection section)
+    private bool BelongsToPlayerRoom(DungeonOccluder occluder)
     {
         if (target == null)
             return true;
 
         DungeonLayout layout = dungeonManager != null ? dungeonManager.Layout : null;
-        return section.BelongsToRoom(playerRoom, layout);
+        return occluder.BelongsToRoom(playerRoom, layout);
     }
 
     private bool IsVisibleGeometry(int layer, Bounds bounds)

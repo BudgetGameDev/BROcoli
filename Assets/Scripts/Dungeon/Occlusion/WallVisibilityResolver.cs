@@ -15,7 +15,7 @@ public sealed class WallVisibilityResolver
     private readonly WallVisibilityStateMachine states;
     private readonly WallVisibilityStateMachine pieceStates;
     private readonly List<OcclusionTarget> targets = new();
-    private readonly List<OcclusionCandidate> candidateBuffer = new();
+    private readonly WallOcclusionSelector selector = new();
     private readonly Dictionary<int, OcclusionActivation> activations = new();
     private OcclusionCameraModel camera;
     private Vector3 groundForward;
@@ -69,7 +69,7 @@ public sealed class WallVisibilityResolver
 
         states.BeginFrame();
         foreach (OcclusionTarget target in targets)
-            WallOcclusionSelector.Select(model, target, source, candidateBuffer, activations);
+            selector.Select(model, target, source, activations);
 
         foreach (KeyValuePair<int, OcclusionActivation> activation in activations)
             states.Select(activation.Key, activation.Value.Cause);

@@ -120,26 +120,6 @@ public static class WallOcclusionMath
             + Mathf.Abs(groundForward.z) * bounds.extents.z;
     }
 
-    /// <summary>
-    /// How much of the target's screen rectangle an occluder's screen
-    /// rectangle covers, as a fraction of the target's area.
-    /// </summary>
-    public static float CoverageOf(Rect targetRect, Rect occluderRect)
-    {
-        float overlapWidth = Mathf.Max(
-            0f,
-            Mathf.Min(targetRect.xMax, occluderRect.xMax)
-                - Mathf.Max(targetRect.xMin, occluderRect.xMin)
-        );
-        float overlapHeight = Mathf.Max(
-            0f,
-            Mathf.Min(targetRect.yMax, occluderRect.yMax)
-                - Mathf.Max(targetRect.yMin, occluderRect.yMin)
-        );
-        float targetArea = Mathf.Max(0.000001f, targetRect.width * targetRect.height);
-        return overlapWidth * overlapHeight / targetArea;
-    }
-
     /// <summary>The screen rectangle a world-space box occupies.</summary>
     public static bool TryProjectBounds(
         in OcclusionCameraModel camera,

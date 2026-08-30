@@ -9,6 +9,14 @@ public sealed partial class CameraOcclusionFader
     private readonly List<Renderer> targetRenderers = new();
 
     /// <summary>
+    /// How tall the character the camera is keeping readable stands. An
+    /// occluder's cut is measured against this as well as against itself, so
+    /// something far taller than the player is cut low enough to actually
+    /// reveal them rather than at a flattering fraction of its own height.
+    /// </summary>
+    public float TargetBodyHeight { get; private set; } = FallbackPlayerHeight;
+
+    /// <summary>
     /// The world-space box a character fills. This is the only step of the
     /// visibility decision that has to look at renderers.
     /// </summary>
@@ -40,6 +48,17 @@ public sealed partial class CameraOcclusionFader
             hasBounds = true;
         }
         return hasBounds;
+    }
+
+    /// <summary>
+    /// Records the height of the character the fades are being taken for.
+    /// Measured from the body itself, so swapping the player model retunes
+    /// every cut in the game without anyone editing a number.
+    /// </summary>
+    private void NoteTargetBodyHeight(Bounds bounds)
+    {
+        if (bounds.size.y > 0f)
+            TargetBodyHeight = bounds.size.y;
     }
 
     private static bool IsCharacterBodyRenderer(Renderer characterRenderer)

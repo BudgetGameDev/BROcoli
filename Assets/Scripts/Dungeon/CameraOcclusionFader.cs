@@ -2,12 +2,16 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// Fades dungeon walls that sit between the gameplay camera and a character
-/// who has to stay readable. Every decision - which logical wall group is in
-/// the way, when it lowers, and when it may stand back up - belongs to
+/// Fades whatever stands between the gameplay camera and a character who has
+/// to stay readable. Every decision - which occluder is in the way, when it
+/// lowers, and when it may stand back up - belongs to
 /// <see cref="WallVisibilityResolver"/>; this component only turns the answer
-/// into materials. Runtime material copies keep the shared wall material
-/// unchanged.
+/// into materials. Runtime material copies keep shared materials unchanged.
+///
+/// Nothing here knows a wall from a barrel. An occluder qualifies by covering
+/// enough of a character to hide them, and it gives way across a fraction of
+/// its own measured height, so a prop added to the game later is handled by
+/// the rules already written rather than by rules written for it.
 /// </summary>
 [DisallowMultipleComponent]
 [RequireComponent(typeof(Camera))]
@@ -25,18 +29,33 @@ public sealed partial class CameraOcclusionFader : MonoBehaviour
     [SerializeField]
     private Transform target;
 
+    [Tooltip(
+        "Which layers are searched for occluders. Anything on one of them that covers a "
+            + "character enough to hide them is lowered, whatever kind of object it is."
+    )]
     [SerializeField]
     private LayerMask occluderMask = 1 << 9;
 
     [SerializeField, Min(0.1f)]
     private float fadeSpeed = 6f;
 
+    [Tooltip(
+        "How much of an occluder's height its fade is blended across, as a fraction of "
+            + "whichever is shorter: the occluder or the character it is hiding."
+    )]
+    [UnityEngine.Serialization.FormerlySerializedAs("wallFadeFeatherFraction")]
     [SerializeField, Range(0.02f, 0.35f)]
-    private float wallFadeFeatherFraction = 0.12f;
+    private float fadeFeatherFraction = 0.12f;
 
+    [Tooltip(
+        "How much stays standing while an occluder is lowered, as a fraction of whichever is "
+            + "shorter: the occluder or the character it hides. Measuring against the character "
+            + "is what stops something far taller than the player hiding them after lowering."
+    )]
     [UnityEngine.Serialization.FormerlySerializedAs("gatewayVisibleBaseFraction")]
+    [UnityEngine.Serialization.FormerlySerializedAs("visibleWallBaseFraction")]
     [SerializeField, Range(0.25f, 0.65f)]
-    private float visibleWallBaseFraction = 0.45f;
+    private float visibleBaseFraction = 0.45f;
 
     [SerializeField, Min(0f)]
     private float targetHeight = 0.65f;
@@ -54,83 +73,6 @@ public sealed partial class CameraOcclusionFader : MonoBehaviour
     [SerializeField, Min(0f)]
     private float flickerStabilityHold = 0.65f;
 
-    private sealed class FadeState
-    {
-        public readonly Renderer Renderer;
-        public readonly Material[] OriginalMaterials;
-        public readonly Material[] FadedMaterials;
-        public readonly Color[] BaseColors;
-        public float Visibility = 1f;
-        public bool UsingFadedMaterials;
-
-        public FadeState(
-            Renderer renderer,
-            Shader fadeShader,
-            float featherFraction,
-            float visibleBaseFraction
-        )
-        {
-            Renderer = renderer;
-            OriginalMaterials = renderer.sharedMaterials;
-            FadedMaterials = new Material[OriginalMaterials.Length];
-            BaseColors = new Color[OriginalMaterials.Length];
-            DungeonOcclusionSection section =
-                renderer.GetComponentInParent<DungeonOcclusionSection>();
-            bool structural = section != null;
-            float fadeReferenceMinY = renderer.bounds.min.y;
-            float fadeReferenceHeight = renderer.bounds.size.y;
-            if (
-                section != null
-                && section.TryGetGatewayFadeReference(
-                    renderer,
-                    out float gatewayMinimumY,
-                    out float gatewayHeight
-                )
-            )
-            {
-                fadeReferenceMinY = gatewayMinimumY;
-                fadeReferenceHeight = gatewayHeight;
-            }
-            float fadeFeather = structural
-                ? Mathf.Max(0.02f, fadeReferenceHeight * featherFraction)
-                : 0.02f;
-            // Gateway crowns and grates use their adjoining wall's absolute
-            // cutoff instead of a fraction of their different renderer heights.
-            float fadeStart = structural
-                ? fadeReferenceMinY + fadeReferenceHeight * visibleBaseFraction
-                : renderer.bounds.min.y - fadeFeather;
-
-            for (int i = 0; i < OriginalMaterials.Length; i++)
-            {
-                Material original = OriginalMaterials[i];
-                if (original == null)
-                    continue;
-
-                Material faded;
-                if (fadeShader != null)
-                {
-                    faded = new Material(fadeShader);
-                    faded.CopyMatchingPropertiesFromMaterial(original);
-                    faded.renderQueue = original.renderQueue;
-                    faded.enableInstancing = original.enableInstancing;
-                    faded.SetFloat(FadeStartYId, fadeStart);
-                    faded.SetFloat(FadeFeatherId, fadeFeather);
-                    faded.SetFloat(OcclusionFadeId, 0f);
-                    faded.SetShaderPassEnabled("ShadowCaster", true);
-                }
-                else
-                {
-                    faded = new Material(original);
-                    ConfigureTransparent(faded);
-                }
-                faded.name = $"{original.name} (Occlusion Fade)";
-                faded.hideFlags = HideFlags.DontSave;
-                FadedMaterials[i] = faded;
-                BaseColors[i] = ReadColor(original);
-            }
-        }
-    }
-
     private readonly RaycastHit[] castHits = new RaycastHit[MaxCastHits];
     private readonly List<Renderer> hitRenderers = new();
     private readonly HashSet<Renderer> currentOccluders = new();
@@ -142,7 +84,7 @@ public sealed partial class CameraOcclusionFader : MonoBehaviour
     /// <summary>How many renderers are currently faded, for diagnostics.</summary>
     public int ActiveOccluderCount { get; private set; }
 
-    /// <summary>How many logical wall groups are lowered, for diagnostics.</summary>
+    /// <summary>How many occluders are lowered, for diagnostics.</summary>
     public int LoweredGroupCount { get; private set; }
 
     /// <summary>
@@ -207,8 +149,9 @@ public sealed partial class CameraOcclusionFader : MonoBehaviour
                     new FadeState(
                         renderer,
                         fadeShader,
-                        wallFadeFeatherFraction,
-                        visibleWallBaseFraction
+                        fadeFeatherFraction,
+                        visibleBaseFraction,
+                        TargetBodyHeight
                     )
                 );
             }

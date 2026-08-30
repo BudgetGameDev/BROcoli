@@ -47,10 +47,13 @@ public sealed class DungeonBuiltOcclusionTests
             new DungeonPassage(false, 0, 0)
         );
 
+        // Whatever the run built is what gets measured. Matching on a prefab
+        // name here would stop covering the wall the moment the art was
+        // swapped, and would keep passing while it did.
         var heights = new List<float>();
-        foreach (BoxCollider collider in root.GetComponentsInChildren<BoxCollider>())
+        foreach (Collider collider in root.GetComponentsInChildren<Collider>())
         {
-            if (collider.name.StartsWith("DungeonWall"))
+            if (!collider.isTrigger)
                 heights.Add(collider.bounds.size.y);
         }
 
@@ -85,13 +88,13 @@ public sealed class DungeonBuiltOcclusionTests
         Builder().BuildInterior(root.transform, room, layout.Archetype(room));
 
         var sections = new Dictionary<Vector2, DungeonOcclusionSection>();
-        foreach (BoxCollider collider in root.GetComponentsInChildren<BoxCollider>())
+        foreach (Collider collider in root.GetComponentsInChildren<Collider>())
         {
-            if (!collider.name.StartsWith("DungeonWall"))
+            if (collider.isTrigger)
                 continue;
             Bounds bounds = collider.bounds;
             sections[new Vector2(bounds.center.x, bounds.center.z)] =
-                collider.GetComponentInParent<DungeonOcclusionSection>();
+                DungeonOccluder.Owning(collider) as DungeonOcclusionSection;
         }
 
         Assert.That(sections, Is.Not.Empty, $"seed {seed}: room {room} built no interior walls");

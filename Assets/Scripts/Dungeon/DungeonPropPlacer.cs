@@ -88,8 +88,6 @@ public partial class DungeonPropPlacer : MonoBehaviour
     [SerializeField, Range(0f, 1f)]
     private float waterChance = 0.45f;
 
-    private readonly Dictionary<GameObject, float> footprintRadii = new();
-
     /// <summary>
     /// Places deterministic chest slots and the room's prop pattern. Opened
     /// slots still reserve their positions so rebuilt rooms never rearrange.
@@ -117,22 +115,22 @@ public partial class DungeonPropPlacer : MonoBehaviour
                         : random.NextDouble() < goldenChestChance
                 );
             GameObject prefab = golden ? goldenChestPrefab : chestPrefab;
-            float radius = FootprintRadius(prefab);
-            Vector2 local = ChestSpot(archetype, random, radius, occupied);
+            DungeonPropMeasurement measurement = Measure(prefab);
+            Vector2 local = ChestSpot(archetype, random, measurement.Radius, occupied);
             int yaw = random.Next(0, 4) * 90;
-            occupied.Add(new OccupiedSpot(local, radius, radius >= 1.1f, true));
+            occupied.Add(new OccupiedSpot(local, measurement.Radius, measurement.IsLarge, true));
 
             if (openedChestSlots != null && openedChestSlots.Contains(slot))
                 continue;
 
-            if (prefab == null)
-                continue;
-            GameObject spawned = Instantiate(
+            GameObject spawned = SpawnProp(
+                parent,
                 prefab,
-                (center + local).ToWorld(),
-                GroundPlane.YawRotation(yaw),
-                parent
+                center + local,
+                GroundPlane.YawRotation(yaw)
             );
+            if (spawned == null)
+                continue;
             LootChest chest = spawned.GetComponent<LootChest>();
             if (chest != null)
             {
@@ -175,11 +173,15 @@ public partial class DungeonPropPlacer : MonoBehaviour
             );
             for (int i = 0; i < torchCount && i < mounts.Count; i++)
             {
-                Instantiate(
-                    torchPrefab,
-                    (center + mounts[i].Local).ToWorld(),
-                    Quaternion.Euler(0f, mounts[i].Yaw, 0f),
-                    parent
+                // A wall fitting hangs where its pivot says, so it is placed
+                // rather than stood on the floor like a prop.
+                EnrolAsOccluder(
+                    Instantiate(
+                        torchPrefab,
+                        (center + mounts[i].Local).ToWorld(),
+                        Quaternion.Euler(0f, mounts[i].Yaw, 0f),
+                        parent
+                    )
                 );
             }
         }

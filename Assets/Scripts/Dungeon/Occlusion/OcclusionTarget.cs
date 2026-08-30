@@ -7,6 +7,23 @@ using UnityEngine;
 /// </summary>
 public readonly struct OcclusionTarget
 {
+    /// <summary>
+    /// How much of the player has to be hidden before anything is lowered for
+    /// them: nearly all of it, so a wall gives way at the point where only the
+    /// top of their head is still showing. Anything less is a character the
+    /// player can still read - standing behind a post, or with their legs
+    /// behind a crate - and lowering the room around them for that is more
+    /// distracting than the obstruction was.
+    /// </summary>
+    public const float PlayerCoverage = 0.8f;
+
+    /// <summary>
+    /// The same for an enemy, and deliberately far lower. A partly hidden
+    /// enemy is a threat that cannot be read or aimed at, so it is worth
+    /// clearing sight of one long before it is worth doing for the player.
+    /// </summary>
+    public const float EnemyCoverage = 0.05f;
+
     public readonly OcclusionTargetKind Kind;
     public readonly Vector3 Position;
     public readonly Bounds Bounds;

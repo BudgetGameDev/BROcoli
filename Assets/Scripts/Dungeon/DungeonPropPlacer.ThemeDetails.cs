@@ -3,6 +3,8 @@ using UnityEngine;
 
 public partial class DungeonPropPlacer
 {
+    private static readonly HashSet<string> ReportedMissingTokens = new();
+
     private void BuildVault(
         Transform parent,
         Vector2 center,
@@ -11,19 +13,8 @@ public partial class DungeonPropPlacer
         List<OccupiedSpot> occupied
     )
     {
-        float x = Mathf.Min(4.5f, archetype.HalfWidth - 0.7f);
-        float z = Mathf.Min(4.4f, archetype.HalfDepth - 0.7f);
-        foreach (
-            Vector2 p in new[]
-            {
-                new Vector2(-x, -z),
-                new Vector2(x, -z),
-                new Vector2(-x, z),
-                new Vector2(x, z),
-            }
-        )
-            PlaceNamed(parent, center, "Column", p, 0f, occupied);
-
+        // As in BuildShrine: this vault's corner pillars asked for a "Column"
+        // prop that no longer exists and have been building as nothing.
         foreach (
             Vector2 p in new[]
             {
@@ -33,7 +24,7 @@ public partial class DungeonPropPlacer
                 new Vector2(1.2f, 1f),
             }
         )
-            PlaceNamed(parent, center, "Coin", p, random.Next(0, 360), occupied);
+            PlaceNamed(parent, center, DungeonPropTokens.Coin, p, random.Next(0, 360), occupied);
     }
 
     private void BuildCollapsed(
@@ -51,8 +42,8 @@ public partial class DungeonPropPlacer
             random,
             occupied,
             5 + random.Next(0, 4),
-            "Rocks",
-            "Stones"
+            DungeonPropTokens.Rocks,
+            DungeonPropTokens.Stones
         );
     }
 
@@ -73,16 +64,12 @@ public partial class DungeonPropPlacer
             if (prefab == null)
                 continue;
 
-            float radius = FootprintRadius(prefab);
-            bool large = IsLargeProp(prefab.name);
+            DungeonPropMeasurement measurement = Measure(prefab);
+            float radius = measurement.Radius;
+            bool large = measurement.IsLarge;
             if (!TryRandomSpot(archetype, random, occupied, radius, large, out Vector2 local))
                 continue;
-            Instantiate(
-                prefab,
-                (center + local).ToWorld(),
-                GroundPlane.YawRotation(random.Next(0, 360)),
-                parent
-            );
+            SpawnProp(parent, prefab, center + local, GroundPlane.YawRotation(random.Next(0, 360)));
             occupied.Add(new OccupiedSpot(local, radius, large));
         }
     }
@@ -111,7 +98,7 @@ public partial class DungeonPropPlacer
                 continue;
 
             int groupSize = random.Next(minimum, maximum + 1);
-            float propRadius = FootprintRadius(prefab);
+            float propRadius = Measure(prefab).Radius;
             float neighbourDistance = propRadius * 2f + TightClusterGap;
             float ringRadius = neighbourDistance / (2f * Mathf.Sin(Mathf.PI / groupSize));
             float clusterRadius = ringRadius + propRadius;
@@ -126,11 +113,11 @@ public partial class DungeonPropPlacer
                 float angle = phase + i * Mathf.PI * 2f / groupSize;
                 Vector2 local =
                     clusterSpot + new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * ringRadius;
-                Instantiate(
+                SpawnProp(
+                    parent,
                     prefab,
-                    (center + local).ToWorld(),
-                    GroundPlane.YawRotation(random.Next(0, 360)),
-                    parent
+                    center + local,
+                    GroundPlane.YawRotation(random.Next(0, 360))
                 );
                 occupied.Add(new OccupiedSpot(local, propRadius, false));
             }
@@ -145,23 +132,19 @@ public partial class DungeonPropPlacer
         float yaw,
         List<OccupiedSpot> occupied,
         float scale = 1f,
-        float height = 0f
+        float lift = 0f
     )
     {
         GameObject prefab = FindProp(token);
         if (prefab == null)
             return;
-        float radius = FootprintRadius(prefab) * scale;
+
+        DungeonPropMeasurement measurement = Measure(prefab);
+        float radius = measurement.Radius * scale;
         if (OverlapsReservedChest(local, radius, occupied))
             return;
-        GameObject prop = Instantiate(
-            prefab,
-            (center + local).ToWorld(height),
-            Quaternion.Euler(0f, yaw, 0f),
-            parent
-        );
-        prop.transform.localScale *= scale;
-        occupied.Add(new OccupiedSpot(local, radius, IsLargeProp(prefab.name)));
+        SpawnProp(parent, prefab, center + local, Quaternion.Euler(0f, yaw, 0f), scale, lift);
+        occupied.Add(new OccupiedSpot(local, radius, measurement.IsLarge));
     }
 
     private static bool OverlapsReservedChest(
@@ -181,12 +164,43 @@ public partial class DungeonPropPlacer
         return false;
     }
 
+    /// <summary>
+    /// The registered prop a theme is asking for.
+    ///
+    /// A theme names the props it wants because no measurement can say that a
+    /// chair belongs beside a table. What measurement cannot do, saying so can:
+    /// a token that resolves to nothing used to place nothing and report
+    /// nothing, which is how shrines and vaults lost their pillars unnoticed.
+    /// DungeonPropCatalogTests turns that into a failing gate; this keeps a
+    /// running game honest about it too.
+    /// </summary>
     private GameObject FindProp(string token)
     {
-        if (propPrefabs == null)
+        GameObject prefab = ResolveProp(propPrefabs, token);
+        if (prefab == null && ReportedMissingTokens.Add(token))
+        {
+            Debug.LogWarning(
+                $"DungeonPropPlacer: no prop prefab matches \"{token}\". Rooms asking for it "
+                    + "are being built without it. Register a matching prefab in propPrefabs "
+                    + "or stop asking for the token."
+            );
+        }
+        return prefab;
+    }
+
+    /// <summary>
+    /// How a token is matched against a prop set, with no state and no side
+    /// effects, so the tests can ask the same question of the same rule.
+    /// </summary>
+    public static GameObject ResolveProp(
+        System.Collections.Generic.IReadOnlyList<GameObject> prefabs,
+        string token
+    )
+    {
+        if (prefabs == null || string.IsNullOrEmpty(token))
             return null;
         string normalized = token.Replace("-", string.Empty);
-        foreach (GameObject prefab in propPrefabs)
+        foreach (GameObject prefab in prefabs)
         {
             if (prefab == null)
                 continue;
