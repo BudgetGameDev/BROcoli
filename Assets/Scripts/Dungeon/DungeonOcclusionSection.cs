@@ -29,10 +29,14 @@ public sealed class DungeonOcclusionSection : MonoBehaviour
         public readonly Renderer Renderer;
         public readonly Bounds Structure;
 
+        /// <summary>The piece identity the resolver settles fades under.</summary>
+        public readonly int PieceId;
+
         public FadeCandidate(Renderer renderer, Bounds structure)
         {
             Renderer = renderer;
             Structure = structure;
+            PieceId = renderer.GetInstanceID();
         }
     }
 
@@ -135,7 +139,7 @@ public sealed class DungeonOcclusionSection : MonoBehaviour
                 candidate.Renderer != null
                 && candidate.Renderer.enabled
                 && GeometryUtility.TestPlanesAABB(frustumPlanes, candidate.Renderer.bounds)
-                && resolver.IsPieceInTheWay(candidate.Structure)
+                && resolver.IsPieceInTheWay(candidate.PieceId, candidate.Structure)
             )
                 results.Add(candidate.Renderer);
         }

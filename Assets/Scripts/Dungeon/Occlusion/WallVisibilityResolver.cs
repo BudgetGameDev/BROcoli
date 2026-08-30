@@ -13,16 +13,19 @@ using UnityEngine;
 public sealed class WallVisibilityResolver
 {
     private readonly WallVisibilityStateMachine states;
+    private readonly WallVisibilityStateMachine pieceStates;
     private readonly List<OcclusionTarget> targets = new();
     private readonly List<OcclusionCandidate> candidateBuffer = new();
     private readonly Dictionary<int, OcclusionActivation> activations = new();
     private OcclusionCameraModel camera;
     private Vector3 groundForward;
     private float deepestTargetDepth;
+    private float pieceQueryTime;
 
     public WallVisibilityResolver(WallVisibilityStateMachine.Settings settings)
     {
         states = new WallVisibilityStateMachine(settings);
+        pieceStates = new WallVisibilityStateMachine(settings);
     }
 
     public WallVisibilityResolver()
@@ -71,6 +74,13 @@ public sealed class WallVisibilityResolver
         foreach (KeyValuePair<int, OcclusionActivation> activation in activations)
             states.Select(activation.Key, activation.Value.Cause);
         states.EndFrame(time);
+
+        // The per-piece answers recorded since the previous resolve settle
+        // through the same hysteresis as the groups, so a piece sitting on the
+        // depth boundary cannot strobe while its group stays lowered.
+        pieceStates.EndFrame(pieceQueryTime);
+        pieceStates.BeginFrame();
+        pieceQueryTime = time;
     }
 
     public WallVisibility VisibilityOf(int groupId)
@@ -97,8 +107,27 @@ public sealed class WallVisibilityResolver
     /// in the way. A piece opts out only when it is wholly out of the way,
     /// which is what keeps an arch frame - long enough to straddle the player
     /// as they walk through it - moving with the run it belongs to.
+    ///
+    /// The raw geometric answer wobbles when the depth boundary sits right on
+    /// a piece - a walk cycle, a target flickering on the edge of detection -
+    /// so releases settle through the same hysteresis the groups use, keyed by
+    /// <paramref name="pieceId"/>. A piece entering the gap still fades on the
+    /// same frame; only standing back up waits out the release delay, and a
+    /// piece that jitters is pinned down. Ask once per piece per resolve.
     /// </summary>
-    public bool IsPieceInTheWay(Bounds structure)
+    public bool IsPieceInTheWay(int pieceId, Bounds structure)
+    {
+        if (IsPieceInTheGap(structure))
+        {
+            pieceStates.Select(pieceId, OcclusionTargetKind.Player);
+            return true;
+        }
+        return pieceStates.VisibilityOf(pieceId) == WallVisibility.Lowered;
+    }
+
+    /// <summary>The raw geometric answer under the settling: is the piece in
+    /// the gap between the camera and the deepest target right now?</summary>
+    public bool IsPieceInTheGap(Bounds structure)
     {
         if (groundForward == Vector3.zero)
             return AnyTargetIsBehind(structure);
@@ -117,6 +146,8 @@ public sealed class WallVisibilityResolver
     public void Clear()
     {
         states.Clear();
+        pieceStates.Clear();
+        pieceQueryTime = 0f;
         targets.Clear();
         activations.Clear();
     }

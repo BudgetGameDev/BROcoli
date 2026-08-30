@@ -81,7 +81,16 @@ internal static class WallVisibilitySimulation
         public readonly Dictionary<int, WallVisibilityReason> Reasons = new();
         public readonly Dictionary<int, float> Coverage = new();
         public readonly HashSet<int> Activated = new();
+
+        /// <summary>Pieces of lowered groups that fade this frame.</summary>
         public readonly HashSet<int> LoweredPieces = new();
+
+        /// <summary>
+        /// Pieces of lowered groups standing in the gap by raw geometry alone.
+        /// A lowered piece outside this set is being held through a release by
+        /// the per-piece hysteresis.
+        /// </summary>
+        public readonly HashSet<int> GapPieces = new();
 
         public bool IsLowered(int groupId)
         {
@@ -226,7 +235,10 @@ internal static class WallVisibilitySimulation
             frame.Reasons[groupId] = resolver.ReasonFor(groupId);
             foreach (int pieceId in world.GroupOf(groupId).Pieces)
             {
-                if (resolver.IsPieceInTheWay(world.PieceOf(pieceId).Structure))
+                Bounds structure = world.PieceOf(pieceId).Structure;
+                if (resolver.IsPieceInTheGap(structure))
+                    frame.GapPieces.Add(pieceId);
+                if (resolver.IsPieceInTheWay(pieceId, structure))
                     frame.LoweredPieces.Add(pieceId);
             }
         }

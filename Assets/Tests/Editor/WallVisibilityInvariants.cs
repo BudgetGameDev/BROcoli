@@ -23,6 +23,7 @@ internal static class WallVisibilityInvariants
         AssertLoweredPiecesAgreeWithTheirGroup(result);
         AssertLoweredGroupsWereAskedFor(result);
         AssertLoweredPiecesStandInTheGap(result);
+        AssertHeldPiecesWereRecentlyInTheGap(result);
         AssertNoStrobing(result);
     }
 
@@ -30,14 +31,16 @@ internal static class WallVisibilityInvariants
     /// A wall the player has already walked past must not drop. Lowering it
     /// reveals what is beyond it and hides nothing the player needed to see.
     /// A piece straddling the player still counts as in the way - part of it
-    /// is - so what this forbids is a piece lying wholly beyond them.
+    /// is - so what this forbids is a piece lying wholly beyond them. Judged on
+    /// the raw geometric answer; a piece held through a release is bounded by
+    /// <see cref="AssertHeldPiecesWereRecentlyInTheGap"/> instead.
     /// </summary>
     public static void AssertNothingBehindTheTargetsIsLowered(
         WallVisibilitySimulation.Result result
     )
     {
         foreach (WallVisibilitySimulation.Frame frame in result.Frames)
-        foreach (int pieceId in frame.LoweredPieces)
+        foreach (int pieceId in frame.GapPieces)
         {
             float depth = FrontDepth(result, frame, pieceId);
             Assert.That(
@@ -130,12 +133,13 @@ internal static class WallVisibilityInvariants
     /// A faded wall reaches into the gap between the camera and someone who
     /// has to stay visible. Never wholly behind the camera, where it hides
     /// nothing, and never further from the target than the camera itself is.
+    /// Judged on the raw geometric answer, as above.
     /// </summary>
     public static void AssertLoweredPiecesStandInTheGap(WallVisibilitySimulation.Result result)
     {
         float reach = result.Camera.Offset.magnitude + DungeonLayout.TileSize;
         foreach (WallVisibilitySimulation.Frame frame in result.Frames)
-        foreach (int pieceId in frame.LoweredPieces)
+        foreach (int pieceId in frame.GapPieces)
         {
             Assert.That(
                 RearDepth(result, frame, pieceId),
@@ -159,6 +163,49 @@ internal static class WallVisibilityInvariants
                         + $"deepest target, beyond the camera's own reach of {reach:0.00}"
                 )
             );
+        }
+    }
+
+    /// <summary>
+    /// The per-piece hysteresis fades a piece the frame it enters the gap, and
+    /// may hold it through a release - but only briefly. Every gap piece is
+    /// lowered, and every lowered piece stood in the gap inside the window the
+    /// release delay plus the stability hold guarantee.
+    /// </summary>
+    public static void AssertHeldPiecesWereRecentlyInTheGap(
+        WallVisibilitySimulation.Result result
+    )
+    {
+        int window = Mathf.CeilToInt(
+            (ReleaseDelay + StabilityHold) / WallVisibilitySimulation.FrameStep
+        );
+        for (int index = 0; index < result.Frames.Count; index++)
+        {
+            WallVisibilitySimulation.Frame frame = result.Frames[index];
+            foreach (int pieceId in frame.GapPieces)
+                Assert.That(
+                    frame.LoweredPieces.Contains(pieceId),
+                    WallVisibilityDiagnostics.Report(
+                        result,
+                        index,
+                        $"piece {pieceId} stands in the gap but its fade was delayed"
+                    )
+                );
+
+            foreach (int pieceId in frame.LoweredPieces)
+            {
+                if (frame.GapPieces.Contains(pieceId))
+                    continue;
+                Assert.That(
+                    WasInTheGap(result, index, window, pieceId),
+                    WallVisibilityDiagnostics.Report(
+                        result,
+                        index,
+                        $"piece {pieceId} is held lowered although it has not stood in the "
+                            + "gap inside the hysteresis window"
+                    )
+                );
+            }
         }
     }
 
@@ -203,6 +250,21 @@ internal static class WallVisibilityInvariants
                 );
             }
         }
+    }
+
+    private static bool WasInTheGap(
+        WallVisibilitySimulation.Result result,
+        int index,
+        int window,
+        int pieceId
+    )
+    {
+        for (int i = Mathf.Max(0, index - window); i <= index; i++)
+        {
+            if (result.Frames[i].GapPieces.Contains(pieceId))
+                return true;
+        }
+        return false;
     }
 
     private static bool WasAskedFor(
