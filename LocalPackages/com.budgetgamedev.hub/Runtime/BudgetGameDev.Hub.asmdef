@@ -1,7 +1,12 @@
 {
   "name": "BudgetGameDev.Hub",
   "rootNamespace": "BudgetGameDev.Hub",
-  "references": ["BudgetGameDev.Shared", "Unity.TextMeshPro", "UnityEngine.UI"],
+  "references": [
+    "BudgetGameDev.Shared",
+    "Unity.InputSystem",
+    "Unity.TextMeshPro",
+    "UnityEngine.UI"
+  ],
   "includePlatforms": [],
   "excludePlatforms": [],
   "allowUnsafeCode": false,

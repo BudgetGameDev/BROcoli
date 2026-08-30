@@ -23,6 +23,7 @@ namespace BudgetGameDev.Hub
         private Button selectButton;
         private Text emptyLabel;
         private RectTransform listContent;
+        private ScrollRect gameListScroll;
         private int selectedIndex = -1;
 
         /// <summary>One row in the list, kept so selection can restyle it.</summary>
@@ -52,6 +53,7 @@ namespace BudgetGameDev.Hub
             BuildInterface();
             Populate();
             RestoreSelection();
+            SuppressEventSystemNavigation();
         }
 
         /// <summary>
@@ -111,8 +113,16 @@ namespace BudgetGameDev.Hub
 
             string lastPlayed = GameSession.LastPlayedId;
             int index = entries.FindIndex(entry =>
-                string.Equals(entry.Game.Id, lastPlayed, System.StringComparison.OrdinalIgnoreCase)
+                entry.Game.IsPlayable
+                && string.Equals(
+                    entry.Game.Id,
+                    lastPlayed,
+                    System.StringComparison.OrdinalIgnoreCase
+                )
             );
+            if (index < 0)
+                index = entries.FindIndex(entry => entry.Game.IsPlayable);
+
             Select(index >= 0 ? index : 0);
         }
 
@@ -123,12 +133,17 @@ namespace BudgetGameDev.Hub
                 ApplyRowStyle(entries[i], i == index);
 
             selectButton.interactable = index >= 0 && entries[index].Game.IsPlayable;
+            KeepSelectedRowVisible();
         }
 
         /// <summary>Called by the Select button.</summary>
         public void LaunchSelected()
         {
-            if (selectedIndex < 0 || selectedIndex >= entries.Count)
+            if (
+                selectedIndex < 0
+                || selectedIndex >= entries.Count
+                || !entries[selectedIndex].Game.IsPlayable
+            )
                 return;
 
             GameSession.Launch(entries[selectedIndex].Game);

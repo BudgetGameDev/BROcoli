@@ -72,12 +72,12 @@ namespace BudgetGameDev.Hub
             ContentSizeFitter fitter = listContent.gameObject.AddComponent<ContentSizeFitter>();
             fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
 
-            ScrollRect scroll = viewport.gameObject.AddComponent<ScrollRect>();
-            scroll.viewport = viewport;
-            scroll.content = listContent;
-            scroll.horizontal = false;
-            scroll.movementType = ScrollRect.MovementType.Clamped;
-            scroll.scrollSensitivity = 24f;
+            gameListScroll = viewport.gameObject.AddComponent<ScrollRect>();
+            gameListScroll.viewport = viewport;
+            gameListScroll.content = listContent;
+            gameListScroll.horizontal = false;
+            gameListScroll.movementType = ScrollRect.MovementType.Clamped;
+            gameListScroll.scrollSensitivity = 24f;
         }
 
         private void CreateSelectButton(RectTransform panel)
