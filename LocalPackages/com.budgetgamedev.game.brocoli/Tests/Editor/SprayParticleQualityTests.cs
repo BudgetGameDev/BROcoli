@@ -35,8 +35,7 @@ namespace BudgetGameDev.Games.Brocoli.Tests
                     SpraySettings.EmissionRate * SpraySettings.BurstDuration * 1.5f
                 );
                 int initialCount = Mathf.Clamp(Mathf.RoundToInt(coreCount * 0.03f), 1, 4);
-                float expectedRate =
-                    (coreCount - initialCount) / SpraySettings.BurstDuration;
+                float expectedRate = (coreCount - initialCount) / SpraySettings.BurstDuration;
                 Assert.That(
                     layers.CoreSpray.emission.rateOverTime.constant,
                     Is.EqualTo(expectedRate).Within(0.001f)

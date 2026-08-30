@@ -177,19 +177,29 @@ namespace BudgetGameDev.Games.Brocoli
         }
 
         /// <summary>
-        /// Teleport player to a position.
+        /// Teleport player to a ground position.
         /// </summary>
-        /// <param name="position">World position to move to.</param>
+        /// <param name="position">Ground position to move to.</param>
         public void SetPosition(Vector2 position)
         {
-            if (_body != null)
+            Vector3 world = position.ToWorld(transform.position.y);
+            if (_body == null)
             {
-                _body.SetGroundPosition(position);
+                transform.position = world;
+                return;
             }
-            else
-            {
-                transform.position = position.ToWorld(transform.position.y);
-            }
+
+            // The body is kinematic and interpolated: ProcessMovement steps it on from
+            // Rigidbody.position every physics frame, and interpolation writes the
+            // transform back from the body's pose. Moving the transform alone leaves
+            // that pose behind, so the next physics step drags the player back to
+            // where the body still thinks it is. Move both, with interpolation off
+            // across the jump so no frame is drawn sliding in from the old spot.
+            RigidbodyInterpolation interpolation = _body.interpolation;
+            _body.interpolation = RigidbodyInterpolation.None;
+            _body.position = world;
+            transform.position = world;
+            _body.interpolation = interpolation;
         }
 
         /// <summary>

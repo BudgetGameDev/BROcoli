@@ -96,10 +96,7 @@ namespace BudgetGameDev.Games.Brocoli
             float movementAmount
         )
         {
-            if (
-                movementDelta.sqrMagnitude <= 0.000001f
-                || aimDirection.sqrMagnitude <= 0.000001f
-            )
+            if (movementDelta.sqrMagnitude <= 0.000001f || aimDirection.sqrMagnitude <= 0.000001f)
                 return 0f;
 
             float opposingAim = Mathf.Clamp01(

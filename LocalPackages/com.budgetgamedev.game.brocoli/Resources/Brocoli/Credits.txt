@@ -1,0 +1,126 @@
+BROCOLI
+CREDITS, DEPENDENCIES & LICENSES
+Last updated: 2026-08-30
+
+BROCOLI AND BUDGET GAMEDEV SOFTWARE
+
+BROcoli 0.1.0 (com.budgetgamedev.game.brocoli)
+Budget GameDev Hub 0.1.0 (com.budgetgamedev.hub)
+Budget GameDev Shared 0.1.0 (com.budgetgamedev.shared)
+Copyright Budget GameDev. Licensed under the Elastic License 2.0.
+Source: https://github.com/BudgetGameDev/BROcoli
+License terms: https://www.elastic.co/licensing/elastic-license
+
+UNITY ENGINE AND RUNTIME PACKAGES
+
+Built with Unity 6.3 (6000.3.6f1), subject to the Unity Software Terms:
+https://unity.com/legal/terms-of-service/software
+
+Direct runtime packages:
+  Unity AI Navigation 2.0.9 (com.unity.ai.navigation)
+  Unity Input System 1.18.0 (com.unity.inputsystem)
+  Universal Render Pipeline 17.3.0 (com.unity.render-pipelines.universal)
+  Unity UI 2.0.0 (com.unity.ugui)
+  TextMesh Pro (included with Unity UI 2.0.0)
+
+Unity engine modules 1.0.0:
+  AI (com.unity.modules.ai)
+  Animation (com.unity.modules.animation)
+  Audio (com.unity.modules.audio)
+  Hierarchy Core (com.unity.modules.hierarchycore)
+  Image Conversion (com.unity.modules.imageconversion)
+  IMGUI (com.unity.modules.imgui)
+  JSON Serialization (com.unity.modules.jsonserialize)
+  Particle System (com.unity.modules.particlesystem)
+  Physics (com.unity.modules.physics)
+  Physics 2D (com.unity.modules.physics2d)
+  Screen Capture (com.unity.modules.screencapture)
+  Terrain (com.unity.modules.terrain)
+  UI (com.unity.modules.ui)
+  UI Elements (com.unity.modules.uielements)
+
+Runtime package dependencies:
+  Scriptable Render Pipeline Core 17.3.0 (com.unity.render-pipelines.core)
+  Universal RP Config 17.0.3 (com.unity.render-pipelines.universal-config)
+  Shader Graph 17.3.0 (com.unity.shadergraph)
+  Burst 1.8.27 (com.unity.burst)
+  Collections 2.6.2 (com.unity.collections)
+  Mathematics 1.3.3 (com.unity.mathematics)
+  Searcher 4.9.4 (com.unity.searcher)
+
+Project authoring, automation, and test packages (not runtime game content):
+  2D Sprite 1.0.0 (com.unity.2d.sprite)
+  Visual Studio Editor 2.0.26 (com.unity.ide.visualstudio), MIT License
+  Unity Pipeline 0.5.0-exp.1 (com.unity.pipeline)
+  Unity Test Framework 1.6.0 (com.unity.test-framework)
+  Performance Test Framework 3.2.0 (com.unity.test-framework.performance)
+  Custom NUnit 2.0.5 (com.unity.ext.nunit)
+  Mono.Cecil 1.11.6 (com.unity.nuget.mono-cecil)
+  Newtonsoft Json 3.2.2 (com.unity.nuget.newtonsoft-json)
+
+Unity package source code is provided under the Unity Companion License unless a
+package's included license states otherwise:
+https://unity.com/legal/licenses/unity-companion-license
+
+2D Sprite, Custom NUnit, Unity Pipeline, and Burst native binaries are distributed
+under the Unity Package Distribution License:
+https://unity.com/legal/licenses/unity-package-distribution-license
+
+UNITY ASSET STORE CONTENT
+
+The following free Extension Assets are used under the Standard Unity Asset Store EULA.
+These assets are licensed, not sublicensed as standalone content. Access to
+their source files requires the appropriate publisher/seat entitlement.
+Terms: https://unity.com/legal/as-terms
+
+Fog Particles 1.0.0 by Game Seed Assets
+https://assetstore.unity.com/packages/vfx/particles/fog-particles-351840
+
+Free Fire VFX - URP 1.0.2023.1 by Vefects
+https://assetstore.unity.com/packages/vfx/particles/fire-explosions/free-fire-vfx-urp-266226
+
+URP Stylized Water Shader - Proto Series 1.0 by BitGem
+https://assetstore.unity.com/packages/vfx/shaders/urp-stylized-water-shader-proto-series-187485
+
+Stylized Water Effect Pack 1.0 by Namu
+https://assetstore.unity.com/packages/vfx/particles/stylized-water-effect-pack-270114
+
+SKETCHFAB STANDARD-LICENSE CONTENT
+
+"the Hand" by sayjing is used under the Sketchfab Free Standard License. The model
+is licensed content and may not be extracted or redistributed as a standalone asset.
+https://sketchfab.com/3d-models/the-hand-a0bd25ee25544603a8455121aa1242ec
+Terms: https://sketchfab.com/licenses
+
+CREATIVE COMMONS ATTRIBUTION CONTENT
+
+"Dungeon wall torch" by UriZX, licensed under Creative Commons Attribution 4.0.
+https://sketchfab.com/3d-models/dungeon-wall-torch-1439096bf4414ff9bbd615a4c727fbff
+License: https://creativecommons.org/licenses/by/4.0/
+
+"Spray bottle" by naincube, licensed under Creative Commons Attribution 4.0.
+https://sketchfab.com/3d-models/spray-bottle-9c409cce01714fd5ab3e82d213cbf91a
+License: https://creativecommons.org/licenses/by/4.0/
+
+CREATIVE COMMONS ZERO CONTENT
+
+Mini Dungeon 2.0 by Kenney
+https://kenney.nl/assets/mini-dungeon
+
+Modular Dungeon Kit 2.1 by Kenney
+https://kenney.nl/assets/modular-dungeon-kit
+
+"splat.ogg" by gprosser, used as EnemyDeathSplat.mp3
+https://freesound.org/people/gprosser/sounds/360942/
+
+These works are dedicated to the public domain under CC0 1.0. Attribution is not
+required and is included here as a courtesy and provenance record.
+License: https://creativecommons.org/publicdomain/zero/1.0/
+
+FONT
+
+Liberation Sans by Red Hat is used through TextMesh Pro under the SIL Open Font
+License 1.1.
+License: https://openfontlicense.org/open-font-license-official-text/
+
+Thank you to every creator and maintainer whose work made BROcoli possible.

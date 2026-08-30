@@ -114,12 +114,7 @@ namespace BudgetGameDev.Shared
             instance = this;
             LoadValues();
             if (string.IsNullOrEmpty(MixerResourcePath))
-            {
-                Debug.LogWarning(
-                    "[Audio Settings] No mixer configured; call GameAudioSettings.Configure first."
-                );
                 return;
-            }
 
             mixer = Resources.Load<AudioMixer>(MixerResourcePath);
             if (mixer == null)

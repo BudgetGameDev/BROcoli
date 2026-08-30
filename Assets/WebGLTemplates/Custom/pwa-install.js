@@ -3,72 +3,89 @@
  * Detects platform (iOS/Android/Desktop) and guides users through app installation
  */
 
-(function() {
-  'use strict';
+(function () {
+  "use strict";
 
   // Configuration
   const CONFIG = {
-    showDelay: 2000,           // Delay before showing prompt (ms)
-    dismissStorageKey: 'pwa_install_dismissed',
-    installedStorageKey: 'pwa_installed',
-    maxDismissals: 3,          // Show again after this many dismissals
-    dismissalResetDays: 7      // Reset dismissal count after this many days
+    showDelay: 2000, // Delay before showing prompt (ms)
+    dismissStorageKey: "pwa_install_dismissed",
+    installedStorageKey: "pwa_installed",
+    maxDismissals: 3, // Show again after this many dismissals
+    dismissalResetDays: 7, // Reset dismissal count after this many days
   };
 
   // Platform detection
   const Platform = {
-    isIOS: function() {
+    isIOS() {
       return window.BroccoliPlatform ? window.BroccoliPlatform.isIOS() : false;
     },
-    isIPadOS: function() {
-      return window.BroccoliPlatform ? window.BroccoliPlatform.isIPadOS() : false;
+    isIPadOS() {
+      return window.BroccoliPlatform
+        ? window.BroccoliPlatform.isIPadOS()
+        : false;
     },
-    isAndroid: function() {
+    isAndroid() {
       return window.BroccoliPlatform
         ? window.BroccoliPlatform.isAndroid()
         : /Android/i.test(navigator.userAgent);
     },
-    isMobile: function() {
+    isMobile() {
       return window.BroccoliPlatform
         ? window.BroccoliPlatform.isMobile()
         : this.isAndroid();
     },
-    isStandalone: function() {
+    isStandalone() {
       return window.BroccoliPlatform
         ? window.BroccoliPlatform.isStandalone()
         : false;
     },
-    isSafari: function() {
+    isSafari() {
       return window.BroccoliPlatform
         ? window.BroccoliPlatform.isSafari()
         : false;
     },
-    isChrome: function() {
-      return /Chrome/.test(navigator.userAgent) && /Google Inc/.test(navigator.vendor);
+    isChrome() {
+      return (
+        /Chrome/.test(navigator.userAgent) &&
+        /Google Inc/.test(navigator.vendor)
+      );
     },
-    isFirefox: function() {
+    isFirefox() {
       return /Firefox/.test(navigator.userAgent);
     },
-    isSamsung: function() {
+    isSamsung() {
       return /SamsungBrowser/.test(navigator.userAgent);
     },
-    getName: function() {
-      if (this.isIOS() || this.isIPadOS()) return 'ios';
-      if (this.isAndroid()) return 'android';
-      return 'desktop';
+    getName() {
+      if (this.isIOS() || this.isIPadOS()) {
+        return "ios";
+      }
+      if (this.isAndroid()) {
+        return "android";
+      }
+      return "desktop";
     },
-    getBrowserName: function() {
-      if (this.isSafari()) return 'Safari';
-      if (this.isChrome()) return 'Chrome';
-      if (this.isFirefox()) return 'Firefox';
-      if (this.isSamsung()) return 'Samsung Internet';
-      return 'your browser';
-    }
+    getBrowserName() {
+      if (this.isSafari()) {
+        return "Safari";
+      }
+      if (this.isChrome()) {
+        return "Chrome";
+      }
+      if (this.isFirefox()) {
+        return "Firefox";
+      }
+      if (this.isSamsung()) {
+        return "Samsung Internet";
+      }
+      return "your browser";
+    },
   };
 
   // Storage helpers
   const Storage = {
-    get: function(key) {
+    get(key) {
       try {
         const item = localStorage.getItem(key);
         return item ? JSON.parse(item) : null;
@@ -76,13 +93,13 @@
         return null;
       }
     },
-    set: function(key, value) {
+    set(key, value) {
       try {
         localStorage.setItem(key, JSON.stringify(value));
       } catch (e) {
-        console.warn('[PWA] Storage unavailable');
+        console.warn("[PWA] Storage unavailable");
       }
-    }
+    },
   };
 
   // PWA Install Manager
@@ -90,30 +107,32 @@
     deferredPrompt: null,
     overlay: null,
 
-    init: function() {
-      console.log('[PWA] Initializing install wizard...');
-      console.log('[PWA] Platform:', Platform.getName());
-      console.log('[PWA] Standalone:', Platform.isStandalone());
-      console.log('[PWA] Browser:', Platform.getBrowserName());
+    init() {
+      console.log("[PWA] Initializing install wizard...");
+      console.log("[PWA] Platform:", Platform.getName());
+      console.log("[PWA] Standalone:", Platform.isStandalone());
+      console.log("[PWA] Browser:", Platform.getBrowserName());
 
       // If already running as PWA, don't show anything
       if (Platform.isStandalone()) {
-        console.log('[PWA] Running in standalone mode - skipping install prompt');
+        console.log(
+          "[PWA] Running in standalone mode - skipping install prompt",
+        );
         Storage.set(CONFIG.installedStorageKey, true);
         return;
       }
 
       // Listen for the beforeinstallprompt event (Chrome/Edge/Samsung)
-      window.addEventListener('beforeinstallprompt', (e) => {
-        console.log('[PWA] beforeinstallprompt event fired');
+      window.addEventListener("beforeinstallprompt", (e) => {
+        console.log("[PWA] beforeinstallprompt event fired");
         e.preventDefault();
         this.deferredPrompt = e;
         this.showInstallUI();
       });
 
       // Listen for successful installation
-      window.addEventListener('appinstalled', () => {
-        console.log('[PWA] App was installed');
+      window.addEventListener("appinstalled", () => {
+        console.log("[PWA] App was installed");
         Storage.set(CONFIG.installedStorageKey, true);
         this.hideOverlay();
         this.deferredPrompt = null;
@@ -129,7 +148,7 @@
       }
     },
 
-    shouldShowPrompt: function() {
+    shouldShowPrompt() {
       // Already installed
       if (Storage.get(CONFIG.installedStorageKey)) {
         return false;
@@ -138,8 +157,9 @@
       // Check dismissal data
       const dismissData = Storage.get(CONFIG.dismissStorageKey);
       if (dismissData) {
-        const daysSinceDismissal = (Date.now() - dismissData.timestamp) / (1000 * 60 * 60 * 24);
-        
+        const daysSinceDismissal =
+          (Date.now() - dismissData.timestamp) / (1000 * 60 * 60 * 24);
+
         // Reset if enough time has passed
         if (daysSinceDismissal > CONFIG.dismissalResetDays) {
           Storage.set(CONFIG.dismissStorageKey, null);
@@ -155,23 +175,23 @@
       return true;
     },
 
-    showInstallUI: function() {
+    showInstallUI() {
       if (!this.shouldShowPrompt()) {
-        console.log('[PWA] Prompt suppressed due to previous dismissals');
+        console.log("[PWA] Prompt suppressed due to previous dismissals");
         return;
       }
 
-      console.log('[PWA] Showing install UI');
+      console.log("[PWA] Showing install UI");
       this.createOverlay();
-      
+
       setTimeout(() => {
         if (this.overlay) {
-          this.overlay.classList.add('active');
+          this.overlay.classList.add("active");
         }
       }, 100);
     },
 
-    createOverlay: function() {
+    createOverlay() {
       if (this.overlay) {
         document.body.removeChild(this.overlay);
       }
@@ -179,8 +199,8 @@
       const platform = Platform.getName();
       const html = this.getDialogHTML(platform);
 
-      this.overlay = document.createElement('div');
-      this.overlay.className = 'pwa-overlay';
+      this.overlay = document.createElement("div");
+      this.overlay.className = "pwa-overlay";
       this.overlay.innerHTML = html;
       document.body.appendChild(this.overlay);
 
@@ -188,20 +208,21 @@
       this.bindEvents();
     },
 
-    getDialogHTML: function(platform) {
-      const appName = document.title.replace(' - Unity WebGL Player', '').trim() || 'Game';
-      
-      let instructionsHTML = '';
-      let primaryButtonHTML = '';
+    getDialogHTML(platform) {
+      const appName =
+        document.title.replace(" - Unity WebGL Player", "").trim() || "Game";
 
-      if (platform === 'ios') {
+      let instructionsHTML = "";
+      let primaryButtonHTML = "";
+
+      if (platform === "ios") {
         instructionsHTML = this.getIOSInstructions();
         primaryButtonHTML = `
           <button class="pwa-btn pwa-btn-secondary" onclick="PWAInstall.dismiss()">
             Got it, I'll add it later
           </button>
         `;
-      } else if (platform === 'android' && this.deferredPrompt) {
+      } else if (platform === "android" && this.deferredPrompt) {
         instructionsHTML = this.getAndroidNativeInstructions();
         primaryButtonHTML = `
           <button class="pwa-btn pwa-btn-primary" onclick="PWAInstall.triggerInstall()">
@@ -211,7 +232,7 @@
             Maybe Later
           </button>
         `;
-      } else if (platform === 'android') {
+      } else if (platform === "android") {
         instructionsHTML = this.getAndroidManualInstructions();
         primaryButtonHTML = `
           <button class="pwa-btn pwa-btn-secondary" onclick="PWAInstall.dismiss()">
@@ -281,7 +302,7 @@
       `;
     },
 
-    getIOSInstructions: function() {
+    getIOSInstructions() {
       return `
         <div class="pwa-instructions">
           <h3 class="pwa-instructions-title">
@@ -310,7 +331,7 @@
       `;
     },
 
-    getAndroidNativeInstructions: function() {
+    getAndroidNativeInstructions() {
       return `
         <div class="pwa-fullscreen-hint">
           ✨ Tap "Install App" to add this game to your home screen for a fullscreen experience!
@@ -318,7 +339,7 @@
       `;
     },
 
-    getAndroidManualInstructions: function() {
+    getAndroidManualInstructions() {
       const browser = Platform.getBrowserName();
       return `
         <div class="pwa-instructions">
@@ -347,7 +368,7 @@
       `;
     },
 
-    getDesktopInstructions: function() {
+    getDesktopInstructions() {
       return `
         <div class="pwa-fullscreen-hint">
           ✨ Install as an app for a native fullscreen gaming experience!
@@ -355,19 +376,19 @@
       `;
     },
 
-    triggerInstall: async function() {
+    async triggerInstall() {
       if (!this.deferredPrompt) {
-        console.warn('[PWA] No install prompt available');
+        console.warn("[PWA] No install prompt available");
         return;
       }
 
-      console.log('[PWA] Triggering install prompt');
+      console.log("[PWA] Triggering install prompt");
       this.deferredPrompt.prompt();
 
       const { outcome } = await this.deferredPrompt.userChoice;
-      console.log('[PWA] User choice:', outcome);
+      console.log("[PWA] User choice:", outcome);
 
-      if (outcome === 'accepted') {
+      if (outcome === "accepted") {
         Storage.set(CONFIG.installedStorageKey, true);
       }
 
@@ -375,7 +396,7 @@
       this.hideOverlay();
     },
 
-    requestFullscreen: function() {
+    requestFullscreen() {
       const elem = document.documentElement;
       if (elem.requestFullscreen) {
         elem.requestFullscreen();
@@ -387,9 +408,9 @@
       this.hideOverlay();
     },
 
-    dismiss: function() {
-      console.log('[PWA] User dismissed prompt');
-      
+    dismiss() {
+      console.log("[PWA] User dismissed prompt");
+
       const dismissData = Storage.get(CONFIG.dismissStorageKey) || { count: 0 };
       dismissData.count++;
       dismissData.timestamp = Date.now();
@@ -398,15 +419,18 @@
       this.hideOverlay();
     },
 
-    dismissPermanently: function() {
-      console.log('[PWA] User permanently dismissed prompt');
-      Storage.set(CONFIG.dismissStorageKey, { count: CONFIG.maxDismissals + 1, timestamp: Date.now() });
+    dismissPermanently() {
+      console.log("[PWA] User permanently dismissed prompt");
+      Storage.set(CONFIG.dismissStorageKey, {
+        count: CONFIG.maxDismissals + 1,
+        timestamp: Date.now(),
+      });
       this.hideOverlay();
     },
 
-    hideOverlay: function() {
+    hideOverlay() {
       if (this.overlay) {
-        this.overlay.classList.add('dismissing');
+        this.overlay.classList.add("dismissing");
         setTimeout(() => {
           if (this.overlay && this.overlay.parentNode) {
             this.overlay.parentNode.removeChild(this.overlay);
@@ -416,10 +440,10 @@
       }
     },
 
-    bindEvents: function() {
+    bindEvents() {
       // Close on backdrop click
       if (this.overlay) {
-        this.overlay.addEventListener('click', (e) => {
+        this.overlay.addEventListener("click", (e) => {
           if (e.target === this.overlay) {
             this.dismiss();
           }
@@ -427,27 +451,27 @@
       }
 
       // Close on escape key
-      document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && this.overlay) {
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && this.overlay) {
           this.dismiss();
         }
       });
     },
 
     // Public method to manually show the install prompt (can be called from game)
-    show: function() {
+    show() {
       // Reset dismissal to allow showing
       Storage.set(CONFIG.dismissStorageKey, null);
       this.showInstallUI();
-    }
+    },
   };
 
   // Make PWAInstall globally accessible
   window.PWAInstall = PWAInstall;
 
   // Initialize when DOM is ready
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => PWAInstall.init());
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", () => PWAInstall.init());
   } else {
     PWAInstall.init();
   }

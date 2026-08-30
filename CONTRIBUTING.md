@@ -18,16 +18,21 @@ Run the complete local gate before pushing:
 ./ci.sh
 ```
 
-It runs pinned C# and Python formatting checks, Python and shell linting, the
-host Python and Node unit tests, local Semgrep static-analysis rules, the
+It runs pinned C#, Python, and JavaScript formatting checks; strict Python,
+JavaScript, and shell linting; the host Python and Node unit tests; local
+Semgrep static-analysis rules; the
 300-line source-size ratchet, Unity EditMode tests, a release WebGL player
 build, and desktop and iOS-profile smoke probes. `Assets/csc.rsp` promotes every
-C# compiler warning to an error, so the player build is also the authoritative
-compilation check.
+C# compiler warning to an error at the compiler's maximum warning level. Unity
+tests reject unexpected log messages, player builds reject BuildReport warnings,
+and the smoke probes reject application and Unity runtime warnings and errors. The
+smoke harness documents two exact Chromium engine diagnostics it excludes: Unity's
+handled WebGL2 format probes and headless audio's lack of a user gesture.
 
 Install the prerequisites once:
 
 - .NET SDK 8 or newer (`dotnet`)
+- Node.js 20.19 or newer (`node` and `npx`)
 - Astral `uv`
 - ShellCheck
 - `shfmt`
@@ -35,7 +40,9 @@ Install the prerequisites once:
 - Unity matching `ProjectSettings/ProjectVersion.txt`
 - Chrome or Chromium
 
-The pinned CSharpier, Ruff, and Semgrep versions are restored on demand. Apply all
+The pinned CSharpier, Ruff, ESLint, Prettier, and Semgrep versions are restored
+on demand. Lint warnings fail the gate; do not suppress a warning unless the
+repository configuration documents why the rule is inapplicable. Apply all
 formatters with `./format.sh`.
 
 ### Test coverage
@@ -44,7 +51,8 @@ formatters with `./format.sh`.
 service-worker suites, and the Unity EditMode test assemblies, then launches the
 built WebGL player in headless Chrome with desktop and iOS browser profiles. The
 `scripts/autoplay-*.sh` desktop-player harness remains opt-in because it requires a
-separate desktop player build.
+separate desktop player build. See [Autonomous autoplay](docs/autoplay.md) for its agent
+behaviour, scenarios, telemetry, and run commands.
 
 Enable the repository-managed pre-push hook with:
 

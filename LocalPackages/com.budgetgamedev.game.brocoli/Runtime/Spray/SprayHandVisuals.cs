@@ -41,8 +41,7 @@ namespace BudgetGameDev.Games.Brocoli
         {
             sprayTransform = parent;
             playerTransform = parent.parent;
-            playerBody =
-                playerTransform != null ? playerTransform.GetComponent<Rigidbody>() : null;
+            playerBody = playerTransform != null ? playerTransform.GetComponent<Rigidbody>() : null;
             playerStats =
                 playerTransform != null ? playerTransform.GetComponent<PlayerStats>() : null;
             if (playerTransform != null)

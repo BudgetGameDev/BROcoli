@@ -11,9 +11,12 @@ import sys
 import tempfile
 import zipfile
 from pathlib import Path, PurePosixPath
-from typing import Dict
 
-from licensed_asset_archive import create_directory_archive, extract_directory_archive
+from licensed_asset_archive import (
+    create_directory_archive,
+    extract_directory_archive,
+    preserved_root_guid,
+)
 
 KEY_NAME = "BROCOLI_LICENSED_ASSET_KEY"
 ITERATIONS = 200_000
@@ -133,7 +136,7 @@ def package_root_guid(title: str, source_url: str, generated_path: str) -> str:
     return hashlib.sha256(identity).hexdigest()[:32]
 
 
-def package_metadata(args: argparse.Namespace, archive: Path) -> Dict[str, object]:
+def package_metadata(args: argparse.Namespace, archive: Path) -> dict[str, object]:
     required = {
         "--title": args.title,
         "--asset-version": args.asset_version,
@@ -153,7 +156,11 @@ def package_metadata(args: argparse.Namespace, archive: Path) -> Dict[str, objec
         "payloadType": "directory",
         "archiveFormat": "zip",
         "generatedPath": generated_path,
-        "rootGuid": package_root_guid(args.title, args.source_url, generated_path),
+        "rootGuid": preserved_root_guid(
+            Path(str(resolve_encrypted_path(args.output)) + ".json"),
+            generated_path,
+            package_root_guid(args.title, args.source_url, generated_path),
+        ),
         "sha256": sha256(archive),
         "fileCount": file_count,
         "uncompressedSize": uncompressed_size,
@@ -168,7 +175,7 @@ def package_metadata(args: argparse.Namespace, archive: Path) -> Dict[str, objec
     }
 
 
-def file_metadata(args: argparse.Namespace, source: Path) -> Dict[str, object]:
+def file_metadata(args: argparse.Namespace, source: Path) -> dict[str, object]:
     metadata = {
         "formatVersion": 1,
         "generatedPath": validate_generated_path(
@@ -190,7 +197,7 @@ def file_metadata(args: argparse.Namespace, source: Path) -> Dict[str, object]:
     return metadata
 
 
-def encrypt_payload(payload: Path, output: Path, metadata: Dict[str, object]) -> None:
+def encrypt_payload(payload: Path, output: Path, metadata: dict[str, object]) -> None:
     output.parent.mkdir(parents=True, exist_ok=True)
     sidecar = Path(str(output) + ".json")
     encrypted_handle, encrypted_name = tempfile.mkstemp(prefix=output.name + ".", dir=output.parent)

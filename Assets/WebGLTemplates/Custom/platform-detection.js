@@ -1,11 +1,11 @@
-(function(root) {
-  'use strict';
+(function (root) {
+  "use strict";
 
   function getEnvironment() {
     return {
       navigator: root.navigator || {},
       window: root,
-      document: root.document || {}
+      document: root.document || {},
     };
   }
 
@@ -14,23 +14,26 @@
     var nav = env.navigator || {};
     var win = env.window || {};
     var doc = env.document || {};
-    var userAgent = nav.userAgent || nav.vendor || '';
-    var platform = nav.platform || '';
+    var userAgent = nav.userAgent || nav.vendor || "";
+    var platform = nav.platform || "";
     var maxTouchPoints = Number(nav.maxTouchPoints || 0);
-    var hasTouch = 'ontouchstart' in win || maxTouchPoints > 0;
+    var hasTouch = "ontouchstart" in win || maxTouchPoints > 0;
     var isIOSUserAgent = /iPad|iPhone|iPod/i.test(userAgent);
 
     // iPadOS can request desktop sites and report MacIntel. A real iPad still
     // includes Apple's Mobile token; desktop Safari does not. Requiring both
     // prevents a touch-capable Mac from being downgraded to the iOS profile.
     var isIPadOS =
-      platform === 'MacIntel' &&
+      platform === "MacIntel" &&
       maxTouchPoints > 1 &&
       /AppleWebKit/i.test(userAgent) &&
       /Mobile\//i.test(userAgent);
     var isAppleMobile = isIOSUserAgent || isIPadOS;
     var browserDevicePixelRatio = Number(win.devicePixelRatio || 1);
-    if (!Number.isFinite(browserDevicePixelRatio) || browserDevicePixelRatio <= 0) {
+    if (
+      !Number.isFinite(browserDevicePixelRatio) ||
+      browserDevicePixelRatio <= 0
+    ) {
       browserDevicePixelRatio = 1;
     }
     // A 1x drawing buffer is visibly blurry on Retina iPhones and iPads because
@@ -44,11 +47,12 @@
     var isAndroid = /Android/i.test(userAgent);
     var isOtherMobile = /webOS|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
     var isSmallTouchScreen =
-      platform !== 'MacIntel' &&
+      platform !== "MacIntel" &&
       hasTouch &&
       Number(win.innerWidth || 0) > 0 &&
       Number(win.innerWidth || 0) <= 1024;
-    var isMobile = isAppleMobile || isAndroid || isOtherMobile || isSmallTouchScreen;
+    var isMobile =
+      isAppleMobile || isAndroid || isOtherMobile || isSmallTouchScreen;
     var isSafari =
       /Safari/i.test(userAgent) &&
       !/Chrome|Chromium|CriOS|Android|Edg|OPR|Firefox|FxiOS/i.test(userAgent);
@@ -56,28 +60,28 @@
 
     try {
       displayModeStandalone =
-        (typeof win.matchMedia === 'function' &&
-          (win.matchMedia('(display-mode: standalone)').matches ||
-            win.matchMedia('(display-mode: fullscreen)').matches)) ||
+        (typeof win.matchMedia === "function" &&
+          (win.matchMedia("(display-mode: standalone)").matches ||
+            win.matchMedia("(display-mode: fullscreen)").matches)) ||
         nav.standalone === true ||
-        String(doc.referrer || '').indexOf('android-app://') === 0;
+        String(doc.referrer || "").indexOf("android-app://") === 0;
     } catch (error) {
       displayModeStandalone = false;
     }
 
     return {
-      userAgent: userAgent,
-      platform: platform,
-      maxTouchPoints: maxTouchPoints,
-      hasTouch: hasTouch,
+      userAgent,
+      platform,
+      maxTouchPoints,
+      hasTouch,
       isIOS: isIOSUserAgent,
-      isIPadOS: isIPadOS,
-      isAppleMobile: isAppleMobile,
-      unityDevicePixelRatio: unityDevicePixelRatio,
-      isAndroid: isAndroid,
-      isMobile: isMobile,
-      isSafari: isSafari,
-      isStandalone: displayModeStandalone
+      isIPadOS,
+      isAppleMobile,
+      unityDevicePixelRatio,
+      isAndroid,
+      isMobile,
+      isSafari,
+      isStandalone: displayModeStandalone,
     };
   }
 
@@ -86,20 +90,36 @@
   }
 
   var api = {
-    detect: detect,
-    current: current,
-    isIOS: function() { return current().isIOS; },
-    isIPadOS: function() { return current().isIPadOS; },
-    isAppleMobile: function() { return current().isAppleMobile; },
-    isAndroid: function() { return current().isAndroid; },
-    isMobile: function() { return current().isMobile; },
-    isStandalone: function() { return current().isStandalone; },
-    isSafari: function() { return current().isSafari; },
-    shouldUseIOSOptimizations: function() { return current().isAppleMobile; }
+    detect,
+    current,
+    isIOS() {
+      return current().isIOS;
+    },
+    isIPadOS() {
+      return current().isIPadOS;
+    },
+    isAppleMobile() {
+      return current().isAppleMobile;
+    },
+    isAndroid() {
+      return current().isAndroid;
+    },
+    isMobile() {
+      return current().isMobile;
+    },
+    isStandalone() {
+      return current().isStandalone;
+    },
+    isSafari() {
+      return current().isSafari;
+    },
+    shouldUseIOSOptimizations() {
+      return current().isAppleMobile;
+    },
   };
 
   root.BroccoliPlatform = api;
-  if (typeof module === 'object' && module.exports) {
+  if (typeof module === "object" && module.exports) {
     module.exports = api;
   }
-})(typeof window !== 'undefined' ? window : globalThis);
+})(typeof window !== "undefined" ? window : globalThis);

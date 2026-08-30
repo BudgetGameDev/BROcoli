@@ -1,33 +1,56 @@
-'use strict';
+"use strict";
 
-const zlib = require('node:zlib');
+const zlib = require("node:zlib");
 
-const [pageUrl, debugPort = '9223', timeoutText = '120000', platformProfile = 'desktop'] =
-  process.argv.slice(2);
+const [
+  pageUrl,
+  debugPort = "9223",
+  timeoutText = "120000",
+  platformProfile = "desktop",
+] = process.argv.slice(2);
 const timeoutMs = Number(timeoutText);
 const deadline = Date.now() + timeoutMs;
+const expectedBrowserDiagnostics = [
+  // Unity queries extension-gated WebGL2 renderbuffer formats while building its
+  // capability table. Chromium reports rejected probes even though Unity handles them.
+  /^WebGL: INVALID_ENUM: getInternalformatParameter: invalid internalformat$/,
+  // A headless smoke run has no user gesture. Unity creates its AudioContext at
+  // startup and resumes it after a gesture in an interactive browser.
+  /^The AudioContext was not allowed to start\./,
+];
 
-if (!pageUrl || !Number.isFinite(timeoutMs) || !['desktop', 'ios'].includes(platformProfile)) {
-  console.error('usage: webgl-smoke.cjs URL [DEBUG_PORT] [TIMEOUT_MS] [desktop|ios]');
+if (
+  !pageUrl ||
+  !Number.isFinite(timeoutMs) ||
+  !["desktop", "ios"].includes(platformProfile)
+) {
+  console.error(
+    "usage: webgl-smoke.cjs URL [DEBUG_PORT] [TIMEOUT_MS] [desktop|ios]",
+  );
   process.exit(2);
 }
 
-const delay = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
+const delay = (milliseconds) =>
+  new Promise((resolve) => {
+    setTimeout(resolve, milliseconds);
+  });
 
 function paeth(left, up, upperLeft) {
   const estimate = left + up - upperLeft;
   const leftDistance = Math.abs(estimate - left);
   const upDistance = Math.abs(estimate - up);
   const upperLeftDistance = Math.abs(estimate - upperLeft);
-  if (leftDistance <= upDistance && leftDistance <= upperLeftDistance) return left;
+  if (leftDistance <= upDistance && leftDistance <= upperLeftDistance) {
+    return left;
+  }
   return upDistance <= upperLeftDistance ? up : upperLeft;
 }
 
 function inspectScreenshot(base64Png) {
-  const png = Buffer.from(base64Png, 'base64');
+  const png = Buffer.from(base64Png, "base64");
   const signature = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
   if (!png.subarray(0, signature.length).equals(signature)) {
-    throw new Error('Chrome returned an invalid PNG screenshot');
+    throw new Error("Chrome returned an invalid PNG screenshot");
   }
 
   let offset = signature.length;
@@ -40,19 +63,19 @@ function inspectScreenshot(base64Png) {
 
   while (offset < png.length) {
     const length = png.readUInt32BE(offset);
-    const type = png.toString('ascii', offset + 4, offset + 8);
+    const type = png.toString("ascii", offset + 4, offset + 8);
     const data = png.subarray(offset + 8, offset + 8 + length);
     offset += length + 12;
 
-    if (type === 'IHDR') {
+    if (type === "IHDR") {
       width = data.readUInt32BE(0);
       height = data.readUInt32BE(4);
       bitDepth = data[8];
       colorType = data[9];
       interlace = data[12];
-    } else if (type === 'IDAT') {
+    } else if (type === "IDAT") {
       imageChunks.push(data);
-    } else if (type === 'IEND') {
+    } else if (type === "IEND") {
       break;
     }
   }
@@ -60,7 +83,7 @@ function inspectScreenshot(base64Png) {
   const channels = colorType === 2 ? 3 : colorType === 6 ? 4 : 0;
   if (!width || !height || bitDepth !== 8 || !channels || interlace !== 0) {
     throw new Error(
-      `Unsupported Chrome screenshot format (${width}x${height}, depth=${bitDepth}, color=${colorType})`
+      `Unsupported Chrome screenshot format (${width}x${height}, depth=${bitDepth}, color=${colorType})`,
     );
   }
 
@@ -81,18 +104,27 @@ function inspectScreenshot(base64Png) {
       const upperLeft = x >= channels ? previous[x - channels] : 0;
       let value;
 
-      if (filter === 0) value = source;
-      else if (filter === 1) value = source + left;
-      else if (filter === 2) value = source + up;
-      else if (filter === 3) value = source + Math.floor((left + up) / 2);
-      else if (filter === 4) value = source + paeth(left, up, upperLeft);
-      else throw new Error(`Unsupported PNG filter ${filter}`);
+      if (filter === 0) {
+        value = source;
+      } else if (filter === 1) {
+        value = source + left;
+      } else if (filter === 2) {
+        value = source + up;
+      } else if (filter === 3) {
+        value = source + Math.floor((left + up) / 2);
+      } else if (filter === 4) {
+        value = source + paeth(left, up, upperLeft);
+      } else {
+        throw new Error(`Unsupported PNG filter ${filter}`);
+      }
 
       current[x] = value & 0xff;
     }
 
     for (let x = 0; x < stride; x += channels) {
-      if (current[x] > 8 || current[x + 1] > 8 || current[x + 2] > 8) litPixels++;
+      if (current[x] > 8 || current[x + 1] > 8 || current[x + 2] > 8) {
+        litPixels++;
+      }
     }
     previous = current;
   }
@@ -107,37 +139,86 @@ async function findPageTarget() {
     try {
       const targets = await (await fetch(endpoint)).json();
       const target = targets.find(
-        (candidate) => candidate.type === 'page' && candidate.url.startsWith(pageUrl)
+        (candidate) =>
+          candidate.type === "page" &&
+          (candidate.url === "about:blank" ||
+            candidate.url.startsWith(pageUrl)),
       );
-      if (target?.webSocketDebuggerUrl) return target.webSocketDebuggerUrl;
+      if (target?.webSocketDebuggerUrl) {
+        return target.webSocketDebuggerUrl;
+      }
     } catch {
       // Chrome may still be opening its debugging endpoint.
     }
     await delay(200);
   }
 
-  throw new Error('Chrome debugging endpoint did not expose the game page');
+  throw new Error("Chrome debugging endpoint did not expose the game page");
 }
 
 async function inspectUnityState(webSocketUrl) {
   const socket = new WebSocket(webSocketUrl);
   const pending = new Map();
+  const runtimeIssues = [];
   let nextId = 1;
 
-  socket.addEventListener('message', (event) => {
+  function recordRuntimeIssue(message) {
+    if (
+      message &&
+      !expectedBrowserDiagnostics.some((pattern) => pattern.test(message)) &&
+      !runtimeIssues.includes(message)
+    ) {
+      runtimeIssues.push(message);
+    }
+  }
+
+  socket.addEventListener("message", (event) => {
     const message = JSON.parse(event.data);
+    if (
+      message.method === "Runtime.consoleAPICalled" &&
+      ["warning", "error", "assert"].includes(message.params.type)
+    ) {
+      const detail = message.params.args
+        .map((argument) => argument.value ?? argument.description ?? "")
+        .join(" ");
+      if (!expectedBrowserDiagnostics.some((pattern) => pattern.test(detail))) {
+        recordRuntimeIssue(`${message.params.type}: ${detail}`);
+      }
+    } else if (message.method === "Runtime.exceptionThrown") {
+      recordRuntimeIssue(`exception: ${message.params.exceptionDetails.text}`);
+    } else if (
+      message.method === "Log.entryAdded" &&
+      ["warning", "error"].includes(message.params.entry.level) &&
+      !expectedBrowserDiagnostics.some((pattern) =>
+        pattern.test(message.params.entry.text),
+      )
+    ) {
+      recordRuntimeIssue(
+        `${message.params.entry.level}: ${message.params.entry.text}`,
+      );
+    }
+
     const handler = pending.get(message.id);
-    if (!handler) return;
+    if (!handler) {
+      return;
+    }
     pending.delete(message.id);
-    if (message.error) handler.reject(new Error(message.error.message));
-    else handler.resolve(message.result);
+    if (message.error) {
+      handler.reject(new Error(message.error.message));
+    } else {
+      handler.resolve(message.result);
+    }
   });
 
   await new Promise((resolve, reject) => {
-    socket.addEventListener('open', resolve, { once: true });
-    socket.addEventListener('error', () => reject(new Error('Chrome debugging connection failed')), {
-      once: true
-    });
+    socket.addEventListener("open", resolve, { once: true });
+    socket.addEventListener(
+      "error",
+      () => reject(new Error("Chrome debugging connection failed")),
+      {
+        once: true,
+      },
+    );
   });
 
   function command(method, params = {}) {
@@ -149,23 +230,25 @@ async function inspectUnityState(webSocketUrl) {
   }
 
   try {
-    await command('Runtime.enable');
-    await command('Page.enable');
+    await command("Runtime.enable");
+    await command("Page.enable");
+    await command("Log.enable");
+    await command("Page.navigate", { url: `${pageUrl}?webgl-smoke=1` });
 
     while (Date.now() < deadline) {
-      const response = await command('Runtime.evaluate', {
+      const response = await command("Runtime.evaluate", {
         expression: `(() => ({
           state: document.body?.getAttribute('data-unity-state') || '',
           error: document.querySelector('.startup-error p')?.textContent || '',
           iosLighting: document.body?.getAttribute('data-ios-lighting') || ''
         }))()`,
-        returnByValue: true
+        returnByValue: true,
       });
       const result = response.result?.value || {};
 
-      if (result.state === 'started') {
-        if (platformProfile === 'ios') {
-          const lighting = result.iosLighting.split(',').map(Number);
+      if (result.state === "started") {
+        if (platformProfile === "ios") {
+          const lighting = result.iosLighting.split(",").map(Number);
           if (
             lighting.length !== 4 ||
             lighting.some((value) => !Number.isFinite(value)) ||
@@ -174,23 +257,37 @@ async function inspectUnityState(webSocketUrl) {
             lighting[2] < 2 ||
             lighting[3] !== 1
           ) {
-            throw new Error(`iOS lighting policy is unsafe (${result.iosLighting || 'not reported'})`);
+            throw new Error(
+              `iOS lighting policy is unsafe (${result.iosLighting || "not reported"})`,
+            );
           }
         }
 
         while (Date.now() < deadline) {
           await delay(500);
-          const screenshot = await command('Page.captureScreenshot', {
-            format: 'png',
-            fromSurface: true
+          const screenshot = await command("Page.captureScreenshot", {
+            format: "png",
+            fromSurface: true,
           });
           const visual = inspectScreenshot(screenshot.data);
-          if (visual.litRatio >= 0.001) return { ...result, visual };
+          if (visual.litRatio >= 0.001) {
+            await delay(250);
+            if (runtimeIssues.length > 0) {
+              throw new Error(
+                `runtime log warning/error: ${runtimeIssues.slice(0, 5).join(" | ")}`,
+              );
+            }
+            return { ...result, visual };
+          }
         }
-        throw new Error('Unity started but Chrome kept presenting an all-black frame');
+        throw new Error(
+          "Unity started but Chrome kept presenting an all-black frame",
+        );
       }
-      if (result.state === 'failed') {
-        throw new Error(result.error || 'Unity reported a failed startup state');
+      if (result.state === "failed") {
+        throw new Error(
+          result.error || "Unity reported a failed startup state",
+        );
       }
       await delay(250);
     }
@@ -204,10 +301,11 @@ async function inspectUnityState(webSocketUrl) {
 (async () => {
   const webSocketUrl = await findPageTarget();
   const result = await inspectUnityState(webSocketUrl);
-  const lightingResult = platformProfile === 'ios' ? `; lighting=${result.iosLighting}` : '';
+  const lightingResult =
+    platformProfile === "ios" ? `; lighting=${result.iosLighting}` : "";
   console.log(
     `webgl-smoke: Unity rendered a visible ${result.visual.width}x${result.visual.height} ` +
-      `frame (${platformProfile}${lightingResult})`
+      `frame (${platformProfile}${lightingResult})`,
   );
 })().catch((error) => {
   console.error(`webgl-smoke: ${error.message}`);

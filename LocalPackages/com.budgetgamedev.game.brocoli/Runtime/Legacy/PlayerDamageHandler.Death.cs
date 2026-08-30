@@ -15,6 +15,7 @@ namespace BudgetGameDev.Games.Brocoli
 
             Debug.Log("Game over");
             _gameOver = true;
+            BrocoliSaveSystem.DeleteActiveSave();
 
             // Stop ambient audio
             _audioHandler?.StopAllAmbient();

@@ -21,6 +21,7 @@ namespace BudgetGameDev.Games.Brocoli
 
         private PlayerStats _stats;
         private PlayerDamageHandler _damage;
+        private DungeonManager _dungeon;
 
         private float _elapsed; // game-seconds since start
         private float _sampleAcc;
@@ -87,6 +88,7 @@ namespace BudgetGameDev.Games.Brocoli
                 return;
             _stats = go.GetComponent<PlayerStats>();
             _damage = go.GetComponent<PlayerDamageHandler>();
+            _dungeon = FindAnyObjectByType<DungeonManager>();
             if (_damage != null)
                 _damage.OnGameOver += OnGameOver;
         }
@@ -163,6 +165,14 @@ namespace BudgetGameDev.Games.Brocoli
             Num(sb, "fps", fps);
             sb.Append(',');
             Num(sb, "timeScale", Time.timeScale);
+            sb.Append(',');
+            Str(sb, "botIntent", BotDriver.IntentName);
+            sb.Append(',');
+            sb.Append("\"roomsVisited\":").Append(_dungeon != null ? _dungeon.RoomsVisited : 0);
+            sb.Append(',');
+            sb.Append("\"botReplans\":").Append(BotDriver.ReplanCount);
+            sb.Append(',');
+            sb.Append("\"stuckRecoveries\":").Append(BotDriver.StuckRecoveryCount);
             sb.Append("}\n");
 
             File.AppendAllText(_jsonlPath, sb.ToString());
@@ -193,7 +203,7 @@ namespace BudgetGameDev.Games.Brocoli
 
         private bool EvaluateScenario(string reason)
         {
-            if (_exceptions > 0)
+            if (!LogsAreClean(_warnings, _errors, _exceptions))
                 return false;
             float level = _stats != null ? _stats.CurrentLevel : 0f;
             switch (_cfg.Scenario)
@@ -206,6 +216,11 @@ namespace BudgetGameDev.Games.Brocoli
                 default:
                     return true; // ran without exceptions
             }
+        }
+
+        internal static bool LogsAreClean(int warnings, int errors, int exceptions)
+        {
+            return warnings == 0 && errors == 0 && exceptions == 0;
         }
 
         private void WriteSummary(string reason, bool passed)
@@ -229,6 +244,13 @@ namespace BudgetGameDev.Games.Brocoli
             sb.Append(',');
             Num(sb, "finalHp", _stats != null ? _stats.CurrentHealth : 0f);
             sb.Append(',');
+            sb.Append("\"roomsVisited\":")
+                .Append(_dungeon != null ? _dungeon.RoomsVisited : 0)
+                .Append(',');
+            Num(sb, "distanceTravelled", BotDriver.DistanceTravelled);
+            sb.Append(',');
+            sb.Append("\"botReplans\":").Append(BotDriver.ReplanCount).Append(',');
+            sb.Append("\"stuckRecoveries\":").Append(BotDriver.StuckRecoveryCount).Append(',');
             sb.Append("\"maxEnemies\":").Append(_maxEnemies).Append(',');
             sb.Append("\"warnings\":").Append(_warnings).Append(',');
             sb.Append("\"errors\":").Append(_errors).Append(',');

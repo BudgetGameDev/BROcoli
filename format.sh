@@ -5,7 +5,7 @@ set -euo pipefail
 PROJECT_PATH="$(cd "$(dirname "$0")" && pwd)"
 cd "$PROJECT_PATH"
 
-for tool in dotnet uv shfmt; do
+for tool in dotnet npx uv shfmt; do
     if ! command -v "$tool" >/dev/null 2>&1; then
         echo "format: missing required tool '$tool'. See CONTRIBUTING.md." >&2
         exit 2
@@ -18,6 +18,10 @@ dotnet tool restore
 dotnet csharpier format LocalPackages Assets/Editor
 uvx ruff@0.12.11 check scripts --fix
 uvx ruff@0.12.11 format scripts
+npx --yes eslint@10.9.1 --fix \
+    eslint.config.mjs scripts/*.cjs Assets/WebGLTemplates/Custom/*.js
+npx --yes prettier@3.9.6 --write \
+    eslint.config.mjs scripts/*.cjs Assets/WebGLTemplates/Custom/*.js
 shfmt -w -i 4 -ci ci.sh cd.sh format.sh scripts/*.sh .githooks/pre-push
 
 echo "format: complete"

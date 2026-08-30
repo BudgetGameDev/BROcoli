@@ -92,7 +92,7 @@ case "$SMOKE_PROFILE" in
 esac
 
 "$BROWSER" "${BROWSER_ARGUMENTS[@]}" \
-    "http://127.0.0.1:4173/?webgl-smoke=1" \
+    about:blank \
     >"$SMOKE_TEMP_DIR/chrome.log" 2>&1 &
 BROWSER_PID="$!"
 

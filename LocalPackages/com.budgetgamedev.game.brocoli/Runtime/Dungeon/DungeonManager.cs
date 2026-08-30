@@ -66,8 +66,16 @@ namespace BudgetGameDev.Games.Brocoli
 
         private void Start()
         {
-            if (seed == 0)
+            Vector2Int initialRoom = Vector2Int.zero;
+            if (BrocoliSaveSystem.TryGetPendingContinue(out BrocoliRunSave save))
+            {
+                RestoreRunState(save.dungeon);
+                initialRoom = DungeonLayout.RoomAt(save.playerPosition.ToGround());
+            }
+            else if (seed == 0)
+            {
                 seed = Random.Range(1, int.MaxValue);
+            }
             layout = new DungeonLayout(seed);
             Debug.Log($"DungeonManager: generating dungeon with seed {seed}.");
 
@@ -86,7 +94,7 @@ namespace BudgetGameDev.Games.Brocoli
             navSurface.layerMask = ~(1 << 2);
 
             LoadEnemyPrefabs();
-            EnterRoom(Vector2Int.zero);
+            EnterRoom(initialRoom);
         }
 
         private void Update()

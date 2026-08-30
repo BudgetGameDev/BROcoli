@@ -78,9 +78,14 @@ public static class WebGLBuildScript
             );
         }
 
-        Debug.Log(
-            $"[WebGLBuild] Succeeded ({report.summary.totalSize} bytes, warnings={report.summary.totalWarnings})"
-        );
+        if (report.summary.totalWarnings != 0)
+        {
+            throw new BuildFailedException(
+                $"WebGL build emitted {report.summary.totalWarnings} warning(s)."
+            );
+        }
+
+        Debug.Log($"[WebGLBuild] Succeeded ({report.summary.totalSize} bytes, zero warnings)");
     }
 
     private static string ReadArgument(string[] arguments, string name)

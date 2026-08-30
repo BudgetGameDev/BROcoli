@@ -46,3 +46,11 @@ guide links to the per-category guides for 3D models, 2D art and kits, and audio
 Read it only when a task actually needs a new asset. Most work does not, and
 these rules are long enough that loading them by default would crowd out the
 task at hand.
+
+Each game must keep one player-facing credits file under its namespaced
+`Resources/<Game>/` directory as the canonical inventory of dependencies,
+licenses, usage terms, and attributions. BROcoli's canonical record is
+`LocalPackages/com.budgetgamedev.game.brocoli/Resources/Brocoli/Credits.txt`, which
+is displayed by its Credits menu. Update that file in the same change whenever
+an asset or dependency is acquired, updated, or removed; per-asset license files
+and encrypted-package metadata remain the detailed provenance records.

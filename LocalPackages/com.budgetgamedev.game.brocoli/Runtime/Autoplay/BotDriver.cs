@@ -1,26 +1,27 @@
+using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.AI;
 
 namespace BudgetGameDev.Games.Brocoli
 {
     /// <summary>
-    /// Autoplay bot (Phase 3). Plays an active kiting game: stays central where enemies
-    /// converge, holds the far edge of spray range to farm kills/levels, <b>dodges enemy
-    /// projectiles</b> (evades perpendicular to an incoming shot's path), and retreats
-    /// when an enemy gets too close, the area gets crowded, or HP drops — leaning on the
-    /// meta-build upgrades (lifesteal/regen/speed) to sustain aggression for long runs.
-    ///
-    /// Combat is automatic (PlayerCombat auto-targets/fires regardless of facing), so the
-    /// bot only produces a movement vector. Inert unless <see cref="Active"/> is set
-    /// (see PlayerInputHandler.UpdateInput).
+    /// Autonomous playtest agent. It observes combat and dungeon state, chooses an
+    /// intent, plans paths on the runtime NavMesh, and feeds ordinary player input.
+    /// Normal play is unaffected unless autoplay creates and enables this component.
     /// </summary>
-    public class BotDriver : MonoBehaviour
+    public partial class BotDriver : MonoBehaviour
     {
         public static bool Active { get; private set; }
         public static Vector2 Move { get; private set; }
+        public static string IntentName => currentIntent.ToString().ToLowerInvariant();
+        public static int NearbyEnemyCount { get; private set; }
+        public static int ReplanCount { get; private set; }
+        public static int StuckRecoveryCount { get; private set; }
+        public static float DistanceTravelled { get; private set; }
 
-        // Spray reaches ~4.7 (SpraySettings.BaseSprayRange); fight near that edge.
+        [Header("Combat reasoning")]
         [SerializeField]
-        private float senseRadius = 12f;
+        private float senseRadius = 14f;
 
         [SerializeField]
         private float engageRadius = 4.2f;
@@ -29,174 +30,201 @@ namespace BudgetGameDev.Games.Brocoli
         private float dangerRadius = 2.5f;
 
         [SerializeField]
-        private float strafeWeight = 0.35f;
+        private int crowdCount = 5;
 
         [SerializeField]
-        private int crowdCount = 5; // this many close enemies => retreat
+        private float lowHpFraction = 0.4f;
 
         [SerializeField]
-        private float lowHpFraction = 0.4f; // retreat below this HP fraction
-
-        [SerializeField]
-        private float centerPull = 0.5f; // stay central (don't camp the edge)
-
-        [SerializeField]
-        private float maxCenterDistance = 5f;
+        private float strafeWeight = 0.55f;
 
         [Header("Projectile dodging")]
         [SerializeField]
-        private float projSenseRadius = 8f;
+        private float projectileSenseRadius = 8f;
 
         [SerializeField]
-        private float dodgeRadius = 1.4f; // evade shots that will pass within this
+        private float dodgeRadius = 1.4f;
+
+        [Header("Navigation")]
+        [SerializeField]
+        private float navigationLookAhead = 3f;
 
         [SerializeField]
-        private float dodgeWeight = 3f; // dodging dominates the move when active
+        private float pathRefreshInterval = 0.15f;
 
-        private Transform _player;
-        private PlayerStats _stats;
-        private readonly Collider[] _projBuf = new Collider[64];
-        private int _frame;
-        private Vector2 _lastDodge;
+        [SerializeField]
+        private float progressCheckInterval = 0.5f;
 
-        private void OnEnable() => Active = true;
+        [SerializeField]
+        private float stuckRecoveryDelay = 1f;
+
+        private static BotIntent currentIntent;
+
+        private readonly Collider[] projectileBuffer = new Collider[64];
+        private readonly RaycastHit[] obstacleHits = new RaycastHit[24];
+        private readonly Vector3[] pathCorners = new Vector3[32];
+        private readonly HashSet<Vector2Int> visitedRooms = new();
+
+        private Transform player;
+        private PlayerStats stats;
+        private DungeonManager dungeon;
+        private NavMeshPath path;
+        private Vector2 lastDodge;
+        private Vector2 lastPosition;
+        private Vector2 lastProgressPosition;
+        private Vector2 recoveryDirection;
+        private Vector2 cachedPathDirection;
+        private Vector2 cachedPathTarget;
+        private Vector2Int explorationRoom;
+        private float nextPathRefresh;
+        private float nextProgressCheck;
+        private float stationaryTime;
+        private float recoveryUntil;
+        private int frame;
+        private int explorationDirection = -1;
+        private int recoverySide;
+        private bool hasPosition;
+        private bool hasExplorationRoom;
+
+        private void Awake()
+        {
+            path = new NavMeshPath();
+            recoverySide = 1;
+        }
+
+        private void OnEnable()
+        {
+            Active = true;
+            Move = Vector2.zero;
+            currentIntent = BotIntent.Waiting;
+            NearbyEnemyCount = 0;
+            ReplanCount = 0;
+            StuckRecoveryCount = 0;
+            DistanceTravelled = 0f;
+            visitedRooms.Clear();
+            hasExplorationRoom = false;
+            explorationDirection = -1;
+            stationaryTime = 0f;
+            recoveryUntil = 0f;
+            hasPosition = false;
+        }
 
         private void OnDisable()
         {
             Active = false;
             Move = Vector2.zero;
+            currentIntent = BotIntent.Waiting;
         }
 
         private void FixedUpdate()
         {
-            if (_player == null)
+            if (!ResolveWorld())
             {
-                var go = GameObject.FindGameObjectWithTag("Player");
-                if (go == null)
-                {
-                    Move = Vector2.zero;
-                    return;
-                }
-                _player = go.transform;
-                _stats = go.GetComponent<PlayerStats>();
+                currentIntent = BotIntent.Waiting;
+                Move = Vector2.zero;
+                return;
             }
 
-            Vector2 pos = _player.position.ToGround();
+            Vector2 position = player.position.ToGround();
+            TrackProgress(position);
+            EnemyObservation enemies = ObserveEnemies(position);
+            NearbyEnemyCount = enemies.Count;
 
-            // --- enemy cluster sensing ---
-            Vector2 centroid = Vector2.zero,
-                repulsion = Vector2.zero;
-            float nearest = float.MaxValue;
-            int count = 0,
-                closeCount = 0;
+            if (++frame % 3 == 0)
+                lastDodge = ComputeProjectileDodge(position);
 
-            var hash = EnemySpatialHash.Instance;
-            if (hash != null)
+            float hpFraction =
+                stats != null && stats.CurrentMaxHealth > 0f
+                    ? stats.CurrentHealth / stats.CurrentMaxHealth
+                    : 1f;
+            var situation = new BotSituation(
+                enemies.Count > 0,
+                enemies.NearestDistance,
+                enemies.CloseCount,
+                hpFraction,
+                lastDodge.sqrMagnitude > 0.0001f,
+                Time.time < recoveryUntil
+            );
+            currentIntent = BotDecisionPolicy.ChooseIntent(
+                situation,
+                dangerRadius,
+                crowdCount,
+                lowHpFraction
+            );
+
+            Vector2 desired = currentIntent switch
             {
-                foreach (var e in hash.GetNearbyEnemies(pos, senseRadius))
-                {
-                    if (e == null)
-                        continue;
-                    Vector2 ep = e.transform.position.ToGround();
-                    Vector2 away = pos - ep;
-                    float d = away.magnitude;
-                    if (d < 0.0001f)
-                        continue;
-                    centroid += ep;
-                    count++;
-                    if (d < nearest)
-                        nearest = d;
-                    if (d < engageRadius + 1f)
-                        closeCount++;
-                    if (d < dangerRadius * 1.5f)
-                        repulsion +=
-                            (away / d) * ((dangerRadius * 1.5f - d) / (dangerRadius * 1.5f));
-                }
-            }
+                BotIntent.Explore => NavigateTo(position, GetExplorationTarget(position)),
+                BotIntent.Engage => NavigateCombat(position, enemies, false),
+                BotIntent.Retreat => NavigateCombat(position, enemies, true),
+                BotIntent.Dodge => NavigateLocal(position, lastDodge * 3f + enemies.Repulsion),
+                BotIntent.Recover => NavigateLocal(position, recoveryDirection),
+                _ => Vector2.zero,
+            };
 
-            Vector2 move;
-            if (count == 0)
-            {
-                move = -pos * 0.2f; // no threats sensed: head to center where enemies converge
-            }
-            else
-            {
-                centroid /= count;
-                Vector2 fromCluster = pos - centroid;
-                float clusterDist = fromCluster.magnitude;
-                Vector2 radial = clusterDist > 0.0001f ? fromCluster / clusterDist : Vector2.up;
-                Vector2 strafe = Vector2.Perpendicular(radial) * strafeWeight;
-
-                float hpFrac =
-                    _stats != null && _stats.CurrentMaxHealth > 0f
-                        ? _stats.CurrentHealth / _stats.CurrentMaxHealth
-                        : 1f;
-                bool retreat =
-                    nearest < dangerRadius || closeCount >= crowdCount || hpFrac < lowHpFraction;
-
-                if (retreat)
-                {
-                    move =
-                        (repulsion.sqrMagnitude > 0.0001f ? repulsion.normalized : radial) + strafe;
-                }
-                else
-                {
-                    float distError = clusterDist - engageRadius; // >0 far, <0 close
-                    Vector2 approach = radial * -Mathf.Clamp(distError, -1f, 1f);
-                    move = approach + strafe + repulsion * 0.5f;
-                }
-            }
-
-            // --- dodge incoming projectiles (throttled for perf; takes priority) ---
-            if (++_frame % 3 == 0)
-                _lastDodge = ComputeDodge(pos);
-            if (_lastDodge.sqrMagnitude > 0.0001f)
-                move += _lastDodge * dodgeWeight;
-
-            // --- stay central (avoid getting cornered / camping the edge) ---
-            float fromCenter = pos.magnitude;
-            if (fromCenter > maxCenterDistance)
-                move += -pos.normalized * (centerPull * (fromCenter - maxCenterDistance));
-
-            Move = move.sqrMagnitude > 1f ? move.normalized : move;
+            Move = Vector2.ClampMagnitude(desired, 1f);
         }
 
-        /// <summary>Sum of perpendicular evasion pushes away from incoming enemy projectiles.</summary>
-        private Vector2 ComputeDodge(Vector2 pos)
+        private bool ResolveWorld()
         {
-            Vector2 dodge = Vector2.zero;
-            int n = GroundPlane.OverlapCircle(pos, projSenseRadius, _projBuf);
-            for (int i = 0; i < n; i++)
+            if (player == null)
             {
-                var col = _projBuf[i];
-                if (col == null || col.GetComponent<EnemyProjectile>() == null)
-                    continue;
-                var rb = col.attachedRigidbody;
-                if (rb == null)
-                    continue;
-                Vector2 v = rb.GroundVelocity();
-                if (v.sqrMagnitude < 0.04f)
-                    continue;
-
-                Vector2 pp = col.transform.position.ToGround();
-                Vector2 toMe = pos - pp;
-                Vector2 vn = v.normalized;
-                float along = Vector2.Dot(toMe, vn);
-                if (along <= 0f)
-                    continue; // shot is heading away from us
-                Vector2 perp = toMe - vn * along; // how far its path misses us by
-                float miss = perp.magnitude;
-                if (miss >= dodgeRadius || along >= projSenseRadius)
-                    continue;
-
-                Vector2 side =
-                    perp.sqrMagnitude > 0.0001f
-                        ? perp.normalized
-                        : (Vector2)Vector2.Perpendicular(vn);
-                float urgency = (1f - miss / dodgeRadius) * (1f - along / projSenseRadius);
-                dodge += side * Mathf.Max(0f, urgency);
+                GameObject playerObject = GameObject.FindGameObjectWithTag("Player");
+                if (playerObject == null)
+                    return false;
+                player = playerObject.transform;
+                stats = playerObject.GetComponent<PlayerStats>();
+                lastPosition = player.position.ToGround();
+                lastProgressPosition = lastPosition;
+                nextProgressCheck = Time.time + progressCheckInterval;
+                hasPosition = true;
             }
-            return dodge;
+
+            if (dungeon == null)
+                dungeon = FindAnyObjectByType<DungeonManager>();
+            return true;
+        }
+
+        private void TrackProgress(Vector2 position)
+        {
+            if (!hasPosition)
+            {
+                lastPosition = position;
+                lastProgressPosition = position;
+                nextProgressCheck = Time.time + progressCheckInterval;
+                hasPosition = true;
+                return;
+            }
+
+            float travelled = Vector2.Distance(position, lastPosition);
+            DistanceTravelled += travelled;
+            lastPosition = position;
+            if (Time.time < nextProgressCheck)
+                return;
+
+            float elapsed = Mathf.Max(progressCheckInterval, Time.time - nextProgressCheck);
+            nextProgressCheck = Time.time + progressCheckInterval;
+            float progress = Vector2.Distance(position, lastProgressPosition);
+            if (Move.sqrMagnitude > 0.2f && progress < 0.12f)
+                stationaryTime += elapsed;
+            else
+                stationaryTime = 0f;
+
+            if (stationaryTime >= stuckRecoveryDelay)
+                BeginStuckRecovery();
+            lastProgressPosition = position;
+        }
+
+        private void BeginStuckRecovery()
+        {
+            Vector2 basis = Move.sqrMagnitude > 0.01f ? Move.normalized : Vector2.up;
+            recoveryDirection = Vector2.Perpendicular(basis) * recoverySide - basis * 0.25f;
+            recoveryDirection.Normalize();
+            recoverySide = -recoverySide;
+            recoveryUntil = Time.time + 0.8f;
+            stationaryTime = 0f;
+            nextPathRefresh = 0f;
+            StuckRecoveryCount++;
         }
     }
 }

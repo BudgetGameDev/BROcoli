@@ -1,0 +1,1 @@
+[assembly: UnityEngine.TestTools.TestMustExpectAllLogs]

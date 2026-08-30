@@ -10,9 +10,7 @@ namespace BudgetGameDev.Games.Brocoli.Tests
         public void FiringAnimationBuildsSmoothlyIntoTheKick()
         {
             SprayRecoil.Pose start = SprayRecoil.Evaluate(0f);
-            SprayRecoil.Pose entering = SprayRecoil.Evaluate(
-                SprayRecoil.PeakNormalizedTime * 0.5f
-            );
+            SprayRecoil.Pose entering = SprayRecoil.Evaluate(SprayRecoil.PeakNormalizedTime * 0.5f);
             SprayRecoil.Pose peak = SprayRecoil.Evaluate(SprayRecoil.PeakNormalizedTime);
 
             Assert.That(start.LocalOffset, Is.EqualTo(Vector3.zero));
@@ -74,17 +72,9 @@ namespace BudgetGameDev.Games.Brocoli.Tests
         [Test]
         public void BackpedalingIsMeasuredRelativeToTheAimDirection()
         {
-            float forward = SprayRecoil.ResolveBackpedalAmount(
-                Vector2.right,
-                Vector2.right,
-                1f
-            );
+            float forward = SprayRecoil.ResolveBackpedalAmount(Vector2.right, Vector2.right, 1f);
             float sideways = SprayRecoil.ResolveBackpedalAmount(Vector2.up, Vector2.right, 1f);
-            float backward = SprayRecoil.ResolveBackpedalAmount(
-                Vector2.left,
-                Vector2.right,
-                1f
-            );
+            float backward = SprayRecoil.ResolveBackpedalAmount(Vector2.left, Vector2.right, 1f);
 
             Assert.That(forward, Is.EqualTo(0f));
             Assert.That(sideways, Is.EqualTo(0f));

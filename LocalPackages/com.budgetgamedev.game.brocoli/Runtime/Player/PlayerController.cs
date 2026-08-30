@@ -89,8 +89,11 @@ namespace BudgetGameDev.Games.Brocoli
 
         private void Start()
         {
-            // Spawn player at world center
-            SpawnAtCenter();
+            // A resumed run picks up where it stopped; a fresh one starts at world center.
+            if (BrocoliSaveSystem.TryGetPendingContinue(out BrocoliRunSave save))
+                MoveTo(save.playerPosition.ToGround());
+            else
+                MoveTo(Vector2.zero);
         }
 
         private void Update()
@@ -147,7 +150,11 @@ namespace BudgetGameDev.Games.Brocoli
             _damageHandler?.HandleCollision(other);
         }
 
-        private void SpawnAtCenter()
+        /// <summary>
+        /// Teleports the player, carrying the camera along by the offset it already
+        /// holds so the view starts framed instead of swooping in from the old spot.
+        /// </summary>
+        private void MoveTo(Vector2 ground)
         {
             Camera mainCam = Camera.main;
             Vector3 cameraOffset = Vector3.zero;
@@ -157,12 +164,20 @@ namespace BudgetGameDev.Games.Brocoli
                 cameraOffset = mainCam.transform.position - transform.position;
             }
 
-            Vector3 spawnCenter = new Vector3(0f, transform.position.y, 0f);
-            transform.position = spawnCenter;
+            // PlayerMovement owns the teleport: the player's Rigidbody has to move
+            // with the transform or the next physics step pulls it back.
+            if (_movement != null)
+            {
+                _movement.SetPosition(ground);
+            }
+            else
+            {
+                transform.position = ground.ToWorld(transform.position.y);
+            }
 
             if (mainCam != null)
             {
-                mainCam.transform.position = spawnCenter + cameraOffset;
+                mainCam.transform.position = transform.position + cameraOffset;
             }
         }
 

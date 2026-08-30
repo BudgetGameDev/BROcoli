@@ -70,7 +70,7 @@ $logContent = Get-Content $LogFile -Raw -ErrorAction SilentlyContinue
 if ($process.ExitCode -eq 0 -and $logContent -match "Exiting batchmode successfully") {
     # Assets/csc.rsp promotes compiler warnings to errors. Keep this log scan as a
     # safeguard for first-party assemblies that may override compiler arguments.
-    $warnings = Select-String -Path $LogFile -Pattern "Assets/(Scripts|Editor)/.*warning [A-Z]+[0-9]+" -ErrorAction SilentlyContinue
+    $warnings = Select-String -Path $LogFile -Pattern "(Assets/Editor|LocalPackages)/.*warning [A-Z]+[0-9]+" -ErrorAction SilentlyContinue
     if ($warnings) {
         Write-Host "❌ COMPILATION FAILED ($($warnings.Count) first-party warning(s))" -ForegroundColor Red
         $warnings | Select-Object -First 20 | ForEach-Object { Write-Host $_.Line }
@@ -94,7 +94,7 @@ if ($process.ExitCode -eq 0 -and $logContent -match "Exiting batchmode successfu
     Write-Host ""
     
     # Check if errors are in our code or package cache
-    $ourErrors = Select-String -Path $LogFile -Pattern "Assets/(Scripts|Editor)/.*error [A-Z]+[0-9]+" -ErrorAction SilentlyContinue
+    $ourErrors = Select-String -Path $LogFile -Pattern "(Assets/Editor|LocalPackages)/.*error [A-Z]+[0-9]+" -ErrorAction SilentlyContinue
     $pkgErrors = Select-String -Path $LogFile -Pattern "Library/PackageCache.*error CS" -ErrorAction SilentlyContinue
     
     if ($ourErrors) {

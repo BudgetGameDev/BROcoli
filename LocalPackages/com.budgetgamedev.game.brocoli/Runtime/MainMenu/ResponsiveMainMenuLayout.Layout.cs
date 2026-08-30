@@ -85,6 +85,8 @@ namespace BudgetGameDev.Games.Brocoli
 
             LayoutActiveButtons(mainButtons, innerWidth, actionTop, actionBottom, compact, narrow);
             LayoutSettingsPanel(innerWidth, actionTop, actionBottom, compact, narrow);
+            LayoutCreditsPanel(innerWidth, actionTop, actionBottom, compact, narrow);
+            LayoutSavesPanel(innerWidth, actionTop, actionBottom, compact, narrow);
 
             heroField.anchorMin = new Vector2(0f, available.x > available.y ? 0.56f : 0.66f);
         }

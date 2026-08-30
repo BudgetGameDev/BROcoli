@@ -29,7 +29,7 @@ if not files:
     sys.exit(0)
 
 n = len(files)
-sample = sorted(set(int(round(i * (n - 1) / 7.0)) for i in range(8))) if n > 1 else [0]
+sample = sorted({round(i * (n - 1) / 7.0) for i in range(8)}) if n > 1 else [0]
 
 
 def band_luminance(img, y0, y1):
@@ -46,4 +46,4 @@ for i in sample:
     top = band_luminance(img, 0.0, 0.33)
     mid = band_luminance(img, 0.33, 0.66)
     bot = band_luminance(img, 0.66, 1.0)
-    print("  {:<18}{:>8.3f}{:>8.3f}{:>8.3f}".format(os.path.basename(files[i]), top, mid, bot))
+    print(f"  {os.path.basename(files[i]):<18}{top:>8.3f}{mid:>8.3f}{bot:>8.3f}")

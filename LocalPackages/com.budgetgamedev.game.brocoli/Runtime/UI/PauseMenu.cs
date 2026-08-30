@@ -496,7 +496,7 @@ namespace BudgetGameDev.Games.Brocoli
         public void GoToMainMenu()
         {
             Debug.Log("[PauseMenu] Going to MainMenuScene");
-
+            BrocoliAutosaveController.SaveNow();
             // Reset time before loading
             Time.timeScale = 1f;
             isPaused = false;

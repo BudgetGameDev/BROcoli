@@ -94,7 +94,8 @@ namespace BudgetGameDev.Games.Brocoli
             telemetry.Configure(_config);
 
             Debug.Log(
-                "[Autoplay] Dungeon scene wired (bot + capture + telemetry + level-up resolver)."
+                "[Autoplay] Dungeon scene wired (autonomous navigation + combat policy + "
+                    + "capture + telemetry + adaptive upgrades)."
             );
         }
     }

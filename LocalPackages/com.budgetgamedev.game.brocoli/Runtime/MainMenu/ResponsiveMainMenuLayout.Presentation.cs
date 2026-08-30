@@ -12,7 +12,9 @@ namespace BudgetGameDev.Games.Brocoli
         {
             foreach (Button button in buttons)
             {
-                bool primaryAction = button != null && button.name is "PlayButton";
+                // Inside the save manager the green belongs to Play, which acts on the
+                // run the player picked; starting a fresh one is an ordinary action.
+                bool primaryAction = button != null && button.name == "SavesButton";
                 StyleButton(button, primaryAction, materialFont);
             }
         }

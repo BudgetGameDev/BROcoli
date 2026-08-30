@@ -78,23 +78,41 @@ namespace BudgetGameDev.Games.Brocoli
             PWAHelper.ToggleFullscreen();
         }
 
-        /// <summary>Called by the Play button.</summary>
-        public void playGame() => LaunchDungeon(false);
+        /// <summary>Called by the New Run button in the save manager.</summary>
+        public void playGame() => LaunchNewDungeon(false);
 
-        /// <summary>Called by the Play (touch) button.</summary>
-        public void playGameMobile() => LaunchDungeon(true);
+        /// <summary>Called by the New Run (touch) button in the save manager.</summary>
+        public void playGameMobile() => LaunchNewDungeon(true);
+
+        /// <summary>Resumes the run held in the given save slot.</summary>
+        /// <returns>False when that slot turned out to be empty or unreadable.</returns>
+        public bool LoadSave(int slot)
+        {
+            if (!BrocoliSaveSystem.BeginContinue(slot))
+                return false;
+
+            ProceduralUIAudio.PlaySelect();
+            SceneManager.LoadScene("Brocoli_Dungeon");
+            return true;
+        }
 
         /// <summary>
         /// The dungeon is the only game mode, so Play starts it outright. The scene
         /// is named rather than reached by build index so reordering the build
         /// settings cannot silently launch something else.
         /// </summary>
-        private static void LaunchDungeon(bool mobileControls)
+        /// <returns>False when all ten save slots are taken.</returns>
+        private static bool LaunchNewDungeon(bool mobileControls)
         {
+            if (!BrocoliSaveSystem.BeginNewGame(mobileControls))
+            {
+                Debug.Log("[MainMenu] Every save slot is taken; delete one to start a new run.");
+                return false;
+            }
+
             ProceduralUIAudio.PlaySelect();
-            PlayerPrefs.SetInt("ShowVirtualController", mobileControls ? 1 : 0);
-            PlayerPrefs.Save();
             SceneManager.LoadScene("Brocoli_Dungeon");
+            return true;
         }
 
         public void GoToSettingsMenu()

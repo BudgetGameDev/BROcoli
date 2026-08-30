@@ -28,10 +28,7 @@ namespace BudgetGameDev.Games.Brocoli
                     // Preserve the texture alpha mask. OneMinusDstColor ignores source
                     // alpha and turns every billboard quad into a visible square.
                     mat.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
-                    mat.SetInt(
-                        "_DstBlend",
-                        (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha
-                    );
+                    mat.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
                     break;
                 case BlendMode.Multiply:
                     mat.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.DstColor);

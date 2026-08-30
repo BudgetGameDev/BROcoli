@@ -29,12 +29,22 @@ namespace BudgetGameDev.Games.Brocoli
         public static bool SettingsOpen { get; private set; }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        private static void ResetSettingsState() => SettingsOpen = false;
+        private static void ResetSettingsState()
+        {
+            SettingsOpen = false;
+            CreditsOpen = false;
+            SavesOpen = false;
+        }
 
         private void BuildSettingsPresentation()
         {
+            // The play buttons the scene ships move into the save manager, which is
+            // the only place a run is started or resumed.
+            BuildSavesPresentation(mainButtons[0], mainButtons[1]);
+
             settingsButton = CreateButton("SettingsButton", card, "SETTINGS");
             settingsButton.onClick.AddListener(OpenSettings);
+            BuildCreditsPresentation();
 
             // The hub owns game selection, so the way out of BROcoli is back to
             // the launcher rather than a quit that strands the player.
@@ -43,9 +53,9 @@ namespace BudgetGameDev.Games.Brocoli
 
             mainButtons = new[]
             {
-                mainButtons[0],
-                mainButtons[1],
+                savesButton,
                 settingsButton,
+                creditsButton,
                 mainButtons[2],
                 launcherButton,
                 mainButtons[3],
@@ -86,6 +96,8 @@ namespace BudgetGameDev.Games.Brocoli
         {
             GameAudioSettings.ValuesChanged -= SyncVolumeControls;
             SettingsOpen = false;
+            CreditsOpen = false;
+            SavesOpen = false;
         }
 
         private void CreateVolumeRow(
@@ -209,6 +221,18 @@ namespace BudgetGameDev.Games.Brocoli
 
         private void Update()
         {
+            if (SavesOpen)
+            {
+                UpdateSavesInput();
+                return;
+            }
+
+            if (CreditsOpen)
+            {
+                UpdateCreditsInput();
+                return;
+            }
+
             if (!SettingsOpen)
                 return;
 

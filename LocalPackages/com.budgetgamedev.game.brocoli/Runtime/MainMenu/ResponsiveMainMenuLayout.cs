@@ -120,9 +120,13 @@ namespace BudgetGameDev.Games.Brocoli
 
             StyleButtons(mainButtons);
             StyleButtons(settingsActionButtons);
-            SetButtonLabel("PlayButton", "PLAY");
-            SetButtonLabel("PlayMobileButton", "PLAY WITH TOUCH");
+            StyleButtons(creditsActionButtons);
+            StyleButtons(savesActionButtons);
+            SetButtonLabel("PlayButton", "START NEW RUN");
+            SetButtonLabel("PlayMobileButton", "START NEW RUN WITH TOUCH");
+            SetButtonLabel("SavesButton", "SAVES");
             SetButtonLabel("SettingsButton", "SETTINGS");
+            SetButtonLabel("CreditsButton", "CREDITS");
             SetButtonLabel("InstallAppButton", "INSTALL APP");
             SetButtonLabel("QuitButton", "QUIT");
 

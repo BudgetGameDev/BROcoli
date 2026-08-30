@@ -15,6 +15,8 @@ namespace BudgetGameDev.Games.Brocoli
         private int lastSecond = 0;
         private int lastTenSecondMilestone = 0;
 
+        private void Awake() => BrocoliAutosaveController.EnsurePresent();
+
         void Start()
         {
             score = 0;
@@ -22,6 +24,9 @@ namespace BudgetGameDev.Games.Brocoli
             EnemiesKilled = 0;
             lastSecond = 0;
             lastTenSecondMilestone = 0;
+
+            if (BrocoliSaveSystem.TryGetPendingContinue(out BrocoliRunSave save))
+                RestoreRunState(save.game);
         }
 
         void Update()
@@ -52,6 +57,28 @@ namespace BudgetGameDev.Games.Brocoli
         public void RecordEnemyKilled()
         {
             EnemiesKilled++;
+        }
+
+        internal BrocoliGameStateSave CaptureRunState()
+        {
+            return new BrocoliGameStateSave
+            {
+                score = score,
+                gameTime = gameTime,
+                enemiesKilled = EnemiesKilled,
+            };
+        }
+
+        private void RestoreRunState(BrocoliGameStateSave save)
+        {
+            if (save == null)
+                return;
+
+            score = Mathf.Max(0, save.score);
+            gameTime = Mathf.Max(0f, save.gameTime);
+            EnemiesKilled = Mathf.Max(0, save.enemiesKilled);
+            lastSecond = Mathf.FloorToInt(gameTime);
+            lastTenSecondMilestone = lastSecond / 10;
         }
 
         public static string FormatSurvivalTime(float seconds)

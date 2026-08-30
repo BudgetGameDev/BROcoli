@@ -102,10 +102,10 @@ echo "=========================="
 if [ "$EXIT_CODE" -eq 0 ] && grep -q "Exiting batchmode successfully" "$LOG_FILE"; then
     # Assets/csc.rsp promotes compiler warnings to errors. Keep this log scan as a
     # safeguard for first-party assemblies that may override compiler arguments.
-    WARNINGS="$(grep -Ec 'Assets/(Scripts|Editor|Tests)/.*warning [A-Z]+[0-9]+' "$LOG_FILE" 2>/dev/null || true)"
+    WARNINGS="$(grep -Ec '(Assets/Editor|LocalPackages)/.*warning [A-Z]+[0-9]+' "$LOG_FILE" 2>/dev/null || true)"
     if [ "$WARNINGS" -gt 0 ]; then
         echo "❌ COMPILATION FAILED ($WARNINGS first-party warning(s))"
-        grep -E 'Assets/(Scripts|Editor|Tests)/.*warning [A-Z]+[0-9]+' "$LOG_FILE" | head -20 || true
+        grep -E '(Assets/Editor|LocalPackages)/.*warning [A-Z]+[0-9]+' "$LOG_FILE" | head -20 || true
         echo ""
         echo "Warnings are treated as errors by the repository CI gate."
         echo "Full log: $LOG_FILE"
@@ -126,12 +126,12 @@ else
     echo ""
 
     # Check if errors are in our code or package cache
-    OUR_ERRORS="$(grep -Ec 'Assets/(Scripts|Editor|Tests)/.*error [A-Z]+[0-9]+' "$LOG_FILE" 2>/dev/null || true)"
+    OUR_ERRORS="$(grep -Ec '(Assets/Editor|LocalPackages)/.*error [A-Z]+[0-9]+' "$LOG_FILE" 2>/dev/null || true)"
     PKG_ERRORS="$(grep -c "Library/PackageCache.*error CS" "$LOG_FILE" 2>/dev/null || true)"
 
     if [ "$OUR_ERRORS" -gt 0 ]; then
         echo "❌ Errors in first-party code:"
-        grep -E 'Assets/(Scripts|Editor|Tests)/.*error [A-Z]+[0-9]+' "$LOG_FILE" | head -20 || true
+        grep -E '(Assets/Editor|LocalPackages)/.*error [A-Z]+[0-9]+' "$LOG_FILE" | head -20 || true
         echo ""
         echo "Fix these errors and try again."
     fi

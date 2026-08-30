@@ -1,15 +1,30 @@
 #!/usr/bin/env python3
 """Build and extract the zip payloads used by the BROcoli licensed asset pipeline."""
 
+import json
 import os
 import shutil
 import stat
 import zipfile
 from pathlib import Path, PurePosixPath
-from typing import Dict, Tuple
 
 MAXIMUM_PACKAGE_FILES = 200_000
 MAXIMUM_PACKAGE_BYTES = 20 * 1024 * 1024 * 1024
+
+
+def preserved_root_guid(sidecar: Path, generated_path: str, fallback: str) -> str:
+    if not sidecar.exists():
+        return fallback
+    existing = json.loads(sidecar.read_text(encoding="utf-8"))
+    root_guid = existing.get("rootGuid")
+    if (
+        existing.get("formatVersion") == 2
+        and existing.get("generatedPath") == generated_path
+        and isinstance(root_guid, str)
+        and len(root_guid) == 32
+    ):
+        return root_guid
+    return fallback
 
 
 def zip_info(relative_path: str, source_mode: int, directory: bool) -> zipfile.ZipInfo:
@@ -27,7 +42,7 @@ def zip_info(relative_path: str, source_mode: int, directory: bool) -> zipfile.Z
     return info
 
 
-def create_directory_archive(source: Path, destination: Path) -> Tuple[int, int]:
+def create_directory_archive(source: Path, destination: Path) -> tuple[int, int]:
     file_count = 0
     uncompressed_size = 0
     with zipfile.ZipFile(destination, "w", allowZip64=True) as archive:
@@ -73,7 +88,7 @@ def safe_archive_name(value: str) -> PurePosixPath:
 
 
 def extract_directory_archive(
-    archive_path: Path, output: Path, metadata: Dict[str, object]
+    archive_path: Path, output: Path, metadata: dict[str, object]
 ) -> None:
     if output.exists():
         raise RuntimeError(f"Decrypt output already exists: {output}")

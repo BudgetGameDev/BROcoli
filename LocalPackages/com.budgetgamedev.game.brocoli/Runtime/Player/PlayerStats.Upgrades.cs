@@ -87,7 +87,9 @@ namespace BudgetGameDev.Games.Brocoli
 
         public void AddAttackSpeedPublic(float amount)
         {
-            _currentAttackSpeed *= (1f + amount);
+            // CurrentAttackSpeed is an interval, so a positive speed upgrade must
+            // shorten it; a negative trade-off lengthens it.
+            _currentAttackSpeed *= Mathf.Max(0.1f, 1f - amount);
         }
 
         public void AddDetectionRadiusPublic(float amount)

@@ -128,6 +128,32 @@ class LicensedAssetCryptoTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "Directory packages require metadata"):
             licensed_asset_crypto.encrypt(args)
 
+    def test_reencrypting_directory_preserves_existing_root_guid(self):
+        source = self.root / "Package"
+        source.mkdir()
+        (source / "asset.txt").write_text("first", encoding="utf-8")
+        encrypted = "Assets/Encrypted/Licensed/package.zip.enc"
+        args = self.encrypt_args(
+            source,
+            encrypted,
+            "Assets/Generated/Licensed/Package",
+            title="Example Package",
+            asset_version="1.0",
+            license_type="Extension Asset",
+            acquired_date="2026-08-30",
+        )
+        licensed_asset_crypto.encrypt(args)
+        sidecar = self.project / f"{encrypted}.json"
+        metadata = json.loads(sidecar.read_text(encoding="utf-8"))
+        metadata["rootGuid"] = "0123456789abcdef0123456789abcdef"
+        sidecar.write_text(json.dumps(metadata), encoding="utf-8")
+
+        (source / "asset.txt").write_text("second", encoding="utf-8")
+        licensed_asset_crypto.encrypt(args)
+
+        updated = json.loads(sidecar.read_text(encoding="utf-8"))
+        self.assertEqual(updated["rootGuid"], "0123456789abcdef0123456789abcdef")
+
     def test_generated_package_path_cannot_escape_ignored_root(self):
         with self.assertRaisesRegex(RuntimeError, "safe project-relative path"):
             licensed_asset_crypto.validate_generated_path(

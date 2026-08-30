@@ -83,7 +83,11 @@ data = d.get("data") or {}
 result = data.get("result") or {}
 logs = result.get("logs", [])
 messages = [x.get("message", "") for x in logs]
-warnings = [m for m in messages if re.search(r"Assets/(Scripts|Editor)/.*warning [A-Z]+[0-9]+", m)]
+warnings = [
+    m
+    for m in messages
+    if re.search(r"(?:Assets/Editor|LocalPackages)/.*warning [A-Z]+[0-9]+", m)
+]
 for warning in warnings:
     print(warning, file=sys.stderr)
 print(len(warnings))

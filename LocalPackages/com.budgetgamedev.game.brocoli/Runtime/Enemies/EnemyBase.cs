@@ -82,6 +82,7 @@ namespace BudgetGameDev.Games.Brocoli
         protected Color originalSpriteColor;
         protected MeshRenderer cachedMeshRenderer;
         protected Color originalMeshColor;
+        private MaterialPropertyBlock meshColorProperties;
         private bool _isPooled = false;
         private bool attackBodyLocked = false;
         private RigidbodyConstraints constraintsBeforeAttack;
@@ -151,10 +152,8 @@ namespace BudgetGameDev.Games.Brocoli
                     if (mr.enabled)
                     {
                         cachedMeshRenderer = mr;
-                        if (mr.material != null)
-                        {
-                            originalMeshColor = mr.material.color;
-                        }
+                        meshColorProperties = new MaterialPropertyBlock();
+                        originalMeshColor = EnemyRendererColor.Get(mr, meshColorProperties);
                         break;
                     }
                 }
@@ -565,9 +564,9 @@ namespace BudgetGameDev.Games.Brocoli
             }
             else if (cachedMeshRenderer != null)
             {
-                cachedMeshRenderer.material.color = Color.white;
+                EnemyRendererColor.Set(cachedMeshRenderer, meshColorProperties, Color.white);
                 yield return new WaitForSeconds(0.05f);
-                cachedMeshRenderer.material.color = originalMeshColor;
+                EnemyRendererColor.Set(cachedMeshRenderer, meshColorProperties, originalMeshColor);
             }
             else
             {
@@ -762,10 +761,10 @@ namespace BudgetGameDev.Games.Brocoli
             }
             else if (cachedMeshRenderer != null)
             {
-                cachedMeshRenderer.material.color = Color.Lerp(
-                    originalMeshColor,
-                    Color.white,
-                    amount
+                EnemyRendererColor.Set(
+                    cachedMeshRenderer,
+                    meshColorProperties,
+                    Color.Lerp(originalMeshColor, Color.white, amount)
                 );
             }
         }
@@ -833,7 +832,7 @@ namespace BudgetGameDev.Games.Brocoli
             else if (cachedMeshRenderer != null)
             {
                 cachedMeshRenderer.enabled = true; // Ensure mesh is enabled
-                cachedMeshRenderer.material.color = originalMeshColor;
+                EnemyRendererColor.Set(cachedMeshRenderer, meshColorProperties, originalMeshColor);
             }
 
             if (healthBar != null)

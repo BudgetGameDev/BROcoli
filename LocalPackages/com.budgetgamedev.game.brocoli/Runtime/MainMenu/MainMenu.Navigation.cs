@@ -123,7 +123,7 @@ namespace BudgetGameDev.Games.Brocoli
         private void HandleMenuInput()
         {
             if (
-                ResponsiveMainMenuLayout.SettingsOpen
+                ResponsiveMainMenuLayout.ModalOpen
                 || menuButtons == null
                 || menuButtons.Length == 0
             )

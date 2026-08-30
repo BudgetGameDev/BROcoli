@@ -28,6 +28,7 @@ run_gate() {
 require_tool dotnet
 require_tool python3
 require_tool node
+require_tool npx
 require_tool uv
 require_tool shellcheck
 require_tool shfmt
@@ -50,7 +51,17 @@ run_gate "WebGL service worker behavior" node scripts/test-webgl-service-worker.
 run_gate "WebGL template contract" node scripts/test-webgl-template.cjs
 run_gate "WebGL smoke probe syntax" node --check scripts/webgl-smoke.cjs
 run_gate "WebGL build contract syntax" node --check scripts/check-webgl-build.cjs
-run_gate "Shell lint" shellcheck -x ci.sh cd.sh format.sh scripts/*.sh .githooks/pre-push
+run_gate \
+    "JavaScript formatting" \
+    npx --yes prettier@3.9.6 --check \
+    eslint.config.mjs scripts/*.cjs Assets/WebGLTemplates/Custom/*.js
+run_gate \
+    "JavaScript lint" \
+    npx --yes eslint@10.9.1 --max-warnings 0 \
+    eslint.config.mjs scripts/*.cjs Assets/WebGLTemplates/Custom/*.js
+run_gate \
+    "Shell lint" \
+    shellcheck --severity=style -x ci.sh cd.sh format.sh scripts/*.sh .githooks/pre-push
 run_gate "Shell formatting" shfmt -d -i 4 -ci ci.sh cd.sh format.sh scripts/*.sh .githooks/pre-push
 run_gate \
     "Static analysis" \

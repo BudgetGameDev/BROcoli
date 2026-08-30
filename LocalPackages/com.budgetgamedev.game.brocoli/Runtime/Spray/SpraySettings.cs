@@ -60,6 +60,7 @@ namespace BudgetGameDev.Games.Brocoli
         // ==================== Particle Settings ====================
         public const float ParticleSpeedMultiplier = 2.5f;
         public const float ParticleLifetimeBase = 0.5f; // Shorter lifetime for fizzle effect
+
         // Core particles participate in collision damage, so keep their gameplay rate
         // independent from the much denser supporting visual layers.
         public const int EmissionRate = 40;

@@ -44,18 +44,21 @@ def report_build_id(result: dict) -> int:
 def report_summary(result: dict) -> int:
     outcome = result.get("result")
     errors = int(result.get("totalErrors", 0) or 0)
+    warnings = int(result.get("totalWarnings", 0) or 0)
     seconds = int(result.get("buildTimeMs", 0) or 0) / 1000
 
     print(
         f"unity-webgl-build: {outcome} in {seconds:.0f}s, "
         f"{result.get('totalSizeBytes', 0)} bytes, "
-        f"{errors} errors, {result.get('totalWarnings', 0)} warnings"
+        f"{errors} errors, {warnings} warnings"
     )
 
-    if outcome == "Succeeded" and not errors:
+    if outcome == "Succeeded" and not errors and not warnings:
         return 0
 
     for message in (result.get("errors") or [])[:20]:
+        print(f"  {message}", file=sys.stderr)
+    for message in (result.get("warnings") or [])[:20]:
         print(f"  {message}", file=sys.stderr)
     return 1
 
