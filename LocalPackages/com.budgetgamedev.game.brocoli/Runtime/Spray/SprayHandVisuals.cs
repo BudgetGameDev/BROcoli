@@ -14,8 +14,11 @@ namespace BudgetGameDev.Games.Brocoli
         private SprayWeaponVisual3D weaponVisual;
         private Transform sprayTransform;
         private Transform playerTransform;
-        private PlayerController playerController;
+        private PlayerStats playerStats;
         private ParticleSystem[] sprayParticles;
+        private readonly SprayWalkBob walkBob = new SprayWalkBob();
+        private Vector2 previousPlayerPosition;
+        private bool hasPreviousPlayerPosition;
 
         // Target tracking
         private Transform targetTransform;
@@ -35,8 +38,13 @@ namespace BudgetGameDev.Games.Brocoli
         {
             sprayTransform = parent;
             playerTransform = parent.parent;
-            playerController =
-                playerTransform != null ? playerTransform.GetComponent<PlayerController>() : null;
+            playerStats =
+                playerTransform != null ? playerTransform.GetComponent<PlayerStats>() : null;
+            if (playerTransform != null)
+            {
+                previousPlayerPosition = playerTransform.position.ToGround();
+                hasPreviousPlayerPosition = true;
+            }
         }
 
         public void CreateHandVisuals()
@@ -197,24 +205,46 @@ namespace BudgetGameDev.Games.Brocoli
             sprayTransform.localPosition = new Vector3(0, SpraySettings.VisualHeightOffset, 0);
 
             UpdateSprayPush();
-            float movement =
-                playerController != null ? Mathf.Clamp01(playerController.RawInput.magnitude) : 0f;
-            float walkPhase = Time.time * SpraySettings.HandWalkWobbleSpeed;
+            SprayWalkBob.Pose walkPose = walkBob.Update(ResolveMovementAmount(), Time.deltaTime);
             float hover =
                 Mathf.Sin(Time.time * SpraySettings.HandHoverSpeed)
                 * SpraySettings.HandHoverAmplitude;
-            float walkBob =
-                Mathf.Abs(Mathf.Sin(walkPhase)) * SpraySettings.HandWalkBobDistance * movement;
             float push = sprayPushBlend * SpraySettings.HandSprayPushDistance;
-            handTransform.localPosition = new Vector3(
-                SpraySettings.HandOffset + push,
-                hover + walkBob,
-                0f
-            );
+            handTransform.localPosition =
+                new Vector3(SpraySettings.HandOffset + push, hover, 0f) + walkPose.LocalOffset;
 
-            float walkTilt = Mathf.Sin(walkPhase) * SpraySettings.HandWalkWobbleDegrees * movement;
             float sprayTilt = -SpraySettings.HandSprayForwardTiltDegrees * sprayPushBlend;
-            weaponVisual?.SetPresentation(walkTilt + sprayTilt);
+            Vector3 presentation = walkPose.LocalEulerAngles;
+            presentation.z += sprayTilt;
+            weaponVisual?.SetPresentation(presentation);
+        }
+
+        private float ResolveMovementAmount()
+        {
+            if (playerTransform == null || Time.deltaTime <= 0f)
+                return 0f;
+
+            Vector2 currentPosition = playerTransform.position.ToGround();
+            if (!hasPreviousPlayerPosition)
+            {
+                previousPlayerPosition = currentPosition;
+                hasPreviousPlayerPosition = true;
+                return 0f;
+            }
+
+            float distanceMoved = Vector2.Distance(currentPosition, previousPlayerPosition);
+            previousPlayerPosition = currentPosition;
+            float referenceSpeed = Mathf.Max(
+                0.1f,
+                playerStats != null ? playerStats.CurrentMovementSpeed : 4f
+            );
+            // Scene placement and teleports are not footsteps. A normal rendered-frame
+            // displacement is a small fraction of this even at boosted movement speed.
+            if (distanceMoved > referenceSpeed * 0.5f)
+                return 0f;
+
+            float measuredSpeed = distanceMoved / Time.deltaTime;
+            return Mathf.Clamp01(measuredSpeed / referenceSpeed);
         }
 
         private void UpdateSprayPush()

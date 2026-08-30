@@ -99,6 +99,9 @@ namespace BudgetGameDev.Games.Brocoli
                 enemy.MaxHealth *= healthScale;
                 enemy.Damage *= damageScale;
 
+                if (enemy is HydraEnemyScript hydra)
+                    hydra.ConfigureForDungeonRing(ring);
+
                 if (population.Elite)
                 {
                     enemy.MakeElite();

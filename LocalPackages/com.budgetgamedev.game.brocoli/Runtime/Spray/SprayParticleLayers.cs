@@ -41,8 +41,8 @@ namespace BudgetGameDev.Games.Brocoli
             containerObj.transform.localRotation = Quaternion.identity;
 
             // Create textures
-            softCircleTex = SprayMaterialCreator.CreateSoftCircleTexture(64);
-            dropletTex = SprayMaterialCreator.CreateDropletTexture(32);
+            softCircleTex = SprayMaterialCreator.GetSoftCircleTexture();
+            dropletTex = SprayMaterialCreator.GetDropletTexture();
 
             // Create layers using factory (order matters for rendering)
             mistLayer = SprayLayerFactory.CreateMistLayer(containerObj.transform, softCircleTex);
@@ -56,10 +56,17 @@ namespace BudgetGameDev.Games.Brocoli
         /// </summary>
         public void PlayBurst(int baseCount)
         {
-            PlayBurstOnSystem(coreSpray, (short)(baseCount * 1.0f));
-            PlayBurstOnSystem(mistLayer, (short)(baseCount * 0.4f));
-            PlayBurstOnSystem(dropletLayer, (short)(baseCount * 0.6f));
-            PlayBurstOnSystem(glowLayer, (short)(baseCount * 0.15f));
+            int coreCount = Mathf.Max(
+                1,
+                Mathf.RoundToInt(
+                    baseCount
+                        * (SpraySettings.EmissionRate / (float)SpraySettings.VisualEmissionRate)
+                )
+            );
+            PlayBurstOnSystem(coreSpray, (short)coreCount);
+            PlayBurstOnSystem(mistLayer, (short)(baseCount * 0.75f));
+            PlayBurstOnSystem(dropletLayer, (short)(baseCount * 0.22f));
+            PlayBurstOnSystem(glowLayer, (short)(baseCount * 0.1f));
         }
 
         private void PlayBurstOnSystem(ParticleSystem ps, short count)
@@ -69,7 +76,9 @@ namespace BudgetGameDev.Games.Brocoli
             ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
             var emission = ps.emission;
             emission.SetBursts(System.Array.Empty<ParticleSystem.Burst>());
-            int initialCount = Mathf.Max(1, Mathf.RoundToInt(count * 0.2f));
+            // Prime the nozzle immediately without creating a visible volley. Most
+            // particles arrive as an even flow across the complete spray time.
+            int initialCount = Mathf.Clamp(Mathf.RoundToInt(count * 0.03f), 1, 4);
             emission.rateOverTime =
                 (count - initialCount) / Mathf.Max(0.01f, SpraySettings.BurstDuration);
             ps.Play();
@@ -98,10 +107,10 @@ namespace BudgetGameDev.Games.Brocoli
         /// </summary>
         public void UpdateForStats(float range, float width)
         {
-            UpdateLayerForStats(coreSpray, range, width * 0.6f, 0.35f);
-            UpdateLayerForStats(mistLayer, range, width * 0.9f, 0.4f);
-            UpdateLayerForStats(dropletLayer, range, width * 0.75f, 0.3f);
-            UpdateLayerForStats(glowLayer, range, width * 0.4f, 0.25f);
+            UpdateLayerForStats(coreSpray, range, width * 0.75f, 0.35f);
+            UpdateLayerForStats(mistLayer, range, width, 0.4f);
+            UpdateLayerForStats(dropletLayer, range, width * 0.9f, 0.3f);
+            UpdateLayerForStats(glowLayer, range, width * 0.5f, 0.25f);
         }
 
         private void UpdateLayerForStats(

@@ -105,14 +105,17 @@ namespace BudgetGameDev.Games.Brocoli
             );
             int totalExperience = experiencePerOrb * expDropCount;
             var spawned = new List<ExpGain>(expDropCount);
+            var landingPositions = new List<Vector3>(expDropCount);
+            Vector3 launchPosition = center.ToWorld(0.5f);
 
             for (int i = 0; i < expDropCount; i++)
             {
                 Vector2 spot = center + ScatterOffset(i, expDropCount);
-                ExpGain gain = PoolManager.Instance?.GetExpGain(spot.ToWorld(0.5f));
+                ExpGain gain = PoolManager.Instance?.GetExpGain(launchPosition);
                 if (gain == null)
                     break;
                 spawned.Add(gain);
+                landingPositions.Add(spot.ToWorld(0.5f));
             }
 
             // A busy room can exhaust the shared orb pool. Preserve the chest's
@@ -127,7 +130,12 @@ namespace BudgetGameDev.Games.Brocoli
             int remainder = totalExperience % spawned.Count;
             for (int i = 0; i < spawned.Count; i++)
             {
-                spawned[i].Init(experienceEach + (i < remainder ? 1 : 0));
+                spawned[i]
+                    .InitDropped(
+                        experienceEach + (i < remainder ? 1 : 0),
+                        landingPositions[i],
+                        ExpGain.DropStyle.Chest
+                    );
             }
         }
 

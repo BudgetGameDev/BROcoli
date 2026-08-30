@@ -10,9 +10,6 @@ namespace BudgetGameDev.Games.Brocoli
     /// </summary>
     public static partial class SprayMaterialCreator
     {
-        private const string LicensedWaterSprayMaterialPath =
-            "Brocoli/Integration/LicensedWaterSpray";
-
         // Cached materials
         private static Material _sprayCoreMaterial;
         private static Material _sprayMistMaterial;
@@ -40,7 +37,7 @@ namespace BudgetGameDev.Games.Brocoli
         /// <summary>
         /// Get cached soft circle texture (creates if needed)
         /// </summary>
-        public static Texture2D GetSoftCircleTexture(int size = 64)
+        public static Texture2D GetSoftCircleTexture(int size = 96)
         {
             if (_softCircleTexture == null)
                 _softCircleTexture = CreateSoftCircleTexture(size);
@@ -50,7 +47,7 @@ namespace BudgetGameDev.Games.Brocoli
         /// <summary>
         /// Get cached droplet texture (creates if needed)
         /// </summary>
-        public static Texture2D GetDropletTexture(int size = 32)
+        public static Texture2D GetDropletTexture(int size = 64)
         {
             if (_dropletTexture == null)
                 _dropletTexture = CreateDropletTexture(size);
@@ -65,18 +62,10 @@ namespace BudgetGameDev.Games.Brocoli
             if (_sprayCoreMaterial != null)
                 return _sprayCoreMaterial;
 
-            // Keep the gameplay-tuned particle system, but render its dense core with the
-            // acquired Stylized Water Effect Pack shader when licensed assets are present.
-            Material licensedTemplate = Resources.Load<Material>(LicensedWaterSprayMaterialPath);
-            if (licensedTemplate != null)
-            {
-                _sprayCoreMaterial = new Material(licensedTemplate);
-                _sprayCoreMaterial.name = "SprayCoreMaterial (Stylized Water Effect Pack)";
-                return _sprayCoreMaterial;
-            }
-
-            // Try to use URP Lit particle shader for PBR, fallback to standard
-            Shader shader = Shader.Find("Universal Render Pipeline/Particles/Lit");
+            // The spray needs a conventional particle shader that multiplies the
+            // procedural soft-circle alpha. The licensed water Shader Graph is designed
+            // for its own flipbook and renders these runtime billboards as hard squares.
+            Shader shader = Shader.Find("Universal Render Pipeline/Particles/Unlit");
             if (shader == null)
                 shader = Shader.Find("Particles/Standard Unlit");
             if (shader == null)
@@ -85,8 +74,7 @@ namespace BudgetGameDev.Games.Brocoli
             _sprayCoreMaterial = new Material(shader);
             _sprayCoreMaterial.name = "SprayCoreMaterial";
 
-            // Configure for additive blending with transparency
-            ConfigureParticleBlending(_sprayCoreMaterial, BlendMode.Additive);
+            ConfigureParticleBlending(_sprayCoreMaterial, BlendMode.SoftAdditive);
 
             // Set base color - bright white-blue core
             Color coreColor = new Color(0.9f, 0.95f, 1f, 0.7f);
@@ -119,7 +107,7 @@ namespace BudgetGameDev.Games.Brocoli
             ConfigureParticleBlending(_sprayMistMaterial, BlendMode.SoftAdditive);
 
             // Softer, more transparent mist
-            Color mistColor = new Color(0.8f, 0.9f, 1f, 0.3f);
+            Color mistColor = new Color(0.8f, 0.9f, 1f, 0.5f);
             SetMaterialColor(_sprayMistMaterial, mistColor);
 
             EnableSoftParticles(_sprayMistMaterial, 1f);

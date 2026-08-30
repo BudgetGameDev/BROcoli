@@ -85,7 +85,7 @@ namespace BudgetGameDev.Games.Brocoli.Tests
             );
             GameObject second = DungeonPropFixtures.NovelProp(
                 room.transform,
-                new Vector3(0.6f, 1.2f, 0.6f),
+                new Vector3(0.6f, 1.8f, 0.6f),
                 new Vector3(-3f, 0f, 0f)
             );
 
@@ -103,13 +103,13 @@ namespace BudgetGameDev.Games.Brocoli.Tests
         }
 
         /// <summary>
-        /// An unknown prop gives way the same way a wall does: measured off itself,
-        /// keeping its base and losing its top. This is the behaviour the request
-        /// was about, checked on geometry the code has no knowledge of.
+        /// An eligible tall prop gives way the same way a wall does: measured off
+        /// itself, keeping its base and losing its top. Low-profile props are covered
+        /// separately because they deliberately never enter this fade path.
         /// </summary>
         [Test]
         public void AnUnknownPropKeepsItsBaseAndLosesItsTop(
-            [Values(0.9f, 1.75f, 2.6f, 4.2f)] float height
+            [Values(1.75f, 2.6f, 4.2f)] float height
         )
         {
             GameObject prop = DungeonPropFixtures.NovelProp(
@@ -149,13 +149,12 @@ namespace BudgetGameDev.Games.Brocoli.Tests
         }
 
         /// <summary>
-        /// Everything a room builds - walls, arches, props, loot - has to be
-        /// something the camera can lower and something that keeps its base.
-        /// The pieces are found by looking for solid geometry, so this covers
-        /// whatever the generator produced rather than a list written by hand.
+        /// Everything tall enough to hide a character has to be something the
+        /// camera can lower and something that keeps its base. Low-profile props
+        /// deliberately stay visible and are excluded from automatic adoption.
         /// </summary>
         [Test]
-        public void EverySolidPieceARoomBuildsCanBeLoweredAndKeepsItsBase()
+        public void EveryEligibleSolidPieceARoomBuildsCanBeLoweredAndKeepsItsBase()
         {
             var host = new GameObject("BuilderHost");
             try
@@ -182,6 +181,16 @@ namespace BudgetGameDev.Games.Brocoli.Tests
                 foreach (Renderer piece in pieces)
                 {
                     DungeonOccluder occluder = DungeonOccluder.Owning(piece);
+                    if (occluder == null)
+                    {
+                        Assert.That(
+                            piece.bounds.size.y,
+                            Is.LessThan(DungeonOccluder.MinimumAutomaticFadeHeight),
+                            $"'{Path(piece.transform)}' is tall enough to hide the player but "
+                                + "was excluded from the camera visibility system"
+                        );
+                        continue;
+                    }
                     Assert.That(
                         occluder,
                         Is.Not.Null,

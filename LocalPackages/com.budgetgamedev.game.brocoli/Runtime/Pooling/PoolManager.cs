@@ -32,7 +32,7 @@ namespace BudgetGameDev.Games.Brocoli
         private const int ProjectileCount = 50;
         private const int ExpGainCount = 100;
 
-        // Enemy pools keyed by prefab instance ID
+        // Enemy pools keyed by stable prefab type ID so split children reuse their root's pool.
         private Dictionary<int, ObjectPool<EnemyBase>> _enemyPools =
             new Dictionary<int, ObjectPool<EnemyBase>>();
 
@@ -174,7 +174,7 @@ namespace BudgetGameDev.Games.Brocoli
 
         private ObjectPool<EnemyBase> GetOrCreateEnemyPool(EnemyBase prefab)
         {
-            int id = prefab.gameObject.GetInstanceID();
+            int id = GetPrefabId(prefab);
             if (!_enemyPools.TryGetValue(id, out var pool))
             {
                 pool = new ObjectPool<EnemyBase>(

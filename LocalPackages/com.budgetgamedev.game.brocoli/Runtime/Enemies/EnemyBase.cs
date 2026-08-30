@@ -5,7 +5,7 @@ using UnityEngine;
 
 namespace BudgetGameDev.Games.Brocoli
 {
-    public abstract class EnemyBase : MonoBehaviour
+    public abstract partial class EnemyBase : MonoBehaviour
     {
         private const float MaxSafeSeparationRadius = 1.15f;
         private const float MaxSafeSeparationForce = 8f;
@@ -784,32 +784,6 @@ namespace BudgetGameDev.Games.Brocoli
             else
             {
                 Destroy(gameObject);
-            }
-        }
-
-        /// <summary>Spawns an experience orb at the death position.</summary>
-        protected virtual void SpawnExpGain()
-        {
-            if (expGainPrefab == null)
-                return;
-
-            ExpGain expGain = PoolManager.Instance?.GetExpGain(transform.position);
-            if (expGain != null)
-            {
-                expGain.Init(ScoreValue);
-            }
-            else
-            {
-                GameObject expGainObj = Instantiate(
-                    expGainPrefab.gameObject,
-                    transform.position,
-                    Quaternion.identity
-                );
-                ExpGain expGainComp = expGainObj.GetComponent<ExpGain>();
-                if (expGainComp != null)
-                {
-                    expGainComp.Init(ScoreValue);
-                }
             }
         }
 

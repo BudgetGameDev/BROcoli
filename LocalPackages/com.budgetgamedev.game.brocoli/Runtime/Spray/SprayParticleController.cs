@@ -334,7 +334,7 @@ namespace BudgetGameDev.Games.Brocoli
             if (useLayeredParticles && particleLayers != null)
             {
                 int baseCount = (int)(
-                    SpraySettings.EmissionRate * SpraySettings.BurstDuration * 1.5f
+                    SpraySettings.VisualEmissionRate * SpraySettings.BurstDuration * 1.5f
                 );
                 particleLayers.PlayBurst(baseCount);
             }
@@ -364,7 +364,9 @@ namespace BudgetGameDev.Games.Brocoli
             // Layered system uses burst mode
             if (useLayeredParticles && particleLayers != null)
             {
-                int baseCount = (int)(SpraySettings.EmissionRate * SpraySettings.BurstDuration);
+                int baseCount = (int)(
+                    SpraySettings.VisualEmissionRate * SpraySettings.BurstDuration
+                );
                 particleLayers.PlayBurst(baseCount);
             }
             sprayParticles?.Play();

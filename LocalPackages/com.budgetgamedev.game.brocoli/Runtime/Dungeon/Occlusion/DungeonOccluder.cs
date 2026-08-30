@@ -17,7 +17,7 @@ namespace BudgetGameDev.Games.Brocoli
     /// an occluder is never enters the decision; only what it measures does.
     /// </summary>
     [DisallowMultipleComponent]
-    public class DungeonOccluder : MonoBehaviour
+    public partial class DungeonOccluder : MonoBehaviour
     {
         private static readonly Dictionary<int, DungeonOccluder> Registry = new();
 
@@ -62,51 +62,6 @@ namespace BudgetGameDev.Games.Brocoli
 
             Registry.Remove(groupId);
             return null;
-        }
-
-        /// <summary>
-        /// The occluder a physics hit belongs to, adopting geometry that has never
-        /// been asked about before.
-        ///
-        /// This is what keeps the system open to props that did not exist when it
-        /// was written: anything the camera can see and physics can hit becomes an
-        /// occluder on the spot, and whether it actually lowers is then decided by
-        /// how much of a character it covers rather than by what it is. Adopting a
-        /// piece costs one component, once, for the life of the object.
-        /// </summary>
-        public static DungeonOccluder Owning(Component candidate)
-        {
-            if (candidate == null)
-                return null;
-
-            DungeonOccluder owner = candidate.GetComponentInParent<DungeonOccluder>();
-            if (owner != null)
-            {
-                if (owner.IsExcluded(candidate.transform))
-                    return null;
-                owner.Register();
-                return owner;
-            }
-
-            Transform root = RootOf(candidate.transform);
-            DungeonOccluder adopted =
-                root.GetComponent<DungeonOccluder>()
-                ?? root.gameObject.AddComponent<DungeonOccluder>();
-            adopted.Register();
-            return adopted;
-        }
-
-        /// <summary>
-        /// How much of the hierarchy around a hit counts as one object. The climb
-        /// stops below the transform holding a room's contents, so a prop is the
-        /// prefab it was instantiated from and never the whole room it stands in.
-        /// </summary>
-        private static Transform RootOf(Transform candidate)
-        {
-            Transform root = candidate;
-            while (root.parent != null && root.parent.GetComponent<DungeonContentRoot>() == null)
-                root = root.parent;
-            return root;
         }
 
         /// <summary>

@@ -1,6 +1,4 @@
-using System;
 using UnityEngine;
-using Random = UnityEngine.Random;
 
 namespace BudgetGameDev.Games.Brocoli
 {
@@ -14,33 +12,6 @@ namespace BudgetGameDev.Games.Brocoli
     {
         private const float MaxAttackLungeDistance = 0.42f;
         private const float MaxAttackPullBackDistance = 0.22f;
-
-        [Header("Hydra Split Settings")]
-        [SerializeField]
-        private int currentGeneration = 0; // 0 = original, increases with each split
-
-        [SerializeField]
-        private int maxGenerations = 2; // Max splits (0->1->2, then dies for real)
-
-        [SerializeField]
-        private float childScaleMultiplier = 0.7f; // Each generation is 70% the size
-
-        [SerializeField]
-        private float childHealthMultiplier = 0.5f; // Each generation has 50% health
-
-        [SerializeField]
-        private float childDamageMultiplier = 0.7f; // Each generation does 70% damage
-
-        [SerializeField]
-        private float childSpeedMultiplier = 1.1f; // Each generation is 10% faster
-
-        [SerializeField]
-        private float splitSpawnRadius = 0.5f; // How far apart children spawn
-
-        [SerializeField]
-        private float splitImpulse = 3f;
-
-        public event Action<HydraEnemyScript> OnChildSpawned;
 
         [Header("Melee Attack")]
         [SerializeField]
@@ -88,12 +59,10 @@ namespace BudgetGameDev.Games.Brocoli
         [SerializeField]
         private ProceduralEnemyMeleeAudio meleeAudio;
 
-        private static bool isQuitting = false;
-        private bool hasSpawnedChildren = false;
-
         protected override void Awake()
         {
             base.Awake();
+            CaptureHydraSplitBaseline();
             walkAnimation = GetComponent<EnemyWalkAnimation>();
 
             if (meleeAudio == null)
@@ -221,157 +190,6 @@ namespace BudgetGameDev.Games.Brocoli
                 {
                     StartAttackAnimation();
                 }
-            }
-        }
-
-        /// <summary>
-        /// Initialize this hydra as a child of another hydra
-        /// </summary>
-        public void InitAsChild(
-            int generation,
-            float parentHealth,
-            float parentDamage,
-            float parentSpeed,
-            Vector3 parentScale
-        )
-        {
-            currentGeneration = generation;
-
-            // A pooled child must never retain listeners from a previous life.
-            OnChildSpawned = null;
-            hasSpawnedChildren = false;
-
-            MaxHealth = parentHealth * childHealthMultiplier;
-            Health = MaxHealth;
-            Damage = parentDamage * childDamageMultiplier;
-            Speed = parentSpeed * childSpeedMultiplier;
-
-            // Scale down visually
-            transform.localScale = parentScale * childScaleMultiplier;
-
-            // Reduce score value for smaller enemies
-            ScoreValue = Mathf.Max(10, ScoreValue / 2);
-
-            // Update melee range based on scale
-            meleeRange *= childScaleMultiplier;
-        }
-
-        /// <summary>
-        /// Override Die to spawn children before death.
-        /// </summary>
-        public override void Die()
-        {
-            if (isQuitting)
-                return;
-            if (!gameObject.scene.isLoaded)
-                return;
-
-            // Spawn children if we haven't reached max generations
-            if (!hasSpawnedChildren && currentGeneration < maxGenerations)
-            {
-                SpawnChildren();
-            }
-
-            // Call base Die (handles score, XP, and pooling/destroy)
-            base.Die();
-        }
-
-        void OnApplicationQuit()
-        {
-            isQuitting = true;
-        }
-
-        private void SpawnChildren()
-        {
-            hasSpawnedChildren = true;
-
-            const int childrenToSpawn = 2;
-            for (int i = 0; i < childrenToSpawn; i++)
-            {
-                // Calculate spawn position in a circle around death position
-                float angle = (360f / childrenToSpawn) * i + Random.Range(-15f, 15f);
-                Vector2 offset =
-                    new Vector2(Mathf.Cos(angle * Mathf.Deg2Rad), Mathf.Sin(angle * Mathf.Deg2Rad))
-                    * splitSpawnRadius;
-
-                Vector3 spawnPos = transform.position + offset.ToWorld();
-
-                // Try to get from pool first (use this as prefab template)
-                HydraEnemyScript childHydra = null;
-                EnemyBase pooledEnemy = PoolManager.Instance?.GetEnemy(
-                    this,
-                    spawnPos,
-                    Quaternion.identity
-                );
-
-                if (pooledEnemy != null)
-                {
-                    childHydra = pooledEnemy as HydraEnemyScript;
-                    if (childHydra != null)
-                    {
-                        childHydra.SetPooled(true);
-                    }
-                }
-
-                // Fallback to instantiate if pool not available
-                if (childHydra == null)
-                {
-                    GameObject child = Instantiate(gameObject, spawnPos, Quaternion.identity);
-                    childHydra = child.GetComponent<HydraEnemyScript>();
-                }
-
-                if (childHydra != null)
-                {
-                    childHydra.hasSpawnedChildren = false; // Reset so it can spawn its own children
-                    childHydra.InitAsChild(
-                        currentGeneration + 1,
-                        MaxHealth,
-                        Damage,
-                        Speed,
-                        transform.localScale
-                    );
-
-                    OnChildSpawned?.Invoke(childHydra);
-
-                    // Give child a small impulse away from spawn point
-                    if (childHydra.rb != null)
-                    {
-                        childHydra.rb.SetGroundVelocity(offset.normalized * splitImpulse);
-                    }
-                }
-            }
-        }
-
-        /// <summary>
-        /// Reset hydra-specific state for pool reuse.
-        /// </summary>
-        public override void ResetForPool()
-        {
-            base.ResetForPool();
-
-            hasSpawnedChildren = false;
-            OnChildSpawned = null;
-            currentGeneration = 0;
-            isAttacking = false;
-            hasDamagedThisAttack = false;
-            attackPhase = 0;
-            attackTimer = 0f;
-            nextMeleeAttackTime = 0f;
-            attackDirection = Vector2.zero;
-            activeAttackReach = 0f;
-            walkAnimation?.SetAttackOverride(false);
-
-            // Reset visual state
-            if (visualTransform != null)
-            {
-                // Don't reset localPosition - preserve prefab's Z offset for 3D models
-                visualTransform.localScale = baseLocalScale;
-            }
-
-            if (spriteRenderer != null)
-            {
-                spriteRenderer.enabled = true; // Ensure sprite is enabled
-                spriteRenderer.color = originalColor;
             }
         }
 

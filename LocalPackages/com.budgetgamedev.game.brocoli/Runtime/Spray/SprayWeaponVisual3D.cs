@@ -67,11 +67,16 @@ namespace BudgetGameDev.Games.Brocoli
         /// </summary>
         public void SetPresentation(float tiltDegrees)
         {
+            SetPresentation(new Vector3(0f, 0f, tiltDegrees));
+        }
+
+        public void SetPresentation(Vector3 localEulerAngles)
+        {
             if (modelRoot == null)
                 return;
 
             modelRoot.localScale = Vector3.one * PresentationScale;
-            modelRoot.localRotation = ModelFrame * Quaternion.Euler(0f, 0f, tiltDegrees);
+            modelRoot.localRotation = ModelFrame * Quaternion.Euler(localEulerAngles);
         }
 
         private void Initialize()

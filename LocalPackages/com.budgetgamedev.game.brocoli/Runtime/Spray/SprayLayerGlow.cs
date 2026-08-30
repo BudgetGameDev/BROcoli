@@ -19,21 +19,21 @@ namespace BudgetGameDev.Games.Brocoli
                 lifetimeMax: 0.35f,
                 speedMultMin: 0.95f,
                 speedMultMax: 1.05f,
-                sizeMin: 0.025f,
-                sizeMax: 0.06f,
+                sizeMin: 0.015f,
+                sizeMax: 0.035f,
                 color: new Color(1f, 1f, 1f, 0.85f),
                 maxParticles: 60,
                 gravity: 0.01f
             );
 
             SprayLayerFactory.SetupEmission(ps);
-            SprayLayerFactory.SetupConeShape(ps, angle: 0.3f, radius: 0.003f); // Very tight beam
+            SprayLayerFactory.SetupConeShape(ps, angle: 0.3f, radius: 0f);
 
             // Size - consistent at start, shrink after spread
             SprayLayerFactory.SetupSizeOverLifetime(
                 ps,
-                (0f, 0.8f),
-                (0.33f, 1f),
+                (0f, 0.15f),
+                (0.08f, 0.8f),
                 (0.55f, 0.7f),
                 (1f, 0.1f)
             );
@@ -56,7 +56,6 @@ namespace BudgetGameDev.Games.Brocoli
                 }
             );
 
-            SprayLayerFactory.SetupDelayedSpread(ps, maxSpreadVelocity: 1.2f); // Subtle spread
             SprayLayerFactory.SetupBillboardRenderer(
                 ps,
                 texture,

@@ -3,7 +3,7 @@ using UnityEngine;
 namespace BudgetGameDev.Games.Brocoli
 {
     /// <summary>
-    /// Creates the scattered droplet layer - small fast individual droplets.
+    /// Creates sparse droplets around the continuous core plume.
     /// </summary>
     public static class SprayLayerDroplet
     {
@@ -19,15 +19,15 @@ namespace BudgetGameDev.Games.Brocoli
                 lifetimeMax: 0.45f,
                 speedMultMin: 0.95f,
                 speedMultMax: 1.1f,
-                sizeMin: 0.015f,
-                sizeMax: 0.04f,
-                color: new Color(1f, 1f, 1f, 0.9f),
+                sizeMin: 0.006f,
+                sizeMax: 0.016f,
+                color: new Color(1f, 1f, 1f, 0.75f),
                 maxParticles: 200,
                 gravity: 0.04f
             );
 
             SprayLayerFactory.SetupEmission(ps);
-            SprayLayerFactory.SetupConeShape(ps, angle: 0.5f, radius: 0.005f); // Nearly straight line
+            SprayLayerFactory.SetupConeShape(ps, angle: 0.5f, radius: 0f);
 
             // Color - bright droplets that fade as they scatter
             SprayLayerFactory.SetupColorOverLifetime(
@@ -48,7 +48,6 @@ namespace BudgetGameDev.Games.Brocoli
             );
 
             SprayLayerFactory.SetupNoise(ps, strength: 0.18f, frequency: 4f);
-            SprayLayerFactory.SetupDelayedSpread(ps, maxSpreadVelocity: 2.2f); // Scatter after 33%
             SprayLayerFactory.SetupBillboardRenderer(
                 ps,
                 texture,

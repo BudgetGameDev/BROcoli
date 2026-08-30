@@ -25,8 +25,13 @@ namespace BudgetGameDev.Games.Brocoli
                     mat.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.One);
                     break;
                 case BlendMode.SoftAdditive:
-                    mat.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusDstColor);
-                    mat.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.One);
+                    // Preserve the texture alpha mask. OneMinusDstColor ignores source
+                    // alpha and turns every billboard quad into a visible square.
+                    mat.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
+                    mat.SetInt(
+                        "_DstBlend",
+                        (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha
+                    );
                     break;
                 case BlendMode.Multiply:
                     mat.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.DstColor);
@@ -35,6 +40,10 @@ namespace BudgetGameDev.Games.Brocoli
             }
 
             mat.SetInt("_ZWrite", 0);
+            if (mat.HasProperty("_Surface"))
+                mat.SetFloat("_Surface", 1f);
+            mat.SetOverrideTag("RenderType", "Transparent");
+            mat.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
             mat.renderQueue = 3000; // Transparent queue
         }
 

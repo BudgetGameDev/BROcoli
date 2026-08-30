@@ -14,7 +14,7 @@
 322	LocalPackages/com.budgetgamedev.game.brocoli/Runtime/Core/GamePreloader.cs
 1005	LocalPackages/com.budgetgamedev.game.brocoli/Runtime/Enemies/EnemyBase.cs
 486	LocalPackages/com.budgetgamedev.game.brocoli/Runtime/Enemies/EnemyScript.cs
-593	LocalPackages/com.budgetgamedev.game.brocoli/Runtime/Enemies/HydraEnemyScript.cs
+411	LocalPackages/com.budgetgamedev.game.brocoli/Runtime/Enemies/HydraEnemyScript.cs
 439	LocalPackages/com.budgetgamedev.game.brocoli/Runtime/Pickups/PickupVisual3D.cs
 537	LocalPackages/com.budgetgamedev.game.brocoli/Runtime/Player/PlayerStats.cs
 428	LocalPackages/com.budgetgamedev.game.brocoli/Runtime/Pooling/PoolManager.cs

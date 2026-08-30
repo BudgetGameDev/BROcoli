@@ -7,13 +7,15 @@ namespace BudgetGameDev.Games.Brocoli
         /// <summary>
         /// Create a procedural soft circle texture for particles
         /// </summary>
-        public static Texture2D CreateSoftCircleTexture(int size = 64)
+        public static Texture2D CreateSoftCircleTexture(int size = 96)
         {
             Texture2D tex = new Texture2D(size, size, TextureFormat.RGBA32, false);
             tex.filterMode = FilterMode.Bilinear;
             tex.wrapMode = TextureWrapMode.Clamp;
+            tex.name = "Sanitizer Spray Soft Particle";
+            tex.hideFlags = HideFlags.HideAndDontSave;
 
-            float center = size * 0.5f;
+            float center = (size - 1) * 0.5f;
             float maxDist = center;
 
             Color[] pixels = new Color[size * size];
@@ -46,13 +48,15 @@ namespace BudgetGameDev.Games.Brocoli
         /// <summary>
         /// Create a droplet texture with highlight for refraction look
         /// </summary>
-        public static Texture2D CreateDropletTexture(int size = 32)
+        public static Texture2D CreateDropletTexture(int size = 64)
         {
             Texture2D tex = new Texture2D(size, size, TextureFormat.RGBA32, false);
             tex.filterMode = FilterMode.Bilinear;
             tex.wrapMode = TextureWrapMode.Clamp;
+            tex.name = "Sanitizer Spray Droplet";
+            tex.hideFlags = HideFlags.HideAndDontSave;
 
-            float center = size * 0.5f;
+            float center = (size - 1) * 0.5f;
             float maxDist = center * 0.9f;
 
             // Offset for highlight

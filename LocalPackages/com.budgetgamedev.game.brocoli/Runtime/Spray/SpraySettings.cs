@@ -33,9 +33,15 @@ namespace BudgetGameDev.Games.Brocoli
         public static readonly bool ShowHandAlways = true;
         public const float HandHoverAmplitude = 0.035f;
         public const float HandHoverSpeed = 3.2f;
-        public const float HandWalkWobbleDegrees = 3.5f;
-        public const float HandWalkBobDistance = 0.018f;
+        public const float HandWalkWobbleDegrees = 4.5f;
+        public const float HandWalkPitchDegrees = 1.8f;
+        public const float HandWalkYawDegrees = 1.2f;
+        public const float HandWalkBobDistance = 0.045f;
+        public const float HandWalkSwayDistance = 0.022f;
+        public const float HandWalkForwardBobDistance = 0.012f;
         public const float HandWalkWobbleSpeed = 7.5f;
+        public const float HandWalkBlendInSpeed = 7f;
+        public const float HandWalkBlendOutSpeed = 9f;
         public const float HandSprayPushDistance = 0.11f;
         public const float HandSprayPushInTime = 0.055f;
         public const float HandSprayReturnTime = 0.22f;
@@ -45,9 +51,12 @@ namespace BudgetGameDev.Games.Brocoli
         // ==================== Particle Settings ====================
         public const float ParticleSpeedMultiplier = 2.5f;
         public const float ParticleLifetimeBase = 0.5f; // Shorter lifetime for fizzle effect
-        public const int EmissionRate = 25; // Fewer particles
+        // Core particles participate in collision damage, so keep their gameplay rate
+        // independent from the much denser supporting visual layers.
+        public const int EmissionRate = 40;
+        public const int VisualEmissionRate = 520;
         public const float NozzleOffset = 0.7f;
-        public const int MaxParticles = 150; // Reduced max particles
+        public const int MaxParticles = 150;
         public const float ParticleMinSize = 0.02f; // Thin stripes
         public const float ParticleMaxSize = 0.06f; // Thin stripes
 

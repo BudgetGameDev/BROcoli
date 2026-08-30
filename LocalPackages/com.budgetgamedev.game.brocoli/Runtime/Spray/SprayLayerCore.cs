@@ -19,22 +19,24 @@ namespace BudgetGameDev.Games.Brocoli
                 lifetimeMax: 0.5f,
                 speedMultMin: 0.9f,
                 speedMultMax: 1.1f,
-                sizeMin: 0.02f,
-                sizeMax: 0.05f,
-                color: new Color(1f, 1f, 1f, 0.95f),
+                sizeMin: 0.035f,
+                sizeMax: 0.075f,
+                color: new Color(0.9f, 0.96f, 1f, 0.75f),
                 maxParticles: 400,
                 gravity: 0.02f
             );
 
             SprayLayerFactory.SetupEmission(ps);
-            SprayLayerFactory.SetupConeShape(ps, angle: 0.5f, radius: 0.005f); // Nearly straight line
+            // Start at the nozzle itself. Runtime stat tuning supplies the cone angle
+            // before emission so the plume fans out immediately instead of forming a barrel.
+            SprayLayerFactory.SetupConeShape(ps, angle: 0.5f, radius: 0f);
 
-            // Size - consistent at start, then shrink as it fizzles
+            // Bloom just beyond the nozzle, then shrink as the plume dissipates.
             SprayLayerFactory.SetupSizeOverLifetime(
                 ps,
-                (0f, 0.7f),
-                (0.33f, 0.9f),
-                (0.5f, 1f),
+                (0f, 0.2f),
+                (0.08f, 0.75f),
+                (0.45f, 1f),
                 (0.8f, 0.6f),
                 (1f, 0.15f)
             );
@@ -51,22 +53,20 @@ namespace BudgetGameDev.Games.Brocoli
                 },
                 new GradientAlphaKey[]
                 {
-                    new GradientAlphaKey(1f, 0f),
-                    new GradientAlphaKey(0.95f, 0.33f),
-                    new GradientAlphaKey(0.5f, 0.65f),
+                    new GradientAlphaKey(0.75f, 0f),
+                    new GradientAlphaKey(0.7f, 0.33f),
+                    new GradientAlphaKey(0.4f, 0.65f),
                     new GradientAlphaKey(0f, 1f),
                 }
             );
 
             SprayLayerFactory.SetupNoise(ps, strength: 0.08f, frequency: 3f, scrollSpeed: 0.3f);
-            SprayLayerFactory.SetupDelayedSpread(ps, maxSpreadVelocity: 2.5f); // Strong fan out after 33%
             SprayLayerFactory.SetupBillboardRenderer(
                 ps,
                 texture,
                 SprayMaterialCreator.GetSprayCoreMaterial(),
                 0
             );
-
             // Enable collision for particle-based hit detection
             SprayLayerFactory.SetupCollision(ps, sendCollisionMessages: true);
 

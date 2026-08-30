@@ -50,7 +50,7 @@ namespace BudgetGameDev.Games.Brocoli
         private bool logPreloadSteps = false;
 
         private const string EnemyPrefabPath = "Brocoli/CursedDevolpmentStudioAss Assets/Waves";
-        private const string BoostPrefabPath = "CursedDevolpmentStudioAss Assets";
+        private const string BoostPrefabPath = "Brocoli/CursedDevolpmentStudioAss Assets";
 
         private static bool _hasPreloaded = false;
         private List<GameObject> _warmupInstances = new List<GameObject>();

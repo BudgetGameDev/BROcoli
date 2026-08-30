@@ -169,7 +169,53 @@ namespace BudgetGameDev.Games.Brocoli
             renderer.renderMode = ParticleSystemRenderMode.Billboard;
             renderer.sortingOrder = SpraySettings.ParticleSortingOrder + sortingOrderOffset;
             mat.mainTexture = texture;
+            // Shader Graph materials do not necessarily mark their particle texture as
+            // MainTexture. Populate the common property names explicitly so the soft
+            // circular mask is used instead of an opaque square from the source material.
+            if (mat.HasProperty("_MainTex"))
+                mat.SetTexture("_MainTex", texture);
+            if (mat.HasProperty("_BaseMap"))
+                mat.SetTexture("_BaseMap", texture);
+            if (mat.HasProperty("_Main_Tex"))
+                mat.SetTexture("_Main_Tex", texture);
             renderer.material = mat;
+        }
+
+        /// <summary>
+        /// Stretches fast droplets along their velocity so the spray reads as flowing
+        /// liquid instead of a collection of disconnected circular billboards.
+        /// </summary>
+        public static void SetupStretchedRenderer(
+            ParticleSystem ps,
+            float lengthScale,
+            float velocityScale
+        )
+        {
+            var renderer = ps.GetComponent<ParticleSystemRenderer>();
+            renderer.renderMode = ParticleSystemRenderMode.Stretch;
+            renderer.lengthScale = lengthScale;
+            renderer.velocityScale = velocityScale;
+            renderer.cameraVelocityScale = 0f;
+        }
+
+        public static void SetupTrails(
+            ParticleSystem ps,
+            Material material,
+            float ratio,
+            float lifetime
+        )
+        {
+            var trails = ps.trails;
+            trails.enabled = true;
+            trails.mode = ParticleSystemTrailMode.PerParticle;
+            trails.ratio = ratio;
+            trails.lifetime = lifetime;
+            trails.dieWithParticles = true;
+            trails.sizeAffectsWidth = true;
+            trails.inheritParticleColor = true;
+
+            var renderer = ps.GetComponent<ParticleSystemRenderer>();
+            renderer.trailMaterial = material;
         }
 
         /// <summary>
@@ -203,14 +249,16 @@ namespace BudgetGameDev.Games.Brocoli
             collision.mode = ParticleSystemCollisionMode.Collision3D;
             collision.sendCollisionMessages = sendCollisionMessages;
             collision.collidesWith = LayerMask.GetMask("Enemy", "Wall");
-            collision.maxCollisionShapes = 20;
-            collision.quality = sendCollisionMessages
-                ? ParticleSystemCollisionQuality.High
-                : ParticleSystemCollisionQuality.Medium;
-            collision.radiusScale = 1.5f; // Slightly larger collision radius for better hit detection
+            collision.maxCollisionShapes = 64;
+            collision.quality = ParticleSystemCollisionQuality.High;
+            collision.enableDynamicColliders = true;
+            collision.radiusScale = 1.35f;
             collision.dampen = 0f;
             collision.bounce = 0f;
-            collision.lifetimeLoss = 1f;
+            // Core particles are consumed explicitly by their collision handler so the
+            // exact particle can also create contact feedback. Supporting layers can die
+            // directly in the collision module because they do not send messages.
+            collision.lifetimeLoss = sendCollisionMessages ? 0f : 1f;
         }
     }
 }

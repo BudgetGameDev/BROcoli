@@ -11,7 +11,11 @@ namespace BudgetGameDev.Games.Brocoli
     public class SprayParticleCollisionHandler : MonoBehaviour
     {
         private ParticleSystem sprayParticles;
-        private List<ParticleCollisionEvent> collisionEvents = new List<ParticleCollisionEvent>();
+        private readonly List<ParticleCollisionEvent> collisionEvents =
+            new List<ParticleCollisionEvent>();
+        private readonly List<Vector3> collisionPoints = new List<Vector3>();
+        private ParticleSystem.Particle[] liveParticles;
+        private SprayHitSplash hitSplash;
 
         // Damage settings
         private float damagePerParticle = 0.5f;
@@ -43,6 +47,10 @@ namespace BudgetGameDev.Games.Brocoli
             if (sprayParticles != null)
             {
                 ConfigureCollision();
+                liveParticles = new ParticleSystem.Particle[
+                    Mathf.Max(1, sprayParticles.main.maxParticles)
+                ];
+                hitSplash = new SprayHitSplash(transform);
             }
         }
 
@@ -57,12 +65,15 @@ namespace BudgetGameDev.Games.Brocoli
             collision.mode = ParticleSystemCollisionMode.Collision3D;
             collision.sendCollisionMessages = true;
             collision.collidesWith = LayerMask.GetMask("Enemy", "Wall");
-            collision.maxCollisionShapes = 10;
-            collision.quality = ParticleSystemCollisionQuality.Medium;
-            collision.radiusScale = 1f;
+            collision.maxCollisionShapes = 64;
+            collision.quality = ParticleSystemCollisionQuality.High;
+            collision.enableDynamicColliders = true;
+            collision.radiusScale = 1.35f;
             collision.dampen = 0f;
             collision.bounce = 0f;
-            collision.lifetimeLoss = 1f; // Particle dies on enemy or wall impact
+            // The callback removes the exact colliding core particles. Leaving lifetime
+            // loss at zero keeps them available long enough to identify and remove.
+            collision.lifetimeLoss = 0f;
         }
 
         /// <summary>
@@ -94,9 +105,18 @@ namespace BudgetGameDev.Games.Brocoli
 
             // Get collision events
             int numEvents = sprayParticles.GetCollisionEvents(other, collisionEvents);
+            if (numEvents <= 0)
+                return;
+
+            collisionPoints.Clear();
+            for (int i = 0; i < numEvents; i++)
+                collisionPoints.Add(collisionEvents[i].intersection);
+
+            ConsumeParticlesNear(collisionPoints);
+            hitSplash?.Emit(collisionEvents, numEvents);
 
             // Check if it's an enemy
-            EnemyBase enemy = other.GetComponent<EnemyBase>();
+            EnemyBase enemy = other.GetComponentInParent<EnemyBase>();
             if (enemy == null)
                 return;
 
@@ -150,6 +170,70 @@ namespace BudgetGameDev.Games.Brocoli
             {
                 coneKnockbackResolved.Add(enemy);
             }
+        }
+
+        /// <summary>
+        /// Removes one live source particle for each world-space contact point. Particle
+        /// collision callbacks do not expose particle indices, so the closest particle
+        /// at each collision point is the exact, stable mapping Unity makes available.
+        /// </summary>
+        public int ConsumeParticlesNear(IReadOnlyList<Vector3> worldContactPoints)
+        {
+            if (sprayParticles == null)
+                sprayParticles = GetComponent<ParticleSystem>();
+            if (sprayParticles == null || worldContactPoints == null)
+                return 0;
+
+            int requiredCapacity = Mathf.Max(1, sprayParticles.main.maxParticles);
+            if (liveParticles == null || liveParticles.Length < requiredCapacity)
+                liveParticles = new ParticleSystem.Particle[requiredCapacity];
+
+            int liveCount = sprayParticles.GetParticles(liveParticles);
+            int removed = 0;
+            for (int contactIndex = 0; contactIndex < worldContactPoints.Count; contactIndex++)
+            {
+                int nearestIndex = FindNearestParticle(worldContactPoints[contactIndex], liveCount);
+                if (nearestIndex < 0)
+                    continue;
+
+                liveCount--;
+                liveParticles[nearestIndex] = liveParticles[liveCount];
+                removed++;
+            }
+
+            if (removed > 0)
+                sprayParticles.SetParticles(liveParticles, liveCount);
+            return removed;
+        }
+
+        private int FindNearestParticle(Vector3 worldContactPoint, int liveCount)
+        {
+            int nearestIndex = -1;
+            float nearestDistance = float.PositiveInfinity;
+            ParticleSystem.MainModule main = sprayParticles.main;
+
+            for (int i = 0; i < liveCount; i++)
+            {
+                Vector3 worldPosition = liveParticles[i].position;
+                if (main.simulationSpace == ParticleSystemSimulationSpace.Local)
+                    worldPosition = sprayParticles.transform.TransformPoint(worldPosition);
+                else if (
+                    main.simulationSpace == ParticleSystemSimulationSpace.Custom
+                    && main.customSimulationSpace != null
+                )
+                {
+                    worldPosition = main.customSimulationSpace.TransformPoint(worldPosition);
+                }
+
+                float distance = (worldPosition - worldContactPoint).sqrMagnitude;
+                if (distance >= nearestDistance)
+                    continue;
+
+                nearestDistance = distance;
+                nearestIndex = i;
+            }
+
+            return nearestIndex;
         }
 
         /// <summary>
