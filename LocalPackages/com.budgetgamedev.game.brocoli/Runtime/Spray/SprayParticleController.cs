@@ -325,9 +325,7 @@ namespace BudgetGameDev.Games.Brocoli
             shape.position = nozzleOffset;
         }
 
-        /// <summary>
-        /// Play a spray burst with specified particle count
-        /// </summary>
+        /// <summary>Play a spray burst with specified particle count.</summary>
         public void PlayBurst()
         {
             // Play on layered system

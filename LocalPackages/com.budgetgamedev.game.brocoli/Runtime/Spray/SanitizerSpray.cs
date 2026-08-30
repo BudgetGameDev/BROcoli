@@ -295,9 +295,7 @@ namespace BudgetGameDev.Games.Brocoli
             return true;
         }
 
-        /// <summary>
-        /// Cancel a pending spray without firing.
-        /// </summary>
+        /// <summary>Cancel a pending spray without firing.</summary>
         private void CancelPendingSpray()
         {
             hasPendingSpray = false;
