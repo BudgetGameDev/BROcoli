@@ -34,12 +34,59 @@ namespace BudgetGameDev.Hub
             public Text Label;
         }
 
+        /// <summary>
+        /// Cleared at startup so a configured game boots once per run. Statics
+        /// survive "Enter Play Mode without domain reload".
+        /// </summary>
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetAutoBoot() => autoBootUsed = false;
+
+        private static bool autoBootUsed;
+
         private void Start()
         {
             GameCatalog.Invalidate();
+            if (TryBootConfiguredGame())
+                return;
+
             BuildInterface();
             Populate();
             RestoreSelection();
+        }
+
+        /// <summary>
+        /// Opens the configured startup scene, if there is a usable one, and only
+        /// the first time the launcher opens in this run.
+        /// </summary>
+        /// <remarks>
+        /// The once-per-run limit is what keeps the picker reachable: a player who
+        /// leaves a booted game through "all games" would otherwise be thrown
+        /// straight back into it and could never see the list.
+        /// </remarks>
+        private bool TryBootConfiguredGame()
+        {
+            if (autoBootUsed)
+                return false;
+
+            autoBootUsed = true;
+
+            LauncherStartup.Plan plan = LauncherStartup.Resolve(
+                LauncherConfig.Load().StartupScene,
+                GameCatalog.All,
+                LauncherStartup.IsSceneInBuild
+            );
+            if (plan.ShowsPicker)
+                return false;
+
+            if (plan.Game != null)
+                return GameSession.Launch(plan.Game, plan.SceneName);
+
+            // A configured scene that no registered game claims still opens; it
+            // just gets no per-game setup, because there is none to apply.
+            Debug.Log($"[Launcher] Opening configured startup scene '{plan.SceneName}'.");
+            Time.timeScale = 1f;
+            UnityEngine.SceneManagement.SceneManager.LoadScene(plan.SceneName);
+            return true;
         }
 
         private void Populate()

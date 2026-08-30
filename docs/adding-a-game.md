@@ -89,6 +89,14 @@ discovers at runtime. A direct reference would compile the game into the
 launcher, so removing that game from the manifest would stop the project
 building — which is exactly the coupling this layout exists to prevent.
 
+## Booting straight into a game
+
+`LauncherConfig.txt` at the project root, beside `.env`, can name a `startupScene`
+to open instead of the picker, once per run. Leave it commented out — the default — for the normal
+game list. An unknown scene name is reported and ignored, and a committed name
+that is not in the build fails the hub's test suite rather than surfacing as a
+runtime surprise. The file documents its own settings.
+
 ## Removing a game
 
 Delete its line from `manifest.json` (and `testables`). Its scenes leave Build

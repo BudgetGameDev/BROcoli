@@ -19,6 +19,14 @@ namespace BudgetGameDev.Hub
         /// <summary>The running game, or null while the launcher is in front.</summary>
         public static GameDefinition Active { get; private set; }
 
+        /// <summary>
+        /// Clears session state at startup. Statics survive "Enter Play Mode
+        /// without domain reload", so without this a second play session would
+        /// begin believing a game from the previous one is still running.
+        /// </summary>
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetSessionState() => Active = null;
+
         /// <summary>Id the launcher should preselect: whatever was played last.</summary>
         public static string LastPlayedId
         {
@@ -34,18 +42,37 @@ namespace BudgetGameDev.Hub
         /// Hands control to a game by loading its own main menu, after applying the
         /// per-game configuration that shared systems read.
         /// </summary>
-        public static bool Launch(GameDefinition game)
+        public static bool Launch(GameDefinition game) => Launch(game, null);
+
+        /// <summary>
+        /// Hands control to a game at one of its own scenes rather than its main
+        /// menu. A configured startup scene uses this, so a build that boots
+        /// straight into gameplay still gets the same per-game setup that picking
+        /// the game by hand would have applied.
+        /// </summary>
+        /// <param name="sceneName">Scene to open; null or empty means the main menu.</param>
+        public static bool Launch(GameDefinition game, string sceneName)
         {
-            if (game == null || !game.IsPlayable)
+            if (game == null)
             {
-                Debug.LogError($"[GameSession] '{game?.name ?? "null"}' has no main menu scene.");
+                Debug.LogError("[GameSession] Cannot launch a null game.");
                 return false;
             }
 
-            if (!Application.CanStreamedLevelBeLoaded(game.MainMenuSceneName))
+            string scene = string.IsNullOrWhiteSpace(sceneName)
+                ? game.MainMenuSceneName
+                : sceneName.Trim();
+
+            if (string.IsNullOrWhiteSpace(scene))
+            {
+                Debug.LogError($"[GameSession] '{game.name}' has no main menu scene.");
+                return false;
+            }
+
+            if (!LauncherStartup.IsSceneInBuild(scene))
             {
                 Debug.LogError(
-                    $"[GameSession] Scene '{game.MainMenuSceneName}' is not in the build. "
+                    $"[GameSession] Scene '{scene}' is not in the build. "
                         + "Run Budget GameDev > Sync Build Scenes."
                 );
                 return false;
@@ -55,7 +82,7 @@ namespace BudgetGameDev.Hub
             LastPlayedId = game.Id;
             GameAudioSettings.Configure(game.MixerResourcePath, game.MainMenuSceneName);
             Time.timeScale = 1f;
-            SceneManager.LoadScene(game.MainMenuSceneName);
+            SceneManager.LoadScene(scene);
             return true;
         }
 

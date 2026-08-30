@@ -79,6 +79,7 @@ UserSettings/Layouts/default-6000.dwlt
 # Each game package restores its own payloads, so the patterns are per-package.
 .env
 Assets/Generated/
+Assets/Generated.meta
 Assets/Resources/Generated/
 LocalPackages/*/Generated/
 LocalPackages/*/Generated.meta

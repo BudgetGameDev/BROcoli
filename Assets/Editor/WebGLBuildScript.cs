@@ -34,6 +34,12 @@ public static class WebGLBuildScript
         // BuildPlayer already captured these paths, which would be too late.
         BudgetGameDev.Hub.Editor.HubBuildScenes.Sync(false);
 
+        // Same reasoning for the launcher config: the player reads a generated
+        // copy of the root LauncherConfig.txt, and Unity does not watch files
+        // outside Assets/, so regenerate it here rather than trusting that some
+        // earlier editor event already did.
+        BudgetGameDev.Hub.Editor.LauncherConfigSync.Sync();
+
         string[] scenes = EditorBuildSettings
             .scenes.Where(scene => scene.enabled)
             .Select(scene => scene.path)

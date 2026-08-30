@@ -6,6 +6,7 @@
   <Project Path="Assembly-CSharp-Editor.csproj" />
   <Project Path="BudgetGameDev.Shared.Editor.csproj" />
   <Project Path="BudgetGameDev.Hub.Editor.csproj" />
+  <Project Path="BudgetGameDev.Hub.Tests.csproj" />
   <Project Path="BudgetGameDev.Games.Brocoli.Editor.csproj" />
   <Project Path="BudgetGameDev.Shared.Tests.csproj" />
 </Solution>
