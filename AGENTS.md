@@ -45,16 +45,38 @@ compatible asset can be acquired. If the user explicitly asks for a procedurally
 generated model, sound, or other asset, follow that request directly and skip the
 acquisition-first requirement for that asset.
 
+When searching for shaders, materials, VFX, particle effects, or other
+rendering-dependent assets from any source, explicitly check render-pipeline support.
+When suitable choices are otherwise comparable, prefer assets that support both URP
+and HDRP out of the box, while still verifying that they work with the project's current
+Unity version and active render pipeline. Treat dual URP/HDRP support as a strong
+preference rather than a reason to reject an otherwise suitable asset when no compatible
+dual-pipeline option is available.
+
+Only acquire assets that are available at no monetary cost and whose EULA, license,
+terms of use, and other applicable conditions are clear and compatible with the intended
+use and this repository's asset workflow. Never accept or use assets with unclear or
+incompatible terms, payments, subscriptions, paid dependencies or services, or other
+material commitments. Reject them and continue searching for a free, compatible
+alternative; do not ask the user to approve an exception.
+
+When a free, compatible acquisition, download, import, or service workflow requires
+accepting an EULA, license, terms of use, or similar agreement, accept it on the user's
+behalf without asking for confirmation. The presence of an acceptance checkbox or other
+legal-agreement step alone is not a reason to pause or ask the user.
+
 ### Unity Asset Store: search free assets first
 
 Before using the category-specific sources below, search the
 [Unity Asset Store](https://assetstore.unity.com/) and filter the results to assets that
 are free at the time of acquisition. Prefer it especially for Unity-native content such
-as URP-compatible shaders, water, fire, weather and particle effects, VFX, materials,
-rendering tools, editor extensions, controllers, frameworks, and other packages whose
-Unity integration would otherwise need to be recreated. Also consider it first for 2D
-and 3D art, animation, audio, UI, environments, and any other category where a suitable
-free Asset Store package may exist.
+as shaders, water, fire, weather and particle effects, VFX, materials, rendering tools,
+editor extensions, controllers, frameworks, and other packages whose Unity integration
+would otherwise need to be recreated. For shaders, VFX, materials, and rendering tools,
+actively look for packages that support both URP and HDRP and prefer them when possible,
+while requiring compatibility with the project's currently active pipeline. Also
+consider the Asset Store first for 2D and 3D art, animation, audio, UI, environments, and
+any other category where a suitable free package may exist.
 
 Make a reasonable search across relevant terms and categories, inspect promising
 candidates, and prefer assets that are maintained, documented, compatible with the
@@ -80,8 +102,8 @@ An Asset Store price of `Free` does not mean the asset is public domain or freel
 redistributable. Before downloading or importing an asset, inspect its exact store page
 and linked terms and verify all of the following:
 
-- Its current price is free; do not acquire a paid asset, subscription, or paid
-  dependency without explicit user approval.
+- Its current price is free; never acquire a paid asset, subscription, paid dependency,
+  or paid service.
 - Its license permits the game's intended commercial use, modification when needed,
   and embedding and distribution in the built game.
 - Whether it uses the Standard Unity Asset Store EULA, is a Restricted Asset, or has a
@@ -190,7 +212,7 @@ If a license permits use in the game but prohibits redistribution of the stand-a
 source model, use the repository's existing encrypted licensed-asset pipeline and key.
 Encryption does not make an otherwise prohibited use legal. If the license forbids the
 game's intended commercial use, modification, or embedding—or is unclear—do not use the
-model; find another model or ask the user.
+model; find another free, compatible model or use the allowed procedural fallback.
 
 Read `docs/licensed-assets.md` before importing, replacing, decrypting, or re-encrypting
 any licensed model. Never commit `.env` or anything under
