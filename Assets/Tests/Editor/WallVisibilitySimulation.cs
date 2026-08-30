@@ -135,7 +135,7 @@ internal static class WallVisibilitySimulation
             Vector3 player = path[index];
             OcclusionCameraModel model = camera.At(player);
             resolver.BeginFrame();
-            AddTargets(resolver, model, player, result.Enemies);
+            AddTargets(resolver, model, player, result.Enemies, world.Block.Layout);
             resolver.Resolve(model, world, time);
             result.Frames.Add(Record(world, resolver, model, index, time, player));
         }
@@ -146,7 +146,8 @@ internal static class WallVisibilitySimulation
         WallVisibilityResolver resolver,
         in OcclusionCameraModel camera,
         Vector3 player,
-        IReadOnlyList<Vector3> enemies
+        IReadOnlyList<Vector3> enemies,
+        DungeonLayout layout
     )
     {
         if (
@@ -164,7 +165,7 @@ internal static class WallVisibilitySimulation
         foreach (Vector3 enemy in enemies)
         {
             if (
-                EnemyRevealGate.IsRevealed(player, enemy)
+                EnemyRevealGate.IsRevealed(player, enemy, layout)
                 && OcclusionTarget.TryCreate(
                     camera,
                     OcclusionTargetKind.Enemy,

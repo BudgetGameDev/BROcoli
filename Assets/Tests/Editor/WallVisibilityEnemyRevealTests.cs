@@ -47,9 +47,9 @@ public sealed class WallVisibilityEnemyRevealTests
         for (int index = 0; index < alone.Frames.Count; index++)
         {
             Assert.That(
-                Vector3.Distance(alone.Frames[index].PlayerPosition, enemy),
-                Is.GreaterThan(EnemyRevealGate.DefaultApproachRadius),
-                "the fixture walk came within reach of the enemy, so it does not test the gate"
+                alone.Frames[index].PlayerRoom,
+                Is.Not.EqualTo(DungeonLayout.RoomAt(new Vector2(enemy.x, enemy.z))),
+                "the fixture walk entered the enemy's room, so it does not test the gate"
             );
             CollectionAssert.AreEqual(
                 alone.Frames[index].LoweredGroups,
@@ -128,9 +128,9 @@ public sealed class WallVisibilityEnemyRevealTests
         return -1;
     }
 
-    /// <summary>The gate itself: same room, or close enough to be a threat.</summary>
+    /// <summary>The gate opens only when both characters share a room.</summary>
     [Test]
-    public void TheRevealGateOpensOnlyForSharedRoomsOrCloseEnemies()
+    public void TheRevealGateNeverOpensAcrossARoomBoundary()
     {
         Vector2 center = DungeonLayout.RoomCenter(Vector2Int.zero);
         var player = new Vector3(center.x, 0f, center.y);
@@ -153,7 +153,8 @@ public sealed class WallVisibilityEnemyRevealTests
         );
         Assert.That(
             EnemyRevealGate.IsRevealed(player + new Vector3(0f, 0f, 6f), justOverTheBoundary),
-            "an enemy a step away through a doorway must still be visible"
+            Is.False,
+            "an enemy just across the wall lowered it before the player entered the room"
         );
     }
 }

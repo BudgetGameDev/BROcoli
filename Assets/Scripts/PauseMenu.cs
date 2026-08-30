@@ -423,6 +423,7 @@ public partial class PauseMenu : MonoBehaviour
         // Pause game
         Time.timeScale = 0f;
         isPaused = true;
+        GameAudioSettings.SetPauseMenuOpen(true);
 
         Debug.Log("[PauseMenu] Game PAUSED");
     }
@@ -474,6 +475,7 @@ public partial class PauseMenu : MonoBehaviour
         // Resume game
         Time.timeScale = 1f;
         isPaused = false;
+        GameAudioSettings.SetPauseMenuOpen(false);
 
         Debug.Log("[PauseMenu] Game RESUMED");
     }

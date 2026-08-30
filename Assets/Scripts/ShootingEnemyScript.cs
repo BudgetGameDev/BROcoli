@@ -22,6 +22,17 @@ public class ShootingEnemyScript : EnemyBase
     [SerializeField]
     private float projectileVisualHeight = 0.5f; // Y offset for visual height
 
+    [Header("Aim Assistance")]
+    [Tooltip(
+        "How strongly shots lead the player's current movement (0 = direct, 1 = full intercept)."
+    )]
+    [SerializeField, Range(0f, 1f)]
+    private float movementPrediction = 0.8f;
+
+    [Tooltip("Maximum seconds of movement a shot may predict, keeping long-range shots dodgeable.")]
+    [SerializeField, Min(0f)]
+    private float maxPredictionTime = 2f;
+
     [Header("Audio")]
     [SerializeField]
     private ProceduralEnemyGunAudio gunAudio;
@@ -119,29 +130,43 @@ public class ShootingEnemyScript : EnemyBase
         if (Time.time < nextShootTime)
             return;
 
-        // Calculate direction to player
+        // Establish the actual projectile origin first. Aiming from the enemy
+        // centre and then adding a side offset made every shot travel along a
+        // parallel line beside the player.
         Vector2 shooterPosition = shootPoint.position.ToGround();
         Vector2 playerPosition = player.position.ToGround();
+        Vector2 directDirection = playerPosition - shooterPosition;
+        if (directDirection.sqrMagnitude < 0.0001f)
+            return;
+        directDirection.Normalize();
+
+        Vector2 perpendicular = new Vector2(-directDirection.y, directDirection.x);
+        Vector2 spawnPos2D =
+            shooterPosition
+            + perpendicular * projectileSpawnSideOffset
+            + directDirection * projectileSpawnForwardOffset;
+
         if (
             !ProjectileWallCollision.HasClearLine(
-                shooterPosition.ToWorld(projectileVisualHeight),
+                spawnPos2D.ToWorld(projectileVisualHeight),
                 playerPosition.ToWorld(projectileVisualHeight)
             )
         )
             return;
 
         nextShootTime = Time.time + (1f / fireRate) / Mathf.Max(0.1f, EnemyTimeScale);
-        Vector2 direction = (playerPosition - shooterPosition).normalized;
 
-        // Calculate spawn position with offset (similar to player projectile spawning)
-        Vector2 spawnPos2D = shooterPosition;
-
-        // Offset to the side (perpendicular to firing direction)
-        Vector2 perpendicular = new Vector2(-direction.y, direction.x);
-        spawnPos2D += perpendicular * projectileSpawnSideOffset;
-
-        // Offset forward in the firing direction (away from body)
-        spawnPos2D += direction * projectileSpawnForwardOffset;
+        float projectileSpeed =
+            _cachedProjectilePrefab != null ? _cachedProjectilePrefab.speed : 0f;
+        Vector2 playerVelocity = GetPlayerGroundVelocity();
+        Vector2 direction = CalculateAimDirection(
+            spawnPos2D,
+            playerPosition,
+            playerVelocity,
+            projectileSpeed * Mathf.Max(0.1f, EnemyTimeScale),
+            movementPrediction,
+            maxPredictionTime
+        );
 
         // Lift the projectile off the ground for its visual height.
         Vector3 spawnPos = spawnPos2D.ToWorld(projectileVisualHeight);
@@ -174,5 +199,85 @@ public class ShootingEnemyScript : EnemyBase
         {
             gunAudio.PlayGunSound(gunSoundType);
         }
+    }
+
+    private Vector2 GetPlayerGroundVelocity()
+    {
+        Rigidbody playerBody = player.GetComponent<Rigidbody>();
+        if (playerBody != null)
+        {
+            Vector2 velocity = playerBody.GroundVelocity();
+            if (velocity.sqrMagnitude > 0.01f)
+                return velocity;
+        }
+
+        // MovePosition-driven bodies do not report a useful velocity on every
+        // physics configuration, so fall back to the player's current input.
+        PlayerController controller = player.GetComponent<PlayerController>();
+        PlayerStats stats = player.GetComponent<PlayerStats>();
+        if (controller == null || stats == null)
+            return Vector2.zero;
+
+        return Vector2.ClampMagnitude(controller.RawInput, 1f) * stats.CurrentMovementSpeed;
+    }
+
+    /// <summary>Returns a direct or movement-led firing direction.</summary>
+    public static Vector2 CalculateAimDirection(
+        Vector2 origin,
+        Vector2 targetPosition,
+        Vector2 targetVelocity,
+        float projectileSpeed,
+        float predictionStrength,
+        float maxLeadTime
+    )
+    {
+        Vector2 toTarget = targetPosition - origin;
+        if (toTarget.sqrMagnitude < 0.0001f)
+            return Vector2.zero;
+
+        float speed = Mathf.Max(0f, projectileSpeed);
+        float strength = Mathf.Clamp01(predictionStrength);
+        if (speed < 0.0001f || strength <= 0f || targetVelocity.sqrMagnitude < 0.0001f)
+            return toTarget.normalized;
+
+        Vector2 predictedVelocity = targetVelocity * strength;
+        float a = predictedVelocity.sqrMagnitude - speed * speed;
+        float b = 2f * Vector2.Dot(toTarget, predictedVelocity);
+        float c = toTarget.sqrMagnitude;
+        float interceptTime = -1f;
+
+        if (Mathf.Abs(a) < 0.0001f)
+        {
+            if (Mathf.Abs(b) > 0.0001f)
+            {
+                float linearTime = -c / b;
+                if (linearTime > 0f)
+                    interceptTime = linearTime;
+            }
+        }
+        else
+        {
+            float discriminant = b * b - 4f * a * c;
+            if (discriminant >= 0f)
+            {
+                float root = Mathf.Sqrt(discriminant);
+                float first = (-b - root) / (2f * a);
+                float second = (-b + root) / (2f * a);
+                if (first > 0f && second > 0f)
+                    interceptTime = Mathf.Min(first, second);
+                else
+                    interceptTime = Mathf.Max(first, second);
+            }
+        }
+
+        // No exact intercept exists (for example, a faster fleeing target).
+        // Leading by the direct travel time is still a better attempt than
+        // firing at a position the player has already left.
+        if (interceptTime <= 0f)
+            interceptTime = Mathf.Sqrt(c) / speed;
+
+        interceptTime = Mathf.Min(interceptTime, Mathf.Max(0f, maxLeadTime));
+        Vector2 aim = toTarget + predictedVelocity * interceptTime;
+        return aim.sqrMagnitude > 0.0001f ? aim.normalized : toTarget.normalized;
     }
 }

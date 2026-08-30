@@ -21,9 +21,12 @@ public sealed class GameAudioSettings : MonoBehaviour
     private const string MasterParameter = "MasterVolume";
     private const string AmbienceParameter = "AmbienceVolume";
     private const string SfxParameter = "SfxVolume";
+    private const string MainMenuSceneName = "MainMenuScene";
+    private const float MutedDecibels = -80f;
 
     private static GameAudioSettings instance;
     private static bool valuesLoaded;
+    private static bool pauseMenuOpen;
     private static float masterVolume;
     private static float ambienceVolume;
     private static float sfxVolume;
@@ -67,6 +70,7 @@ public sealed class GameAudioSettings : MonoBehaviour
     {
         instance = null;
         valuesLoaded = false;
+        pauseMenuOpen = false;
         ValuesChanged = null;
     }
 
@@ -123,8 +127,15 @@ public sealed class GameAudioSettings : MonoBehaviour
 
     private void HandleSceneLoaded(Scene scene, LoadSceneMode mode)
     {
+        pauseMenuOpen = false;
         ApplyMixerVolumes();
         RouteAllSources();
+    }
+
+    public static void SetPauseMenuOpen(bool isOpen)
+    {
+        pauseMenuOpen = isOpen;
+        instance?.ApplyMixerVolumes();
     }
 
     public static void SetMasterVolume(float value) =>
@@ -195,9 +206,15 @@ public sealed class GameAudioSettings : MonoBehaviour
             return;
 
         mixer.SetFloat(MasterParameter, LinearToDecibels(masterVolume));
-        mixer.SetFloat(AmbienceParameter, LinearToDecibels(ambienceVolume));
+        float ambienceDecibels = ShouldSuppressAmbience()
+            ? MutedDecibels
+            : LinearToDecibels(ambienceVolume);
+        mixer.SetFloat(AmbienceParameter, ambienceDecibels);
         mixer.SetFloat(SfxParameter, LinearToDecibels(sfxVolume));
     }
+
+    private static bool ShouldSuppressAmbience() =>
+        pauseMenuOpen || SceneManager.GetActiveScene().name == MainMenuSceneName;
 
     private void RouteAllSources()
     {

@@ -2,7 +2,7 @@ using UnityEngine;
 
 [RequireComponent(typeof(Rigidbody))]
 [RequireComponent(typeof(Collider))]
-public class EnemyScript : EnemyBase
+public partial class EnemyScript : EnemyBase
 {
     private const float MaxAttackLungeDistance = 0.42f;
     private const float MaxAttackPullBackDistance = 0.22f;
@@ -126,9 +126,10 @@ public class EnemyScript : EnemyBase
         if (player == null)
             return;
 
-        // Stop movement during attack animation - only visual transform moves, not the collider
-        // This prevents physics conflicts when lunge animation plays
-        if (isAttacking)
+        // Keep pursuing and aiming during the telegraphed windup. Once the
+        // strike releases, pin the body so the visual lunge cannot cause
+        // physics jitter or shove the player.
+        if (isAttacking && attackPhase >= 2)
         {
             // Update spatial hash but don't move or apply separation during attack
             EnemySpatialHash.Instance?.UpdatePosition(this);
@@ -200,7 +201,6 @@ public class EnemyScript : EnemyBase
         if (player == null)
             return;
 
-        LockBodyForAttack();
         walkAnimation?.SetAttackOverride(true);
 
         isAttacking = true;
@@ -208,34 +208,15 @@ public class EnemyScript : EnemyBase
         attackPhase = 1; // Start with windup
         attackTimer = 0f;
         nextMeleeAttackTime = Time.time + meleeAttackCooldown / Mathf.Max(0.1f, EnemyTimeScale);
-        // Calculate lunge direction toward player
-        attackDirection = (player.position.ToGround() - transform.position.ToGround()).normalized;
         activeAttackReach = GetAttackReach();
 
         if (visualTransform != null)
         {
             attackStartPos = visualTransform.localPosition;
             attackStartRotation = visualTransform.localRotation;
-
-            // attackDirection and attackLungeDistance are world-space values.
-            // Convert them through the renderer's parent before changing its
-            // localPosition; imported FBX scales otherwise magnify the lunge.
-            Vector3 worldLunge = (attackDirection * activeAttackReach).ToWorld();
-            Vector3 worldPullBack = (
-                -attackDirection
-                * Mathf.Clamp(attackPullBackDistance, 0f, MaxAttackPullBackDistance)
-            ).ToWorld();
-            Vector3 localLunge =
-                visualTransform.parent != null
-                    ? visualTransform.parent.InverseTransformVector(worldLunge)
-                    : worldLunge;
-            Vector3 localPullBack =
-                visualTransform.parent != null
-                    ? visualTransform.parent.InverseTransformVector(worldPullBack)
-                    : worldPullBack;
-            attackWindupPos = attackStartPos + localPullBack;
-            attackTargetPos = attackStartPos + localLunge;
         }
+
+        RefreshAttackAim();
     }
 
     private void UpdateAttackAnimation()
@@ -248,6 +229,7 @@ public class EnemyScript : EnemyBase
         switch (attackPhase)
         {
             case 1: // Windup - pull back slightly and prepare
+                RefreshAttackAim();
                 float windupT = attackTimer / attackWindupDuration;
                 if (windupT >= 1f)
                 {
@@ -257,6 +239,7 @@ public class EnemyScript : EnemyBase
                         visualTransform.localRotation = attackStartRotation;
                         visualTransform.localScale = baseLocalScale;
                     }
+                    LockBodyForAttack();
                     attackPhase = 2;
                     attackTimer = 0f;
                     // Damage is dealt during strike phase at 60% when lunge visually connects

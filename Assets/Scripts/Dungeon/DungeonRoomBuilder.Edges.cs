@@ -20,6 +20,7 @@ public partial class DungeonRoomBuilder
         root.transform.SetParent(parent, false);
 
         Transform wallRun = CreateOcclusionSection(root.transform, "Wall Run");
+        wallRun.GetComponent<DungeonOcclusionSection>().ConfigureEdge(edge);
         edgeWalls.Clear();
         DungeonRoomGeometry.AppendEdgeWalls(edgeWalls, edge, passage);
         foreach (DungeonWallPiece piece in edgeWalls)

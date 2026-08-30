@@ -9,7 +9,7 @@ using Random = UnityEngine.Random;
 /// </summary>
 [RequireComponent(typeof(Rigidbody))]
 [RequireComponent(typeof(Collider))]
-public class HydraEnemyScript : EnemyBase
+public partial class HydraEnemyScript : EnemyBase
 {
     private const float MaxAttackLungeDistance = 0.42f;
     private const float MaxAttackPullBackDistance = 0.22f;
@@ -160,7 +160,9 @@ public class HydraEnemyScript : EnemyBase
         if (player == null)
             return;
 
-        if (isAttacking)
+        // Track the player while winding up, then commit and pin the body for
+        // the released strike and recovery.
+        if (isAttacking && attackPhase >= 2)
         {
             rb.SetGroundVelocity(Vector2.zero);
             EnemySpatialHash.Instance?.UpdatePosition(this);
@@ -377,7 +379,6 @@ public class HydraEnemyScript : EnemyBase
         if (player == null)
             return;
 
-        LockBodyForAttack();
         walkAnimation?.SetAttackOverride(true);
 
         isAttacking = true;
@@ -385,29 +386,15 @@ public class HydraEnemyScript : EnemyBase
         attackPhase = 1;
         attackTimer = 0f;
         nextMeleeAttackTime = Time.time + meleeAttackCooldown / Mathf.Max(0.1f, EnemyTimeScale);
-        attackDirection = (player.position.ToGround() - transform.position.ToGround()).normalized;
         activeAttackReach = GetAttackReach();
 
         if (visualTransform != null)
         {
             attackStartPos = visualTransform.localPosition;
             attackStartRotation = visualTransform.localRotation;
-            Vector3 worldLunge = (attackDirection * activeAttackReach).ToWorld();
-            Vector3 worldPullBack = (
-                -attackDirection
-                * Mathf.Clamp(attackPullBackDistance, 0f, MaxAttackPullBackDistance)
-            ).ToWorld();
-            Vector3 localLunge =
-                visualTransform.parent != null
-                    ? visualTransform.parent.InverseTransformVector(worldLunge)
-                    : worldLunge;
-            Vector3 localPullBack =
-                visualTransform.parent != null
-                    ? visualTransform.parent.InverseTransformVector(worldPullBack)
-                    : worldPullBack;
-            attackWindupPos = attackStartPos + localPullBack;
-            attackTargetPos = attackStartPos + localLunge;
         }
+
+        RefreshAttackAim();
     }
 
     private void UpdateAttackAnimation()
@@ -420,6 +407,7 @@ public class HydraEnemyScript : EnemyBase
         switch (attackPhase)
         {
             case 1: // Windup
+                RefreshAttackAim();
                 float windupT = attackTimer / attackWindupDuration;
                 if (windupT >= 1f)
                 {
@@ -429,6 +417,7 @@ public class HydraEnemyScript : EnemyBase
                         visualTransform.localRotation = attackStartRotation;
                         visualTransform.localScale = baseLocalScale;
                     }
+                    LockBodyForAttack();
                     attackPhase = 2;
                     attackTimer = 0f;
                 }

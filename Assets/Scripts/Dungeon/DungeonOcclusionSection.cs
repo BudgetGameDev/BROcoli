@@ -41,12 +41,47 @@ public sealed class DungeonOcclusionSection : MonoBehaviour
     private Transform gatewayRoot;
     private float gatewayFadeReferenceMinY;
     private float gatewayFadeReferenceHeight;
+    private Vector2Int firstRoom;
+    private Vector2Int secondRoom;
+    private bool hasRoomOwnership;
+    private bool hasSecondRoom;
 
     /// <summary>
     /// The visibility group this section is. Stable for the section's life and
     /// unique across sections, so the decision layer can reason in plain ints.
     /// </summary>
     public int GroupId => GetInstanceID();
+
+    /// <summary>Marks an interior section as belonging to one room cell.</summary>
+    public void ConfigureRoom(Vector2Int room)
+    {
+        firstRoom = room;
+        secondRoom = default;
+        hasRoomOwnership = true;
+        hasSecondRoom = false;
+    }
+
+    /// <summary>Marks a boundary run as shared by the rooms on both sides.</summary>
+    public void ConfigureEdge(DungeonEdge edge)
+    {
+        firstRoom = new Vector2Int(edge.X, edge.Y);
+        secondRoom = firstRoom + (edge.Horizontal ? Vector2Int.up : Vector2Int.right);
+        hasRoomOwnership = true;
+        hasSecondRoom = true;
+    }
+
+    /// <summary>
+    /// Whether this section belongs to the room the player occupies. Legacy
+    /// or manually authored sections without ownership remain eligible.
+    /// </summary>
+    public bool BelongsToRoom(Vector2Int room, DungeonLayout layout)
+    {
+        if (!hasRoomOwnership)
+            return true;
+        if (RoomsMatch(room, firstRoom, layout))
+            return true;
+        return hasSecondRoom && RoomsMatch(room, secondRoom, layout);
+    }
 
     public void Exclude(Transform root)
     {
@@ -163,6 +198,11 @@ public sealed class DungeonOcclusionSection : MonoBehaviour
     {
         return gatewayRoot != null
             && (candidate == gatewayRoot || candidate.IsChildOf(gatewayRoot));
+    }
+
+    private static bool RoomsMatch(Vector2Int first, Vector2Int second, DungeonLayout layout)
+    {
+        return layout != null ? layout.AreInSameRoom(first, second) : first == second;
     }
 
     private void CacheGatewayFadeReference()

@@ -79,7 +79,7 @@ public partial class DungeonRoomBuilder : MonoBehaviour
 
         GameObject root = new GameObject($"Interior - {archetype.Shape}");
         root.transform.SetParent(parent, false);
-        InstantiateWallRuns(root.transform, interiorWalls);
+        InstantiateWallRuns(root.transform, interiorWalls, room);
     }
 
     private static Vector2 TileCenter(Vector2 roomCenter, int i, int j)

@@ -21,6 +21,8 @@ public sealed partial class CameraOcclusionFader
     private OccluderQuery occluderQuery;
     private Camera gameplayCamera;
     private OcclusionCameraModel cameraModel;
+    private DungeonManager dungeonManager;
+    private Vector2Int playerRoom;
 
     public float MaximumDetectedCoverage { get; private set; }
     public int QualifyingGroupCount { get; private set; }
@@ -56,6 +58,10 @@ public sealed partial class CameraOcclusionFader
         occluderQuery ??= new OccluderQuery(this);
         cameraModel = OcclusionCameraModel.FromCamera(gameplayCamera);
         cameraModel.CalculateFrustumPlanes(frustumPlanes);
+        if (target != null)
+            playerRoom = DungeonLayout.RoomAt(new Vector2(target.position.x, target.position.z));
+        if (dungeonManager == null)
+            dungeonManager = Object.FindAnyObjectByType<DungeonManager>();
 
         Resolver.BeginFrame();
         AddPlayerTarget();
@@ -97,7 +103,7 @@ public sealed partial class CameraOcclusionFader
         foreach (int groupId in Resolver.LoweredGroups)
         {
             DungeonOcclusionSection section = DungeonOcclusionSection.ForGroup(groupId);
-            if (section != null)
+            if (section != null && BelongsToPlayerRoom(section))
                 section.CollectFadeRenderers(
                     Resolver,
                     frustumPlanes,
@@ -162,7 +168,7 @@ public sealed partial class CameraOcclusionFader
         // rocks - do not obscure a character enough to justify lowering
         // anything.
         DungeonOcclusionSection section = DungeonOcclusionSection.Owning(candidate);
-        if (section != null)
+        if (section != null && BelongsToPlayerRoom(section))
             results.Add(new OcclusionCandidate(section.GroupId, candidate.bounds));
     }
 
@@ -173,8 +179,17 @@ public sealed partial class CameraOcclusionFader
     )
     {
         DungeonOcclusionSection section = volume.GetComponentInParent<DungeonOcclusionSection>();
-        if (section != null)
+        if (section != null && BelongsToPlayerRoom(section))
             results.Add(new OcclusionCandidate(section.GroupId, bounds));
+    }
+
+    private bool BelongsToPlayerRoom(DungeonOcclusionSection section)
+    {
+        if (target == null)
+            return true;
+
+        DungeonLayout layout = dungeonManager != null ? dungeonManager.Layout : null;
+        return section.BelongsToRoom(playerRoom, layout);
     }
 
     private bool IsVisibleGeometry(int layer, Bounds bounds)

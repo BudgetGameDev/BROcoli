@@ -56,6 +56,9 @@ public partial class DungeonManager : MonoBehaviour
 
     public int Seed => seed;
 
+    /// <summary>The deterministic layout currently driving the dungeon.</summary>
+    public DungeonLayout Layout => layout;
+
     /// <summary>How many distinct rooms the player has walked into this run.</summary>
     public int RoomsVisited => roomsVisited;
 

@@ -78,6 +78,21 @@ public sealed partial class DungeonLayout
     }
 
     /// <summary>
+    /// Whether two grid cells are part of the same playable room. Ordinary
+    /// rooms contain one cell; mega rooms contain every cell sharing their
+    /// cluster anchor.
+    /// </summary>
+    public bool AreInSameRoom(Vector2Int first, Vector2Int second)
+    {
+        if (first == second)
+            return true;
+
+        return TryGetMegaCluster(first, out Vector2Int firstAnchor, out _)
+            && TryGetMegaCluster(second, out Vector2Int secondAnchor, out _)
+            && firstAnchor == secondAnchor;
+    }
+
+    /// <summary>
     /// Whether both rooms beside an edge are cells of the same mega room. Such
     /// an edge builds no wall at all: every slot opens, so the merged cells
     /// read as one continuous space.
