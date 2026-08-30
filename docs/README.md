@@ -1,5 +1,16 @@
 # Project documentation
 
+| Document | Read it when |
+| --- | --- |
+| [adding-a-game.md](adding-a-game.md) | Adding, removing, or restructuring a game package |
+| [asset-acquisition.md](asset-acquisition.md) | Creating or generating any game asset |
+| [licensed-assets.md](licensed-assets.md) | Importing, encrypting, or restoring a restricted third-party asset |
+| [verification-gates.md](verification-gates.md) | Changing CI, the pre-push hook, the workflow, or the deploy scripts |
+
+These are deliberately kept out of `AGENTS.md`, which every agent loads. It keeps
+the rules that must never be broken; the reasoning, mechanics and step-by-step
+procedures live here and are read only when a task actually involves them.
+
 ## Staging builds
 
 Builds from the `staging` branch are published to the canonical

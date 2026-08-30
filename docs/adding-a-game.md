@@ -16,8 +16,11 @@ Packages/manifest.json             "com.budgetgamedev.game.x": "file:../LocalPac
 Assets/                            project-wide only: URP settings, TMP, WebGL template, build tooling
 ```
 
-`Assets/` holds nothing game-specific. A game that leaves the manifest takes its
-code, scenes, resources and licensed assets with it.
+`Assets/` holds nothing game-specific, and nothing game-specific may be added
+there. It is for project-wide concerns only: render pipeline settings, TextMesh
+Pro, the WebGL template, and build and licensing editor tooling. A game that
+leaves the manifest takes its code, scenes, resources and licensed assets with
+it, which only works while none of it lives in `Assets/`.
 
 ## Steps
 
@@ -68,6 +71,10 @@ These matter because Unity flattens several namespaces across the whole project:
 - **Assembly names and namespaces** follow `BudgetGameDev.Games.<Name>`.
 - **Tags, layers, physics and quality settings are project-wide.** Packages
   cannot own them; coordinate changes across games.
+- **A game's Unity dependencies belong in its own `package.json`**, never moved
+  into `Packages/manifest.json`. Declared on the package they resolve
+  transitively and disappear when it is unloaded; declared on the project they
+  linger after the game is gone.
 
 ## What stays shared
 
@@ -75,6 +82,12 @@ Put something in `com.budgetgamedev.shared` only if it names no game. Where
 shared code needs game-specific values, inject them — see
 `GameAudioSettings.Configure` and `IPauseController` for the two existing
 patterns.
+
+The same holds one level up: **the hub never references a game's code, scenes or
+assemblies.** It reaches games only through the `GameDefinition` assets it
+discovers at runtime. A direct reference would compile the game into the
+launcher, so removing that game from the manifest would stop the project
+building — which is exactly the coupling this layout exists to prevent.
 
 ## Removing a game
 
