@@ -10,24 +10,25 @@ namespace BudgetGameDev.Games.Brocoli
         SouthCliff,
 
         /// <summary>
-        /// The crossing between the platform's two rows. The camera looks over
-        /// this run at whoever stands in the north row, so it is built as a
-        /// knee-high ledge with full-height masonry only on the grid posts,
-        /// instead of a wall the visibility system would have to keep lowering.
+        /// A completely open crossing between the platform's two playable rows.
+        /// It builds no wall pieces, including at grid corners, because playable
+        /// floor exists on both sides of the east-west edge.
         /// </summary>
-        RowDivider,
+        OpenCrossing,
     }
 
     public sealed partial class DungeonLayout
     {
         private const int PlatformCurveSalt = 1201;
         private const int PlatformDepthInRooms = 2;
+        private const int PlatformDiagonalRun = 12;
 
         /// <summary>
         /// The dungeon is an endless east-west platform rather than an endless
-        /// square grid. Its two-room-deep strip meanders gently by at most one row
-        /// between neighbouring columns, keeping north/south travel short while
-        /// avoiding a perfectly straight, artificial silhouette.
+        /// square grid. Its two-room-deep strip follows long diagonal stair-step
+        /// runs, turning after a seeded interval. Neighbouring columns still move
+        /// by exactly one row, so the strip remains continuously connected while
+        /// reading as a diagonal route rather than a horizontal corridor.
         /// </summary>
         public bool IsPlayableRoom(Vector2Int room)
         {
@@ -45,8 +46,8 @@ namespace BudgetGameDev.Games.Brocoli
         /// <summary>
         /// Resolves the edge policy used by the runtime generator. A boundary
         /// below its playable room is the camera-facing cliff, the horizontal
-        /// crossing between the two playable rows is the low divider, and other
-        /// outer edges remain solid background architecture.
+        /// crossing between the two playable rows is fully open between its grid
+        /// posts, and other outer edges remain solid background architecture.
         /// </summary>
         public DungeonEdgeStyle PlayableEdgeStyle(DungeonEdge edge)
         {
@@ -54,16 +55,17 @@ namespace BudgetGameDev.Games.Brocoli
             bool first = IsPlayableRoom(lowerOrLeft);
             bool second = IsPlayableRoom(upperOrRight);
             if (first && second)
-                return edge.Horizontal ? DungeonEdgeStyle.RowDivider : DungeonEdgeStyle.Interior;
+                return edge.Horizontal ? DungeonEdgeStyle.OpenCrossing : DungeonEdgeStyle.Interior;
             if (edge.Horizontal && !first && second)
                 return DungeonEdgeStyle.SouthCliff;
             return DungeonEdgeStyle.SolidBoundary;
         }
 
         /// <summary>
-        /// A broad crossing between playable neighbours. East-west joins are
-        /// deliberately generous and the single north-south join in each column
-        /// is wide, leaving only short wall shoulders near the corners.
+        /// A broad crossing between playable neighbours. East-west wall runs can
+        /// safely remain around vertical crossings. Horizontal crossings open
+        /// every slot, including the grid corners, because playable floor lies on
+        /// both sides and any east-west wall there would hide the north side.
         /// </summary>
         public DungeonPassage PlayablePassage(Vector2Int room, int direction)
         {
@@ -72,6 +74,13 @@ namespace BudgetGameDev.Games.Brocoli
                 return new DungeonPassage(false, 0, 0);
 
             DungeonEdge edge = EdgeBetween(room, direction);
+            int slots = edge.Horizontal ? RoomTilesX : RoomTilesZ;
+
+            // No part of a horizontal edge survives when both rooms are playable.
+            // Even the traditional grid-post pieces are long east-west slabs that
+            // a player can stand behind, so open the complete run.
+            if (edge.Horizontal)
+                return new DungeonPassage(true, (1 << slots) - 1, 0);
 
             // A merged mega room still has to read as one continuous space. Its
             // internal edges keep the cluster's own passage, which opens every
@@ -80,7 +89,6 @@ namespace BudgetGameDev.Games.Brocoli
             if (IsClusterInternalEdge(edge))
                 return Passage(edge, true);
 
-            int slots = edge.Horizontal ? RoomTilesX : RoomTilesZ;
             int middle = slots / 2;
             int openingMask = (1 << (middle - 1)) | (1 << middle) | (1 << (middle + 1));
             return new DungeonPassage(true, openingMask, 0);
@@ -110,10 +118,18 @@ namespace BudgetGameDev.Games.Brocoli
 
         private int SouthRoomY(int x)
         {
-            float phase = Hash(0, 0, PlatformCurveSalt) / (float)uint.MaxValue * Mathf.PI * 2f;
-            float origin = Mathf.Sin(phase);
-            float wave = Mathf.Sin(phase + x * 0.22f) - origin;
-            return Mathf.RoundToInt(Mathf.Clamp(wave, -1f, 1f));
+            int period = PlatformDiagonalRun * 2;
+            int phase = (int)(Hash(0, 0, PlatformCurveSalt) % (uint)period);
+            return DiagonalStep(x + phase) - DiagonalStep(phase);
+        }
+
+        private static int DiagonalStep(int value)
+        {
+            int period = PlatformDiagonalRun * 2;
+            int wrapped = value % period;
+            if (wrapped < 0)
+                wrapped += period;
+            return wrapped <= PlatformDiagonalRun ? wrapped : period - wrapped;
         }
 
         private static void EdgeRooms(

@@ -9,13 +9,14 @@ namespace BudgetGameDev.Games.Brocoli
         // leaves a continuous perimeter corridor, so an interior wall can never
         // grow into a doorway or seal a corner off from the rest of the room, no
         // matter which slots the four shared edges opened.
-        private const int InteriorRunHalfTilesX = DungeonLayout.RoomTilesX / 2 - 1;
         private const int InteriorRunHalfTilesZ = DungeonLayout.RoomTilesZ / 2 - 1;
 
         /// <summary>
-        /// The interior runs that reshape a room's fixed grid shell. Every run
-        /// leaves a central circulation gap, so all outer-edge opening patterns
-        /// stay connected regardless of the chosen shape.
+        /// The interior runs that reshape a room's fixed grid shell. Only
+        /// north-south runs are allowed: an east-west run would have walkable
+        /// floor behind it from the camera and would need to become a half wall or
+        /// fade. Every run leaves a central circulation gap, so all outer-edge
+        /// opening patterns stay connected regardless of the chosen shape.
         /// </summary>
         public static void AppendInteriorWalls(
             List<DungeonWallPiece> walls,
@@ -27,15 +28,12 @@ namespace BudgetGameDev.Games.Brocoli
             switch (archetype.Shape)
             {
                 case DungeonLayout.RoomShape.Tiny:
-                    AppendHorizontalRun(walls, center, 4f);
                     AppendVerticalRuns(walls, center, 4f);
                     break;
                 case DungeonLayout.RoomShape.Compact:
-                    AppendHorizontalRun(walls, center, 6f);
                     AppendVerticalRuns(walls, center, 6f);
                     break;
                 case DungeonLayout.RoomShape.NarrowHorizontal:
-                    AppendHorizontalRun(walls, center, 4f);
                     break;
                 case DungeonLayout.RoomShape.NarrowVertical:
                     AppendVerticalRuns(walls, center, 4f);
@@ -44,16 +42,12 @@ namespace BudgetGameDev.Games.Brocoli
                     AppendVerticalRuns(walls, center, 10f);
                     break;
                 case DungeonLayout.RoomShape.LongHorizontal:
-                    AppendHorizontalRun(walls, center, 6f);
                     break;
                 case DungeonLayout.RoomShape.LongVertical:
                     AppendVerticalRuns(walls, center, 6f);
                     break;
                 case DungeonLayout.RoomShape.Divided:
-                    if ((archetype.Variant & 1) == 0)
-                        AppendVerticalDivider(walls, center);
-                    else
-                        AppendHorizontalDivider(walls, center);
+                    AppendVerticalDivider(walls, center);
                     break;
             }
         }
@@ -66,27 +60,6 @@ namespace BudgetGameDev.Games.Brocoli
         {
             AppendVerticalRun(walls, center, x);
             AppendVerticalRun(walls, center, -x);
-        }
-
-        private static void AppendHorizontalRun(
-            List<DungeonWallPiece> walls,
-            Vector2 center,
-            float z
-        )
-        {
-            for (int i = -InteriorRunHalfTilesX; i <= InteriorRunHalfTilesX; i++)
-            {
-                if (i == 0)
-                    continue;
-                walls.Add(
-                    new DungeonWallPiece(
-                        new Vector2(center.x + i * Tile, center.y + z),
-                        true,
-                        DungeonWallKind.Interior,
-                        $"Horizontal {z:0.##} {(i < 0 ? "Left" : "Right")}"
-                    )
-                );
-            }
         }
 
         private static void AppendVerticalRun(List<DungeonWallPiece> walls, Vector2 center, float x)
@@ -116,21 +89,6 @@ namespace BudgetGameDev.Games.Brocoli
                         false,
                         DungeonWallKind.Interior,
                         j < 0 ? "Vertical Divider Lower" : "Vertical Divider Upper"
-                    )
-                );
-            }
-        }
-
-        private static void AppendHorizontalDivider(List<DungeonWallPiece> walls, Vector2 center)
-        {
-            foreach (int i in new[] { -2, 0, 2 })
-            {
-                walls.Add(
-                    new DungeonWallPiece(
-                        new Vector2(center.x + i * Tile, center.y),
-                        true,
-                        DungeonWallKind.Interior,
-                        $"Horizontal Divider {i:+#;-#;0}"
                     )
                 );
             }

@@ -76,11 +76,10 @@ namespace BudgetGameDev.Games.Brocoli
         }
 
         /// <summary>
-        /// Replaces camera-facing interior wall runs with low, broad rubble. The
-        /// room keeps its authored shape and collision boundary, but a character
-        /// remains visible over it and the visibility system has nothing to lower.
-        /// Diagonal galleries use the same language to carve a non-rectangular
-        /// playable outline without introducing a diagonal full-height wall.
+        /// Gives diagonal galleries a broken, low rubble line. Other room shapes
+        /// no longer replace rejected east-west wall runs with half-height
+        /// barriers: those runs are simply left open. The gallery line is angled
+        /// across the floor and never reads as another east-west divider.
         /// </summary>
         private void BuildVisibilityFriendlyBarriers(
             Transform parent,
@@ -90,21 +89,6 @@ namespace BudgetGameDev.Games.Brocoli
             List<OccupiedSpot> occupied
         )
         {
-            float southRun = archetype.Shape switch
-            {
-                DungeonLayout.RoomShape.Tiny => -4f,
-                DungeonLayout.RoomShape.Compact => -6f,
-                DungeonLayout.RoomShape.NarrowHorizontal => -4f,
-                DungeonLayout.RoomShape.LongHorizontal => -6f,
-                _ => float.NaN,
-            };
-
-            if (!float.IsNaN(southRun))
-            {
-                foreach (float x in new[] { -8f, -4f, 4f, 8f })
-                    PlaceLowBarrier(parent, center, new Vector2(x, southRun), random, occupied);
-            }
-
             if (archetype.Shape != DungeonLayout.RoomShape.DiagonalGallery)
                 return;
 

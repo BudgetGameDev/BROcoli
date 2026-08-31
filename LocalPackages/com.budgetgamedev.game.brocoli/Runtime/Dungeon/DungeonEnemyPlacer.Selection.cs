@@ -77,21 +77,11 @@ namespace BudgetGameDev.Games.Brocoli
             if (archetype.Shape != DungeonLayout.RoomShape.Divided)
                 return false;
 
-            if ((archetype.Variant & 1) == 0)
-            {
-                float nearestVerticalSegment = Mathf.Min(
-                    Mathf.Abs(offset.y),
-                    Mathf.Abs(Mathf.Abs(offset.y) - 8f)
-                );
-                return Mathf.Abs(offset.x) < 1.5f && nearestVerticalSegment < 2.6f;
-            }
-
-            float nearestSegment = Mathf.Min(
-                Mathf.Abs(offset.x - 4f),
-                Mathf.Abs(offset.x + 4f),
-                Mathf.Abs(Mathf.Abs(offset.x) - 12f)
+            float nearestVerticalSegment = Mathf.Min(
+                Mathf.Abs(offset.y),
+                Mathf.Abs(Mathf.Abs(offset.y) - 8f)
             );
-            return Mathf.Abs(offset.y) < 1.5f && nearestSegment < 2.6f;
+            return Mathf.Abs(offset.x) < 1.5f && nearestVerticalSegment < 2.6f;
         }
 
         /// <summary>The minimum ring distance at which an enemy type appears.</summary>

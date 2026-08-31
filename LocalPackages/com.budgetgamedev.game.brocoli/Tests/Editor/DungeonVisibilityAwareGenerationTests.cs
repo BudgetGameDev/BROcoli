@@ -12,38 +12,52 @@ namespace BudgetGameDev.Games.Brocoli.Tests
             "Packages/com.budgetgamedev.game.brocoli/Prefabs/Dungeon/DungeonWall.prefab";
 
         [Test]
-        public void PlayableLevelIsTwoRoomsDeepAndMeandersOneRowAtATime()
+        public void PlayableLevelIsTwoRoomsDeepAndFollowsLongDiagonalRuns()
         {
             foreach (int seed in DungeonGeometryModel.Seeds)
             {
                 var layout = new DungeonLayout(seed);
                 int previousSouth = SouthY(layout, -120);
+                int previousDirection = 0;
+                int diagonalRun = 0;
+                int longestDiagonalRun = 0;
                 var usedRows = new HashSet<int>();
-                for (int x = -120; x <= 120; x++)
+                usedRows.Add(previousSouth);
+                usedRows.Add(previousSouth + 1);
+                for (int x = -119; x <= 120; x++)
                 {
                     int south = SouthY(layout, x);
+                    int direction = south - previousSouth;
                     Assert.That(
-                        Mathf.Abs(south - previousSouth),
-                        Is.LessThanOrEqualTo(1),
-                        $"seed {seed}: platform jumped between columns {x - 1} and {x}"
+                        Mathf.Abs(direction),
+                        Is.EqualTo(1),
+                        $"seed {seed}: platform stopped running diagonally between {x - 1} and {x}"
                     );
+                    if (direction == previousDirection)
+                        diagonalRun++;
+                    else
+                        diagonalRun = 1;
+                    longestDiagonalRun = Mathf.Max(longestDiagonalRun, diagonalRun);
+                    previousDirection = direction;
                     previousSouth = south;
 
-                    int playable = 0;
-                    for (int y = -5; y <= 5; y++)
-                    {
-                        if (!layout.IsPlayableRoom(new Vector2Int(x, y)))
-                            continue;
-                        playable++;
-                        usedRows.Add(y);
-                    }
-                    Assert.That(playable, Is.EqualTo(2), $"seed {seed}, column {x}");
+                    Assert.That(layout.IsPlayableRoom(new Vector2Int(x, south)), Is.True);
+                    Assert.That(layout.IsPlayableRoom(new Vector2Int(x, south + 1)), Is.True);
+                    Assert.That(layout.IsPlayableRoom(new Vector2Int(x, south - 1)), Is.False);
+                    Assert.That(layout.IsPlayableRoom(new Vector2Int(x, south + 2)), Is.False);
+                    usedRows.Add(south);
+                    usedRows.Add(south + 1);
                 }
 
                 Assert.That(
                     usedRows.Count,
-                    Is.LessThanOrEqualTo(4),
-                    $"seed {seed}: platform spread too far north/south"
+                    Is.GreaterThanOrEqualTo(12),
+                    $"seed {seed}: platform stayed too horizontal"
+                );
+                Assert.That(
+                    longestDiagonalRun,
+                    Is.GreaterThanOrEqualTo(10),
+                    $"seed {seed}: diagonal direction changed too often"
                 );
             }
         }
@@ -85,12 +99,21 @@ namespace BudgetGameDev.Games.Brocoli.Tests
                         if (!layout.IsPlayableRoom(neighbour))
                             Assert.That(fromRoom.OpeningCount, Is.Zero);
                         else if (
+                            direction == DungeonLayout.North
+                            || direction == DungeonLayout.South
+                        )
+                            // Every horizontal slot, including the old grid-post
+                            // positions, opens so no east-west wall stands in front
+                            // of playable floor.
+                            Assert.That(
+                                fromRoom.OpeningMask,
+                                Is.EqualTo(FullOpeningMask(direction))
+                            );
+                        else if (
                             layout.IsClusterInternalEdge(
                                 DungeonLayout.EdgeBetween(lowerRoom, direction)
                             )
                         )
-                            // A merged hall opens every slot between its posts; see
-                            // MergedMegaRoomsStayOneOpenHallInsideThePlatform.
                             Assert.That(
                                 fromRoom.OpeningMask,
                                 Is.EqualTo(BetweenPostsMask(direction))
@@ -103,9 +126,10 @@ namespace BudgetGameDev.Games.Brocoli.Tests
         }
 
         [Test]
-        public void GeneratedInteriorsPutNoFullHeightWallSouthOfRoomCentre()
+        public void GeneratedInteriorsContainNoEastWestWallsWithWalkableFloorBehindThem()
         {
-            bool foundDiagonal = false;
+            int generatedRooms = 0;
+            int diagonalRooms = 0;
             foreach (int seed in DungeonGeometryModel.Seeds)
             {
                 var layout = new DungeonLayout(seed);
@@ -116,24 +140,26 @@ namespace BudgetGameDev.Games.Brocoli.Tests
                     {
                         var room = new Vector2Int(x, y);
                         DungeonLayout.RoomArchetype archetype = layout.Archetype(room);
-                        foundDiagonal |= archetype.Shape == DungeonLayout.RoomShape.DiagonalGallery;
+                        generatedRooms++;
+                        if (archetype.Shape == DungeonLayout.RoomShape.DiagonalGallery)
+                            diagonalRooms++;
                         var walls = new List<DungeonWallPiece>();
                         DungeonRoomGeometry.AppendInteriorWalls(walls, room, archetype);
-                        float centerZ = DungeonLayout.RoomCenter(room).y;
                         foreach (DungeonWallPiece wall in walls)
                         {
                             Assert.That(
-                                !wall.AlongX || wall.Anchor.y >= centerZ,
-                                $"seed {seed}: {room} generated a camera-facing interior wall at {wall.Anchor}"
+                                wall.AlongX,
+                                Is.False,
+                                $"seed {seed}: {room} generated an east-west interior wall at {wall.Anchor}"
                             );
                         }
                     }
                 }
             }
             Assert.That(
-                foundDiagonal,
-                Is.True,
-                "the deterministic corpus never built a diagonal room"
+                diagonalRooms,
+                Is.GreaterThanOrEqualTo(generatedRooms / 4),
+                $"only {diagonalRooms} of {generatedRooms} generated rooms were diagonal galleries"
             );
         }
 
@@ -186,13 +212,12 @@ namespace BudgetGameDev.Games.Brocoli.Tests
         }
 
         /// <summary>
-        /// The crossing between the platform's two rows is the one wall run the
-        /// camera always looks over, so it must never be built as architecture
-        /// the visibility system has to keep lowering: knee-high ledge pieces
-        /// below occlusion adoption height everywhere except the two grid posts.
+        /// The crossing between the platform's two rows is the wall run the camera
+        /// always looks over, so it stays completely open. Even the old corner
+        /// posts were full east-west slabs a player could stand behind.
         /// </summary>
         [Test]
-        public void RowCrossingIsALowLedgeWithFullHeightGridPostsOnly()
+        public void PlayableRowCrossingsBuildNoWallPieces()
         {
             foreach (int seed in DungeonGeometryModel.Seeds)
             {
@@ -204,8 +229,13 @@ namespace BudgetGameDev.Games.Brocoli.Tests
                         layout.PlayableEdgeStyle(
                             DungeonLayout.EdgeBetween(lowerRoom, DungeonLayout.North)
                         ),
-                        Is.EqualTo(DungeonEdgeStyle.RowDivider),
+                        Is.EqualTo(DungeonEdgeStyle.OpenCrossing),
                         $"seed {seed}, column {x}"
+                    );
+                    Assert.That(
+                        layout.PlayablePassage(lowerRoom, DungeonLayout.North).OpeningMask,
+                        Is.EqualTo(FullOpeningMask(DungeonLayout.North)),
+                        $"seed {seed}, column {x}: row crossing was not fully open"
                     );
                     if (layout.IsPlayableRoom(lowerRoom + Vector2Int.right))
                         Assert.That(
@@ -238,44 +268,11 @@ namespace BudgetGameDev.Games.Brocoli.Tests
                     root.transform,
                     DungeonLayout.EdgeBetween(lowerRoom, DungeonLayout.North),
                     new DungeonPassage(true, crossing, 0),
-                    DungeonEdgeStyle.RowDivider
+                    DungeonEdgeStyle.OpenCrossing
                 );
 
-                Transform posts = edge.transform.Find("Occlusion Section - Divider Posts");
-                Transform ledge = edge.transform.Find("Low Divider Ledge");
-                Assert.That(posts, Is.Not.Null);
-                Assert.That(ledge, Is.Not.Null);
-                Assert.That(posts.GetComponent<DungeonOcclusionSection>(), Is.Not.Null);
-
-                BoxCollider[] postColliders = posts.GetComponentsInChildren<BoxCollider>();
-                BoxCollider[] ledgeColliders = ledge.GetComponentsInChildren<BoxCollider>();
-                Physics.SyncTransforms();
-
-                float runCenterX = DungeonLayout.RoomCenter(lowerRoom).x;
-                Assert.That(postColliders.Length, Is.EqualTo(2));
-                foreach (BoxCollider collider in postColliders)
-                {
-                    Assert.That(collider.bounds.size.y, Is.GreaterThan(1.5f));
-                    Assert.That(
-                        Mathf.Abs(collider.bounds.center.x - runCenterX),
-                        Is.GreaterThan(10f),
-                        "a full-height piece stood away from the grid posts"
-                    );
-                }
-
-                Assert.That(ledgeColliders.Length, Is.EqualTo(2));
-                foreach (BoxCollider collider in ledgeColliders)
-                {
-                    Assert.That(
-                        collider.bounds.size.y,
-                        Is.LessThan(1.5f),
-                        "a ledge piece is tall enough for occlusion adoption"
-                    );
-                    Assert.That(
-                        Mathf.Abs(collider.bounds.center.x - runCenterX),
-                        Is.InRange(6f, 10f)
-                    );
-                }
+                Assert.That(edge.transform.childCount, Is.Zero);
+                Assert.That(edge.GetComponentsInChildren<Collider>(), Is.Empty);
             }
             finally
             {
@@ -312,9 +309,12 @@ namespace BudgetGameDev.Games.Brocoli.Tests
                             continue;
 
                         foundInternalEdge = true;
+                        int expected = edge.Horizontal
+                            ? FullOpeningMask(direction)
+                            : BetweenPostsMask(direction);
                         Assert.That(
                             layout.PlayablePassage(room, direction).OpeningMask,
-                            Is.EqualTo(BetweenPostsMask(direction)),
+                            Is.EqualTo(expected),
                             $"seed {seed}: mega room {room} is bisected by a wall run"
                         );
                     }
@@ -385,6 +385,15 @@ namespace BudgetGameDev.Games.Brocoli.Tests
                     ? DungeonLayout.RoomTilesX
                     : DungeonLayout.RoomTilesZ;
             return ((1 << slots) - 1) & ~(1 | (1 << (slots - 1)));
+        }
+
+        private static int FullOpeningMask(int direction)
+        {
+            int slots =
+                direction == DungeonLayout.North || direction == DungeonLayout.South
+                    ? DungeonLayout.RoomTilesX
+                    : DungeonLayout.RoomTilesZ;
+            return (1 << slots) - 1;
         }
     }
 }

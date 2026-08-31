@@ -98,18 +98,8 @@ namespace BudgetGameDev.Games.Brocoli
         {
             if (archetype.Shape != DungeonLayout.RoomShape.Divided)
                 return false;
-            if ((archetype.Variant & 1) == 0)
-            {
-                float nearest = Mathf.Min(Mathf.Abs(point.y - 4f), Mathf.Abs(point.y + 4f));
-                return Mathf.Abs(point.x) < 1.5f && nearest < 2.6f;
-            }
-
-            float nearestHorizontal = Mathf.Min(
-                Mathf.Abs(point.x),
-                Mathf.Abs(point.x - 8f),
-                Mathf.Abs(point.x + 8f)
-            );
-            return Mathf.Abs(point.y) < 1.5f && nearestHorizontal < 2.6f;
+            float nearest = Mathf.Min(Mathf.Abs(point.y - 4f), Mathf.Abs(point.y + 4f));
+            return Mathf.Abs(point.x) < 1.5f && nearest < 2.6f;
         }
 
         internal static Vector2 PoolSpot(

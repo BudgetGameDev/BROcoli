@@ -68,13 +68,13 @@ namespace BudgetGameDev.Games.Brocoli.Tests
         }
 
         /// <summary>
-        /// The gate is not a blanket refusal: an enemy in the player's own room
-        /// still gets the wall in front of it out of the way. The player stands in
-        /// front of an interior run and the enemy behind it, so the wall hides the
-        /// enemy without hiding the player.
+        /// A room cannot reveal an enemy by lowering a camera-facing interior
+        /// screen if procedural generation never creates that screen. This keeps
+        /// the visibility system as a fallback for boundaries and props rather
+        /// than a requirement for basic room navigation.
         /// </summary>
         [Test]
-        public void AnEnemyInThePlayersRoomStillLowersTheWallInFrontOfIt()
+        public void ProceduralInteriorsCreateNoEnemyRevealScreens()
         {
             Assert.That(
                 WallVisibilityFixtures.TryFindInteriorScreen(
@@ -82,53 +82,9 @@ namespace BudgetGameDev.Games.Brocoli.Tests
                     out Vector2Int room,
                     out Vector2 anchor
                 ),
-                "no seed in the corpus has a room with an interior run to hide behind"
-            );
-
-            var world = WallVisibilityFixtures.World(seed, room, 1);
-            int screen = GroupAt(world, anchor);
-            Assert.That(screen, Is.Not.EqualTo(-1), $"seed {seed}: no interior run at {anchor}");
-
-            var player = new Vector3(anchor.x, 0f, anchor.y - 3f);
-            var enemy = new Vector3(anchor.x, 0f, anchor.y + 2.5f);
-            WallVisibilitySimulation.Result alone = WallVisibilitySimulation.Run(
-                world,
-                WallVisibilityPaths.Hold(player, 1f),
-                WallVisibilitySimulation.CameraConfig.Dungeon
-            );
-            WallVisibilitySimulation.Result withEnemy = WallVisibilitySimulation.Run(
-                world,
-                WallVisibilityPaths.Hold(player, 1f),
-                WallVisibilitySimulation.CameraConfig.Dungeon,
-                new[] { enemy }
-            );
-            WallVisibilityInvariants.AssertAll(withEnemy);
-
-            Assert.That(
-                alone.Frames[^1].IsLowered(screen),
                 Is.False,
-                "the fixture already lowers the run without an enemy, so it cannot show "
-                    + "that the enemy is what lowered it"
+                $"seed {seed}: room {room} still has a camera-facing screen at {anchor}"
             );
-            Assert.That(
-                withEnemy.Frames[^1].IsLowered(screen),
-                WallVisibilityDiagnostics.Report(
-                    withEnemy,
-                    withEnemy.Frames.Count - 1,
-                    "an enemy in the player's own room stayed hidden behind a wall",
-                    new[] { screen }
-                )
-            );
-        }
-
-        private static int GroupAt(WallVisibilityWorld world, Vector2 anchor)
-        {
-            foreach (WallVisibilityWorld.Piece piece in world.Pieces)
-            {
-                if (piece.IsWall && Vector2.Distance(piece.Plan.Anchor, anchor) < 0.01f)
-                    return piece.GroupId;
-            }
-            return -1;
         }
 
         /// <summary>The gate opens only when both characters share a room.</summary>

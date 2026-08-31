@@ -194,7 +194,8 @@ namespace BudgetGameDev.Games.Brocoli.Tests
                 1
             );
             Assert.That(DungeonPropPlacer.IsOnDivider(new Vector2(0f, 4f), vertical), Is.True);
-            Assert.That(DungeonPropPlacer.IsOnDivider(new Vector2(8f, 0f), horizontal), Is.True);
+            Assert.That(DungeonPropPlacer.IsOnDivider(new Vector2(0f, 4f), horizontal), Is.True);
+            Assert.That(DungeonPropPlacer.IsOnDivider(new Vector2(8f, 0f), horizontal), Is.False);
             Assert.That(DungeonPropPlacer.IsOnDivider(Vector2.one * 20f, horizontal), Is.False);
 
             for (int variant = 0; variant < 4; variant++)

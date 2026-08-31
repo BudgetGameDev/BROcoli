@@ -56,60 +56,60 @@ namespace BudgetGameDev.Games.Brocoli
                     break;
                 case RoomTheme.Banquet:
                     shape =
-                        shapeRoll < 0.52 ? RoomShape.LongHorizontal
-                        : shapeRoll < 0.74 ? RoomShape.NarrowHorizontal
-                        : shapeRoll < 0.84 ? RoomShape.DiagonalGallery
-                        : shapeRoll < 0.92 ? RoomShape.LongVertical
+                        shapeRoll < 0.30 ? RoomShape.LongHorizontal
+                        : shapeRoll < 0.45 ? RoomShape.NarrowHorizontal
+                        : shapeRoll < 0.75 ? RoomShape.DiagonalGallery
+                        : shapeRoll < 0.87 ? RoomShape.LongVertical
                         : RoomShape.LargeSquare;
                     break;
                 case RoomTheme.Shrine:
                 case RoomTheme.TreasureVault:
                     shape =
-                        shapeRoll < 0.20 ? RoomShape.Tiny
-                        : shapeRoll < 0.56 ? RoomShape.Compact
-                        : shapeRoll < 0.75 ? RoomShape.LargeSquare
-                        : shapeRoll < 0.85 ? RoomShape.NarrowHorizontal
-                        : shapeRoll < 0.95 ? RoomShape.NarrowVertical
+                        shapeRoll < 0.15 ? RoomShape.Tiny
+                        : shapeRoll < 0.30 ? RoomShape.Compact
+                        : shapeRoll < 0.45 ? RoomShape.LargeSquare
+                        : shapeRoll < 0.75 ? RoomShape.DiagonalGallery
+                        : shapeRoll < 0.88 ? RoomShape.NarrowVertical
                         : RoomShape.OpenHall;
                     break;
                 case RoomTheme.Flooded:
                     shape =
-                        shapeRoll < 0.34 ? RoomShape.OpenHall
-                        : shapeRoll < 0.58 ? RoomShape.LongHorizontal
-                        : shapeRoll < 0.76 ? RoomShape.DiagonalGallery
-                        : shapeRoll < 0.88 ? RoomShape.LargeSquare
-                        : shapeRoll < 0.95 ? RoomShape.NarrowHorizontal
+                        shapeRoll < 0.18 ? RoomShape.OpenHall
+                        : shapeRoll < 0.58 ? RoomShape.DiagonalGallery
+                        : shapeRoll < 0.68 ? RoomShape.LongHorizontal
+                        : shapeRoll < 0.82 ? RoomShape.LargeSquare
+                        : shapeRoll < 0.92 ? RoomShape.NarrowVertical
                         : RoomShape.Divided;
                     break;
                 case RoomTheme.Collapsed:
                     shape =
-                        shapeRoll < 0.38 ? RoomShape.DiagonalGallery
-                        : shapeRoll < 0.56 ? RoomShape.Divided
-                        : shapeRoll < 0.70 ? RoomShape.NarrowHorizontal
-                        : shapeRoll < 0.82 ? RoomShape.Tiny
-                        : shapeRoll < 0.92 ? RoomShape.OpenHall
+                        shapeRoll < 0.58 ? RoomShape.DiagonalGallery
+                        : shapeRoll < 0.72 ? RoomShape.Divided
+                        : shapeRoll < 0.82 ? RoomShape.NarrowVertical
+                        : shapeRoll < 0.90 ? RoomShape.Tiny
+                        : shapeRoll < 0.97 ? RoomShape.OpenHall
                         : RoomShape.LargeSquare;
                     break;
                 case RoomTheme.Empty:
                     shape =
-                        shapeRoll < 0.28 ? RoomShape.DiagonalGallery
-                        : shapeRoll < 0.50 ? RoomShape.NarrowHorizontal
-                        : shapeRoll < 0.68 ? RoomShape.Tiny
-                        : shapeRoll < 0.84 ? RoomShape.Divided
+                        shapeRoll < 0.55 ? RoomShape.DiagonalGallery
+                        : shapeRoll < 0.70 ? RoomShape.NarrowVertical
+                        : shapeRoll < 0.82 ? RoomShape.Tiny
+                        : shapeRoll < 0.92 ? RoomShape.Divided
                         : RoomShape.OpenHall;
                     break;
                 default:
                     shape = shapeRoll switch
                     {
-                        < 0.10 => RoomShape.Tiny,
-                        < 0.20 => RoomShape.Compact,
-                        < 0.36 => RoomShape.NarrowHorizontal,
-                        < 0.50 => RoomShape.LongHorizontal,
-                        < 0.64 => RoomShape.DiagonalGallery,
-                        < 0.73 => RoomShape.LargeSquare,
-                        < 0.80 => RoomShape.NarrowVertical,
-                        < 0.87 => RoomShape.LongVertical,
-                        < 0.94 => RoomShape.Divided,
+                        < 0.40 => RoomShape.DiagonalGallery,
+                        < 0.48 => RoomShape.Tiny,
+                        < 0.56 => RoomShape.Compact,
+                        < 0.62 => RoomShape.NarrowHorizontal,
+                        < 0.68 => RoomShape.LongHorizontal,
+                        < 0.78 => RoomShape.LargeSquare,
+                        < 0.86 => RoomShape.NarrowVertical,
+                        < 0.92 => RoomShape.LongVertical,
+                        < 0.97 => RoomShape.Divided,
                         _ => RoomShape.OpenHall,
                     };
                     break;

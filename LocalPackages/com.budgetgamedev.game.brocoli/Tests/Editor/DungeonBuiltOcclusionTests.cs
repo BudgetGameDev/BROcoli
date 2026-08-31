@@ -10,8 +10,8 @@ namespace BudgetGameDev.Games.Brocoli.Tests
     /// Ties the wall-visibility decision to what actually gets built. The property
     /// tests reason about planned geometry and grouping rules; this builds the real
     /// prefabs and checks the scene agrees - the slab is the height the sight-line
-    /// maths assumes, and touching interior runs really do end up in one occlusion
-    /// section rather than only in the planner's idea of one.
+    /// maths assumes, and rejected east-west interior runs do not reappear while
+    /// building the real objects.
     /// </summary>
     public sealed class DungeonBuiltOcclusionTests
     {
@@ -74,22 +74,24 @@ namespace BudgetGameDev.Games.Brocoli.Tests
         }
 
         /// <summary>
-        /// A freestanding structure is one occlusion section in the scene, so a
-        /// cross lowers every arm at once instead of dropping only the run the
-        /// camera happened to hit.
+        /// The planner rejects east-west interior walls because they can hide
+        /// playable floor. The built room must preserve that rule and still enroll
+        /// every remaining north-south slab in an occlusion section.
         /// </summary>
         [Test]
-        public void TouchingInteriorRunsAreBuiltIntoOneOcclusionSection()
+        public void BuiltInteriorsContainOnlyNorthSouthOcclusionSections()
         {
-            Assert.That(
-                WallVisibilityFixtures.TryFindInteriorStructure(out int seed, out Vector2Int room),
-                "no generated room in the corpus builds crossing interior runs"
+            var room = Vector2Int.zero;
+            var archetype = new DungeonLayout.RoomArchetype(
+                DungeonLayout.RoomShape.NarrowVertical,
+                DungeonLayout.RoomTheme.Sparse,
+                2.8f,
+                8.2f,
+                0
             );
-
-            var layout = new DungeonLayout(seed);
             var planned = new List<DungeonWallPiece>();
-            DungeonRoomGeometry.AppendInteriorWalls(planned, room, layout.Archetype(room));
-            Builder().BuildInterior(root.transform, room, layout.Archetype(room));
+            DungeonRoomGeometry.AppendInteriorWalls(planned, room, archetype);
+            Builder().BuildInterior(root.transform, room, archetype);
 
             var sections = new Dictionary<Vector2, DungeonOcclusionSection>();
             foreach (Collider collider in root.GetComponentsInChildren<Collider>())
@@ -104,33 +106,17 @@ namespace BudgetGameDev.Games.Brocoli.Tests
             Assert.That(
                 sections,
                 Is.Not.Empty,
-                $"seed {seed}: room {room} built no interior walls"
+                "the north-south interior run built no wall colliders"
             );
-            int crossings = 0;
-            for (int i = 0; i < planned.Count; i++)
-            for (int j = i + 1; j < planned.Count; j++)
+            foreach (DungeonWallPiece piece in planned)
             {
-                if (
-                    planned[i].AlongX == planned[j].AlongX
-                    || !DungeonWallGrouping.AreInContact(planned[i], planned[j])
-                )
-                    continue;
-
-                crossings++;
+                Assert.That(piece.AlongX, Is.False, $"planner emitted {piece}");
                 Assert.That(
-                    SectionAt(sections, planned[j].Anchor),
-                    Is.SameAs(SectionAt(sections, planned[i].Anchor)),
-                    $"seed {seed}: room {room} built {planned[i]} and the run crossing it at "
-                        + $"{planned[j]} into separate occlusion sections, so one would lower "
-                        + "while the other stayed standing"
+                    SectionAt(sections, piece.Anchor),
+                    Is.Not.Null,
+                    $"built slab at {piece.Anchor} was not enrolled in an occlusion section"
                 );
             }
-
-            Assert.That(
-                crossings,
-                Is.GreaterThan(0),
-                $"seed {seed}: room {room} built no crossing"
-            );
         }
 
         private DungeonRoomBuilder Builder()

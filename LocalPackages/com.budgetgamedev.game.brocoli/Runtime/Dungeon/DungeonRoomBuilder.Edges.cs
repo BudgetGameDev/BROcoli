@@ -32,11 +32,8 @@ namespace BudgetGameDev.Games.Brocoli
                 return root;
             }
 
-            if (style == DungeonEdgeStyle.RowDivider)
-            {
-                BuildRowDivider(root.transform, edge, passage);
+            if (style == DungeonEdgeStyle.OpenCrossing)
                 return root;
-            }
 
             Transform wallRun = CreateOcclusionSection(root.transform, "Wall Run");
             wallRun.GetComponent<DungeonOcclusionSection>().ConfigureEdge(edge);
@@ -86,38 +83,6 @@ namespace BudgetGameDev.Games.Brocoli
                     upperCourseLift - DungeonWallPiece.SlabHeight * cliffFaceScale,
                     lowerCourseOutset
                 );
-            }
-        }
-
-        /// <summary>
-        /// Builds the crossing between the platform's two rows. The camera looks
-        /// over this run at whoever walks the north row, so instead of a wall the
-        /// visibility system would forever be lowering, the closed slots become a
-        /// knee-high ledge that stays below occlusion adoption height. Only the
-        /// two corner slots on the grid posts stay full height, anchoring the
-        /// vertical wall runs they meet.
-        /// </summary>
-        private void BuildRowDivider(Transform parent, DungeonEdge edge, DungeonPassage passage)
-        {
-            const float ledgeScale = 0.3f;
-            float postReach = DungeonLayout.RoomWidth / 2f - DungeonLayout.TileSize;
-            float runCenterX = DungeonLayout.RoomCenter(new Vector2Int(edge.X, edge.Y)).x;
-
-            Transform posts = CreateOcclusionSection(parent, "Divider Posts");
-            posts.GetComponent<DungeonOcclusionSection>().ConfigureEdge(edge);
-
-            Transform ledge = new GameObject("Low Divider Ledge").transform;
-            ledge.SetParent(parent, false);
-            ledge.gameObject.AddComponent<DungeonContentRoot>();
-
-            edgeWalls.Clear();
-            DungeonRoomGeometry.AppendEdgeWalls(edgeWalls, edge, passage);
-            foreach (DungeonWallPiece piece in edgeWalls)
-            {
-                if (Mathf.Abs(piece.Anchor.x - runCenterX) > postReach)
-                    InstantiateWall(posts, piece);
-                else
-                    InstantiateScaledWall(ledge, piece, ledgeScale, piece.BaseLift);
             }
         }
 

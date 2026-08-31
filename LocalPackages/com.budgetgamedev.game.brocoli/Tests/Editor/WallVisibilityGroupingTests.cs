@@ -51,34 +51,16 @@ namespace BudgetGameDev.Games.Brocoli.Tests
         }
 
         /// <summary>
-        /// A crossing is the case that used to read as a bug: at least one room in
-        /// the corpus builds one, so the rule above is actually being exercised.
+        /// Crossing interior structures necessarily contain an east-west arm with
+        /// playable floor behind it, so procedural rooms must no longer emit one.
         /// </summary>
         [Test]
-        public void TheCorpusContainsACrossingInteriorStructure()
+        public void TheCorpusContainsNoCrossingInteriorStructure()
         {
             Assert.That(
                 WallVisibilityFixtures.TryFindInteriorStructure(out int seed, out Vector2Int room),
-                "no generated room in the corpus builds crossing interior runs, so the "
-                    + "grouping rule for freestanding structures is untested"
-            );
-
-            var world = WallVisibilityFixtures.World(seed, room, 0);
-            var interior = new HashSet<int>();
-            foreach (WallVisibilityWorld.Piece piece in world.Pieces)
-            {
-                if (piece.Plan.Kind == DungeonWallKind.Interior)
-                    interior.Add(piece.GroupId);
-            }
-
-            var sections = new HashSet<string>();
-            foreach (DungeonWallPiece plan in world.Block.InteriorWalls(room))
-                sections.Add(plan.Section);
-            Assert.That(
-                interior.Count,
-                Is.LessThan(sections.Count),
-                $"seed {seed}: room {room} has crossing runs that were not fused into "
-                    + "fewer groups than the runs they were planned as"
+                Is.False,
+                $"seed {seed}: room {room} still builds crossing interior runs"
             );
         }
 
