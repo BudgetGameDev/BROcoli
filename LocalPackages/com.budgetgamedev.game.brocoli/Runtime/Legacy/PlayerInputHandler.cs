@@ -57,16 +57,7 @@ namespace BudgetGameDev.Games.Brocoli
             // (BotDriver.Active is false).
             if (BotDriver.Active)
             {
-                _rawInput = BotDriver.Move;
-                _smoothedInput = Vector2.Lerp(
-                    _smoothedInput,
-                    _rawInput,
-                    InputSmoothSpeed * Time.deltaTime
-                );
-                if (_rawInput.sqrMagnitude > 0.01f)
-                {
-                    _lastNonZeroInput = _rawInput.normalized;
-                }
+                ApplyResolvedInput(BotDriver.Move, 0.01f);
                 return;
             }
 
@@ -102,20 +93,20 @@ namespace BudgetGameDev.Games.Brocoli
 
             Vector2 targetInput = ResolveMovementInput(keyboardInput, gamepadInput, virtualInput);
 
-            _rawInput = targetInput;
+            ApplyResolvedInput(targetInput, InputEpsilonSquared);
+        }
 
-            // Update smoothed input
+        internal void ApplyResolvedInput(Vector2 targetInput, float facingThreshold)
+        {
+            _rawInput = targetInput;
             _smoothedInput = Vector2.Lerp(
                 _smoothedInput,
                 _rawInput,
                 InputSmoothSpeed * Time.deltaTime
             );
 
-            // Track last non-zero input for facing direction
-            if (_rawInput.sqrMagnitude > InputEpsilonSquared)
-            {
+            if (_rawInput.sqrMagnitude > facingThreshold)
                 _lastNonZeroInput = _rawInput.normalized;
-            }
         }
 
         /// <summary>

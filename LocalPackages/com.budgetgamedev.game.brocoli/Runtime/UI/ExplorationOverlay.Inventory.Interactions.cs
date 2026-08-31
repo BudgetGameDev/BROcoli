@@ -147,11 +147,10 @@ namespace BudgetGameDev.Games.Brocoli
             }
 
             string previousItem = gearItems[activeGearSlotIndex];
-            bool swapped = fromNearby
-                ? SwapMockListItem(nearbyItems, sourceIndex, gearItems, activeGearSlotIndex)
-                : SwapMockItem(backpackItems, sourceIndex, gearItems, activeGearSlotIndex);
-            if (!swapped)
-                return;
+            if (fromNearby)
+                SwapMockListItem(nearbyItems, sourceIndex, gearItems, activeGearSlotIndex);
+            else
+                SwapMockItem(backpackItems, sourceIndex, gearItems, activeGearSlotIndex);
 
             string sourceName = fromNearby ? "NEARBY" : "BACKPACK";
             RefreshMockInventoryVisuals();

@@ -195,6 +195,12 @@ namespace BudgetGameDev.Games.Brocoli
             return Read(json, -1, out save) == ReadResult.Ok;
         }
 
+        internal static bool TryDeserialize(
+            string json,
+            System.Func<string, BrocoliRunSave> deserialize,
+            out BrocoliRunSave save
+        ) => Read(json, -1, deserialize, out save) == ReadResult.Ok;
+
         private enum ReadResult
         {
             Ok,
@@ -212,13 +218,23 @@ namespace BudgetGameDev.Games.Brocoli
         /// </summary>
         private static ReadResult Read(string json, int slot, out BrocoliRunSave save)
         {
+            return Read(json, slot, JsonUtility.FromJson<BrocoliRunSave>, out save);
+        }
+
+        private static ReadResult Read(
+            string json,
+            int slot,
+            System.Func<string, BrocoliRunSave> deserialize,
+            out BrocoliRunSave save
+        )
+        {
             save = null;
             if (string.IsNullOrWhiteSpace(json))
                 return ReadResult.Unreadable;
 
             try
             {
-                save = JsonUtility.FromJson<BrocoliRunSave>(json);
+                save = deserialize(json);
             }
             catch (ArgumentException)
             {

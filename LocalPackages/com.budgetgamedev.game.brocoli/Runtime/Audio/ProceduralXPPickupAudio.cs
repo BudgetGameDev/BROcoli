@@ -4,7 +4,6 @@ namespace BudgetGameDev.Games.Brocoli
 {
     /// <summary>
     /// Procedural XP pickup sound - satisfying, dopamine-inducing collect sound.
-    /// Combines a bright chime with a soft whoosh for that rewarding feel.
     /// </summary>
     public class ProceduralXPPickupAudio : MonoBehaviour
     {
@@ -49,7 +48,8 @@ namespace BudgetGameDev.Games.Brocoli
             if (sharedAudioSource == null)
             {
                 GameObject audioObj = new GameObject("XPPickupAudio");
-                DontDestroyOnLoad(audioObj);
+                if (Application.isPlaying)
+                    DontDestroyOnLoad(audioObj);
                 sharedAudioSource = audioObj.AddComponent<AudioSource>();
                 sharedAudioSource.playOnAwake = false;
                 sharedAudioSource.spatialBlend = 0f; // 2D sound

@@ -8,7 +8,7 @@ namespace BudgetGameDev.Games.Brocoli
         private const float AlleyChestChance = 0.52f;
         private const float ChestWallGap = WallSealGap;
 
-        private static Vector2 ChestSpot(
+        internal static Vector2 ChestSpot(
             DungeonLayout.RoomArchetype archetype,
             System.Random random,
             float radius,
@@ -29,7 +29,7 @@ namespace BudgetGameDev.Games.Brocoli
             return GridFallbackSpot(archetype, random, radius, occupied);
         }
 
-        private static Vector2 RandomMainRoomSpot(
+        internal static Vector2 RandomMainRoomSpot(
             DungeonLayout.RoomArchetype archetype,
             System.Random random,
             float radius
@@ -52,7 +52,7 @@ namespace BudgetGameDev.Games.Brocoli
             return candidate;
         }
 
-        private static Vector2 RandomAlleySpot(
+        internal static Vector2 RandomAlleySpot(
             DungeonLayout.RoomArchetype archetype,
             System.Random random,
             float radius
@@ -133,7 +133,7 @@ namespace BudgetGameDev.Games.Brocoli
             };
         }
 
-        private static Vector2 RandomCrossAlleySpot(
+        internal static Vector2 RandomCrossAlleySpot(
             System.Random random,
             float wall,
             float minX,
@@ -167,7 +167,7 @@ namespace BudgetGameDev.Games.Brocoli
             };
         }
 
-        private static Vector2 RandomHorizontalAlleySpot(
+        internal static Vector2 RandomHorizontalAlleySpot(
             System.Random random,
             float wall,
             float minX,
@@ -185,7 +185,7 @@ namespace BudgetGameDev.Games.Brocoli
             return new Vector2(x, z);
         }
 
-        private static Vector2 RandomVerticalAlleySpot(
+        internal static Vector2 RandomVerticalAlleySpot(
             System.Random random,
             float wall,
             float minX,
@@ -203,7 +203,7 @@ namespace BudgetGameDev.Games.Brocoli
             return new Vector2(x, z);
         }
 
-        private static bool IsChestSpotClear(
+        internal static bool IsChestSpotClear(
             Vector2 candidate,
             DungeonLayout.RoomArchetype archetype,
             float radius,
@@ -229,7 +229,7 @@ namespace BudgetGameDev.Games.Brocoli
             return true;
         }
 
-        private static Vector2 GridFallbackSpot(
+        internal static Vector2 GridFallbackSpot(
             DungeonLayout.RoomArchetype archetype,
             System.Random random,
             float radius,

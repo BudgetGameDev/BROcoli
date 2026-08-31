@@ -104,6 +104,11 @@ namespace BudgetGameDev.Games.Brocoli
 
         protected override void OnPopulateMesh(VertexHelper vertexHelper)
         {
+            PopulateMesh(vertexHelper);
+        }
+
+        internal void PopulateMesh(VertexHelper vertexHelper)
+        {
             vertexHelper.Clear();
             if (dungeon == null || visitedRooms.Count == 0)
                 return;

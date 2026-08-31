@@ -78,23 +78,18 @@ namespace BudgetGameDev.Games.Brocoli
             isMobilePlatform = true;
 #endif
 
-            // Also check device type for runtime detection
-            if (SystemInfo.deviceType == DeviceType.Handheld)
-            {
-                isMobilePlatform = true;
-            }
-
+            isMobilePlatform = DetectMobilePlatform(
+                isMobilePlatform,
+                SystemInfo.deviceType,
 #if UNITY_EDITOR
-            // Check Device Simulator in editor
-            if (
-                UnityEngine.Device.SystemInfo.deviceType == DeviceType.Handheld
-                || UnityEngine.Device.Application.isMobilePlatform
-            )
-            {
-                isMobilePlatform = true;
-                Debug.Log("[PauseMenu] Device Simulator detected as mobile");
-            }
+                UnityEngine.Device.SystemInfo.deviceType,
+                UnityEngine.Device.Application.isMobilePlatform
+#else
+                DeviceType.Desktop,
+                false
 #endif
+            );
+            Debug.Log($"[PauseMenu] Mobile platform detection: {isMobilePlatform}");
             // Pause button visibility is now managed by VirtualController
             // Just ensure the button has a click handler if it exists
             if (pauseButton != null)
@@ -190,25 +185,8 @@ namespace BudgetGameDev.Games.Brocoli
             {
                 Button[] allButtons = pauseMenuUI.GetComponentsInChildren<Button>(true);
 
-                foreach (var btn in allButtons)
-                {
-                    if (btn == null)
-                        continue;
-
-                    string name = btn.gameObject.name.ToLower();
-
-                    if (resumeButton == null && name.Contains("resume"))
-                    {
-                        resumeButton = btn;
-                    }
-                    if (
-                        mainMenuButton == null
-                        && (name.Contains("mainmenu") || name.Contains("main menu"))
-                    )
-                    {
-                        mainMenuButton = btn;
-                    }
-                }
+                resumeButton ??= FindNamedButton(allButtons, "resume");
+                mainMenuButton ??= FindNamedButton(allButtons, "mainmenu", "main menu");
             }
 
             // Connect Resume button
@@ -240,17 +218,12 @@ namespace BudgetGameDev.Games.Brocoli
 
         void Update()
         {
-            // Escape key to toggle pause
-            if (Input.GetKeyDown(KeyCode.Escape))
-            {
-                TogglePause();
-            }
-
-            // Gamepad Start/Menu button to toggle pause
-            if (Gamepad.current != null && Gamepad.current.startButton.wasPressedThisFrame)
-            {
-                TogglePause();
-            }
+            Keyboard keyboard = Keyboard.current;
+            Gamepad gamepad = Gamepad.current;
+            ProcessToggleInput(
+                keyboard != null && keyboard.escapeKey.wasPressedThisFrame,
+                gamepad != null && gamepad.startButton.wasPressedThisFrame
+            );
 
             // Handle controller navigation when paused
             if (isPaused)
@@ -262,70 +235,26 @@ namespace BudgetGameDev.Games.Brocoli
 
         private void HandleControllerNavigation()
         {
-            if (menuButtons == null || menuButtons.Length == 0)
-                return;
-
-            // Rate limit
-            if (Time.unscaledTime - lastNavTime < NavRepeatDelay)
-                return;
-
-            float vertical = 0f;
-
-            // Keyboard
-            if (Input.GetKey(KeyCode.UpArrow) || Input.GetKey(KeyCode.W))
-                vertical = 1f;
-            else if (Input.GetKey(KeyCode.DownArrow) || Input.GetKey(KeyCode.S))
-                vertical = -1f;
-
-            // Gamepad
-            if (Gamepad.current != null)
-            {
-                Vector2 dpad = Gamepad.current.dpad.ReadValue();
-                Vector2 stick = Gamepad.current.leftStick.ReadValue();
-
-                if (Mathf.Abs(dpad.y) > 0.5f)
-                    vertical = Mathf.Sign(dpad.y);
-                else if (Mathf.Abs(stick.y) > 0.5f)
-                    vertical = Mathf.Sign(stick.y);
-            }
-
-            // Navigate (up = previous, down = next)
-            if (Mathf.Abs(vertical) > 0.1f)
-            {
-                lastNavTime = Time.unscaledTime;
-                int direction = vertical > 0 ? -1 : 1; // Up goes to previous (lower index)
-                int newIndex = Mathf.Clamp(
-                    selectedButtonIndex + direction,
-                    0,
-                    menuButtons.Length - 1
-                );
-                if (newIndex != selectedButtonIndex)
-                {
-                    SelectMenuButton(newIndex);
-                }
-            }
-
-            // Submit with Enter/Space/Gamepad A
-            bool submit = Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.Space);
-            if (Gamepad.current != null && Gamepad.current.buttonSouth.wasPressedThisFrame)
-            {
-                submit = true;
-            }
-
-            if (submit && selectedButtonIndex >= 0 && selectedButtonIndex < menuButtons.Length)
-            {
-                Button btn = menuButtons[selectedButtonIndex];
-                if (btn != null && btn.interactable)
-                {
-                    btn.onClick.Invoke();
-                }
-            }
-
-            // B button to resume (back)
-            if (Gamepad.current != null && Gamepad.current.buttonEast.wasPressedThisFrame)
-            {
-                Resume();
-            }
+            Keyboard keyboard = Keyboard.current;
+            Gamepad gamepad = Gamepad.current;
+            Vector2 dpad = gamepad?.dpad.ReadValue() ?? Vector2.zero;
+            Vector2 stick = gamepad?.leftStick.ReadValue() ?? Vector2.zero;
+            float vertical = ResolveVerticalInput(
+                keyboard != null && (keyboard.upArrowKey.isPressed || keyboard.wKey.isPressed),
+                keyboard != null && (keyboard.downArrowKey.isPressed || keyboard.sKey.isPressed),
+                dpad.y,
+                stick.y
+            );
+            bool submit =
+                (
+                    keyboard != null
+                    && (
+                        keyboard.enterKey.wasPressedThisFrame
+                        || keyboard.spaceKey.wasPressedThisFrame
+                    )
+                ) || (gamepad != null && gamepad.buttonSouth.wasPressedThisFrame);
+            bool back = gamepad != null && gamepad.buttonEast.wasPressedThisFrame;
+            ProcessControllerNavigation(vertical, submit, back);
         }
 
         private void SelectMenuButton(int index)
@@ -482,7 +411,9 @@ namespace BudgetGameDev.Games.Brocoli
             Debug.Log("[PauseMenu] Game RESUMED");
         }
 
-        public void GoToMainMenu()
+        public void GoToMainMenu() => GoToMainMenu(SceneManager.LoadScene);
+
+        internal void GoToMainMenu(System.Action<string> loadScene)
         {
             Debug.Log("[PauseMenu] Going to MainMenuScene");
             BrocoliAutosaveController.SaveNow();
@@ -490,7 +421,21 @@ namespace BudgetGameDev.Games.Brocoli
             Time.timeScale = 1f;
             isPaused = false;
 
-            SceneManager.LoadScene("Brocoli_MainMenu");
+            loadScene("Brocoli_MainMenu");
+        }
+
+        internal static Button FindNamedButton(Button[] buttons, params string[] names)
+        {
+            foreach (Button button in buttons)
+            {
+                if (button == null)
+                    continue;
+                string objectName = button.gameObject.name.ToLowerInvariant();
+                foreach (string name in names)
+                    if (objectName.Contains(name))
+                        return button;
+            }
+            return null;
         }
 
         public bool IsPaused() => isPaused;

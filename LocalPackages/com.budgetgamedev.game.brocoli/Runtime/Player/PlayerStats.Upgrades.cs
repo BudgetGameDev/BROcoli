@@ -38,6 +38,19 @@ namespace BudgetGameDev.Games.Brocoli
             ResolveLevelUps();
         }
 
+        private void ResolveLevelUps()
+        {
+            if (_currentMaxExperience <= 0f)
+                _currentMaxExperience = DefaultMaxExperience;
+            while (!_levelUpChoicePending && _currentExperience >= _currentMaxExperience)
+            {
+                _currentExperience -= _currentMaxExperience;
+                LevelUp();
+            }
+
+            _experienceBar?.UpdateBar(_currentExperience, _currentMaxExperience);
+        }
+
         private void AddDetectionRadius(float amount)
         {
             _currentDetectionRadius += amount;

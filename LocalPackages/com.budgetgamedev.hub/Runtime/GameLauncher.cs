@@ -27,7 +27,7 @@ namespace BudgetGameDev.Hub
         private int selectedIndex = -1;
 
         /// <summary>One row in the list, kept so selection can restyle it.</summary>
-        private sealed class GameEntry
+        internal sealed class GameEntry
         {
             public GameDefinition Game;
             public Button Button;
@@ -35,19 +35,36 @@ namespace BudgetGameDev.Hub
             public Text Label;
         }
 
+        /// <summary>The built rows, in display order. Read by the edit-mode tests.</summary>
+        internal IReadOnlyList<GameEntry> Entries => entries;
+
+        /// <summary>Highlighted row, or -1 while nothing is selected.</summary>
+        internal int SelectedIndex => selectedIndex;
+
+        internal Button SelectButton => selectButton;
+
+        internal Text EmptyLabel => emptyLabel;
+
+        internal ScrollRect ListScroll => gameListScroll;
+
         /// <summary>
         /// Cleared at startup so a configured game boots once per run. Statics
         /// survive "Enter Play Mode without domain reload".
         /// </summary>
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        private static void ResetAutoBoot() => autoBootUsed = false;
+        internal static void ResetAutoBoot() => autoBootUsed = false;
 
         private static bool autoBootUsed;
 
-        private void Start()
+        internal void Start()
         {
             GameCatalog.Invalidate();
-            if (TryBootConfiguredGame())
+            CompleteStart(TryBootConfiguredGame());
+        }
+
+        internal void CompleteStart(bool gameBooted)
+        {
+            if (gameBooted)
                 return;
 
             BuildInterface();
@@ -55,6 +72,9 @@ namespace BudgetGameDev.Hub
             RestoreSelection();
             SuppressEventSystemNavigation();
         }
+
+        private bool TryBootConfiguredGame() =>
+            TryBootConfiguredGame(LauncherConfig.Load().StartupScene);
 
         /// <summary>
         /// Opens the configured startup scene, if there is a usable one, and only
@@ -64,8 +84,12 @@ namespace BudgetGameDev.Hub
         /// The once-per-run limit is what keeps the picker reachable: a player who
         /// leaves a booted game through "all games" would otherwise be thrown
         /// straight back into it and could never see the list.
+        ///
+        /// The scene name is a parameter rather than read here, so the decision can
+        /// be checked against a known value the way <see cref="LauncherStartup"/>
+        /// takes build membership as a parameter.
         /// </remarks>
-        private bool TryBootConfiguredGame()
+        internal static bool TryBootConfiguredGame(string startupScene)
         {
             if (autoBootUsed)
                 return false;
@@ -73,7 +97,7 @@ namespace BudgetGameDev.Hub
             autoBootUsed = true;
 
             LauncherStartup.Plan plan = LauncherStartup.Resolve(
-                LauncherConfig.Load().StartupScene,
+                startupScene,
                 GameCatalog.All,
                 LauncherStartup.IsSceneInBuild
             );
@@ -86,12 +110,11 @@ namespace BudgetGameDev.Hub
             // A configured scene that no registered game claims still opens; it
             // just gets no per-game setup, because there is none to apply.
             Debug.Log($"[Launcher] Opening configured startup scene '{plan.SceneName}'.");
-            Time.timeScale = 1f;
-            UnityEngine.SceneManagement.SceneManager.LoadScene(plan.SceneName);
+            GameSession.OpenScene(plan.SceneName);
             return true;
         }
 
-        private void Populate()
+        internal void Populate()
         {
             IReadOnlyList<GameDefinition> games = GameCatalog.All;
             for (int index = 0; index < games.Count; index++)
@@ -106,7 +129,7 @@ namespace BudgetGameDev.Hub
         /// Preselects the game played last, so returning to the launcher lands on
         /// the row the player most likely wants again.
         /// </summary>
-        private void RestoreSelection()
+        internal void RestoreSelection()
         {
             if (entries.Count == 0)
                 return;
@@ -126,7 +149,7 @@ namespace BudgetGameDev.Hub
             Select(index >= 0 ? index : 0);
         }
 
-        private void Select(int index)
+        internal void Select(int index)
         {
             selectedIndex = index;
             for (int i = 0; i < entries.Count; i++)

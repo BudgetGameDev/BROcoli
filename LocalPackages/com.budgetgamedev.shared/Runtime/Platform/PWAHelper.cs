@@ -1,3 +1,4 @@
+using System;
 using System.Runtime.InteropServices;
 using UnityEngine;
 
@@ -125,13 +126,18 @@ namespace BudgetGameDev.Shared
         /// </summary>
         public static void ToggleFullscreen()
         {
-            if (IsInFullscreen)
+            ToggleFullscreen(IsInFullscreen, EnterFullscreen, LeaveFullscreen);
+        }
+
+        internal static void ToggleFullscreen(bool fullscreen, Action enter, Action leave)
+        {
+            if (fullscreen)
             {
-                LeaveFullscreen();
+                leave();
             }
             else
             {
-                EnterFullscreen();
+                enter();
             }
         }
 

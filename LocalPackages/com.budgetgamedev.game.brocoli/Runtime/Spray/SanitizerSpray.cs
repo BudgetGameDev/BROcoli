@@ -338,24 +338,5 @@ namespace BudgetGameDev.Games.Brocoli
             if (!SpraySettings.ShowHandAlways && !isSpraying && !isInBurst && !hasPendingSpray)
                 handVisuals?.SetVisible(false);
         }
-
-        void OnDrawGizmosSelected()
-        {
-            Vector3 origin =
-                playerTransform != null ? playerTransform.position : transform.position;
-            float drawRange = Application.isPlaying ? currentRange : SpraySettings.BaseSprayRange;
-            float drawWidth = Application.isPlaying ? currentWidth : SpraySettings.BaseSprayAngle;
-
-            Gizmos.color = new Color(0.5f, 0.8f, 1f, 0.3f);
-            Gizmos.DrawWireSphere(origin, drawRange);
-
-            Gizmos.color = new Color(0.5f, 0.8f, 1f, 0.5f);
-            Vector3 dir = transform.right;
-            Vector3 left = GroundPlane.YawRotation(drawWidth * 0.5f) * dir;
-            Vector3 right = GroundPlane.YawRotation(-drawWidth * 0.5f) * dir;
-
-            Gizmos.DrawLine(origin, origin + left * drawRange);
-            Gizmos.DrawLine(origin, origin + right * drawRange);
-        }
     }
 }

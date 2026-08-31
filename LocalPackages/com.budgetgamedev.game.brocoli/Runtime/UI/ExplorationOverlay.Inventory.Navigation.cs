@@ -55,6 +55,11 @@ namespace BudgetGameDev.Games.Brocoli
         {
             HandleInventoryActionInput();
             Vector2 direction = ReadInventoryNavigationInput();
+            ProcessInventoryNavigation(direction, Time.unscaledTime);
+        }
+
+        internal void ProcessInventoryNavigation(Vector2 direction, float now)
+        {
             if (direction == Vector2.zero)
             {
                 ResetInventoryNavigationRepeat();
@@ -62,14 +67,13 @@ namespace BudgetGameDev.Games.Brocoli
             }
 
             bool changed = direction != heldInventoryNavigation;
-            if (!changed && Time.unscaledTime < nextInventoryNavigation)
+            if (!changed && now < nextInventoryNavigation)
                 return;
 
             MoveInventorySelection(direction);
             heldInventoryNavigation = direction;
             nextInventoryNavigation =
-                Time.unscaledTime
-                + (changed ? InventoryNavigationInitialDelay : InventoryNavigationRepeatDelay);
+                now + (changed ? InventoryNavigationInitialDelay : InventoryNavigationRepeatDelay);
         }
 
         private void HandleInventoryActionInput()
@@ -83,6 +87,11 @@ namespace BudgetGameDev.Games.Brocoli
                 (keyboard != null && keyboard.eKey.wasPressedThisFrame)
                 || (gamepad != null && gamepad.buttonWest.wasPressedThisFrame);
 
+            ProcessInventoryActions(transfer, equip);
+        }
+
+        internal void ProcessInventoryActions(bool transfer, bool equip)
+        {
             if (transfer)
                 TransferSelectedInventoryItem();
             else if (equip)
@@ -105,12 +114,14 @@ namespace BudgetGameDev.Games.Brocoli
             if (gamepad != null)
                 direction += gamepad.dpad.ReadValue();
 
-            if (Mathf.Abs(direction.x) > Mathf.Abs(direction.y))
-                return new Vector2(Mathf.Sign(direction.x), 0f);
-            if (Mathf.Abs(direction.y) > 0.1f)
-                return new Vector2(0f, Mathf.Sign(direction.y));
-            return Vector2.zero;
+            return NormalizeInventoryNavigation(direction);
         }
+
+        internal static Vector2 NormalizeInventoryNavigation(Vector2 direction) =>
+            Mathf.Abs(direction.x) > Mathf.Abs(direction.y)
+                ? new Vector2(Mathf.Sign(direction.x), 0f)
+            : Mathf.Abs(direction.y) > 0.1f ? new Vector2(0f, Mathf.Sign(direction.y))
+            : Vector2.zero;
 
         private void MoveInventorySelection(Vector2 direction)
         {

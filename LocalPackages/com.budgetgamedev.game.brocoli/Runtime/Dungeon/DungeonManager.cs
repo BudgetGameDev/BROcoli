@@ -93,16 +93,7 @@ namespace BudgetGameDev.Games.Brocoli
             // orders. Starting the dungeon is the reliable second bootstrap point.
             ExplorationOverlay.EnsurePresent();
 
-            Vector2Int initialRoom = Vector2Int.zero;
-            if (BrocoliSaveSystem.TryGetPendingContinue(out BrocoliRunSave save))
-            {
-                RestoreRunState(save.dungeon);
-                initialRoom = DungeonLayout.RoomAt(save.playerPosition.ToGround());
-            }
-            else if (seed == 0)
-            {
-                seed = Random.Range(1, int.MaxValue);
-            }
+            Vector2Int initialRoom = ResolveInitialRoom();
             layout = new DungeonLayout(seed);
             Debug.Log($"DungeonManager: generating dungeon with seed {seed}.");
 
@@ -122,6 +113,19 @@ namespace BudgetGameDev.Games.Brocoli
 
             LoadEnemyPrefabs();
             EnterRoom(initialRoom);
+        }
+
+        internal Vector2Int ResolveInitialRoom()
+        {
+            if (BrocoliSaveSystem.TryGetPendingContinue(out BrocoliRunSave save))
+            {
+                RestoreRunState(save.dungeon);
+                return DungeonLayout.RoomAt(save.playerPosition.ToGround());
+            }
+
+            if (seed == 0)
+                seed = Random.Range(1, int.MaxValue);
+            return Vector2Int.zero;
         }
 
         private void Update()
@@ -271,10 +275,13 @@ namespace BudgetGameDev.Games.Brocoli
             return controller != null ? controller.transform : null;
         }
 
-        private void LoadEnemyPrefabs()
+        private void LoadEnemyPrefabs() =>
+            LoadEnemyPrefabs(Resources.LoadAll<GameObject>(EnemyResourceFolder));
+
+        internal void LoadEnemyPrefabs(IEnumerable<GameObject> resources)
         {
             enemyPrefabs.Clear();
-            foreach (GameObject prefab in Resources.LoadAll<GameObject>(EnemyResourceFolder))
+            foreach (GameObject prefab in resources)
             {
                 EnemyBase enemy = prefab != null ? prefab.GetComponent<EnemyBase>() : null;
                 if (enemy != null)

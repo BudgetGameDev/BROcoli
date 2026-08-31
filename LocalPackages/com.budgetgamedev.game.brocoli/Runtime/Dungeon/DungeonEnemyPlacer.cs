@@ -80,7 +80,7 @@ namespace BudgetGameDev.Games.Brocoli
                 EnemyBase prefab = PickEnemy(allowed, swarmSpider, archetype, i, random);
                 Vector3 position = PickSpot(roomCenter, archetype, random).ToWorld();
 
-                EnemyBase enemy = PoolManager.Instance?.GetEnemy(
+                EnemyBase enemy = PoolManager.Existing?.GetEnemy(
                     prefab,
                     position,
                     Quaternion.identity
@@ -159,21 +159,31 @@ namespace BudgetGameDev.Games.Brocoli
 
                 Vector3 position = hit.position;
                 position.y = enemy.transform.position.y;
-                if (enemy.rb != null)
-                {
-                    enemy.rb.position = position;
-                    enemy.rb.linearVelocity = Vector3.zero;
-                    enemy.rb.angularVelocity = Vector3.zero;
-                }
-                else
-                {
-                    enemy.transform.position = position;
-                }
+                AlignEnemy(enemy, position);
             }
         }
 
+        internal static void AlignEnemy(EnemyBase enemy, Vector3 position)
+        {
+            if (enemy.rb != null)
+            {
+                enemy.rb.position = position;
+                enemy.rb.linearVelocity = Vector3.zero;
+                enemy.rb.angularVelocity = Vector3.zero;
+            }
+            else
+                enemy.transform.position = position;
+        }
+
         /// <summary>Returns a still-dormant group to the pool when its room unloads.</summary>
-        public static void Despawn(List<EnemyBase> dormant)
+        public static void Despawn(List<EnemyBase> dormant) =>
+            Despawn(dormant, PoolManager.Existing, enemy => Object.Destroy(enemy.gameObject));
+
+        internal static void Despawn(
+            List<EnemyBase> dormant,
+            PoolManager poolManager,
+            System.Action<EnemyBase> destroyEnemy
+        )
         {
             if (dormant == null)
                 return;
@@ -184,10 +194,10 @@ namespace BudgetGameDev.Games.Brocoli
                     continue;
                 // Re-enable the AI so the pooled instance behaves when reused.
                 enemy.enabled = true;
-                if (PoolManager.Instance != null)
-                    PoolManager.Instance.ReturnEnemy(enemy);
+                if (poolManager != null)
+                    poolManager.ReturnEnemy(enemy);
                 else
-                    Object.Destroy(enemy.gameObject);
+                    destroyEnemy(enemy);
             }
             dormant.Clear();
         }
@@ -204,13 +214,26 @@ namespace BudgetGameDev.Games.Brocoli
             return Mathf.Clamp(Mathf.Pow(Mathf.Max(1f, power), exponent), 1f, max);
         }
 
-        private static void DropEliteReward(Vector3 position)
-        {
-            GameObject prefab = LootChest.PickWeightedBoost(
-                Object.FindAnyObjectByType<BoostHandler>()?.BoostPrefabs
+        private static void DropEliteReward(Vector3 position) =>
+            DropEliteReward(
+                position,
+                () =>
+                    LootChest.PickWeightedBoost(
+                        Object.FindAnyObjectByType<BoostHandler>()?.BoostPrefabs
+                    ),
+                (prefab, spawnPosition) =>
+                    Object.Instantiate(prefab, spawnPosition, Quaternion.identity)
             );
+
+        internal static void DropEliteReward(
+            Vector3 position,
+            System.Func<GameObject> chooseReward,
+            System.Action<GameObject, Vector3> instantiateReward
+        )
+        {
+            GameObject prefab = chooseReward();
             if (prefab != null)
-                Object.Instantiate(prefab, position, Quaternion.identity);
+                instantiateReward(prefab, position);
         }
     }
 }

@@ -12,6 +12,13 @@ namespace BudgetGameDev.Games.Brocoli
     [DisallowMultipleComponent]
     public partial class DungeonEnemyNavigator : MonoBehaviour
     {
+        internal delegate bool ObstacleSlide(
+            Vector3 from,
+            Vector3 desiredTarget,
+            Vector3 navMeshOrigin,
+            out Vector3 adjustedTarget
+        );
+
         private const float RepathInterval = 0.2f;
         private const float CornerReachedDistance = 1.35f;
         private const float SampleMaxDistance = 3f;
@@ -80,6 +87,11 @@ namespace BudgetGameDev.Games.Brocoli
             if (Time.time < nextRepath)
                 return;
 
+            RepathNow();
+        }
+
+        internal void RepathNow()
+        {
             nextRepath = Time.time + RepathInterval;
             SteerTowardPlayer();
         }
@@ -109,55 +121,68 @@ namespace BudgetGameDev.Games.Brocoli
                 return;
             }
 
-            Vector3[] corners = path.corners;
+            ApplyPath(path.corners, path.status, from, to, fromHit.position, TryGetObstacleSlide);
+        }
+
+        internal void ApplyPath(
+            Vector3[] corners,
+            NavMeshPathStatus status,
+            Vector3 from,
+            Vector3 to,
+            Vector3 navMeshOrigin,
+            ObstacleSlide trySlide
+        )
+        {
             bool completeDirectPath =
-                path.status == NavMeshPathStatus.PathComplete && corners.Length == 2;
+                status == NavMeshPathStatus.PathComplete && corners.Length == 2;
             Vector3 slideTarget = default;
-            if (
-                completeDirectPath
-                && !TryGetObstacleSlide(from, to, fromHit.position, out slideTarget)
-            )
+            if (completeDirectPath && !trySlide(from, to, navMeshOrigin, out slideTarget))
             {
                 enemy.player = realPlayer;
                 return;
             }
 
-            Vector3 steeringTarget;
-            if (completeDirectPath)
-            {
-                steeringTarget = slideTarget;
-            }
-            else
-            {
-                int cornerIndex = 1;
-                float reachedSq = CornerReachedDistance * CornerReachedDistance;
-                while (
-                    cornerIndex < corners.Length - 1
-                    && (corners[cornerIndex].ToGround() - from.ToGround()).sqrMagnitude < reachedSq
-                )
-                {
-                    cornerIndex++;
-                }
-
-                steeringTarget = corners[cornerIndex];
-                if (
-                    TryGetObstacleSlide(
-                        from,
-                        steeringTarget,
-                        fromHit.position,
-                        out Vector3 adjustedTarget
-                    )
-                )
-                    steeringTarget = adjustedTarget;
-            }
+            Vector3 steeringTarget = SelectInitialSteeringTarget(
+                completeDirectPath,
+                slideTarget,
+                corners,
+                from
+            );
+            if (
+                !completeDirectPath
+                && trySlide(from, steeringTarget, navMeshOrigin, out Vector3 adjustedTarget)
+            )
+                steeringTarget = adjustedTarget;
 
             SetProxyTarget(steeringTarget);
         }
 
-        private void SteerDirectlyOrSlide(Vector3 from, Vector3 to)
+        internal static Vector3 SelectPathCorner(Vector3[] corners, Vector3 from)
+        {
+            int cornerIndex = 1;
+            float reachedSq = CornerReachedDistance * CornerReachedDistance;
+            while (
+                cornerIndex < corners.Length - 1
+                && (corners[cornerIndex].ToGround() - from.ToGround()).sqrMagnitude < reachedSq
+            )
+                cornerIndex++;
+            return corners[cornerIndex];
+        }
+
+        internal static Vector3 SelectInitialSteeringTarget(
+            bool completeDirectPath,
+            Vector3 slideTarget,
+            Vector3[] corners,
+            Vector3 from
+        ) => completeDirectPath ? slideTarget : SelectPathCorner(corners, from);
+
+        private void SteerDirectlyOrSlide(Vector3 from, Vector3 to) =>
+            SteerDirectlyOrSlide(from, to, TryGetObstacleSlide);
+
+        internal void SteerDirectlyOrSlide(Vector3 from, Vector3 to, ObstacleSlide trySlide)
         {
             Vector3 sampleOrigin = from.ToGround().ToWorld();
-            if (TryGetObstacleSlide(from, to, sampleOrigin, out Vector3 slideTarget))
+            if (trySlide(from, to, sampleOrigin, out Vector3 slideTarget))
                 SetProxyTarget(slideTarget);
             else
                 enemy.player = realPlayer;
@@ -204,16 +229,11 @@ namespace BudgetGameDev.Games.Brocoli
             if (nearest.collider == null)
                 return false;
 
-            Vector2 normal = nearest.normal.ToGround();
-            Vector2 tangent =
-                normal.sqrMagnitude > 0.001f
-                    ? new Vector2(-normal.y, normal.x).normalized
-                    : new Vector2(-direction.y, direction.x);
-            float tangentDot = Vector2.Dot(tangent, direction);
-            if (Mathf.Abs(tangentDot) < 0.05f ? recoverySide < 0 : tangentDot < 0f)
-                tangent = -tangent;
-
-            Vector2 slideDirection = (tangent * 0.9f + direction * 0.25f).normalized;
+            Vector2 slideDirection = CalculateSlideDirection(
+                nearest.normal.ToGround(),
+                direction,
+                recoverySide
+            );
             Vector3 requested = (from.ToGround() + slideDirection * RecoveryDistance).ToWorld();
             if (
                 !NavMesh.SamplePosition(requested, out NavMeshHit slideHit, 0.8f, NavMesh.AllAreas)
@@ -223,6 +243,19 @@ namespace BudgetGameDev.Games.Brocoli
 
             adjustedTarget = slideHit.position;
             return true;
+        }
+
+        internal static Vector2 CalculateSlideDirection(Vector2 normal, Vector2 direction, int side)
+        {
+            Vector2 tangent =
+                normal.sqrMagnitude > 0.001f
+                    ? new Vector2(-normal.y, normal.x).normalized
+                    : new Vector2(-direction.y, direction.x);
+            float tangentDot = Vector2.Dot(tangent, direction);
+            if (Mathf.Abs(tangentDot) < 0.05f ? side < 0 : tangentDot < 0f)
+                tangent = -tangent;
+
+            return (tangent * 0.9f + direction * 0.25f).normalized;
         }
 
         private bool IsNavigationObstacle(Collider candidate)

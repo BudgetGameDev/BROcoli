@@ -4,9 +4,11 @@ namespace BudgetGameDev.Games.Brocoli
 {
     public partial class SprayHandVisuals
     {
-        private float ResolveMovementAmount()
+        private float ResolveMovementAmount() => ResolveMovementAmount(Time.deltaTime);
+
+        internal float ResolveMovementAmount(float deltaTime)
         {
-            if (playerTransform == null || Time.deltaTime <= 0f)
+            if (playerTransform == null || deltaTime <= 0f)
                 return 0f;
 
             Vector2 currentPosition = playerTransform.position.ToGround();
@@ -32,7 +34,7 @@ namespace BudgetGameDev.Games.Brocoli
                 return 0f;
             }
 
-            float measuredSpeed = distanceMoved / Time.deltaTime;
+            float measuredSpeed = distanceMoved / deltaTime;
             float movementAmount = Mathf.Clamp01(measuredSpeed / referenceSpeed);
             Vector2 movementDirection = movementDelta;
             if (playerBody != null)

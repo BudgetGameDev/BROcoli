@@ -97,6 +97,11 @@ namespace BudgetGameDev.Games.Brocoli
                     ? playerStats.CurrentDamage * SpraySettings.DamagePerSimulatedHitMultiplier
                     : SpraySettings.BaseDamagePerParticle * 3f;
 
+            ApplyQueuedDamage(baseDamage, damageMultiplier);
+        }
+
+        internal void ApplyQueuedDamage(float baseDamage, float damageMultiplier)
+        {
             foreach (var kvp in particleHitCounts)
             {
                 EnemyBase enemy = kvp.Key;
@@ -151,11 +156,6 @@ namespace BudgetGameDev.Games.Brocoli
             }
 
             particleHitCounts.Clear();
-        }
-
-        public void SetWeaponKnockbackMultiplier(float multiplier)
-        {
-            weaponKnockbackMultiplier = Mathf.Max(0f, multiplier);
         }
 
         /// <summary>
@@ -224,11 +224,7 @@ namespace BudgetGameDev.Games.Brocoli
             for (int i = 0; i < hitCount; i++)
             {
                 Collider hit = hitBuffer[i];
-                if (hit == null || !hit.CompareTag("Enemy"))
-                    continue;
-
-                EnemyBase enemy = hit.GetComponent<EnemyBase>();
-                if (enemy == null)
+                if (!TryGetEnemy(hit, out EnemyBase enemy))
                     continue;
 
                 // Use predicted position for fast-moving enemies
@@ -253,25 +249,31 @@ namespace BudgetGameDev.Games.Brocoli
                     Vector3 sightOrigin = origin.ToWorld(nozzleOrigin.y);
                     Vector3 sightTarget = hit.bounds.center;
                     sightTarget.y = nozzleOrigin.y;
-                    if (!ProjectileWallCollision.HasClearLine(sightOrigin, sightTarget))
-                        continue;
-
-                    // Physics-based damage: particles fizzle over distance, spread over angle
-                    float distanceRatio = distance / currentRange;
-                    float distanceFalloff = 1f - Mathf.Pow(distanceRatio, 0.7f);
-
-                    float angleRatio = angleToEnemy / halfAngle;
-                    float angleFalloff = 1f - Mathf.Pow(angleRatio, 0.5f);
-
-                    float particleDensity = distanceFalloff * angleFalloff;
-                    int simulatedHits = Mathf.Max(1, Mathf.RoundToInt(5f * particleDensity));
-
-                    for (int j = 0; j < simulatedHits; j++)
+                    if (ProjectileWallCollision.HasClearLine(sightOrigin, sightTarget))
                     {
-                        RegisterParticleHit(enemy);
+                        // Physics-based damage: particles fizzle over distance, spread over angle
+                        float distanceRatio = distance / currentRange;
+                        float distanceFalloff = 1f - Mathf.Pow(distanceRatio, 0.7f);
+
+                        float angleRatio = angleToEnemy / halfAngle;
+                        float angleFalloff = 1f - Mathf.Pow(angleRatio, 0.5f);
+
+                        float particleDensity = distanceFalloff * angleFalloff;
+                        int simulatedHits = Mathf.Max(1, Mathf.RoundToInt(5f * particleDensity));
+
+                        for (int j = 0; j < simulatedHits; j++)
+                        {
+                            RegisterParticleHit(enemy);
+                        }
                     }
                 }
             }
+        }
+
+        internal static bool TryGetEnemy(Collider hit, out EnemyBase enemy)
+        {
+            enemy = hit != null && hit.CompareTag("Enemy") ? hit.GetComponent<EnemyBase>() : null;
+            return enemy != null;
         }
 
         /// <summary>

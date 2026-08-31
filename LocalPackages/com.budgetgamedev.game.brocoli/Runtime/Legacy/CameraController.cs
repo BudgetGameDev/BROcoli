@@ -85,28 +85,12 @@ namespace BudgetGameDev.Games.Brocoli
 
         private bool CheckIsMobile()
         {
-            // Check Device Simulator first (works in editor when simulating mobile devices)
-            if (UnityEngine.Device.SystemInfo.deviceType == DeviceType.Handheld)
-            {
-                Debug.Log(
-                    "[CameraController] Mobile detected via Device.SystemInfo (Device Simulator or real device)"
-                );
-                return true;
-            }
-
 #if UNITY_EDITOR
-            if (forceMobileZoomInEditor)
-            {
-                Debug.Log("[CameraController] Forcing mobile zoom in editor");
-                return true;
-            }
-            // In editor without device simulator, check regular SystemInfo as fallback
-            if (SystemInfo.deviceType == DeviceType.Handheld)
-            {
-                Debug.Log("[CameraController] Mobile detected via SystemInfo");
-                return true;
-            }
-            return false;
+            return IsMobileEnvironment(
+                UnityEngine.Device.SystemInfo.deviceType,
+                forceMobileZoomInEditor,
+                SystemInfo.deviceType
+            );
 #elif UNITY_WEBGL
             bool result = IsMobileBrowser() == 1;
             Debug.Log($"[CameraController] IsMobileBrowser returned: {result}");
@@ -117,6 +101,15 @@ namespace BudgetGameDev.Games.Brocoli
             return false;
 #endif
         }
+
+        internal static bool IsMobileEnvironment(
+            DeviceType simulatedDevice,
+            bool forceInEditor,
+            DeviceType fallbackDevice
+        ) =>
+            simulatedDevice == DeviceType.Handheld
+            || forceInEditor
+            || fallbackDevice == DeviceType.Handheld;
 
         void LateUpdate()
         {
@@ -172,28 +165,25 @@ namespace BudgetGameDev.Games.Brocoli
         void UpdateTargetZoom()
         {
             bool isPortrait = Screen.height > Screen.width;
+            targetFOV = CalculateTargetFov(
+                isPortrait,
+                isMobile,
+                landscapeFOV,
+                portraitFOV,
+                mobileZoomPercent
+            );
+        }
 
-            if (isPortrait)
-            {
-                // Portrait mode: use wider FOV to see more
-                targetFOV = portraitFOV;
-            }
-            else
-            {
-                // Landscape mode: use base FOV
-                targetFOV = landscapeFOV;
-            }
-
-            // Apply extra zoom on mobile (smaller FOV = more zoom)
-            if (isMobile && mobileZoomPercent > 0)
-            {
-                float zoomFactor = 1f - (mobileZoomPercent / 100f);
-                float originalFOV = targetFOV;
-                targetFOV *= zoomFactor;
-                Debug.Log(
-                    $"[CameraController] Mobile zoom applied: {originalFOV}° -> {targetFOV}° ({mobileZoomPercent}% zoom)"
-                );
-            }
+        internal static float CalculateTargetFov(
+            bool isPortrait,
+            bool mobile,
+            float landscape,
+            float portrait,
+            float mobileZoom
+        )
+        {
+            float fieldOfView = isPortrait ? portrait : landscape;
+            return mobile && mobileZoom > 0f ? fieldOfView * (1f - mobileZoom / 100f) : fieldOfView;
         }
     }
 }

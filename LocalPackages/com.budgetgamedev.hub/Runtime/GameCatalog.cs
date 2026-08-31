@@ -15,7 +15,12 @@ namespace BudgetGameDev.Hub
     /// </remarks>
     public static class GameCatalog
     {
-        private static GameDefinition[] cached;
+        /// <summary>
+        /// Cache behind <see cref="All"/>. Internal so edit-mode tests can stand a
+        /// known catalog in place of the Resources scan; the shipped game only ever
+        /// reaches it through <see cref="All"/> and <see cref="Invalidate"/>.
+        /// </summary>
+        internal static GameDefinition[] cached;
 
         /// <summary>Registered games, ordered as the launcher should list them.</summary>
         public static IReadOnlyList<GameDefinition> All => cached ??= Load();
@@ -28,12 +33,16 @@ namespace BudgetGameDev.Hub
                 string.Equals(game.Id, id, System.StringComparison.OrdinalIgnoreCase)
             );
 
-        private static GameDefinition[] Load()
-        {
-            GameDefinition[] found = Resources.LoadAll<GameDefinition>(
-                GameDefinition.ResourceFolder
-            );
+        private static GameDefinition[] Load() =>
+            Order(Resources.LoadAll<GameDefinition>(GameDefinition.ResourceFolder));
 
+        /// <summary>
+        /// Reports colliding ids and puts the games in launcher order. Kept apart
+        /// from the Resources scan so the rule can be checked against a known set:
+        /// a build can only ever contain the games its manifest happens to pull in.
+        /// </summary>
+        internal static GameDefinition[] Order(GameDefinition[] found)
+        {
             foreach (
                 IGrouping<string, GameDefinition> duplicate in found
                     .GroupBy(game => game.Id, System.StringComparer.OrdinalIgnoreCase)

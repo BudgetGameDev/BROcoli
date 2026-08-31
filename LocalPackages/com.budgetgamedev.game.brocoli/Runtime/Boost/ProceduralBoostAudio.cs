@@ -4,7 +4,6 @@ namespace BudgetGameDev.Games.Brocoli
 {
     /// <summary>
     /// Procedural audio generator for boost pickups.
-    /// Each boost type has a unique, thematic sound that matches its effect.
     /// </summary>
     public class ProceduralBoostAudio : MonoBehaviour
     {
@@ -46,7 +45,8 @@ namespace BudgetGameDev.Games.Brocoli
             if (sharedAudioSource == null)
             {
                 GameObject audioObj = new GameObject("BoostPickupAudio");
-                DontDestroyOnLoad(audioObj);
+                if (Application.isPlaying)
+                    DontDestroyOnLoad(audioObj);
                 sharedAudioSource = audioObj.AddComponent<AudioSource>();
                 sharedAudioSource.playOnAwake = false;
                 sharedAudioSource.spatialBlend = 0f;

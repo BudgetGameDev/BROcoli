@@ -71,6 +71,7 @@ run_gate \
 run_gate "Source file size" python3 scripts/check_source_size.py
 
 run_gate "Unity EditMode tests" ./scripts/unity-test-check.sh
+run_gate "Game runtime coverage" ./scripts/unity-coverage-check.sh
 run_gate "WebGL player build" ./scripts/unity-webgl-build.sh
 run_gate "WebGL desktop smoke test" ./scripts/webgl-smoke.sh build/WebGL
 run_gate \

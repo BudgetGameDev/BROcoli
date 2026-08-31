@@ -21,8 +21,8 @@ Run the complete local gate before pushing:
 It runs pinned C#, Python, and JavaScript formatting checks; strict Python,
 JavaScript, and shell linting; the host Python and Node unit tests; local
 Semgrep static-analysis rules; the
-300-line source-size ratchet, Unity EditMode tests, a release WebGL player
-build, and desktop and iOS-profile smoke probes. `Assets/csc.rsp` promotes every
+300-line source-size ratchet, Unity EditMode tests, the game-runtime coverage
+ratchet, a release WebGL player build, and desktop and iOS-profile smoke probes. `Assets/csc.rsp` promotes every
 C# compiler warning to an error at the compiler's maximum warning level. Unity
 tests reject unexpected log messages, player builds reject BuildReport warnings,
 and the smoke probes reject application and Unity runtime warnings and errors. The
@@ -75,6 +75,39 @@ had 35 larger files when the rule was introduced, so
 `.quality/loc-baseline.tsv` records their current ceilings. Those files may shrink
 but may not grow, and the baseline entry must be removed once a file reaches 300
 lines. This is a ratchet, not a general exemption.
+
+### Game-runtime line coverage
+
+Every line of the shipping game runtime must be covered by an EditMode test.
+The gate measures three assemblies — `BudgetGameDev.Games.Brocoli`,
+`BudgetGameDev.Shared` and `BudgetGameDev.Hub` — and nothing else: Editor
+assemblies are authoring tooling, test assemblies are the measuring instrument,
+and everything outside `BudgetGameDev.*` belongs to Unity or a third party.
+
+The target is 100%, reached by a ratchet. `.quality/coverage-baseline.tsv`
+records how many uncovered lines each file still carries; an entry may only
+shrink, and it must be deleted once its file reaches 100%. A file with no entry
+must be fully covered, so new runtime code arrives with tests or the gate fails.
+
+Coverage is never bought by suppressing it. `[ExcludeFromCodeCoverage]` and
+`[ExcludeFromCoverage]` are rejected outright in the measured assemblies: when a
+line is hard to reach, add the seam — an interface, an injected dependency, a
+method that takes its state as an argument — that lets a test reach it. The gate
+also fails if a measured assembly or runtime file is missing from the report, so
+code cannot escape by becoming invisible to instrumentation.
+
+Regenerate the baseline after a deliberate change with:
+
+```bash
+python3 scripts/check_coverage.py build/Coverage --write-baseline
+```
+
+Unlike the other Unity gates, `scripts/unity-coverage-check.sh` cannot reuse a
+connected Editor: instrumentation is switched on when the Editor boots and the
+Code Coverage package exposes no command on an attached instance. The gate
+therefore starts its own batch-mode Editor and refuses to run while any Editor
+holds the project. Close the open Editor before a promotion push, and reopen it
+with `unity-open` afterwards.
 
 ### Unity compilation and player verification
 

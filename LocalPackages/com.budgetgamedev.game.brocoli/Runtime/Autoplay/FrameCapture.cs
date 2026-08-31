@@ -38,7 +38,9 @@ namespace BudgetGameDev.Games.Brocoli
             StartCoroutine(CaptureLoop());
         }
 
-        private IEnumerator CaptureLoop()
+        private IEnumerator CaptureLoop() => CaptureLoop(ScreenCapture.CaptureScreenshot);
+
+        internal IEnumerator CaptureLoop(System.Action<string> capture)
         {
             float acc = 0f;
             bool first = true;
@@ -50,9 +52,7 @@ namespace BudgetGameDev.Games.Brocoli
                 {
                     first = false;
                     acc = 0f;
-                    ScreenCapture.CaptureScreenshot(
-                        Path.Combine(_framesDir, $"frame_{_index:D5}.png")
-                    );
+                    capture(Path.Combine(_framesDir, $"frame_{_index:D5}.png"));
                     _index++;
                 }
             }

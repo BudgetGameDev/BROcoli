@@ -76,10 +76,6 @@ namespace BudgetGameDev.Games.Brocoli
             if (_collider != null)
                 _collider.isTrigger = false;
 
-            if (_body == null)
-            {
-                Debug.LogError("PlayerMovement: No Rigidbody found!");
-            }
             if (_playerStats == null)
             {
                 Debug.LogWarning("PlayerMovement: No PlayerStats found - using default speed!");

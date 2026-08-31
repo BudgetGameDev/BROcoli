@@ -4,7 +4,7 @@ namespace BudgetGameDev.Games.Brocoli
 {
     public partial class DungeonPropPlacer
     {
-        private static bool OverlapsInteriorWall(
+        internal static bool OverlapsInteriorWall(
             Vector2 point,
             float radius,
             DungeonLayout.RoomArchetype archetype

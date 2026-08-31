@@ -63,6 +63,11 @@ namespace BudgetGameDev.Games.Brocoli
                 return 0;
 
             int chosen = (int)(Hash(room.x, room.y, salt) % (uint)count);
+            return PickNthDirectionBit(candidateMask, chosen);
+        }
+
+        internal static int PickNthDirectionBit(int candidateMask, int chosen)
+        {
             for (int direction = 0; direction < 4; direction++)
             {
                 if ((candidateMask & (1 << direction)) == 0)

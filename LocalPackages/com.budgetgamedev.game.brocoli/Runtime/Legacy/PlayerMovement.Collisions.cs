@@ -32,12 +32,9 @@ namespace BudgetGameDev.Games.Brocoli
             Vector2 resolvedDelta = Vector2.zero;
             Vector2 remainingDelta = desiredDelta;
 
-            for (int i = 0; i < MaxCollisionSlides; i++)
+            for (int i = 0; i < MaxCollisionSlides && remainingDelta.magnitude >= 0.0001f; i++)
             {
                 float distance = remainingDelta.magnitude;
-                if (distance < 0.0001f)
-                    break;
-
                 Vector2 direction = remainingDelta / distance;
                 bool hasEnemyHit = TryGetBlockingHit(
                     castTop,
@@ -133,30 +130,19 @@ namespace BudgetGameDev.Games.Brocoli
             for (int i = 0; i < hitCount; i++)
             {
                 RaycastHit candidate = _collisionHits[i];
-                if (candidate.collider == null || candidate.collider == _collider)
-                    continue;
-
                 if (
-                    !TryGetContactNormal(
+                    candidate.collider != null
+                    && candidate.collider != _collider
+                    && TryGetContactNormal(
                         candidate,
                         castTop,
                         castBottom,
                         direction,
                         out Vector2 normal
                     )
+                    && Vector2.Dot(direction, normal) < -GrazingApproach
+                    && candidate.distance < closestDistance
                 )
-                    continue;
-
-                // A surface has to face us to stop us. Anything we are only grazing
-                // is something we slide past, and treating it as blocking is what
-                // used to catch the player on the seam between two wall pieces: the
-                // corner of the next slab is reached edge-on, at right angles to the
-                // way we are travelling, and clamping the travel against it froze
-                // the run flush against an otherwise smooth wall.
-                if (Vector2.Dot(direction, normal) >= -GrazingApproach)
-                    continue;
-
-                if (candidate.distance < closestDistance)
                 {
                     closestDistance = candidate.distance;
                     closestHit = candidate;
@@ -195,14 +181,13 @@ namespace BudgetGameDev.Games.Brocoli
             // A purely vertical normal - the top of a wall, the lip of a step -
             // cannot oppose movement across the ground, and a zero-length one means
             // the cast centre is inside the collider.
-            if (candidate.sqrMagnitude < 0.000001f)
-            {
-                normal = Vector2.zero;
-                return false;
-            }
+            return TryNormalizeContact(candidate, out normal);
+        }
 
-            normal = candidate.normalized;
-            return true;
+        internal static bool TryNormalizeContact(Vector2 candidate, out Vector2 normal)
+        {
+            normal = candidate.sqrMagnitude < 0.000001f ? Vector2.zero : candidate.normalized;
+            return normal != Vector2.zero;
         }
 
         /// <summary>

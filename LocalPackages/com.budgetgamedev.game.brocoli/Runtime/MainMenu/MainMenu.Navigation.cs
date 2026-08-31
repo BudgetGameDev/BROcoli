@@ -110,9 +110,6 @@ namespace BudgetGameDev.Games.Brocoli
         {
             RectTransform a = first.GetComponent<RectTransform>();
             RectTransform b = second.GetComponent<RectTransform>();
-            if (a == null || b == null)
-                return 0;
-
             Vector3 firstPosition = a.position;
             Vector3 secondPosition = b.position;
             return !Mathf.Approximately(firstPosition.y, secondPosition.y)
@@ -139,17 +136,31 @@ namespace BudgetGameDev.Games.Brocoli
         /// <summary>Vertical menu axis from keyboard, d-pad or left stick; up is positive.</summary>
         private static float ReadNavigationAxis()
         {
-            float vertical = 0f;
-            if (Input.GetKey(KeyCode.UpArrow) || Input.GetKey(KeyCode.W))
-                vertical = 1f;
-            else if (Input.GetKey(KeyCode.DownArrow) || Input.GetKey(KeyCode.S))
-                vertical = -1f;
+            return ResolveNavigationAxis(
+                Input.GetKey(KeyCode.UpArrow) || Input.GetKey(KeyCode.W),
+                Input.GetKey(KeyCode.DownArrow) || Input.GetKey(KeyCode.S),
+                Gamepad.current?.dpad.ReadValue(),
+                Gamepad.current?.leftStick.ReadValue()
+            );
+        }
 
-            if (Gamepad.current != null)
+        internal static float ResolveNavigationAxis(
+            bool up,
+            bool down,
+            Vector2? dpad,
+            Vector2? leftStick
+        )
+        {
+            float vertical =
+                up ? 1f
+                : down ? -1f
+                : 0f;
+
+            if (dpad.HasValue)
             {
-                Vector2 axis = Gamepad.current.dpad.ReadValue();
+                Vector2 axis = dpad.Value;
                 if (axis.sqrMagnitude < 0.25f)
-                    axis = Gamepad.current.leftStick.ReadValue();
+                    axis = leftStick.GetValueOrDefault();
                 if (Mathf.Abs(axis.y) > 0.5f)
                     vertical = Mathf.Sign(axis.y);
             }
@@ -194,9 +205,19 @@ namespace BudgetGameDev.Games.Brocoli
                 || Input.GetKeyDown(KeyCode.Space)
                 || (Gamepad.current != null && Gamepad.current.buttonSouth.wasPressedThisFrame);
 
+            HandleSubmit(pressed);
+        }
+
+        internal void HandleSubmit(bool pressed)
+        {
             if (!pressed || selectedIndex < 0 || selectedIndex >= menuButtons.Length)
                 return;
 
+            SubmitSelected();
+        }
+
+        internal void SubmitSelected()
+        {
             Button button = menuButtons[selectedIndex];
             if (button == null || !button.interactable || !MenuInputGate.TryConsumeSubmit())
                 return;

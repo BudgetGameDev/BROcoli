@@ -130,8 +130,6 @@ namespace BudgetGameDev.Games.Brocoli
                 );
                 Ray ray = camera.ViewportPointToRay(viewportPoint);
                 float forwardAmount = Vector3.Dot(ray.direction, camera.Forward);
-                if (forwardAmount <= 0.0001f)
-                    continue;
 
                 candidates.Clear();
                 source.Collect(ray, maximumDepth / forwardAmount, candidates);

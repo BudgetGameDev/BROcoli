@@ -411,19 +411,11 @@ namespace BudgetGameDev.Games.Brocoli
             // Handle gamepad/keyboard navigation
             HandleControllerNavigation();
 
-            // Keyboard number shortcuts
-            if (Input.GetKeyDown(KeyCode.Alpha1) || Input.GetKeyDown(KeyCode.Keypad1))
-            {
-                ChooseUpgrade(0);
-            }
-            else if (Input.GetKeyDown(KeyCode.Alpha2) || Input.GetKeyDown(KeyCode.Keypad2))
-            {
-                ChooseUpgrade(1);
-            }
-            else if (Input.GetKeyDown(KeyCode.Alpha3) || Input.GetKeyDown(KeyCode.Keypad3))
-            {
-                ChooseUpgrade(2);
-            }
+            ProcessKeyboardShortcuts(
+                Input.GetKeyDown(KeyCode.Alpha1) || Input.GetKeyDown(KeyCode.Keypad1),
+                Input.GetKeyDown(KeyCode.Alpha2) || Input.GetKeyDown(KeyCode.Keypad2),
+                Input.GetKeyDown(KeyCode.Alpha3) || Input.GetKeyDown(KeyCode.Keypad3)
+            );
 
             // Update selection visuals
             UpdateSelectionVisuals();

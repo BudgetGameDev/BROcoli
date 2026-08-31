@@ -40,7 +40,7 @@ namespace BudgetGameDev.Shared
         public static string MixerResourcePath { get; private set; }
         public static string MenuSceneName { get; private set; }
 
-        private static GameAudioSettings instance;
+        internal static GameAudioSettings instance;
         private static bool valuesLoaded;
         private static bool pauseMenuOpen;
         private static float masterVolume;
@@ -50,7 +50,7 @@ namespace BudgetGameDev.Shared
         private AudioMixer mixer;
         private AudioMixerGroup ambienceGroup;
         private AudioMixerGroup sfxGroup;
-        private float nextSourceScan;
+        internal float nextSourceScan;
 
         public static event Action ValuesChanged;
 
@@ -82,7 +82,7 @@ namespace BudgetGameDev.Shared
         }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        private static void ResetStatics()
+        internal static void ResetStatics()
         {
             instance = null;
             valuesLoaded = false;
@@ -92,7 +92,7 @@ namespace BudgetGameDev.Shared
         }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
-        private static void Bootstrap()
+        internal static void Bootstrap()
         {
             LoadValues();
             if (instance != null)
@@ -100,14 +100,18 @@ namespace BudgetGameDev.Shared
 
             GameObject root = new("Game Audio Settings");
             instance = root.AddComponent<GameAudioSettings>();
-            DontDestroyOnLoad(root);
+            if (Application.isPlaying)
+                DontDestroyOnLoad(root); // Refused outside play mode.
         }
 
-        private void Awake()
+        internal void Awake()
         {
             if (instance != null && instance != this)
             {
-                Destroy(gameObject);
+                if (Application.isPlaying)
+                    Destroy(gameObject);
+                else
+                    DestroyImmediate(gameObject); // Destroy is refused in the editor.
                 return;
             }
 
@@ -129,13 +133,13 @@ namespace BudgetGameDev.Shared
             SceneManager.sceneLoaded += HandleSceneLoaded;
         }
 
-        private void OnDestroy()
+        internal void OnDestroy()
         {
             if (instance == this)
                 SceneManager.sceneLoaded -= HandleSceneLoaded;
         }
 
-        private void LateUpdate()
+        internal void LateUpdate()
         {
             if (Time.unscaledTime < nextSourceScan)
                 return;
@@ -145,7 +149,7 @@ namespace BudgetGameDev.Shared
             RouteAllSources();
         }
 
-        private void HandleSceneLoaded(Scene scene, LoadSceneMode mode)
+        internal void HandleSceneLoaded(Scene scene, LoadSceneMode mode)
         {
             pauseMenuOpen = false;
             AudioListener.pause = false;
@@ -228,19 +232,20 @@ namespace BudgetGameDev.Shared
                 return;
 
             mixer.SetFloat(MasterParameter, LinearToDecibels(masterVolume));
-            float ambienceDecibels = ShouldSuppressAmbience()
+            float ambienceDecibels = ShouldSuppressAmbience(SceneManager.GetActiveScene().name)
                 ? MutedDecibels
                 : LinearToDecibels(ambienceVolume);
             mixer.SetFloat(AmbienceParameter, ambienceDecibels);
             mixer.SetFloat(SfxParameter, LinearToDecibels(sfxVolume));
         }
 
-        private static bool ShouldSuppressAmbience() =>
+        /// <summary>
+        /// Whether the ambience bus is muted: while the pause menu is up, and while
+        /// the configured menu scene is the active one.
+        /// </summary>
+        internal static bool ShouldSuppressAmbience(string activeSceneName) =>
             pauseMenuOpen
-            || (
-                !string.IsNullOrEmpty(MenuSceneName)
-                && SceneManager.GetActiveScene().name == MenuSceneName
-            );
+            || (!string.IsNullOrEmpty(MenuSceneName) && activeSceneName == MenuSceneName);
 
         private void RouteAllSources()
         {
@@ -264,7 +269,7 @@ namespace BudgetGameDev.Shared
             }
         }
 
-        private static bool IsAmbience(AudioSource source)
+        internal static bool IsAmbience(AudioSource source)
         {
             string identity = source.gameObject.name;
             if (source.clip != null)
@@ -283,7 +288,7 @@ namespace BudgetGameDev.Shared
                 || identity.Contains("umhv");
         }
 
-        private static float LinearToDecibels(float value)
+        internal static float LinearToDecibels(float value)
         {
             return value <= 0.0001f ? -80f : Mathf.Log10(value) * 20f;
         }

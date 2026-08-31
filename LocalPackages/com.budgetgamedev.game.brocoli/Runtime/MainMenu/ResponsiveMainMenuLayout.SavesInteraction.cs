@@ -2,7 +2,6 @@ using System;
 using BudgetGameDev.Shared;
 using UnityEngine;
 using UnityEngine.EventSystems;
-using UnityEngine.InputSystem;
 using UnityEngine.UI;
 using static BudgetGameDev.Shared.MenuTheme;
 
@@ -110,14 +109,20 @@ namespace BudgetGameDev.Games.Brocoli
             ApplyResponsiveLayout(true);
         }
 
-        private void PlaySelectedRun()
+        private void PlaySelectedRun() =>
+            PlaySelectedRun(slot =>
+            {
+                MainMenu menu = GetComponent<MainMenu>();
+                return menu != null && menu.LoadSave(slot);
+            });
+
+        internal void PlaySelectedRun(System.Func<int, bool> loadSave)
         {
             if (selectedRow < 0 || selectedRow >= visibleSaveCount)
                 return;
 
             int slot = saveRows[selectedRow].Slot;
-            MainMenu menu = GetComponent<MainMenu>();
-            if (menu != null && menu.LoadSave(slot))
+            if (loadSave(slot))
                 return;
 
             // The slot emptied underneath us - another tab, a cleared browser
@@ -222,66 +227,6 @@ namespace BudgetGameDev.Games.Brocoli
                     select();
             });
             trigger.triggers.Add(entry);
-        }
-
-        private void UpdateSavesInput()
-        {
-            bool cancel =
-                Input.GetKeyDown(KeyCode.Escape)
-                || (Gamepad.current != null && Gamepad.current.buttonEast.wasPressedThisFrame);
-            if (cancel && MenuInputGate.TryConsumeCancel())
-            {
-                CloseSaves();
-                return;
-            }
-
-            float vertical =
-                Input.GetKey(KeyCode.UpArrow) || Input.GetKey(KeyCode.W) ? 1f
-                : Input.GetKey(KeyCode.DownArrow) || Input.GetKey(KeyCode.S) ? -1f
-                : 0f;
-            float horizontal =
-                Input.GetKey(KeyCode.RightArrow) || Input.GetKey(KeyCode.D) ? 1f
-                : Input.GetKey(KeyCode.LeftArrow) || Input.GetKey(KeyCode.A) ? -1f
-                : 0f;
-            if (Gamepad.current != null)
-            {
-                Vector2 axis = Gamepad.current.dpad.ReadValue();
-                if (axis.sqrMagnitude < 0.25f)
-                    axis = Gamepad.current.leftStick.ReadValue();
-                if (Mathf.Abs(axis.y) > 0.5f)
-                    vertical = Mathf.Sign(axis.y);
-                if (Mathf.Abs(axis.x) > 0.5f)
-                    horizontal = Mathf.Sign(axis.x);
-            }
-
-            if (Time.unscaledTime - lastSavesNavTime >= 0.18f)
-            {
-                if (Mathf.Abs(vertical) > 0.5f)
-                {
-                    lastSavesNavTime = Time.unscaledTime;
-                    FocusSave(savesFocus + (vertical > 0f ? -1 : 1));
-                }
-                else if (Mathf.Abs(horizontal) > 0.5f && OnActionLine)
-                {
-                    lastSavesNavTime = Time.unscaledTime;
-                    FocusAction(horizontal > 0f ? 1 : 0);
-                }
-            }
-
-            bool submit =
-                Input.GetKeyDown(KeyCode.Return)
-                || Input.GetKeyDown(KeyCode.KeypadEnter)
-                || Input.GetKeyDown(KeyCode.Space)
-                || (Gamepad.current != null && Gamepad.current.buttonSouth.wasPressedThisFrame);
-            if (
-                submit
-                && CurrentSaveSelectable() is Button button
-                && button.interactable
-                && MenuInputGate.TryConsumeSubmit()
-            )
-            {
-                button.onClick.Invoke();
-            }
         }
     }
 }

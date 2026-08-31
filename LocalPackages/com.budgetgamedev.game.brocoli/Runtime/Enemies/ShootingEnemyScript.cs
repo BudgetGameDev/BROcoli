@@ -77,13 +77,12 @@ namespace BudgetGameDev.Games.Brocoli
 
             Vector2 toPlayer = player.position.ToGround() - rb.GroundPosition();
             float dist = toPlayer.magnitude;
+            if (dist < 0.0001f)
+                return;
 
             // If far away -> move towards player
             if (dist > stopDistance)
             {
-                if (dist < 0.0001f)
-                    return;
-
                 Vector2 dir = toPlayer / dist; // normalized
                 Vector2 targetVel = dir * Speed * EnemyTimeScale;
 

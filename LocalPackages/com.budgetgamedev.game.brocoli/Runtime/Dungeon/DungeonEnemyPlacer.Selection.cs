@@ -5,7 +5,7 @@ namespace BudgetGameDev.Games.Brocoli
 {
     public static partial class DungeonEnemyPlacer
     {
-        private static EnemyBase PickEnemy(
+        internal static EnemyBase PickEnemy(
             List<EnemyBase> allowed,
             EnemyBase swarmSpider,
             DungeonLayout.RoomArchetype archetype,
@@ -30,7 +30,7 @@ namespace BudgetGameDev.Games.Brocoli
             return allowed[random.Next(allowed.Count)];
         }
 
-        private static EnemyBase FindSpider(List<EnemyBase> allowed)
+        internal static EnemyBase FindSpider(List<EnemyBase> allowed)
         {
             foreach (EnemyBase candidate in allowed)
             {
@@ -41,7 +41,7 @@ namespace BudgetGameDev.Games.Brocoli
             return null;
         }
 
-        private static Vector2 PickSpot(
+        internal static Vector2 PickSpot(
             Vector2 roomCenter,
             DungeonLayout.RoomArchetype archetype,
             System.Random random
@@ -72,7 +72,7 @@ namespace BudgetGameDev.Games.Brocoli
             return roomCenter + new Vector2(halfWidth, halfDepth);
         }
 
-        private static bool IsOnDivider(Vector2 offset, DungeonLayout.RoomArchetype archetype)
+        internal static bool IsOnDivider(Vector2 offset, DungeonLayout.RoomArchetype archetype)
         {
             if (archetype.Shape != DungeonLayout.RoomShape.Divided)
                 return false;
@@ -95,7 +95,7 @@ namespace BudgetGameDev.Games.Brocoli
         }
 
         /// <summary>The minimum ring distance at which an enemy type appears.</summary>
-        private static int MinRingFor(string prefabName)
+        internal static int MinRingFor(string prefabName)
         {
             if (prefabName.Contains("Hydra"))
                 return 4;

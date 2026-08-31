@@ -10,9 +10,9 @@ namespace BudgetGameDev.Shared
     /// </summary>
     public class LoadingScreenUI
     {
-        private Canvas _canvas;
-        private Image _progressBarFill;
-        private TextMeshProUGUI _loadingLabel;
+        internal Canvas _canvas;
+        internal Image _progressBarFill;
+        internal TextMeshProUGUI _loadingLabel;
         private float _progress = 0f;
 
         public LoadingScreenUI(
@@ -116,8 +116,15 @@ namespace BudgetGameDev.Shared
 
         public void Destroy()
         {
-            if (_canvas != null)
+            if (_canvas == null)
+                return;
+
+            // Object.Destroy only works while the game is playing, and a loading
+            // screen is also raised by editor tooling that has to tear it down.
+            if (Application.isPlaying)
                 Object.Destroy(_canvas.gameObject);
+            else
+                Object.DestroyImmediate(_canvas.gameObject);
         }
     }
 }

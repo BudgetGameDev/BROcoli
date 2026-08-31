@@ -91,18 +91,24 @@ namespace BudgetGameDev.Games.Brocoli
             }
 
             int cornerCount = path.GetCornersNonAlloc(pathCorners);
+            cachedPathDirection = SelectPathDirection(pathCorners, cornerCount, position, target);
+            return NavigateLocal(position, cachedPathDirection);
+        }
+
+        internal static Vector2 SelectPathDirection(
+            Vector3[] corners,
+            int cornerCount,
+            Vector2 position,
+            Vector2 target
+        )
+        {
             int corner = 1;
             while (
                 corner < cornerCount - 1
-                && (pathCorners[corner].ToGround() - position).sqrMagnitude < 0.5f
+                && (corners[corner].ToGround() - position).sqrMagnitude < 0.5f
             )
-            {
                 corner++;
-            }
-
-            cachedPathDirection =
-                cornerCount > 1 ? pathCorners[corner].ToGround() - position : target - position;
-            return NavigateLocal(position, cachedPathDirection);
+            return cornerCount > 1 ? corners[corner].ToGround() - position : target - position;
         }
 
         private Vector2 NavigateLocal(Vector2 position, Vector2 desired)

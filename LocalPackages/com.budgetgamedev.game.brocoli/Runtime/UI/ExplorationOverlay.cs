@@ -107,20 +107,40 @@ namespace BudgetGameDev.Games.Brocoli
 
         private void HandleGlobalInput()
         {
-            if (Input.GetKeyDown(KeyCode.M))
+            Keyboard keyboard = Keyboard.current;
+            Gamepad gamepad = Gamepad.current;
+            ProcessGlobalInput(
+                keyboard?.mKey.wasPressedThisFrame == true,
+                keyboard?.iKey.wasPressedThisFrame == true,
+                gamepad?.selectButton.wasPressedThisFrame == true,
+                keyboard?.escapeKey.wasPressedThisFrame == true,
+                gamepad?.leftShoulder.wasPressedThisFrame == true,
+                gamepad?.rightShoulder.wasPressedThisFrame == true
+            );
+        }
+
+        internal void ProcessGlobalInput(
+            bool mapPressed,
+            bool inventoryPressed,
+            bool selectPressed,
+            bool escapePressed,
+            bool previousPressed,
+            bool nextPressed
+        )
+        {
+            if (mapPressed)
             {
                 TogglePane(Pane.Map);
                 return;
             }
 
-            if (Input.GetKeyDown(KeyCode.I))
+            if (inventoryPressed)
             {
                 TogglePane(Pane.Inventory);
                 return;
             }
 
-            Gamepad gamepad = Gamepad.current;
-            if (gamepad != null && gamepad.selectButton.wasPressedThisFrame)
+            if (selectPressed)
             {
                 if (IsOpen)
                     Close();
@@ -132,19 +152,16 @@ namespace BudgetGameDev.Games.Brocoli
             if (!IsOpen)
                 return;
 
-            if (Input.GetKeyDown(KeyCode.Escape))
+            if (escapePressed)
             {
                 Close();
                 return;
             }
 
-            if (gamepad != null)
-            {
-                if (gamepad.leftShoulder.wasPressedThisFrame)
-                    SwitchPane(-1);
-                else if (gamepad.rightShoulder.wasPressedThisFrame)
-                    SwitchPane(1);
-            }
+            if (previousPressed)
+                SwitchPane(-1);
+            else if (nextPressed)
+                SwitchPane(1);
         }
 
         private void HandleMapControllerInput()
@@ -154,12 +171,18 @@ namespace BudgetGameDev.Games.Brocoli
                 return;
 
             Vector2 pan = gamepad.rightStick.ReadValue();
-            if (pan.sqrMagnitude > 0.04f)
-                mapGraphic.Pan(pan * (ControllerPanSpeed * Time.unscaledDeltaTime));
-
             float zoom = gamepad.rightTrigger.ReadValue() - gamepad.leftTrigger.ReadValue();
+            ProcessMapInput(pan, zoom, Time.unscaledDeltaTime);
+        }
+
+        internal void ProcessMapInput(Vector2 pan, float zoom, float deltaTime)
+        {
+            if (mapGraphic == null)
+                return;
+            if (pan.sqrMagnitude > 0.04f)
+                mapGraphic.Pan(pan * (ControllerPanSpeed * deltaTime));
             if (Mathf.Abs(zoom) > 0.08f)
-                mapGraphic.ZoomBy(zoom * ControllerZoomSpeed * Time.unscaledDeltaTime);
+                mapGraphic.ZoomBy(zoom * ControllerZoomSpeed * deltaTime);
         }
 
         private void TogglePane(Pane pane)

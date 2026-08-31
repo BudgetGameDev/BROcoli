@@ -30,8 +30,9 @@ forbidden is wiring one to run automatically on `dev`.
 
 ## Why it is built this way
 
-The gate is expensive: it runs a full Unity EditMode suite, a WebGL player
-build, and two browser smoke tests, which takes minutes rather than seconds.
+The gate is expensive: it runs a full Unity EditMode suite, a second
+instrumented run of that suite to measure coverage, a WebGL player build, and
+two browser smoke tests, which takes minutes rather than seconds.
 Paying that on every `dev` push would make the branch unusable for the small,
 frequent commits it exists to carry. Promotion to `staging` or `production` is
 the point where correctness has to be established, so that is where the cost is
@@ -53,10 +54,23 @@ would rebuild, so `./cd.sh` publishes that one instead of paying twice.
 ## When you touch the gates
 
 - Gate roots are listed in `ci.sh` and `format.sh`, the static-analysis paths in
-  `.semgrep.yml`, and the source-size roots in `scripts/check_source_size.py`.
-  Moving source between trees means updating all of them together.
+  `.semgrep.yml`, the source-size roots in `scripts/check_source_size.py`, and
+  the measured coverage assemblies in `scripts/check_coverage.py` and
+  `scripts/unity-coverage-check.sh`. Moving source between trees means updating
+  all of them together.
 - `.quality/loc-baseline.tsv` records grandfathered oversized files. Entries may
   only decrease; remove one once its file reaches the 300-line limit.
+- `.quality/coverage-baseline.tsv` records the uncovered lines each game-runtime
+  file still carries. Entries may only decrease; remove one once its file
+  reaches 100%. A runtime file with no entry must be fully covered.
+- The coverage gate runs its own batch-mode Editor, because instrumentation is
+  enabled at Editor boot and the Code Coverage package offers no command on an
+  attached instance. It is the one Unity gate that cannot reuse a connected
+  Editor, and it refuses to run while one holds the project.
+- Coverage suppression attributes are rejected rather than counted. Raising
+  coverage means adding a seam that makes the line reachable, so the two
+  baselines pull in opposite directions on purpose: files shrink toward 300
+  lines while their covered fraction grows toward 100%.
 - The hosted workflow caches `Library` on a hash of the source trees. A new
   top-level source directory must be added to that key, or the cache will
   survive changes it should invalidate.

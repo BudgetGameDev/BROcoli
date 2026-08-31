@@ -30,9 +30,6 @@ namespace BudgetGameDev.Games.Brocoli
         private void WarnOnDuplicateStats()
         {
             Transform root = transform.root;
-            if (root == null)
-                return;
-
             PlayerStats[] onPlayer = root.GetComponentsInChildren<PlayerStats>(true);
             if (onPlayer.Length > 1)
             {

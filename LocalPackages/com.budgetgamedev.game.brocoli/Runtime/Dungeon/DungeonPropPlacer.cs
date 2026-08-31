@@ -27,7 +27,7 @@ namespace BudgetGameDev.Games.Brocoli
         private const float WallSealGap = 0.18f;
         private const float LargePropSeparation = 3.8f;
 
-        private readonly struct OccupiedSpot
+        internal readonly struct OccupiedSpot
         {
             public readonly Vector2 Position;
             public readonly float Radius;

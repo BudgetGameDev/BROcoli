@@ -13,7 +13,7 @@ namespace BudgetGameDev.Hub
         private static readonly Color Ink = new(0.92f, 0.93f, 0.95f);
         private static readonly Color InkMuted = new(0.62f, 0.65f, 0.70f);
 
-        private void BuildInterface()
+        internal void BuildInterface()
         {
             Canvas canvas = ScreenCanvasLocator.GetOrCreate();
             RectTransform root = CreateRect("Launcher", canvas.transform);

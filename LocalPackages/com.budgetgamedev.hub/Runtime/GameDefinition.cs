@@ -90,7 +90,7 @@ namespace BudgetGameDev.Hub
         public UnityEditor.SceneAsset[] AdditionalScenes => additionalScenes;
 
         /// <summary>Keeps the runtime scene names matching the dragged assets.</summary>
-        private void OnValidate()
+        internal void OnValidate()
         {
             if (string.IsNullOrWhiteSpace(id))
                 id = name.ToLowerInvariant();

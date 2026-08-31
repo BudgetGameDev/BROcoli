@@ -192,7 +192,6 @@ namespace BudgetGameDev.Games.Brocoli
         protected virtual void OnEnable()
         {
             // OnEnable also runs after an editor script reload. Clamp live enemies
-            // that may still carry the old launch-prone serialized values.
             EnforceSafePhysicsLimits();
             ConfigureSolidBody();
 
@@ -769,20 +768,21 @@ namespace BudgetGameDev.Games.Brocoli
             }
         }
 
-        private void CompleteDeath()
+        private void CompleteDeath() => CompleteDeath(PoolManager.Instance, Destroy);
+
+        internal void CompleteDeath(PoolManager poolManager, System.Action<GameObject> destroy)
         {
             // Return to pool or destroy only after the visible death finishes.
             if (_isPooled)
             {
-                PoolManager poolManager = PoolManager.Instance;
                 if (poolManager != null)
                     poolManager.ReturnEnemy(this);
                 else
-                    Destroy(gameObject);
+                    destroy(gameObject);
             }
             else
             {
-                Destroy(gameObject);
+                destroy(gameObject);
             }
         }
 

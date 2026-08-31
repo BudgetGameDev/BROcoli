@@ -235,62 +235,7 @@ namespace BudgetGameDev.Games.Brocoli
 
             if (!SettingsOpen)
                 return;
-
-            bool cancel =
-                Input.GetKeyDown(KeyCode.Escape)
-                || (Gamepad.current != null && Gamepad.current.buttonEast.wasPressedThisFrame);
-            if (cancel && MenuInputGate.TryConsumeCancel())
-            {
-                CloseSettings();
-                return;
-            }
-
-            float vertical =
-                Input.GetKey(KeyCode.UpArrow) || Input.GetKey(KeyCode.W) ? 1f
-                : Input.GetKey(KeyCode.DownArrow) || Input.GetKey(KeyCode.S) ? -1f
-                : 0f;
-            float horizontal =
-                Input.GetKey(KeyCode.RightArrow) || Input.GetKey(KeyCode.D) ? 1f
-                : Input.GetKey(KeyCode.LeftArrow) || Input.GetKey(KeyCode.A) ? -1f
-                : 0f;
-            if (Gamepad.current != null)
-            {
-                Vector2 axis = Gamepad.current.dpad.ReadValue();
-                if (axis.sqrMagnitude < 0.25f)
-                    axis = Gamepad.current.leftStick.ReadValue();
-                if (Mathf.Abs(axis.y) > 0.5f)
-                    vertical = Mathf.Sign(axis.y);
-                if (Mathf.Abs(axis.x) > 0.5f)
-                    horizontal = Mathf.Sign(axis.x);
-            }
-
-            if (Time.unscaledTime - lastSettingsNavTime >= 0.18f)
-            {
-                if (Mathf.Abs(vertical) > 0.5f)
-                {
-                    lastSettingsNavTime = Time.unscaledTime;
-                    SelectSetting(selectedSetting + (vertical > 0f ? -1 : 1));
-                }
-                else if (Mathf.Abs(horizontal) > 0.5f && selectedSetting < volumeSliders.Length)
-                {
-                    lastSettingsNavTime = Time.unscaledTime;
-                    volumeSliders[selectedSetting].value += Mathf.Sign(horizontal) * 0.05f;
-                }
-            }
-
-            bool submit =
-                Input.GetKeyDown(KeyCode.Return)
-                || Input.GetKeyDown(KeyCode.KeypadEnter)
-                || Input.GetKeyDown(KeyCode.Space)
-                || (Gamepad.current != null && Gamepad.current.buttonSouth.wasPressedThisFrame);
-            if (
-                submit
-                && settingsSelectables[selectedSetting] is Button button
-                && MenuInputGate.TryConsumeSubmit()
-            )
-            {
-                button.onClick.Invoke();
-            }
+            UpdateSettingsInput();
         }
     }
 }
