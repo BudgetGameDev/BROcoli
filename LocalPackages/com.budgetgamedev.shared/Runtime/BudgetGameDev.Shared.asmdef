@@ -3,6 +3,7 @@
   "rootNamespace": "BudgetGameDev.Shared",
   "references": [
     "Unity.InputSystem",
+    "Unity.RenderPipelines.Core.Runtime",
     "Unity.RenderPipelines.Universal.Runtime",
     "Unity.TextMeshPro",
     "UnityEngine.UI"

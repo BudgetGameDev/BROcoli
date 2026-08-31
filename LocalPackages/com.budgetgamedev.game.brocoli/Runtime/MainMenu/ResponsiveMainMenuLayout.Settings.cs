@@ -16,6 +16,12 @@ namespace BudgetGameDev.Games.Brocoli
         private readonly Slider[] volumeSliders = new Slider[3];
         private readonly TMP_Text[] volumeValues = new TMP_Text[3];
         private readonly RectTransform[] volumeRows = new RectTransform[3];
+        private readonly RectTransform[] settingsRows = new RectTransform[4];
+        private RectTransform hdrRow;
+        private Button hdrToggleButton;
+        private TMP_Text hdrToggleValue;
+        private Button hdrCalibrationButton;
+        private TMP_Text hdrStatus;
         private Button settingsButton;
         private Button resetSettingsButton;
         private Button backSettingsButton;
@@ -32,6 +38,7 @@ namespace BudgetGameDev.Games.Brocoli
         private static void ResetSettingsState()
         {
             SettingsOpen = false;
+            HdrCalibrationOpen = false;
             CreditsOpen = false;
             SavesOpen = false;
         }
@@ -65,16 +72,17 @@ namespace BudgetGameDev.Games.Brocoli
             settingsTitle = CreateText(
                 "SettingsTitle",
                 settingsPanel,
-                "SOUND SETTINGS",
+                "SOUND & DISPLAY",
                 22f,
                 OnSurface
             );
             CreateVolumeRow(0, "MASTER", GameAudioSettings.SetMasterVolume);
             CreateVolumeRow(1, "AMBIENCE", GameAudioSettings.SetAmbienceVolume);
             CreateVolumeRow(2, "SOUND EFFECTS", GameAudioSettings.SetSfxVolume);
+            CreateHdrRow();
 
-            resetSettingsButton = CreateButton("ResetAudioButton", settingsPanel, "RESET");
-            resetSettingsButton.onClick.AddListener(GameAudioSettings.ResetToDefaults);
+            resetSettingsButton = CreateButton("ResetSettingsButton", settingsPanel, "RESET");
+            resetSettingsButton.onClick.AddListener(ResetSettingsToDefaults);
             backSettingsButton = CreateButton("BackFromSettingsButton", settingsPanel, "BACK");
             backSettingsButton.onClick.AddListener(CloseSettings);
             settingsActionButtons = new[] { resetSettingsButton, backSettingsButton };
@@ -83,19 +91,26 @@ namespace BudgetGameDev.Games.Brocoli
                 volumeSliders[0],
                 volumeSliders[1],
                 volumeSliders[2],
+                hdrToggleButton,
+                hdrCalibrationButton,
                 resetSettingsButton,
                 backSettingsButton,
             };
             RegisterPointerSelection();
-            SyncVolumeControls();
+            SyncSettingsControls();
             GameAudioSettings.ValuesChanged += SyncVolumeControls;
+            GameDisplaySettings.ValuesChanged += SyncHdrControl;
             settingsPanel.gameObject.SetActive(false);
+            BuildHdrCalibrationPresentation();
         }
 
         private void OnDestroy()
         {
             GameAudioSettings.ValuesChanged -= SyncVolumeControls;
+            GameDisplaySettings.ValuesChanged -= SyncHdrControl;
+            DestroyHdrCalibrationMaterials();
             SettingsOpen = false;
+            HdrCalibrationOpen = false;
             CreditsOpen = false;
             SavesOpen = false;
         }
@@ -108,6 +123,7 @@ namespace BudgetGameDev.Games.Brocoli
         {
             RectTransform row = CreateRect(label + "Row", settingsPanel);
             volumeRows[index] = row;
+            settingsRows[index] = row;
             TMP_Text nameText = CreateText(label + "Label", row, label, 17f, OnSurfaceMuted);
             nameText.alignment = TextAlignmentOptions.Left;
             TMP_Text valueText = CreateText(label + "Value", row, "100%", 17f, OnSurface);
@@ -130,6 +146,29 @@ namespace BudgetGameDev.Games.Brocoli
             slider.targetGraphic = handle.GetComponent<Image>();
             slider.onValueChanged.AddListener(setter);
             volumeSliders[index] = slider;
+        }
+
+        private void CreateHdrRow()
+        {
+            hdrRow = CreateRect("HdrOutputRow", settingsPanel);
+            settingsRows[3] = hdrRow;
+
+            TMP_Text nameText = CreateText(
+                "HdrOutputLabel",
+                hdrRow,
+                "HDR OUTPUT",
+                17f,
+                OnSurfaceMuted
+            );
+            nameText.alignment = TextAlignmentOptions.Left;
+
+            hdrToggleButton = CreateButton("HdrToggleButton", hdrRow, "ON");
+            hdrToggleButton.onClick.AddListener(GameDisplaySettings.ToggleHdr);
+            hdrToggleValue = hdrToggleButton.GetComponentInChildren<TMP_Text>(true);
+            hdrCalibrationButton = CreateButton("HdrCalibrationButton", hdrRow, "CALIBRATE");
+            hdrCalibrationButton.onClick.AddListener(OpenHdrCalibration);
+            hdrStatus = CreateText("HdrStatus", hdrRow, string.Empty, 12f, OnSurfaceMuted);
+            hdrStatus.alignment = TextAlignmentOptions.Left;
         }
 
         private static Button CreateButton(string name, RectTransform parent, string label)
@@ -160,7 +199,7 @@ namespace BudgetGameDev.Games.Brocoli
 
             SettingsOpen = true;
             settingsPanel.gameObject.SetActive(true);
-            SyncVolumeControls();
+            SyncSettingsControls();
             SelectSetting(0, false);
             ApplyResponsiveLayout(true);
         }
@@ -168,6 +207,8 @@ namespace BudgetGameDev.Games.Brocoli
         private void CloseSettings()
         {
             ProceduralUIAudio.PlaySelect();
+            if (HdrCalibrationOpen)
+                CloseHdrCalibration(false);
             SettingsOpen = false;
             settingsPanel.gameObject.SetActive(false);
             if (mainButtonsWereActive != null)
@@ -194,6 +235,26 @@ namespace BudgetGameDev.Games.Brocoli
                 volumeSliders[i].SetValueWithoutNotify(values[i]);
                 volumeValues[i].text = $"{Mathf.RoundToInt(values[i] * 100f)}%";
             }
+        }
+
+        private void SyncSettingsControls()
+        {
+            SyncVolumeControls();
+            SyncHdrControl();
+        }
+
+        private void SyncHdrControl()
+        {
+            if (hdrToggleValue != null)
+                hdrToggleValue.text = GameDisplaySettings.HdrEnabled ? "ON" : "OFF";
+            if (hdrStatus != null)
+                hdrStatus.text = GameDisplaySettings.HdrStatus;
+        }
+
+        private static void ResetSettingsToDefaults()
+        {
+            GameAudioSettings.ResetToDefaults();
+            GameDisplaySettings.ResetToDefault();
         }
 
         private void RegisterPointerSelection()
@@ -235,6 +296,11 @@ namespace BudgetGameDev.Games.Brocoli
 
             if (!SettingsOpen)
                 return;
+            if (HdrCalibrationOpen)
+            {
+                UpdateHdrCalibrationInput();
+                return;
+            }
             UpdateSettingsInput();
         }
     }

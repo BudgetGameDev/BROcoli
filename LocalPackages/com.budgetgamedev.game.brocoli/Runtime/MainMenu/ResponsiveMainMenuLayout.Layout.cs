@@ -85,6 +85,7 @@ namespace BudgetGameDev.Games.Brocoli
 
             LayoutActiveButtons(mainButtons, innerWidth, actionTop, actionBottom, compact, narrow);
             LayoutSettingsPanel(innerWidth, actionTop, actionBottom, compact, narrow);
+            LayoutHdrCalibrationPanel(innerWidth, actionTop, actionBottom, compact, narrow);
             LayoutCreditsPanel(innerWidth, actionTop, actionBottom, compact, narrow);
             LayoutSavesPanel(innerWidth, actionTop, actionBottom, compact, narrow);
 

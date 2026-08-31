@@ -1,4 +1,3 @@
-using BudgetGameDev.Shared;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
@@ -7,7 +6,7 @@ namespace BudgetGameDev.Games.Brocoli
 {
     public sealed partial class ResponsiveMainMenuLayout
     {
-        private void UpdateSettingsInput()
+        private void UpdateHdrCalibrationInput()
         {
             Keyboard keyboard = Keyboard.current;
             Gamepad gamepad = Gamepad.current;
@@ -36,10 +35,10 @@ namespace BudgetGameDev.Games.Brocoli
                 || keyboard?.numpadEnterKey.wasPressedThisFrame == true
                 || keyboard?.spaceKey.wasPressedThisFrame == true
                 || gamepad?.buttonSouth.wasPressedThisFrame == true;
-            ProcessSettingsInput(cancel, vertical, horizontal, submit, Time.unscaledTime);
+            ProcessHdrCalibrationInput(cancel, vertical, horizontal, submit, Time.unscaledTime);
         }
 
-        internal void ProcessSettingsInput(
+        internal void ProcessHdrCalibrationInput(
             bool cancel,
             float vertical,
             float horizontal,
@@ -49,38 +48,50 @@ namespace BudgetGameDev.Games.Brocoli
         {
             if (cancel && MenuInputGate.TryConsumeCancel())
             {
-                CloseSettings();
+                CloseHdrCalibration(false);
                 return;
             }
 
-            if (now - lastSettingsNavTime >= 0.18f)
+            if (now - lastHdrCalibrationNavTime >= 0.18f)
             {
                 if (Mathf.Abs(vertical) > 0.5f)
                 {
-                    lastSettingsNavTime = now;
-                    SelectSetting(selectedSetting + (vertical > 0f ? -1 : 1));
+                    lastHdrCalibrationNavTime = now;
+                    SelectHdrCalibrationControl(
+                        selectedHdrCalibrationControl + (vertical > 0f ? -1 : 1)
+                    );
                 }
-                else if (Mathf.Abs(horizontal) > 0.5f)
+                else if (
+                    Mathf.Abs(horizontal) > 0.5f
+                    && hdrCalibrationSelectables[selectedHdrCalibrationControl]
+                        == hdrCalibrationSlider
+                )
                 {
-                    if (selectedSetting < volumeSliders.Length)
+                    lastHdrCalibrationNavTime = now;
+                    float direction = Mathf.Sign(horizontal);
+                    switch (hdrCalibrationStep)
                     {
-                        lastSettingsNavTime = now;
-                        volumeSliders[selectedSetting].value += Mathf.Sign(horizontal) * 0.05f;
-                    }
-                    else if (settingsSelectables[selectedSetting] == hdrToggleButton)
-                    {
-                        lastSettingsNavTime = now;
-                        GameDisplaySettings.ToggleHdr();
+                        case HdrCalibrationStep.PeakBrightness:
+                            hdrCalibrationSlider.value += direction * 25f;
+                            break;
+                        case HdrCalibrationStep.PaperWhite:
+                            hdrCalibrationSlider.value += direction * 5f;
+                            break;
+                        default:
+                            hdrCalibrationSlider.value += direction * 0.02f;
+                            break;
                     }
                 }
             }
 
-            if (
-                submit
-                && settingsSelectables[selectedSetting] is Button button
-                && MenuInputGate.TryConsumeSubmit()
-            )
+            if (!submit || !MenuInputGate.TryConsumeSubmit())
+                return;
+
+            Selectable selected = hdrCalibrationSelectables[selectedHdrCalibrationControl];
+            if (selected is Button button)
                 button.onClick.Invoke();
+            else if (selected == hdrCalibrationSlider)
+                NextHdrCalibrationStep();
         }
     }
 }

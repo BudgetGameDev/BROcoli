@@ -5,6 +5,7 @@
 | [adding-a-game.md](adding-a-game.md) | Adding, removing, or restructuring a game package |
 | [asset-acquisition.md](asset-acquisition.md) | Creating or generating any game asset |
 | [licensed-assets.md](licensed-assets.md) | Importing, encrypting, or restoring a restricted third-party asset |
+| [native-releases.md](native-releases.md) | Building Windows, macOS, and Linux players or publishing a GitHub Release |
 | [verification-gates.md](verification-gates.md) | Changing CI, the pre-push hook, the workflow, or the deploy scripts |
 
 These are deliberately kept out of `AGENTS.md`, which every agent loads. It keeps

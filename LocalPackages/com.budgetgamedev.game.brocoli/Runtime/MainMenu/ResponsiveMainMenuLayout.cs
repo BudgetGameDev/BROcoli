@@ -120,6 +120,9 @@ namespace BudgetGameDev.Games.Brocoli
 
             StyleButtons(mainButtons);
             StyleButtons(settingsActionButtons);
+            StyleButton(hdrToggleButton, false, materialFont);
+            StyleButton(hdrCalibrationButton, false, materialFont);
+            StyleButtons(hdrCalibrationActionButtons);
             StyleButtons(creditsActionButtons);
             StyleButtons(savesActionButtons);
             SetButtonLabel("PlayButton", "START NEW RUN");
