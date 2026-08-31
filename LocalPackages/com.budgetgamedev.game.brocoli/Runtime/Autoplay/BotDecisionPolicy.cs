@@ -80,7 +80,7 @@ namespace BudgetGameDev.Games.Brocoli
             float bestScore = float.NegativeInfinity;
             for (int direction = 0; direction < DungeonLayout.DirectionOffsets.Length; direction++)
             {
-                if (!layout.IsDoorOpen(room, direction))
+                if (!layout.IsPlayableDoorOpen(room, direction))
                     continue;
 
                 Vector2Int candidate = room + DungeonLayout.DirectionOffsets[direction];

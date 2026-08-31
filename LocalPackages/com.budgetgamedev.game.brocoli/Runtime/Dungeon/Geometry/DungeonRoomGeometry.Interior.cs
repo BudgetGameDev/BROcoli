@@ -27,15 +27,15 @@ namespace BudgetGameDev.Games.Brocoli
             switch (archetype.Shape)
             {
                 case DungeonLayout.RoomShape.Tiny:
-                    AppendHorizontalRuns(walls, center, 4f);
+                    AppendHorizontalRun(walls, center, 4f);
                     AppendVerticalRuns(walls, center, 4f);
                     break;
                 case DungeonLayout.RoomShape.Compact:
-                    AppendHorizontalRuns(walls, center, 6f);
+                    AppendHorizontalRun(walls, center, 6f);
                     AppendVerticalRuns(walls, center, 6f);
                     break;
                 case DungeonLayout.RoomShape.NarrowHorizontal:
-                    AppendHorizontalRuns(walls, center, 4f);
+                    AppendHorizontalRun(walls, center, 4f);
                     break;
                 case DungeonLayout.RoomShape.NarrowVertical:
                     AppendVerticalRuns(walls, center, 4f);
@@ -44,7 +44,7 @@ namespace BudgetGameDev.Games.Brocoli
                     AppendVerticalRuns(walls, center, 10f);
                     break;
                 case DungeonLayout.RoomShape.LongHorizontal:
-                    AppendHorizontalRuns(walls, center, 6f);
+                    AppendHorizontalRun(walls, center, 6f);
                     break;
                 case DungeonLayout.RoomShape.LongVertical:
                     AppendVerticalRuns(walls, center, 6f);
@@ -56,16 +56,6 @@ namespace BudgetGameDev.Games.Brocoli
                         AppendHorizontalDivider(walls, center);
                     break;
             }
-        }
-
-        private static void AppendHorizontalRuns(
-            List<DungeonWallPiece> walls,
-            Vector2 center,
-            float z
-        )
-        {
-            AppendHorizontalRun(walls, center, z);
-            AppendHorizontalRun(walls, center, -z);
         }
 
         private static void AppendVerticalRuns(

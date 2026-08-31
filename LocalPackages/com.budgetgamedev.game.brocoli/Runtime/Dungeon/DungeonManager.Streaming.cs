@@ -51,7 +51,7 @@ namespace BudgetGameDev.Games.Brocoli
                         break;
 
                     Vector2Int room = targetRoom + offset;
-                    if (loadedRooms.ContainsKey(room))
+                    if (!layout.IsPlayableRoom(room) || loadedRooms.ContainsKey(room))
                         continue;
 
                     EnsureRoom(room);

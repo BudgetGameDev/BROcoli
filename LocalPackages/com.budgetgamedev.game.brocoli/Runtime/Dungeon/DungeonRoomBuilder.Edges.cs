@@ -14,12 +14,23 @@ namespace BudgetGameDev.Games.Brocoli
         /// of which is framed by an archway; a closed run is an unbroken wall. Both
         /// neighbouring rooms share this geometry.
         /// </summary>
-        public GameObject BuildEdge(Transform parent, DungeonEdge edge, DungeonPassage passage)
+        public GameObject BuildEdge(
+            Transform parent,
+            DungeonEdge edge,
+            DungeonPassage passage,
+            DungeonEdgeStyle style = DungeonEdgeStyle.Interior
+        )
         {
             GameObject root = new GameObject(
-                $"Edge ({edge.X}, {edge.Y}, {(edge.Horizontal ? "H" : "V")})"
+                $"Edge ({edge.X}, {edge.Y}, {(edge.Horizontal ? "H" : "V")}) [{style}]"
             );
             root.transform.SetParent(parent, false);
+
+            if (style == DungeonEdgeStyle.SouthCliff)
+            {
+                BuildSouthCliff(root.transform, edge);
+                return root;
+            }
 
             Transform wallRun = CreateOcclusionSection(root.transform, "Wall Run");
             wallRun.GetComponent<DungeonOcclusionSection>().ConfigureEdge(edge);
@@ -30,6 +41,39 @@ namespace BudgetGameDev.Games.Brocoli
 
             BuildArchways(wallRun, edge, passage);
             return root;
+        }
+
+        /// <summary>
+        /// Builds a camera-facing platform edge. A knee-high parapet provides the
+        /// collision/readability of a railing without ever hiding a character;
+        /// the same modular masonry continues below floor level as a cliff face,
+        /// making the playable floor read as one ledge in a larger vertical world.
+        /// </summary>
+        private void BuildSouthCliff(Transform parent, DungeonEdge edge)
+        {
+            const float parapetScale = 0.3f;
+            const float cliffFaceScale = 1.5f;
+
+            Transform parapet = new GameObject("Low South Parapet").transform;
+            parapet.SetParent(parent, false);
+            parapet.gameObject.AddComponent<DungeonContentRoot>();
+
+            Transform cliffFace = new GameObject("Cliff Face Below Floor").transform;
+            cliffFace.SetParent(parent, false);
+            cliffFace.gameObject.AddComponent<DungeonContentRoot>();
+
+            edgeWalls.Clear();
+            DungeonRoomGeometry.AppendEdgeWalls(edgeWalls, edge, new DungeonPassage(false, 0, 0));
+            foreach (DungeonWallPiece piece in edgeWalls)
+            {
+                InstantiateScaledWall(parapet, piece, parapetScale, piece.BaseLift);
+                InstantiateScaledWall(
+                    cliffFace,
+                    piece,
+                    cliffFaceScale,
+                    piece.BaseLift - DungeonWallPiece.SlabHeight * cliffFaceScale
+                );
+            }
         }
 
         private void BuildArchways(Transform wallRun, DungeonEdge edge, DungeonPassage passage)
@@ -61,6 +105,26 @@ namespace BudgetGameDev.Games.Brocoli
                 piece.PrefabPosition.ToWorld(piece.BaseLift),
                 piece.AlongX ? Quaternion.identity : Quaternion.Euler(0f, 90f, 0f),
                 parent
+            );
+        }
+
+        private void InstantiateScaledWall(
+            Transform parent,
+            DungeonWallPiece piece,
+            float verticalScale,
+            float lift
+        )
+        {
+            GameObject wall = Instantiate(
+                wallPrefab,
+                piece.PrefabPosition.ToWorld(lift),
+                piece.AlongX ? Quaternion.identity : Quaternion.Euler(0f, 90f, 0f),
+                parent
+            );
+            wall.name = verticalScale < 1f ? "DungeonWall - Low Parapet" : "DungeonWall - Cliff";
+            wall.transform.localScale = Vector3.Scale(
+                wall.transform.localScale,
+                new Vector3(1f, verticalScale, 1f)
             );
         }
 

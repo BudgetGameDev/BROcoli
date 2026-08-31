@@ -35,8 +35,6 @@ namespace BudgetGameDev.Games.Brocoli
             {
                 new DungeonWallMount(new Vector2(-horizontalOffset, InnerFace(wallZ)), 180f),
                 new DungeonWallMount(new Vector2(horizontalOffset, InnerFace(wallZ)), 180f),
-                BottomWallTorch(-horizontalOffset, -wallZ),
-                BottomWallTorch(horizontalOffset, -wallZ),
                 new DungeonWallMount(new Vector2(InnerFace(wallX), -verticalOffset), -90f),
                 new DungeonWallMount(new Vector2(InnerFace(wallX), verticalOffset), -90f),
                 new DungeonWallMount(new Vector2(InnerFace(-wallX), -verticalOffset), 90f),
@@ -50,8 +48,6 @@ namespace BudgetGameDev.Games.Brocoli
             {
                 new DungeonWallMount(new Vector2(-offset, InnerFace(wallZ)), 180f),
                 new DungeonWallMount(new Vector2(offset, InnerFace(wallZ)), 180f),
-                BottomWallTorch(-offset, -wallZ),
-                BottomWallTorch(offset, -wallZ),
             };
         }
 
@@ -64,13 +60,6 @@ namespace BudgetGameDev.Games.Brocoli
                 new DungeonWallMount(new Vector2(InnerFace(-wallX), -offset), 90f),
                 new DungeonWallMount(new Vector2(InnerFace(-wallX), offset), 90f),
             };
-        }
-
-        private static DungeonWallMount BottomWallTorch(float x, float wallCoordinate)
-        {
-            // Bottom walls become half walls from the gameplay camera. Keep their
-            // torches on the outward face so the bracket remains attached.
-            return new DungeonWallMount(new Vector2(x, OuterFace(wallCoordinate)), 180f);
         }
     }
 }

@@ -85,8 +85,6 @@ namespace BudgetGameDev.Games.Brocoli
                     mounts.Add(
                         new DungeonWallMount(new Vector2(x, InnerFace(HalfRoomDepth)), 180f)
                     );
-                if (!doorways.South.HasOpening(slot))
-                    mounts.Add(BottomWallTorch(x, -HalfRoomDepth));
             }
 
             for (int slot = 1; slot < DungeonLayout.RoomTilesZ - 1; slot++)

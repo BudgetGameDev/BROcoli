@@ -106,6 +106,8 @@ namespace BudgetGameDev.Games.Brocoli
             var placedChests = new List<PlacedChest>();
             var occupied = new List<OccupiedSpot>();
 
+            BuildVisibilityFriendlyBarriers(parent, center, archetype, random, occupied);
+
             int chestCount = ChestCount(room, archetype, random);
             for (int slot = 0; slot < chestCount; slot++)
             {

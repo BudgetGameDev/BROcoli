@@ -5,8 +5,8 @@ using UnityEngine;
 namespace BudgetGameDev.Games.Brocoli
 {
     /// <summary>
-    /// Runs the dungeon-crawler game mode: an infinite grid of procedurally
-    /// generated rooms joined by doorways. Rooms (geometry, props, loot, and a
+    /// Runs the dungeon-crawler game mode: an infinite east-west platform of
+    /// procedurally generated rooms joined by doorways. Rooms (geometry, props, loot, and a
     /// dormant enemy group) are generated one step ahead of the player, so
     /// whatever waits behind a doorway already exists before it is entered.
     /// Far-away rooms unload; the deterministic seed rebuilds them identically
@@ -95,6 +95,7 @@ namespace BudgetGameDev.Games.Brocoli
 
             Vector2Int initialRoom = ResolveInitialRoom();
             layout = new DungeonLayout(seed);
+            initialRoom = layout.ClampToPlayableBand(initialRoom);
             Debug.Log($"DungeonManager: generating dungeon with seed {seed}.");
 
             // Rooms and edges hang off this node, so it bounds the search for what
@@ -142,6 +143,15 @@ namespace BudgetGameDev.Games.Brocoli
             }
 
             Vector2Int room = DungeonLayout.RoomAt(player.position.ToGround());
+            if (!layout.IsPlayableRoom(room))
+            {
+                // Only legacy saves can normally arrive outside the strip: the
+                // generated boundary is physically sealed. Pull those saves onto
+                // the nearest platform cell instead of trying to stream the void.
+                room = layout.ClampToPlayableBand(room);
+                Vector2 center = DungeonLayout.RoomCenter(room);
+                player.position = new Vector3(player.position.x, player.position.y, center.y);
+            }
             if (!hasCurrentRoom || room != currentRoom)
                 EnterRoom(room);
         }
@@ -166,7 +176,11 @@ namespace BudgetGameDev.Games.Brocoli
             // incrementally so walking through a doorway never runs a full bake.
             for (int dx = -1; dx <= 1; dx++)
             for (int dy = -1; dy <= 1; dy++)
-                EnsureRoom(room + new Vector2Int(dx, dy));
+            {
+                Vector2Int neighbour = room + new Vector2Int(dx, dy);
+                if (layout.IsPlayableRoom(neighbour))
+                    EnsureRoom(neighbour);
+            }
 
             navSurface.BuildNavMesh();
             navMeshDirty = false;
@@ -179,7 +193,7 @@ namespace BudgetGameDev.Games.Brocoli
 
         private void EnsureRoom(Vector2Int room)
         {
-            if (loadedRooms.ContainsKey(room))
+            if (!layout.IsPlayableRoom(room) || loadedRooms.ContainsKey(room))
                 return;
 
             RoomState state = GetState(room);
@@ -191,7 +205,7 @@ namespace BudgetGameDev.Games.Brocoli
             // rather than the room it was placed in.
             root.AddComponent<DungeonContentRoot>();
 
-            DungeonLayout.RoomDoorways doorways = layout.Doorways(room);
+            DungeonLayout.RoomDoorways doorways = layout.PlayableDoorways(room);
             builder.BuildFloor(root.transform, room, archetype, layout.RoomRandom(room, 404));
             builder.BuildInterior(root.transform, room, archetype);
             List<DungeonPropPlacer.PlacedChest> chests = decor.BuildContents(
@@ -218,11 +232,24 @@ namespace BudgetGameDev.Games.Brocoli
             {
                 DungeonEdge edge = DungeonLayout.EdgeBetween(room, direction);
                 if (!loadedEdges.ContainsKey(edge))
-                    loadedEdges[edge] = builder.BuildEdge(
+                {
+                    DungeonEdgeStyle style = layout.PlayableEdgeStyle(edge);
+                    GameObject builtEdge = builder.BuildEdge(
                         transform,
                         edge,
-                        layout.Passage(edge, layout.IsDoorOpen(room, direction))
+                        layout.PlayablePassage(room, direction),
+                        style
                     );
+                    loadedEdges[edge] = builtEdge;
+                    if (style == DungeonEdgeStyle.SouthCliff)
+                    {
+                        decor.BuildSouthCliffDressing(
+                            builtEdge.transform,
+                            edge,
+                            layout.RoomRandom(new Vector2Int(edge.X, edge.Y), 1202)
+                        );
+                    }
+                }
             }
 
             var loaded = new LoadedRoom { Root = root, DormantEnemies = new List<EnemyBase>() };

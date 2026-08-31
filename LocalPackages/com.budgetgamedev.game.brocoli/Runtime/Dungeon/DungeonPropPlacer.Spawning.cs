@@ -65,6 +65,37 @@ namespace BudgetGameDev.Games.Brocoli
         }
 
         /// <summary>
+        /// Places a prop under a non-uniform scale, which is how a full-size rock
+        /// becomes a broad, knee-high barrier. Kept under its own name rather than
+        /// as a <see cref="SpawnProp"/> overload: the coverage tests reach these
+        /// helpers by name through reflection, and two candidates make that
+        /// lookup ambiguous.
+        /// </summary>
+        private GameObject SpawnScaledProp(
+            Transform parent,
+            GameObject prefab,
+            Vector2 ground,
+            Quaternion rotation,
+            Vector3 scale,
+            float lift = 0f
+        )
+        {
+            if (prefab == null)
+                return null;
+
+            DungeonPropMeasurement measurement = Measure(prefab);
+            GameObject prop = Instantiate(
+                prefab,
+                ground.ToWorld(lift - measurement.BaseOffset * scale.y),
+                rotation,
+                parent
+            );
+            prop.transform.localScale = Vector3.Scale(prop.transform.localScale, scale);
+            EnrolAsOccluder(prop);
+            return prop;
+        }
+
+        /// <summary>
         /// Puts a prop's solid parts on the wall layer when nobody has said
         /// otherwise. A prop left on the default layer looks right and behaves
         /// wrongly in three separate systems at once, and none of them complains;

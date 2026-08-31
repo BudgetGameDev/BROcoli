@@ -53,13 +53,13 @@ namespace BudgetGameDev.Games.Brocoli.Tests
         public void ExplorationPrefersTheOnlyUnvisitedOpenRoom()
         {
             var layout = new DungeonLayout(314159);
-            var room = Vector2Int.zero;
+            Vector2Int room = layout.ClampToPlayableBand(Vector2Int.zero);
             var visited = new HashSet<Vector2Int> { room };
             int expected = -1;
 
             for (int direction = 0; direction < DungeonLayout.DirectionOffsets.Length; direction++)
             {
-                if (!layout.IsDoorOpen(room, direction))
+                if (!layout.IsPlayableDoorOpen(room, direction))
                     continue;
                 if (expected < 0)
                     expected = direction;

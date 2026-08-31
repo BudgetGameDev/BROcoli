@@ -164,7 +164,10 @@ namespace BudgetGameDev.Games.Brocoli
         )
         {
             Vector2Int neighbour = room + DungeonLayout.DirectionOffsets[direction];
-            if (!visitedLookup.Contains(neighbour) || !dungeon.Layout.IsDoorOpen(room, direction))
+            if (
+                !visitedLookup.Contains(neighbour)
+                || !dungeon.Layout.IsPlayableDoorOpen(room, direction)
+            )
                 return;
 
             Vector2 other = RoomCenter(area, neighbour, viewCenter, step);

@@ -56,10 +56,10 @@ namespace BudgetGameDev.Games.Brocoli
                     break;
                 case RoomTheme.Banquet:
                     shape =
-                        shapeRoll < 0.32 ? RoomShape.LongHorizontal
-                        : shapeRoll < 0.58 ? RoomShape.LongVertical
+                        shapeRoll < 0.52 ? RoomShape.LongHorizontal
                         : shapeRoll < 0.74 ? RoomShape.NarrowHorizontal
-                        : shapeRoll < 0.88 ? RoomShape.NarrowVertical
+                        : shapeRoll < 0.84 ? RoomShape.DiagonalGallery
+                        : shapeRoll < 0.92 ? RoomShape.LongVertical
                         : RoomShape.LargeSquare;
                     break;
                 case RoomTheme.Shrine:
@@ -75,40 +75,41 @@ namespace BudgetGameDev.Games.Brocoli
                 case RoomTheme.Flooded:
                     shape =
                         shapeRoll < 0.34 ? RoomShape.OpenHall
-                        : shapeRoll < 0.58 ? RoomShape.LargeSquare
-                        : shapeRoll < 0.72 ? RoomShape.LongHorizontal
-                        : shapeRoll < 0.86 ? RoomShape.LongVertical
-                        : shapeRoll < 0.93 ? RoomShape.NarrowHorizontal
+                        : shapeRoll < 0.58 ? RoomShape.LongHorizontal
+                        : shapeRoll < 0.76 ? RoomShape.DiagonalGallery
+                        : shapeRoll < 0.88 ? RoomShape.LargeSquare
+                        : shapeRoll < 0.95 ? RoomShape.NarrowHorizontal
                         : RoomShape.Divided;
                     break;
                 case RoomTheme.Collapsed:
                     shape =
-                        shapeRoll < 0.28 ? RoomShape.Divided
-                        : shapeRoll < 0.42 ? RoomShape.Tiny
-                        : shapeRoll < 0.56 ? RoomShape.NarrowHorizontal
-                        : shapeRoll < 0.70 ? RoomShape.NarrowVertical
-                        : shapeRoll < 0.84 ? RoomShape.OpenHall
+                        shapeRoll < 0.38 ? RoomShape.DiagonalGallery
+                        : shapeRoll < 0.56 ? RoomShape.Divided
+                        : shapeRoll < 0.70 ? RoomShape.NarrowHorizontal
+                        : shapeRoll < 0.82 ? RoomShape.Tiny
+                        : shapeRoll < 0.92 ? RoomShape.OpenHall
                         : RoomShape.LargeSquare;
                     break;
                 case RoomTheme.Empty:
                     shape =
-                        shapeRoll < 0.20 ? RoomShape.Tiny
-                        : shapeRoll < 0.40 ? RoomShape.NarrowHorizontal
-                        : shapeRoll < 0.60 ? RoomShape.NarrowVertical
-                        : shapeRoll < 0.80 ? RoomShape.Divided
+                        shapeRoll < 0.28 ? RoomShape.DiagonalGallery
+                        : shapeRoll < 0.50 ? RoomShape.NarrowHorizontal
+                        : shapeRoll < 0.68 ? RoomShape.Tiny
+                        : shapeRoll < 0.84 ? RoomShape.Divided
                         : RoomShape.OpenHall;
                     break;
                 default:
                     shape = shapeRoll switch
                     {
-                        < 0.12 => RoomShape.Tiny,
-                        < 0.25 => RoomShape.Compact,
+                        < 0.10 => RoomShape.Tiny,
+                        < 0.20 => RoomShape.Compact,
                         < 0.36 => RoomShape.NarrowHorizontal,
-                        < 0.47 => RoomShape.NarrowVertical,
-                        < 0.60 => RoomShape.LargeSquare,
-                        < 0.72 => RoomShape.LongHorizontal,
-                        < 0.84 => RoomShape.LongVertical,
-                        < 0.92 => RoomShape.Divided,
+                        < 0.50 => RoomShape.LongHorizontal,
+                        < 0.64 => RoomShape.DiagonalGallery,
+                        < 0.73 => RoomShape.LargeSquare,
+                        < 0.80 => RoomShape.NarrowVertical,
+                        < 0.87 => RoomShape.LongVertical,
+                        < 0.94 => RoomShape.Divided,
                         _ => RoomShape.OpenHall,
                     };
                     break;
@@ -209,6 +210,7 @@ namespace BudgetGameDev.Games.Brocoli
                 RoomShape.LargeSquare => new RoomArchetype(shape, theme, 8.2f, 6.4f, variant),
                 RoomShape.LongHorizontal => new RoomArchetype(shape, theme, 10.2f, 4.5f, variant),
                 RoomShape.LongVertical => new RoomArchetype(shape, theme, 4.5f, 6.4f, variant),
+                RoomShape.DiagonalGallery => new RoomArchetype(shape, theme, 10.2f, 6.4f, variant),
                 RoomShape.Divided => new RoomArchetype(shape, theme, 10.2f, 6.4f, variant),
                 _ => new RoomArchetype(shape, theme, 10.2f, 6.4f, variant),
             };

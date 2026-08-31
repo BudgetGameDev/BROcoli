@@ -138,6 +138,7 @@ namespace BudgetGameDev.Games.Brocoli
             LargeSquare,
             LongHorizontal,
             LongVertical,
+            DiagonalGallery,
             Divided,
 
             /// <summary>
@@ -202,6 +203,7 @@ namespace BudgetGameDev.Games.Brocoli
                     RoomShape.NarrowVertical => 6,
                     RoomShape.LongHorizontal => 8,
                     RoomShape.LongVertical => 8,
+                    RoomShape.DiagonalGallery => 10,
                     RoomShape.Divided => 10,
                     RoomShape.GrandArena => 20,
                     RoomShape.OpenHall => 14,

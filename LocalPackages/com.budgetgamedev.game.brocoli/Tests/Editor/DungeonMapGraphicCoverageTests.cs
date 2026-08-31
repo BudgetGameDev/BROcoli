@@ -92,8 +92,8 @@ namespace BudgetGameDev.Games.Brocoli.Tests
             {
                 var room = new Vector2Int(x, y);
                 if (
-                    layout.IsDoorOpen(room, DungeonLayout.North)
-                    && layout.IsDoorOpen(room, DungeonLayout.East)
+                    layout.IsPlayableDoorOpen(room, DungeonLayout.North)
+                    && layout.IsPlayableDoorOpen(room, DungeonLayout.East)
                 )
                     return room;
             }
