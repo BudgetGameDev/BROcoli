@@ -167,13 +167,114 @@ namespace BudgetGameDev.Games.Brocoli.Tests
                 BoxCollider[] cliffColliders = cliff.GetComponentsInChildren<BoxCollider>();
                 Physics.SyncTransforms();
                 Assert.That(parapetColliders.Length, Is.EqualTo(DungeonLayout.RoomTilesX));
-                Assert.That(cliffColliders.Length, Is.EqualTo(DungeonLayout.RoomTilesX));
+                Assert.That(cliffColliders.Length, Is.EqualTo(DungeonLayout.RoomTilesX * 2));
                 foreach (BoxCollider collider in parapetColliders)
                     Assert.That(collider.bounds.size.y, Is.LessThan(1.5f));
+                float deepest = 0f;
                 foreach (BoxCollider collider in cliffColliders)
                 {
                     Assert.That(collider.bounds.max.y, Is.LessThan(0.02f));
-                    Assert.That(collider.bounds.min.y, Is.LessThan(-3f));
+                    deepest = Mathf.Min(deepest, collider.bounds.min.y);
+                }
+                Assert.That(deepest, Is.LessThan(-6f), "the cliff no longer reads as a tall drop");
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+                Object.DestroyImmediate(host);
+            }
+        }
+
+        /// <summary>
+        /// The crossing between the platform's two rows is the one wall run the
+        /// camera always looks over, so it must never be built as architecture
+        /// the visibility system has to keep lowering: knee-high ledge pieces
+        /// below occlusion adoption height everywhere except the two grid posts.
+        /// </summary>
+        [Test]
+        public void RowCrossingIsALowLedgeWithFullHeightGridPostsOnly()
+        {
+            foreach (int seed in DungeonGeometryModel.Seeds)
+            {
+                var layout = new DungeonLayout(seed);
+                for (int x = -24; x <= 24; x++)
+                {
+                    var lowerRoom = new Vector2Int(x, SouthY(layout, x));
+                    Assert.That(
+                        layout.PlayableEdgeStyle(
+                            DungeonLayout.EdgeBetween(lowerRoom, DungeonLayout.North)
+                        ),
+                        Is.EqualTo(DungeonEdgeStyle.RowDivider),
+                        $"seed {seed}, column {x}"
+                    );
+                    if (layout.IsPlayableRoom(lowerRoom + Vector2Int.right))
+                        Assert.That(
+                            layout.PlayableEdgeStyle(
+                                DungeonLayout.EdgeBetween(lowerRoom, DungeonLayout.East)
+                            ),
+                            Is.EqualTo(DungeonEdgeStyle.Interior),
+                            $"seed {seed}, column {x}: vertical crossings stay full walls"
+                        );
+                }
+            }
+
+            GameObject wallPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(WallPrefabPath);
+            Assert.That(wallPrefab, Is.Not.Null, WallPrefabPath);
+
+            var host = new GameObject("Builder Host");
+            var root = new GameObject("Generated Edge");
+            try
+            {
+                DungeonRoomBuilder builder = host.AddComponent<DungeonRoomBuilder>();
+                var serialized = new SerializedObject(builder);
+                serialized.FindProperty("wallPrefab").objectReferenceValue = wallPrefab;
+                serialized.ApplyModifiedProperties();
+
+                var layout = new DungeonLayout(DungeonGeometryModel.Seeds[0]);
+                var lowerRoom = new Vector2Int(0, SouthY(layout, 0));
+                int middle = DungeonLayout.RoomTilesX / 2;
+                int crossing = (1 << (middle - 1)) | (1 << middle) | (1 << (middle + 1));
+                GameObject edge = builder.BuildEdge(
+                    root.transform,
+                    DungeonLayout.EdgeBetween(lowerRoom, DungeonLayout.North),
+                    new DungeonPassage(true, crossing, 0),
+                    DungeonEdgeStyle.RowDivider
+                );
+
+                Transform posts = edge.transform.Find("Occlusion Section - Divider Posts");
+                Transform ledge = edge.transform.Find("Low Divider Ledge");
+                Assert.That(posts, Is.Not.Null);
+                Assert.That(ledge, Is.Not.Null);
+                Assert.That(posts.GetComponent<DungeonOcclusionSection>(), Is.Not.Null);
+
+                BoxCollider[] postColliders = posts.GetComponentsInChildren<BoxCollider>();
+                BoxCollider[] ledgeColliders = ledge.GetComponentsInChildren<BoxCollider>();
+                Physics.SyncTransforms();
+
+                float runCenterX = DungeonLayout.RoomCenter(lowerRoom).x;
+                Assert.That(postColliders.Length, Is.EqualTo(2));
+                foreach (BoxCollider collider in postColliders)
+                {
+                    Assert.That(collider.bounds.size.y, Is.GreaterThan(1.5f));
+                    Assert.That(
+                        Mathf.Abs(collider.bounds.center.x - runCenterX),
+                        Is.GreaterThan(10f),
+                        "a full-height piece stood away from the grid posts"
+                    );
+                }
+
+                Assert.That(ledgeColliders.Length, Is.EqualTo(2));
+                foreach (BoxCollider collider in ledgeColliders)
+                {
+                    Assert.That(
+                        collider.bounds.size.y,
+                        Is.LessThan(1.5f),
+                        "a ledge piece is tall enough for occlusion adoption"
+                    );
+                    Assert.That(
+                        Mathf.Abs(collider.bounds.center.x - runCenterX),
+                        Is.InRange(6f, 10f)
+                    );
                 }
             }
             finally

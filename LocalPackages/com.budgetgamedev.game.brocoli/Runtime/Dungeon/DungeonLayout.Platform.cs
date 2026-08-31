@@ -8,6 +8,14 @@ namespace BudgetGameDev.Games.Brocoli
         Interior,
         SolidBoundary,
         SouthCliff,
+
+        /// <summary>
+        /// The crossing between the platform's two rows. The camera looks over
+        /// this run at whoever stands in the north row, so it is built as a
+        /// knee-high ledge with full-height masonry only on the grid posts,
+        /// instead of a wall the visibility system would have to keep lowering.
+        /// </summary>
+        RowDivider,
     }
 
     public sealed partial class DungeonLayout
@@ -36,8 +44,9 @@ namespace BudgetGameDev.Games.Brocoli
 
         /// <summary>
         /// Resolves the edge policy used by the runtime generator. A boundary
-        /// below its playable room is the camera-facing cliff; other outer edges
-        /// remain solid background architecture.
+        /// below its playable room is the camera-facing cliff, the horizontal
+        /// crossing between the two playable rows is the low divider, and other
+        /// outer edges remain solid background architecture.
         /// </summary>
         public DungeonEdgeStyle PlayableEdgeStyle(DungeonEdge edge)
         {
@@ -45,7 +54,7 @@ namespace BudgetGameDev.Games.Brocoli
             bool first = IsPlayableRoom(lowerOrLeft);
             bool second = IsPlayableRoom(upperOrRight);
             if (first && second)
-                return DungeonEdgeStyle.Interior;
+                return edge.Horizontal ? DungeonEdgeStyle.RowDivider : DungeonEdgeStyle.Interior;
             if (edge.Horizontal && !first && second)
                 return DungeonEdgeStyle.SouthCliff;
             return DungeonEdgeStyle.SolidBoundary;
