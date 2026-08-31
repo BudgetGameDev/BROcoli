@@ -68,13 +68,11 @@ namespace BudgetGameDev.Games.Brocoli.Tests
         }
 
         /// <summary>
-        /// A room cannot reveal an enemy by lowering a camera-facing interior
-        /// screen if procedural generation never creates that screen. This keeps
-        /// the visibility system as a fallback for boundaries and props rather
-        /// than a requirement for basic room navigation.
+        /// Camera-facing interior runs are deliberately railings: they may guide
+        /// a route across the room, but stay too low to hide or reveal a character.
         /// </summary>
         [Test]
-        public void ProceduralInteriorsCreateNoEnemyRevealScreens()
+        public void ProceduralInteriorScreensAreLowRailings()
         {
             Assert.That(
                 WallVisibilityFixtures.TryFindInteriorScreen(
@@ -82,8 +80,13 @@ namespace BudgetGameDev.Games.Brocoli.Tests
                     out Vector2Int room,
                     out Vector2 anchor
                 ),
-                Is.False,
-                $"seed {seed}: room {room} still has a camera-facing screen at {anchor}"
+                Is.True,
+                $"no east-west railing was generated (last search: seed {seed}, {room}, {anchor})"
+            );
+            Assert.That(
+                DungeonWallPiece.SlabHeight * DungeonRoomBuilder.InteriorRailingHeightScale,
+                Is.LessThan(DungeonOccluder.MinimumAutomaticFadeHeight),
+                $"the camera-facing interior at {anchor} is tall enough to hide an enemy"
             );
         }
 

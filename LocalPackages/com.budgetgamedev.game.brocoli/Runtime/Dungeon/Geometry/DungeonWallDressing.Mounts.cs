@@ -7,8 +7,8 @@ namespace BudgetGameDev.Games.Brocoli
         /// <summary>
         /// The mounting points a room shape offers, before doorways are consulted.
         /// Compact shapes hang their torches on north-south interior runs; shapes
-        /// without those runs use the outer shell. No fitting may assume an
-        /// east-west interior wall exists.
+        /// without those runs use the outer shell. East-west interior pieces are
+        /// deliberately too low to carry a wall fitting, so mounts never use them.
         /// </summary>
         private static DungeonWallMount[] ShapeTorchMounts(DungeonLayout.RoomArchetype archetype)
         {

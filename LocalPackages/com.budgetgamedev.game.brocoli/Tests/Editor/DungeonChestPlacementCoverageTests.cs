@@ -198,6 +198,19 @@ namespace BudgetGameDev.Games.Brocoli.Tests
             Assert.That(DungeonPropPlacer.IsOnDivider(new Vector2(8f, 0f), horizontal), Is.False);
             Assert.That(DungeonPropPlacer.IsOnDivider(Vector2.one * 20f, horizontal), Is.False);
 
+            var eastWestRoute = new DungeonLayout.RoomArchetype(
+                DungeonLayout.RoomShape.NarrowHorizontal,
+                DungeonLayout.RoomTheme.Storage,
+                10.2f,
+                2.8f,
+                0
+            );
+            Assert.That(
+                DungeonPropPlacer.IsOnDivider(new Vector2(4f, 4f), eastWestRoute),
+                "enemy and prop placement ignored an east-west railing"
+            );
+            Assert.That(DungeonPropPlacer.IsOnDivider(Vector2.zero, eastWestRoute), Is.False);
+
             for (int variant = 0; variant < 4; variant++)
             {
                 var poolRoom = new DungeonLayout.RoomArchetype(

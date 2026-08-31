@@ -96,10 +96,7 @@ namespace BudgetGameDev.Games.Brocoli
 
         internal static bool IsOnDivider(Vector2 point, DungeonLayout.RoomArchetype archetype)
         {
-            if (archetype.Shape != DungeonLayout.RoomShape.Divided)
-                return false;
-            float nearest = Mathf.Min(Mathf.Abs(point.y - 4f), Mathf.Abs(point.y + 4f));
-            return Mathf.Abs(point.x) < 1.5f && nearest < 2.6f;
+            return OverlapsInteriorWall(point, 0.65f, archetype);
         }
 
         internal static Vector2 PoolSpot(

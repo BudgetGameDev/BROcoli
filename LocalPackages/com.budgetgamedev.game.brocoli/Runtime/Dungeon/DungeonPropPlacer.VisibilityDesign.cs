@@ -76,10 +76,9 @@ namespace BudgetGameDev.Games.Brocoli
         }
 
         /// <summary>
-        /// Gives diagonal galleries a broken, low rubble line. Other room shapes
-        /// no longer replace rejected east-west wall runs with half-height
-        /// barriers: those runs are simply left open. The gallery line is angled
-        /// across the floor and never reads as another east-west divider.
+        /// Gives diagonal galleries a broken, low rubble line instead of the
+        /// axial masonry railings used by the other shaped rooms. Its angle keeps
+        /// this archetype's route loose and visibly distinct.
         /// </summary>
         private void BuildVisibilityFriendlyBarriers(
             Transform parent,

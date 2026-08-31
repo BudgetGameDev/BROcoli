@@ -145,6 +145,7 @@ namespace BudgetGameDev.Games.Brocoli
                 }
             }
 
+            BuildPathwayDressing(parent, center, archetype, random, occupied);
             BuildThemeProps(parent, center, archetype, random, occupied);
             return placedChests;
         }

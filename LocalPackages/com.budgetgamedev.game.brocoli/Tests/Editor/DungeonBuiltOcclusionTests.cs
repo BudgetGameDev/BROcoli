@@ -10,8 +10,8 @@ namespace BudgetGameDev.Games.Brocoli.Tests
     /// Ties the wall-visibility decision to what actually gets built. The property
     /// tests reason about planned geometry and grouping rules; this builds the real
     /// prefabs and checks the scene agrees - the slab is the height the sight-line
-    /// maths assumes, and rejected east-west interior runs do not reappear while
-    /// building the real objects.
+    /// maths assumes, and low interior plans stay low while building the real
+    /// objects in either orientation.
     /// </summary>
     public sealed class DungeonBuiltOcclusionTests
     {
@@ -78,14 +78,15 @@ namespace BudgetGameDev.Games.Brocoli.Tests
         /// built waist-high so they cannot become opaque walls through playable
         /// floor.
         /// </summary>
-        [Test]
-        public void BuiltInteriorsAreHalfHeightOcclusionSections()
+        [TestCase(DungeonLayout.RoomShape.NarrowVertical)]
+        [TestCase(DungeonLayout.RoomShape.NarrowHorizontal)]
+        public void BuiltInteriorsAreLowOcclusionSections(DungeonLayout.RoomShape shape)
         {
             var room = Vector2Int.zero;
             var archetype = new DungeonLayout.RoomArchetype(
-                DungeonLayout.RoomShape.NarrowVertical,
+                shape,
                 DungeonLayout.RoomTheme.Sparse,
-                2.8f,
+                10.2f,
                 8.2f,
                 0
             );
@@ -104,11 +105,7 @@ namespace BudgetGameDev.Games.Brocoli.Tests
                     DungeonOccluder.Owning(collider) as DungeonOcclusionSection;
             }
 
-            Assert.That(
-                sections,
-                Is.Not.Empty,
-                "the north-south interior run built no wall colliders"
-            );
+            Assert.That(sections, Is.Not.Empty, "the interior route built no wall colliders");
             foreach (DungeonWallPiece piece in planned)
             {
                 DungeonOcclusionSection section = SectionAt(sections, piece.Anchor);
@@ -119,10 +116,20 @@ namespace BudgetGameDev.Games.Brocoli.Tests
                 Assert.That(
                     collider.bounds.size.y,
                     Is.EqualTo(
-                            DungeonWallPiece.SlabHeight * DungeonRoomBuilder.InteriorWallHeightScale
+                            DungeonWallPiece.SlabHeight
+                                * (
+                                    piece.AlongX
+                                        ? DungeonRoomBuilder.InteriorRailingHeightScale
+                                        : DungeonRoomBuilder.InteriorWallHeightScale
+                                )
                         )
                         .Within(0.02f),
                     $"interior slab at {piece.Anchor} was built as a full-height wall"
+                );
+                Assert.That(
+                    collider.bounds.size.y,
+                    Is.LessThan(DungeonOccluder.MinimumAutomaticFadeHeight),
+                    $"interior slab at {piece.Anchor} is tall enough to hide a character"
                 );
             }
         }

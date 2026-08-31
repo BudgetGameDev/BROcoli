@@ -126,10 +126,12 @@ namespace BudgetGameDev.Games.Brocoli.Tests
         }
 
         [Test]
-        public void GeneratedInteriorsContainNoEastWestWallsWithWalkableFloorBehindThem()
+        public void GeneratedInteriorsIncludeEastWestRoutesAndNorthSouthRoutes()
         {
             int generatedRooms = 0;
             int diagonalRooms = 0;
+            int eastWestPieces = 0;
+            int northSouthPieces = 0;
             foreach (int seed in DungeonGeometryModel.Seeds)
             {
                 var layout = new DungeonLayout(seed);
@@ -147,15 +149,31 @@ namespace BudgetGameDev.Games.Brocoli.Tests
                         DungeonRoomGeometry.AppendInteriorWalls(walls, room, archetype);
                         foreach (DungeonWallPiece wall in walls)
                         {
-                            Assert.That(
-                                wall.AlongX,
-                                Is.False,
-                                $"seed {seed}: {room} generated an east-west interior wall at {wall.Anchor}"
-                            );
+                            Assert.That(wall.Kind, Is.EqualTo(DungeonWallKind.Interior));
+                            if (wall.AlongX)
+                                eastWestPieces++;
+                            else
+                                northSouthPieces++;
                         }
+
+                        if (
+                            archetype.Shape
+                            is DungeonLayout.RoomShape.NarrowHorizontal
+                                or DungeonLayout.RoomShape.LongHorizontal
+                        )
+                            Assert.That(
+                                walls.Exists(wall => wall.AlongX),
+                                $"seed {seed}: horizontal room {room} has no guiding railings"
+                            );
                     }
                 }
             }
+            Assert.That(eastWestPieces, Is.GreaterThan(0), "the dungeon built no east-west route");
+            Assert.That(
+                northSouthPieces,
+                Is.GreaterThan(0),
+                "the dungeon built no north-south route"
+            );
             Assert.That(
                 diagonalRooms,
                 Is.GreaterThanOrEqualTo(generatedRooms / 4),

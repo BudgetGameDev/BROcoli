@@ -22,6 +22,12 @@ namespace BudgetGameDev.Games.Brocoli
         /// </summary>
         public const float InteriorWallHeightScale = 0.46f;
 
+        /// <summary>
+        /// East-west pieces sit directly across the camera, so they read as low
+        /// railings and remain even shorter than the other interior half walls.
+        /// </summary>
+        public const float InteriorRailingHeightScale = 0.36f;
+
         [Header("Modular Dungeon Kit pieces")]
         [SerializeField]
         private GameObject floorPrefab;

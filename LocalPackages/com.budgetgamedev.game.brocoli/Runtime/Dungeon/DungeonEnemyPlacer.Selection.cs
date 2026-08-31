@@ -74,14 +74,7 @@ namespace BudgetGameDev.Games.Brocoli
 
         internal static bool IsOnDivider(Vector2 offset, DungeonLayout.RoomArchetype archetype)
         {
-            if (archetype.Shape != DungeonLayout.RoomShape.Divided)
-                return false;
-
-            float nearestVerticalSegment = Mathf.Min(
-                Mathf.Abs(offset.y),
-                Mathf.Abs(Mathf.Abs(offset.y) - 8f)
-            );
-            return Mathf.Abs(offset.x) < 1.5f && nearestVerticalSegment < 2.6f;
+            return DungeonPropPlacer.IsOnDivider(offset, archetype);
         }
 
         /// <summary>The minimum ring distance at which an enemy type appears.</summary>

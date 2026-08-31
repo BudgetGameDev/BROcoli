@@ -51,16 +51,17 @@ namespace BudgetGameDev.Games.Brocoli.Tests
         }
 
         /// <summary>
-        /// Crossing interior structures necessarily contain an east-west arm with
-        /// playable floor behind it, so procedural rooms must no longer emit one.
+        /// Courtyards and turning lanes join perpendicular railing sections at
+        /// their corners. The corpus must contain one so grouping coverage keeps
+        /// exercising connected structures rather than only straight runs.
         /// </summary>
         [Test]
-        public void TheCorpusContainsNoCrossingInteriorStructure()
+        public void TheCorpusContainsConnectedTurningInteriorStructures()
         {
             Assert.That(
                 WallVisibilityFixtures.TryFindInteriorStructure(out int seed, out Vector2Int room),
-                Is.False,
-                $"seed {seed}: room {room} still builds crossing interior runs"
+                Is.True,
+                $"no generated room contains a connected turn (last search: seed {seed}, {room})"
             );
         }
 
