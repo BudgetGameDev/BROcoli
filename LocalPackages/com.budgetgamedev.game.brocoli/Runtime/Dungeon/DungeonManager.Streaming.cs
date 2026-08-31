@@ -64,9 +64,6 @@ namespace BudgetGameDev.Games.Brocoli
                 CollectDistantRooms(targetRoom);
                 foreach (Vector2Int room in unloadBuffer)
                 {
-                    if (!IsDistantFromCurrentRoom(room))
-                        continue;
-
                     UnloadRoom(room);
                     yield return null;
                 }

@@ -10,6 +10,70 @@ namespace BudgetGameDev.Games.Brocoli
     {
         private bool navigationInitialized;
 
+        internal static bool DetectMobilePlatform(
+            bool targetDetected,
+            DeviceType deviceType,
+            DeviceType simulatedDeviceType,
+            bool simulatedMobile
+        ) =>
+            targetDetected
+            || deviceType == DeviceType.Handheld
+            || simulatedDeviceType == DeviceType.Handheld
+            || simulatedMobile;
+
+        internal void ProcessToggleInput(bool escapePressed, bool startPressed)
+        {
+            if (escapePressed || startPressed)
+                TogglePause();
+        }
+
+        internal static float ResolveVerticalInput(
+            bool keyboardUp,
+            bool keyboardDown,
+            float dpadY,
+            float stickY
+        )
+        {
+            if (Mathf.Abs(dpadY) > 0.5f)
+                return Mathf.Sign(dpadY);
+            if (Mathf.Abs(stickY) > 0.5f)
+                return Mathf.Sign(stickY);
+            if (keyboardUp)
+                return 1f;
+            return keyboardDown ? -1f : 0f;
+        }
+
+        internal void ProcessControllerNavigation(float vertical, bool submit, bool back)
+        {
+            if (menuButtons == null || menuButtons.Length == 0)
+                return;
+            if (Time.unscaledTime - lastNavTime < NavRepeatDelay)
+                return;
+
+            if (Mathf.Abs(vertical) > 0.1f)
+            {
+                lastNavTime = Time.unscaledTime;
+                int direction = vertical > 0 ? -1 : 1;
+                int newIndex = Mathf.Clamp(
+                    selectedButtonIndex + direction,
+                    0,
+                    menuButtons.Length - 1
+                );
+                if (newIndex != selectedButtonIndex)
+                    SelectMenuButton(newIndex);
+            }
+
+            if (submit && selectedButtonIndex >= 0 && selectedButtonIndex < menuButtons.Length)
+            {
+                Button button = menuButtons[selectedButtonIndex];
+                if (button != null && button.interactable)
+                    button.onClick.Invoke();
+            }
+
+            if (back)
+                Resume();
+        }
+
         private void SetupMenuNavigation()
         {
             if (pauseMenuUI == null)
@@ -35,9 +99,6 @@ namespace BudgetGameDev.Games.Brocoli
             for (int i = 0; i < menuButtons.Length; i++)
             {
                 Button button = menuButtons[i];
-                if (button == null)
-                    continue;
-
                 originalScales[i] = button.transform.localScale;
                 Outline outline = button.GetComponent<Outline>();
                 if (outline == null)

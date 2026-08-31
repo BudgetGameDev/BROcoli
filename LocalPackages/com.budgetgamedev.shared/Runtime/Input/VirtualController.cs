@@ -119,14 +119,11 @@ namespace BudgetGameDev.Shared
         {
             Instance = this;
 
-            // Check if user explicitly chose to show/hide virtual controller via main menu
-            // 0 = hide (Play button), 1 = show (Play on Mobile button), -1 = not set (use auto-detection)
             int showControllerPref = PlayerPrefs.GetInt("ShowVirtualController", -1);
 
             bool showController;
             if (showControllerPref == 0)
             {
-                // User pressed "Play" - hide virtual controller
                 showController = false;
                 Debug.Log("[VirtualController] User selected 'Play' - hiding virtual controller");
             }
@@ -147,6 +144,9 @@ namespace BudgetGameDev.Shared
                 );
             }
 
+            // Keep Start and Update consistent with the user choice resolved here.
+            isMobileCached = showController;
+            isMobileCacheSet = true;
             Debug.Log(
                 $"[VirtualController] Awake - Platform: {Application.platform}, DeviceType: {SystemInfo.deviceType}, showController: {showController}"
             );
@@ -249,69 +249,36 @@ namespace BudgetGameDev.Shared
             Debug.Log("[VirtualController] Android build detected via preprocessor");
             return true;
 #endif
-            // Runtime platform check as backup
-            RuntimePlatform platform = Application.platform;
-
-            if (platform == RuntimePlatform.IPhonePlayer)
-            {
-                Debug.Log("[VirtualController] IPhonePlayer runtime detected");
-                return true;
-            }
-
-            if (platform == RuntimePlatform.Android)
-            {
-                Debug.Log("[VirtualController] Android runtime detected");
-                return true;
-            }
-
-            // For WebGL, check if touch is supported (additional fallback)
-            if (platform == RuntimePlatform.WebGLPlayer)
-            {
-                if (Input.touchSupported)
-                {
-                    Debug.Log("[VirtualController] WebGL with touch support detected");
-                    return true;
-                }
-                // Also check if device type reports handheld
-                if (SystemInfo.deviceType == DeviceType.Handheld)
-                {
-                    Debug.Log("[VirtualController] WebGL on handheld device detected");
-                    return true;
-                }
-            }
-
-            // Check device type - works on actual devices
-            if (SystemInfo.deviceType == DeviceType.Handheld)
-            {
-                Debug.Log("[VirtualController] Handheld device type detected");
-                return true;
-            }
-
-            // In Unity Editor, check if we're simulating a mobile device
+            bool detected = IsMobileDevice(
+                Application.platform,
+                SystemInfo.deviceType,
+                Input.touchSupported,
 #if UNITY_EDITOR
-            // Check if device simulator is active - UnityEngine.Device namespace provides simulated values
-            if (UnityEngine.Device.SystemInfo.deviceType == DeviceType.Handheld)
-            {
-                Debug.Log("[VirtualController] Editor Device Simulator detected (Handheld)");
-                return true;
-            }
-            // Also enable if we detect touch capability in editor (Device Simulator)
-            if (UnityEngine.Device.SystemInfo.deviceType != DeviceType.Desktop)
-            {
-                Debug.Log("[VirtualController] Editor Device Simulator detected (non-Desktop)");
-                return true;
-            }
-            // Check Application.isMobilePlatform through Device namespace
-            if (UnityEngine.Device.Application.isMobilePlatform)
-            {
-                Debug.Log(
-                    "[VirtualController] Editor reports mobile platform via Device.Application"
-                );
-                return true;
-            }
+                UnityEngine.Device.SystemInfo.deviceType,
+                UnityEngine.Device.Application.isMobilePlatform
+#else
+                DeviceType.Desktop,
+                false
 #endif
-            return false;
+            );
+            Debug.Log($"[VirtualController] Runtime mobile detection: {detected}");
+            return detected;
         }
+
+        internal static bool IsMobileDevice(
+            RuntimePlatform platform,
+            DeviceType deviceType,
+            bool touchSupported,
+            DeviceType simulatedDeviceType,
+            bool simulatedMobile
+        ) =>
+            platform == RuntimePlatform.IPhonePlayer
+            || platform == RuntimePlatform.Android
+            || deviceType == DeviceType.Handheld
+            || (platform == RuntimePlatform.WebGLPlayer && touchSupported)
+            || simulatedDeviceType == DeviceType.Handheld
+            || simulatedDeviceType != DeviceType.Desktop
+            || simulatedMobile;
 
         private void Start()
         {
@@ -733,50 +700,55 @@ namespace BudgetGameDev.Shared
             for (int i = 0; i < activeTouches.Count; i++)
             {
                 var touch = activeTouches[i];
-
-                if (touch.phase == TouchPhase.Began)
-                {
-                    if (IsTouchOnJoystick(touch.screenPosition) && !isDragging)
-                    {
-                        isDragging = true;
-                        dragFingerId = touch.finger.index;
-                        UpdateJoystickPosition(touch.screenPosition);
-                        Debug.Log(
-                            $"[VirtualController] Touch began on joystick, finger: {dragFingerId}"
-                        );
-                    }
-                }
-                else if (touch.finger.index == dragFingerId)
-                {
-                    if (touch.phase == TouchPhase.Moved || touch.phase == TouchPhase.Stationary)
-                    {
-                        UpdateJoystickPosition(touch.screenPosition);
-                    }
-                    else if (touch.phase == TouchPhase.Ended || touch.phase == TouchPhase.Canceled)
-                    {
-                        ResetJoystick();
-                    }
-                }
+                ProcessTouch(touch.phase, touch.finger.index, touch.screenPosition);
             }
 
             // Also handle mouse for editor testing (when not using device simulator)
 #if UNITY_EDITOR
             if (activeTouches.Count == 0)
             {
-                if (Input.GetMouseButtonDown(0) && IsTouchOnJoystick(Input.mousePosition))
-                {
-                    isDragging = true;
-                }
-                if (isDragging && Input.GetMouseButton(0))
-                {
-                    UpdateJoystickPosition(Input.mousePosition);
-                }
-                if (Input.GetMouseButtonUp(0))
-                {
-                    ResetJoystick();
-                }
+                ProcessMouse(
+                    Input.GetMouseButtonDown(0),
+                    Input.GetMouseButton(0),
+                    Input.GetMouseButtonUp(0),
+                    Input.mousePosition
+                );
             }
 #endif
+        }
+
+        internal void ProcessTouch(TouchPhase phase, int fingerId, Vector2 screenPosition)
+        {
+            if (phase == TouchPhase.Began)
+            {
+                if (IsTouchOnJoystick(screenPosition) && !isDragging)
+                {
+                    isDragging = true;
+                    dragFingerId = fingerId;
+                    UpdateJoystickPosition(screenPosition);
+                    Debug.Log(
+                        $"[VirtualController] Touch began on joystick, finger: {dragFingerId}"
+                    );
+                }
+                return;
+            }
+
+            if (fingerId != dragFingerId)
+                return;
+            if (phase == TouchPhase.Moved || phase == TouchPhase.Stationary)
+                UpdateJoystickPosition(screenPosition);
+            else if (phase == TouchPhase.Ended || phase == TouchPhase.Canceled)
+                ResetJoystick();
+        }
+
+        internal void ProcessMouse(bool pressed, bool held, bool released, Vector2 screenPosition)
+        {
+            if (pressed && IsTouchOnJoystick(screenPosition))
+                isDragging = true;
+            if (isDragging && held)
+                UpdateJoystickPosition(screenPosition);
+            if (released)
+                ResetJoystick();
         }
 
         private bool IsTouchOnJoystick(Vector2 screenPosition)
@@ -875,7 +847,7 @@ namespace BudgetGameDev.Shared
                 return desiredAnchor;
 
             RectTransform canvasRect = canvas.transform as RectTransform;
-            if (canvasRect == null || canvasRect.rect.width <= 0f || canvasRect.rect.height <= 0f)
+            if (canvasRect.rect.width <= 0f || canvasRect.rect.height <= 0f)
                 return desiredAnchor;
 
             Rect safeArea = Screen.safeArea;

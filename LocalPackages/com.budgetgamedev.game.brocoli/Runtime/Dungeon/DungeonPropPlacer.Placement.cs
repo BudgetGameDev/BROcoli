@@ -5,7 +5,7 @@ namespace BudgetGameDev.Games.Brocoli
 {
     public partial class DungeonPropPlacer
     {
-        private static bool TryRandomSpot(
+        internal static bool TryRandomSpot(
             DungeonLayout.RoomArchetype archetype,
             System.Random random,
             List<OccupiedSpot> occupied,
@@ -50,7 +50,7 @@ namespace BudgetGameDev.Games.Brocoli
             return false;
         }
 
-        private static bool TryClusterSpot(
+        internal static bool TryClusterSpot(
             DungeonLayout.RoomArchetype archetype,
             System.Random random,
             List<OccupiedSpot> occupied,
@@ -94,7 +94,7 @@ namespace BudgetGameDev.Games.Brocoli
             return false;
         }
 
-        private static bool IsOnDivider(Vector2 point, DungeonLayout.RoomArchetype archetype)
+        internal static bool IsOnDivider(Vector2 point, DungeonLayout.RoomArchetype archetype)
         {
             if (archetype.Shape != DungeonLayout.RoomShape.Divided)
                 return false;
@@ -112,7 +112,10 @@ namespace BudgetGameDev.Games.Brocoli
             return Mathf.Abs(point.y) < 1.5f && nearestHorizontal < 2.6f;
         }
 
-        private static Vector2 PoolSpot(DungeonLayout.RoomArchetype archetype, System.Random random)
+        internal static Vector2 PoolSpot(
+            DungeonLayout.RoomArchetype archetype,
+            System.Random random
+        )
         {
             Vector2 corner = new Vector2(
                 (archetype.Variant & 1) == 0 ? -1f : 1f,
@@ -131,7 +134,7 @@ namespace BudgetGameDev.Games.Brocoli
             return new Vector2(x * corner.x, z * corner.y);
         }
 
-        private static Vector2 RotateQuarterTurns(Vector2 point, int turns)
+        internal static Vector2 RotateQuarterTurns(Vector2 point, int turns)
         {
             return ((turns % 4 + 4) % 4) switch
             {

@@ -126,8 +126,6 @@ namespace BudgetGameDev.Games.Brocoli
             float best = -1f;
             foreach (var e in hash.GetNearbyEnemies(pos, 40f))
             {
-                if (e == null)
-                    continue;
                 float d = Vector2.Distance(pos, e.transform.position.ToGround());
                 if (best < 0f || d < best)
                     best = d;

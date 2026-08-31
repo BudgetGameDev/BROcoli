@@ -107,14 +107,7 @@ namespace BudgetGameDev.Games.Brocoli
                 return 0;
 
             int chosen = random.Next(candidates);
-            for (int slot = 0; slot < slotCount; slot++)
-            {
-                if ((framed & (1 << slot)) == 0)
-                    continue;
-                if (chosen-- == 0)
-                    return 1 << slot;
-            }
-            return 0;
+            return PickNthDirectionBit(framed, chosen);
         }
 
         /// <summary>
@@ -139,10 +132,11 @@ namespace BudgetGameDev.Games.Brocoli
         private static int SlotCount(int mask)
         {
             int count = 0;
-            while (mask != 0)
+            uint remaining = unchecked((uint)mask);
+            while (remaining != 0)
             {
-                count += mask & 1;
-                mask >>= 1;
+                count += (int)(remaining & 1);
+                remaining >>= 1;
             }
             return count;
         }

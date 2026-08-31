@@ -1,0 +1,77 @@
+using UnityEngine;
+using UnityEngine.InputSystem;
+using UnityEngine.UI;
+
+namespace BudgetGameDev.Games.Brocoli
+{
+    public sealed partial class ResponsiveMainMenuLayout
+    {
+        private void UpdateSettingsInput()
+        {
+            Keyboard keyboard = Keyboard.current;
+            Gamepad gamepad = Gamepad.current;
+            bool cancel =
+                keyboard?.escapeKey.wasPressedThisFrame == true
+                || gamepad?.buttonEast.wasPressedThisFrame == true;
+            float vertical =
+                keyboard?.upArrowKey.isPressed == true || keyboard?.wKey.isPressed == true ? 1f
+                : keyboard?.downArrowKey.isPressed == true || keyboard?.sKey.isPressed == true ? -1f
+                : 0f;
+            float horizontal =
+                keyboard?.rightArrowKey.isPressed == true || keyboard?.dKey.isPressed == true ? 1f
+                : keyboard?.leftArrowKey.isPressed == true || keyboard?.aKey.isPressed == true ? -1f
+                : 0f;
+            if (gamepad != null)
+            {
+                Vector2 axis = gamepad.dpad.ReadValue();
+                if (axis.sqrMagnitude < 0.25f)
+                    axis = gamepad.leftStick.ReadValue();
+                Vector2 navigation = ResolveGamepadAxis(axis, vertical, horizontal);
+                vertical = navigation.y;
+                horizontal = navigation.x;
+            }
+            bool submit =
+                keyboard?.enterKey.wasPressedThisFrame == true
+                || keyboard?.numpadEnterKey.wasPressedThisFrame == true
+                || keyboard?.spaceKey.wasPressedThisFrame == true
+                || gamepad?.buttonSouth.wasPressedThisFrame == true;
+            ProcessSettingsInput(cancel, vertical, horizontal, submit, Time.unscaledTime);
+        }
+
+        internal void ProcessSettingsInput(
+            bool cancel,
+            float vertical,
+            float horizontal,
+            bool submit,
+            float now
+        )
+        {
+            if (cancel && MenuInputGate.TryConsumeCancel())
+            {
+                CloseSettings();
+                return;
+            }
+
+            if (now - lastSettingsNavTime >= 0.18f)
+            {
+                if (Mathf.Abs(vertical) > 0.5f)
+                {
+                    lastSettingsNavTime = now;
+                    SelectSetting(selectedSetting + (vertical > 0f ? -1 : 1));
+                }
+                else if (Mathf.Abs(horizontal) > 0.5f && selectedSetting < volumeSliders.Length)
+                {
+                    lastSettingsNavTime = now;
+                    volumeSliders[selectedSetting].value += Mathf.Sign(horizontal) * 0.05f;
+                }
+            }
+
+            if (
+                submit
+                && settingsSelectables[selectedSetting] is Button button
+                && MenuInputGate.TryConsumeSubmit()
+            )
+                button.onClick.Invoke();
+        }
+    }
+}

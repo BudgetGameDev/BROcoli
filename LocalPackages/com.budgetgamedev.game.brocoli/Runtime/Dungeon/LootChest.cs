@@ -93,7 +93,18 @@ namespace BudgetGameDev.Games.Brocoli
             }
         }
 
-        private void SpawnExperience(Vector2 center, PlayerStats playerStats)
+        private void SpawnExperience(Vector2 center, PlayerStats playerStats) =>
+            SpawnExperience(
+                center,
+                playerStats,
+                position => PoolManager.Instance?.GetExpGain(position)
+            );
+
+        internal void SpawnExperience(
+            Vector2 center,
+            PlayerStats playerStats,
+            Func<Vector3, ExpGain> getExperience
+        )
         {
             if (expDropCount <= 0)
                 return;
@@ -111,7 +122,7 @@ namespace BudgetGameDev.Games.Brocoli
             for (int i = 0; i < expDropCount; i++)
             {
                 Vector2 spot = center + ScatterOffset(i, expDropCount);
-                ExpGain gain = PoolManager.Instance?.GetExpGain(launchPosition);
+                ExpGain gain = getExperience(launchPosition);
                 if (gain == null)
                     break;
                 spawned.Add(gain);
@@ -126,6 +137,15 @@ namespace BudgetGameDev.Games.Brocoli
                 return;
             }
 
+            InitializeExperienceDrops(spawned, landingPositions, totalExperience);
+        }
+
+        internal static void InitializeExperienceDrops(
+            List<ExpGain> spawned,
+            List<Vector3> landingPositions,
+            int totalExperience
+        )
+        {
             int experienceEach = totalExperience / spawned.Count;
             int remainder = totalExperience % spawned.Count;
             for (int i = 0; i < spawned.Count; i++)
@@ -150,7 +170,13 @@ namespace BudgetGameDev.Games.Brocoli
 
         /// <summary>Rolls one boost prefab weighted by <see cref="BoostBase.DropWeight"/>.
         /// Shared with elite kill rewards (see DungeonEnemyPlacer).</summary>
-        public static GameObject PickWeightedBoost(GameObject[] prefabs)
+        public static GameObject PickWeightedBoost(GameObject[] prefabs) =>
+            PickWeightedBoost(prefabs, totalWeight => UnityEngine.Random.value * totalWeight);
+
+        internal static GameObject PickWeightedBoost(
+            GameObject[] prefabs,
+            System.Func<float, float> rollForTotal
+        )
         {
             if (prefabs == null || prefabs.Length == 0)
                 return null;
@@ -165,7 +191,7 @@ namespace BudgetGameDev.Games.Brocoli
             if (totalWeight <= 0f)
                 return null;
 
-            float roll = UnityEngine.Random.value * totalWeight;
+            float roll = rollForTotal(totalWeight);
             foreach (GameObject prefab in prefabs)
             {
                 BoostBase boost = prefab != null ? prefab.GetComponent<BoostBase>() : null;

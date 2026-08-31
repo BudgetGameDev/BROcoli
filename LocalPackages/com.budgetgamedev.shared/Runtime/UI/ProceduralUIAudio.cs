@@ -8,13 +8,13 @@ namespace BudgetGameDev.Shared
     /// </summary>
     public static class ProceduralUIAudio
     {
-        private static AudioSource sharedAudioSource;
+        internal static AudioSource sharedAudioSource;
         private static int sampleRate;
         private static float[] audioBuffer;
 
-        private static AudioClip hoverClip;
-        private static AudioClip selectClip;
-        private static AudioClip levelUpSelectClip;
+        internal static AudioClip hoverClip;
+        internal static AudioClip selectClip;
+        internal static AudioClip levelUpSelectClip;
 
         private const float HoverVolume = 0.35f;
         private const float SelectVolume = 0.5f;
@@ -25,7 +25,8 @@ namespace BudgetGameDev.Shared
             if (sharedAudioSource == null)
             {
                 GameObject audioObj = new GameObject("UIAudio");
-                Object.DontDestroyOnLoad(audioObj);
+                if (Application.isPlaying)
+                    Object.DontDestroyOnLoad(audioObj); // Refused outside play mode.
                 sharedAudioSource = audioObj.AddComponent<AudioSource>();
                 sharedAudioSource.playOnAwake = false;
                 sharedAudioSource.spatialBlend = 0f;
@@ -36,10 +37,27 @@ namespace BudgetGameDev.Shared
                 audioBuffer = new float[maxSamples];
 
                 // Pre-generate clips
-                hoverClip = GenerateHoverSound();
-                selectClip = GenerateSelectSound();
-                levelUpSelectClip = GenerateLevelUpSelectSound();
+                hoverClip = GenerateHoverSound(sampleRate);
+                selectClip = GenerateSelectSound(sampleRate);
+                levelUpSelectClip = GenerateLevelUpSelectSound(sampleRate);
             }
+        }
+
+        /// <summary>
+        /// Drops the cached source and clips so the next call rebuilds them; statics
+        /// outlive a play session in the editor, but the objects they point at do not.
+        /// </summary>
+        internal static void Reset()
+        {
+            if (sharedAudioSource != null)
+                Object.DestroyImmediate(sharedAudioSource.gameObject);
+
+            sharedAudioSource = null;
+            hoverClip = null;
+            selectClip = null;
+            levelUpSelectClip = null;
+            audioBuffer = null;
+            sampleRate = 0;
         }
 
         /// <summary>
@@ -89,7 +107,7 @@ namespace BudgetGameDev.Shared
         /// <summary>
         /// Generates a short, subtle tick sound for navigation
         /// </summary>
-        private static AudioClip GenerateHoverSound()
+        internal static AudioClip GenerateHoverSound(int sampleRate)
         {
             float duration = 0.06f;
             int numSamples = Mathf.CeilToInt(duration * sampleRate);
@@ -137,7 +155,7 @@ namespace BudgetGameDev.Shared
         /// <summary>
         /// Generates a satisfying confirm/select sound
         /// </summary>
-        private static AudioClip GenerateSelectSound()
+        internal static AudioClip GenerateSelectSound(int sampleRate)
         {
             float duration = 0.15f;
             int numSamples = Mathf.CeilToInt(duration * sampleRate);
@@ -167,7 +185,9 @@ namespace BudgetGameDev.Shared
                 if (norm < 0.05f)
                     envelope = norm / 0.05f;
                 else
-                    envelope = Mathf.Pow(1f - (norm - 0.05f) / 0.95f, 1.5f);
+                    // Clamped: rounding takes the base below zero on the last sample,
+                    // where Pow would write NaN into the buffer.
+                    envelope = Mathf.Pow(Mathf.Max(0f, 1f - (norm - 0.05f) / 0.95f), 1.5f);
 
                 samples[i] = (tone1 + tone2 + brightness) * envelope;
             }
@@ -184,7 +204,7 @@ namespace BudgetGameDev.Shared
         /// Generates an epic, hyped sound for level-up stat selection
         /// Three-tone ascending arpeggio with shimmer
         /// </summary>
-        private static AudioClip GenerateLevelUpSelectSound()
+        internal static AudioClip GenerateLevelUpSelectSound(int sampleRate)
         {
             float duration = 0.28f;
             int numSamples = Mathf.CeilToInt(duration * sampleRate);
@@ -261,7 +281,7 @@ namespace BudgetGameDev.Shared
             return clip;
         }
 
-        private static void NormalizeSamples(float[] samples, float targetPeak)
+        internal static void NormalizeSamples(float[] samples, float targetPeak)
         {
             float maxAmp = 0f;
             for (int i = 0; i < samples.Length; i++)

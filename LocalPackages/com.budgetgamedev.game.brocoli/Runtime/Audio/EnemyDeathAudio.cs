@@ -40,9 +40,16 @@ namespace BudgetGameDev.Games.Brocoli
             EnsureInitialized();
         }
 
-        public static void Play(Vector3 worldPosition, bool isElite)
+        public static void Play(Vector3 worldPosition, bool isElite) =>
+            Play(worldPosition, isElite, () => Resources.Load<AudioClip>(ClipResourcePath));
+
+        internal static void Play(
+            Vector3 worldPosition,
+            bool isElite,
+            System.Func<AudioClip> loadClip
+        )
         {
-            EnsureInitialized();
+            EnsureInitialized(loadClip);
             if (deathClip == null || voices == null)
                 return;
 
@@ -69,10 +76,13 @@ namespace BudgetGameDev.Games.Brocoli
             voice.PlayOneShot(deathClip, Mathf.Clamp01(volume));
         }
 
-        private static void EnsureInitialized()
+        private static void EnsureInitialized() =>
+            EnsureInitialized(() => Resources.Load<AudioClip>(ClipResourcePath));
+
+        internal static void EnsureInitialized(System.Func<AudioClip> loadClip)
         {
             if (deathClip == null)
-                deathClip = Resources.Load<AudioClip>(ClipResourcePath);
+                deathClip = loadClip();
 
             if (deathClip == null)
             {

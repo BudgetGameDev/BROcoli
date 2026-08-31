@@ -3,6 +3,10 @@
   "rootNamespace": "BudgetGameDev.Shared.Tests",
   "references": [
     "BudgetGameDev.Shared",
+    "Unity.InputSystem",
+    "Unity.RenderPipelines.Universal.Runtime",
+    "Unity.TextMeshPro",
+    "UnityEngine.UI",
     "UnityEngine.TestRunner",
     "UnityEditor.TestRunner"
   ],

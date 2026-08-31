@@ -27,18 +27,23 @@ namespace BudgetGameDev.Games.Brocoli
         /// </summary>
         public static bool HasClearLine(Vector3 origin, Vector3 target)
         {
+            return HasClearLine(origin, target, WallMask);
+        }
+
+        internal static bool HasClearLine(Vector3 origin, Vector3 target, int mask)
+        {
             Vector3 displacement = target - origin;
             float distance = displacement.magnitude;
             if (distance <= 0.000001f)
                 return true;
-            if (WallMask == 0)
+            if (mask == 0)
                 return true;
 
             return !Physics.Raycast(
                 origin,
                 displacement / distance,
                 distance,
-                WallMask,
+                mask,
                 QueryTriggerInteraction.Ignore
             );
         }

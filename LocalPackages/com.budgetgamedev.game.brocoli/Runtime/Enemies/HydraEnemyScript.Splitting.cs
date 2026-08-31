@@ -147,7 +147,20 @@ namespace BudgetGameDev.Games.Brocoli
             base.Die();
         }
 
-        private void SpawnChildren()
+        private void SpawnChildren() =>
+            SpawnChildren(
+                spawnPosition =>
+                    PoolManager.Instance?.GetEnemy(this, spawnPosition, Quaternion.identity),
+                InstantiateChild
+            );
+
+        internal GameObject InstantiateChild(Vector3 spawnPosition) =>
+            Instantiate(gameObject, spawnPosition, Quaternion.identity);
+
+        internal void SpawnChildren(
+            System.Func<Vector3, EnemyBase> getPooledEnemy,
+            System.Func<Vector3, GameObject> instantiateEnemy
+        )
         {
             hasSpawnedChildren = true;
             const int childrenToSpawn = 2;
@@ -159,11 +172,7 @@ namespace BudgetGameDev.Games.Brocoli
                     * splitSpawnRadius;
                 Vector3 spawnPosition = transform.position + offset.ToWorld();
 
-                EnemyBase pooledEnemy = PoolManager.Instance?.GetEnemy(
-                    this,
-                    spawnPosition,
-                    Quaternion.identity
-                );
+                EnemyBase pooledEnemy = getPooledEnemy(spawnPosition);
                 HydraEnemyScript childHydra = pooledEnemy as HydraEnemyScript;
                 if (childHydra != null)
                 {
@@ -171,7 +180,7 @@ namespace BudgetGameDev.Games.Brocoli
                 }
                 else
                 {
-                    GameObject child = Instantiate(gameObject, spawnPosition, Quaternion.identity);
+                    GameObject child = instantiateEnemy(spawnPosition);
                     childHydra = child.GetComponent<HydraEnemyScript>();
                 }
 

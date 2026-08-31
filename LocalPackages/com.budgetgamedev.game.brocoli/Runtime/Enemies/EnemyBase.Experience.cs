@@ -10,15 +10,27 @@ namespace BudgetGameDev.Games.Brocoli
             if (expGainPrefab == null)
                 return;
 
-            Vector2 direction = UnityEngine.Random.insideUnitCircle;
+            SpawnExpGain(
+                UnityEngine.Random.insideUnitCircle,
+                UnityEngine.Random.Range(0.2f, 0.5f),
+                position => PoolManager.Instance?.GetExpGain(position)
+            );
+        }
+
+        internal void SpawnExpGain(
+            Vector2 direction,
+            float landingDistance,
+            System.Func<Vector3, ExpGain> getPooledExperience
+        )
+        {
             if (direction.sqrMagnitude < 0.001f)
                 direction = Vector2.right;
-            Vector2 landingOffset = direction.normalized * UnityEngine.Random.Range(0.2f, 0.5f);
+            Vector2 landingOffset = direction.normalized * landingDistance;
             Vector2 spawnGround = transform.position.ToGround();
             Vector3 spawnPosition = spawnGround.ToWorld(0.5f);
             Vector3 landingPosition = (spawnGround + landingOffset).ToWorld(0.5f);
 
-            ExpGain expGain = PoolManager.Instance?.GetExpGain(spawnPosition);
+            ExpGain expGain = getPooledExperience?.Invoke(spawnPosition);
             if (expGain != null)
             {
                 expGain.InitDropped(ScoreValue, landingPosition, ExpGain.DropStyle.Enemy);

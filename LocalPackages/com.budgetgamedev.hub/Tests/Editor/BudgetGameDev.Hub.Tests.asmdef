@@ -5,6 +5,8 @@
     "BudgetGameDev.Hub",
     "BudgetGameDev.Hub.Editor",
     "BudgetGameDev.Shared",
+    "Unity.InputSystem",
+    "UnityEngine.UI",
     "UnityEngine.TestRunner",
     "UnityEditor.TestRunner"
   ],

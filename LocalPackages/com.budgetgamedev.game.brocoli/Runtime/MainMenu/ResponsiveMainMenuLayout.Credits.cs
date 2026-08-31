@@ -111,18 +111,42 @@ namespace BudgetGameDev.Games.Brocoli
             bool cancel =
                 Input.GetKeyDown(KeyCode.Escape)
                 || (Gamepad.current != null && Gamepad.current.buttonEast.wasPressedThisFrame);
-            if (cancel && MenuInputGate.TryConsumeCancel())
+            bool home = Input.GetKeyDown(KeyCode.Home);
+            bool end = Input.GetKeyDown(KeyCode.End);
+            float vertical = ReadCreditsScrollAxis();
+            bool submit =
+                Input.GetKeyDown(KeyCode.Return)
+                || Input.GetKeyDown(KeyCode.KeypadEnter)
+                || Input.GetKeyDown(KeyCode.Space)
+                || (Gamepad.current != null && Gamepad.current.buttonSouth.wasPressedThisFrame);
+            ProcessCreditsInput(
+                cancel && MenuInputGate.TryConsumeCancel(),
+                home,
+                end,
+                vertical,
+                submit && MenuInputGate.TryConsumeSubmit()
+            );
+        }
+
+        internal void ProcessCreditsInput(
+            bool cancel,
+            bool home,
+            bool end,
+            float vertical,
+            bool submit
+        )
+        {
+            if (cancel)
             {
                 CloseCredits();
                 return;
             }
 
-            if (Input.GetKeyDown(KeyCode.Home))
+            if (home)
                 creditsScroll.verticalNormalizedPosition = 1f;
-            else if (Input.GetKeyDown(KeyCode.End))
+            else if (end)
                 creditsScroll.verticalNormalizedPosition = 0f;
 
-            float vertical = ReadCreditsScrollAxis();
             if (Mathf.Abs(vertical) > 0.15f)
             {
                 creditsScroll.verticalNormalizedPosition = Mathf.Clamp01(
@@ -131,32 +155,48 @@ namespace BudgetGameDev.Games.Brocoli
                 );
             }
 
-            bool submit =
-                Input.GetKeyDown(KeyCode.Return)
-                || Input.GetKeyDown(KeyCode.KeypadEnter)
-                || Input.GetKeyDown(KeyCode.Space)
-                || (Gamepad.current != null && Gamepad.current.buttonSouth.wasPressedThisFrame);
-            if (submit && MenuInputGate.TryConsumeSubmit())
+            if (submit)
                 CloseCredits();
         }
 
         private static float ReadCreditsScrollAxis()
         {
+            Vector2? rightStick = Gamepad.current?.rightStick.ReadValue();
+            Vector2? dpad = Gamepad.current?.dpad.ReadValue();
+            return ResolveCreditsScrollAxis(
+                Input.GetKey(KeyCode.UpArrow) || Input.GetKey(KeyCode.W),
+                Input.GetKey(KeyCode.DownArrow) || Input.GetKey(KeyCode.S),
+                Input.GetKey(KeyCode.PageUp),
+                Input.GetKey(KeyCode.PageDown),
+                rightStick,
+                dpad
+            );
+        }
+
+        internal static float ResolveCreditsScrollAxis(
+            bool up,
+            bool down,
+            bool pageUp,
+            bool pageDown,
+            Vector2? rightStick,
+            Vector2? dpad
+        )
+        {
             float vertical =
-                Input.GetKey(KeyCode.UpArrow) || Input.GetKey(KeyCode.W) ? 1f
-                : Input.GetKey(KeyCode.DownArrow) || Input.GetKey(KeyCode.S) ? -1f
+                up ? 1f
+                : down ? -1f
                 : 0f;
-            if (Input.GetKey(KeyCode.PageUp))
+            if (pageUp)
                 vertical = 3f;
-            else if (Input.GetKey(KeyCode.PageDown))
+            else if (pageDown)
                 vertical = -3f;
 
-            if (Gamepad.current == null)
+            if (!rightStick.HasValue)
                 return vertical;
 
-            Vector2 axis = Gamepad.current.rightStick.ReadValue();
+            Vector2 axis = rightStick.Value;
             if (axis.sqrMagnitude < 0.04f)
-                axis = Gamepad.current.dpad.ReadValue();
+                axis = dpad.GetValueOrDefault();
             return Mathf.Abs(axis.y) > 0.15f ? axis.y : vertical;
         }
     }

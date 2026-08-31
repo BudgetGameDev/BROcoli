@@ -11,24 +11,33 @@ namespace BudgetGameDev.Shared
     /// </summary>
     public class GraphicRegistryCleaner : MonoBehaviour
     {
+        /// <summary>Unity's registry of which Graphic belongs to which Canvas.</summary>
+        internal const string RegistryTypeName = "UnityEngine.UI.GraphicRegistry";
+
         [Tooltip("How often to check for destroyed graphics (in seconds)")]
         public float cleanupInterval = 0.5f;
 
-        private float lastCleanupTime;
-        private static GraphicRegistryCleaner instance;
+        internal float lastCleanupTime;
+        internal static GraphicRegistryCleaner instance;
 
-        void Awake()
+        internal void Awake()
         {
             // Singleton pattern
             if (instance != null && instance != this)
             {
-                Destroy(gameObject);
+                // Destroy only works while the game is playing, and this component
+                // is also placed by editor tooling, so fall back to the immediate
+                // form rather than leaving a second cleaner running.
+                if (Application.isPlaying)
+                    Destroy(gameObject);
+                else
+                    DestroyImmediate(gameObject);
                 return;
             }
             instance = this;
         }
 
-        void Update()
+        internal void Update()
         {
             // Periodically clean up
             if (Time.unscaledTime - lastCleanupTime > cleanupInterval)
@@ -52,9 +61,6 @@ namespace BudgetGameDev.Shared
 
             foreach (Canvas canvas in canvases)
             {
-                if (canvas == null)
-                    continue;
-
                 // Get all graphics registered to this canvas using reflection
                 // GraphicRegistry is internal, so we need to access it via GraphicRaycaster
                 GraphicRaycaster raycaster = canvas.GetComponent<GraphicRaycaster>();
@@ -71,20 +77,27 @@ namespace BudgetGameDev.Shared
             }
 
             // Also clean up via the Graphic registry directly
-            CleanupGraphicRegistry();
+            CleanupGraphicRegistry(RegistryTypeName);
         }
 
         /// <summary>
-        /// Uses reflection to clean up Unity's internal GraphicRegistry.
+        /// Uses reflection to clean up Unity's internal GraphicRegistry. The type
+        /// name is a parameter so a test can drive the failure path with a name
+        /// Unity does not have.
         /// </summary>
-        private static void CleanupGraphicRegistry()
+        internal static void CleanupGraphicRegistry(string registryTypeName)
         {
+            CleanupGraphicRegistryType(typeof(Graphic).Assembly.GetType(registryTypeName));
+        }
+
+        internal static void CleanupGraphicRegistryType(System.Type registryType)
+        {
+            // Every lookup below reaches into another package's internals, so each
+            // step gives up quietly if Unity has moved it. The smoke probes fail on
+            // an application warning, so degrading in silence is deliberate: the
+            // catch is for the unexpected, not for a renamed field.
             try
             {
-                // Get the GraphicRegistry type
-                System.Type registryType = typeof(Graphic).Assembly.GetType(
-                    "UnityEngine.UI.GraphicRegistry"
-                );
                 if (registryType == null)
                     return;
 
@@ -100,7 +113,7 @@ namespace BudgetGameDev.Shared
                 if (registryInstance == null)
                     return;
 
-                // Get the m_Graphics dictionary field
+                // The dictionary is Dictionary<Canvas, IndexedSet<Graphic>>
                 FieldInfo graphicsField = registryType.GetField(
                     "m_Graphics",
                     BindingFlags.Instance | BindingFlags.NonPublic
@@ -108,13 +121,8 @@ namespace BudgetGameDev.Shared
                 if (graphicsField == null)
                     return;
 
-                // The dictionary is Dictionary<Canvas, IndexedSet<Graphic>>
-                object graphicsDict = graphicsField.GetValue(registryInstance);
-                if (graphicsDict == null)
-                    return;
-
-                // Get the dictionary as IDictionary to iterate
-                var dict = graphicsDict as System.Collections.IDictionary;
+                var dict =
+                    graphicsField.GetValue(registryInstance) as System.Collections.IDictionary;
                 if (dict == null)
                     return;
 
@@ -131,12 +139,9 @@ namespace BudgetGameDev.Shared
 
                     // Check if any graphics in this canvas's list are destroyed
                     var indexedSet = entry.Value;
-                    if (indexedSet == null)
-                        continue;
-
                     // Get the list inside IndexedSet
                     FieldInfo listField = indexedSet
-                        .GetType()
+                        ?.GetType()
                         .GetField("m_List", BindingFlags.Instance | BindingFlags.NonPublic);
                     if (listField == null)
                         continue;
@@ -160,9 +165,6 @@ namespace BudgetGameDev.Shared
                 // For each canvas with destroyed graphics, force re-registration
                 foreach (Canvas canvas in canvasesToClean)
                 {
-                    if (canvas == null)
-                        continue;
-
                     // Disable and re-enable all graphics on this canvas to force re-registration
                     Graphic[] graphics = canvas.GetComponentsInChildren<Graphic>(true);
                     foreach (Graphic g in graphics)
@@ -183,7 +185,7 @@ namespace BudgetGameDev.Shared
             }
         }
 
-        void OnDestroy()
+        internal void OnDestroy()
         {
             if (instance == this)
             {

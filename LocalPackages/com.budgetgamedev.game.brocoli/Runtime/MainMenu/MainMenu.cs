@@ -1,3 +1,4 @@
+using System;
 using BudgetGameDev.Shared;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -27,15 +28,7 @@ namespace BudgetGameDev.Games.Brocoli
         {
             // Hide install button if already running as installed PWA
             if (installAppButton != null)
-            {
-                bool showInstallButton = !PWAHelper.IsInstalledAsPWA;
-                installAppButton.SetActive(showInstallButton);
-
-                if (PWAHelper.IsInstalledAsPWA)
-                {
-                    Debug.Log("[MainMenu] Running as installed PWA - hiding install button");
-                }
-            }
+                ConfigureInstallButton(PWAHelper.IsInstalledAsPWA);
 
             // Hide quit button on WebGL - Application.Quit() doesn't work reliably in browsers
 #if UNITY_WEBGL
@@ -50,6 +43,15 @@ namespace BudgetGameDev.Games.Brocoli
             // Setup controller navigation
             SuppressEventSystemNavigation();
             SetupControllerNavigation();
+        }
+
+        internal void ConfigureInstallButton(bool installed)
+        {
+            if (installAppButton == null)
+                return;
+            installAppButton.SetActive(!installed);
+            if (installed)
+                Debug.Log("[MainMenu] Running as installed PWA - hiding install button");
         }
 
         private void OnDestroy() => RestoreEventSystemNavigation();
@@ -86,13 +88,16 @@ namespace BudgetGameDev.Games.Brocoli
 
         /// <summary>Resumes the run held in the given save slot.</summary>
         /// <returns>False when that slot turned out to be empty or unreadable.</returns>
-        public bool LoadSave(int slot)
+        public bool LoadSave(int slot) =>
+            LoadSave(slot, () => SceneManager.LoadScene("Brocoli_Dungeon"));
+
+        internal bool LoadSave(int slot, Action loadScene)
         {
             if (!BrocoliSaveSystem.BeginContinue(slot))
                 return false;
 
             ProceduralUIAudio.PlaySelect();
-            SceneManager.LoadScene("Brocoli_Dungeon");
+            loadScene();
             return true;
         }
 
@@ -102,7 +107,10 @@ namespace BudgetGameDev.Games.Brocoli
         /// settings cannot silently launch something else.
         /// </summary>
         /// <returns>False when all ten save slots are taken.</returns>
-        private static bool LaunchNewDungeon(bool mobileControls)
+        private static bool LaunchNewDungeon(bool mobileControls) =>
+            LaunchNewDungeon(mobileControls, () => SceneManager.LoadScene("Brocoli_Dungeon"));
+
+        internal static bool LaunchNewDungeon(bool mobileControls, Action loadScene)
         {
             if (!BrocoliSaveSystem.BeginNewGame(mobileControls))
             {
@@ -111,20 +119,8 @@ namespace BudgetGameDev.Games.Brocoli
             }
 
             ProceduralUIAudio.PlaySelect();
-            SceneManager.LoadScene("Brocoli_Dungeon");
+            loadScene();
             return true;
-        }
-
-        public void GoToSettingsMenu()
-        {
-            Debug.Log("Settings has been pressed");
-            SceneManager.LoadScene("SettingsMenuScene");
-        }
-
-        public void GoToMainMenu()
-        {
-            Debug.Log("Back has been pressed");
-            SceneManager.LoadScene("Brocoli_MainMenu");
         }
 
         public void quitGame()

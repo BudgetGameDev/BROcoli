@@ -30,7 +30,7 @@ namespace BudgetGameDev.Games.Brocoli
         // ==================== Hand Animation ====================
         public const float HandRotationSpeed = 720f; // Degrees per second
         public const float AimDelayBeforeSpray = 0.08f;
-        public static readonly bool ShowHandAlways = true;
+        public static bool ShowHandAlways { get; internal set; } = true;
         public const float HandHoverAmplitude = 0.035f;
         public const float HandHoverSpeed = 3.2f;
         public const float HandWalkWobbleDegrees = 4.5f;

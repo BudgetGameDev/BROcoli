@@ -7,7 +7,7 @@ namespace BudgetGameDev.Games.Brocoli
     /// </summary>
     public sealed partial class PickupVisual3D
     {
-        private void BuildSymbol(
+        internal void BuildSymbol(
             Transform face,
             ModelKind kind,
             Color symbolColor,

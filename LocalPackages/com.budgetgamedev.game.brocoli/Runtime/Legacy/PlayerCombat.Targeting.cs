@@ -142,16 +142,36 @@ namespace BudgetGameDev.Games.Brocoli
                         sprayRange
                     );
 
-                    if (totalDamage > bestTotalDamage)
-                    {
-                        bestTotalDamage = totalDamage;
-                        bestTarget =
-                            enemies[i].dist < enemies[j].dist ? enemies[i].t : enemies[j].t;
-                    }
+                    PreferPairTarget(
+                        totalDamage,
+                        enemies[i].t,
+                        enemies[i].dist,
+                        enemies[j].t,
+                        enemies[j].dist,
+                        ref bestTotalDamage,
+                        ref bestTarget
+                    );
                 }
             }
 
             return bestTarget;
+        }
+
+        internal static bool PreferPairTarget(
+            float totalDamage,
+            Transform first,
+            float firstDistance,
+            Transform second,
+            float secondDistance,
+            ref float bestTotalDamage,
+            ref Transform bestTarget
+        )
+        {
+            if (totalDamage <= bestTotalDamage)
+                return false;
+            bestTotalDamage = totalDamage;
+            bestTarget = firstDistance < secondDistance ? first : second;
+            return true;
         }
 
         private static bool CanShootTarget(Collider target, Vector2 shooterPosition)

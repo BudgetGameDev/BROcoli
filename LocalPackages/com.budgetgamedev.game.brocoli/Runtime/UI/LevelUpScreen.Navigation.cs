@@ -9,44 +9,49 @@ namespace BudgetGameDev.Games.Brocoli
     {
         private void HandleControllerNavigation()
         {
-            // Rate limit navigation
-            if (Time.unscaledTime - lastNavTime < NavRepeatDelay)
+            Keyboard keyboard = Keyboard.current;
+            Vector2 dpad = Gamepad.current?.dpad.ReadValue() ?? Vector2.zero;
+            Vector2 stick = Gamepad.current?.leftStick.ReadValue() ?? Vector2.zero;
+            float horizontal = ResolveHorizontalInput(
+                keyboard?.leftArrowKey.isPressed == true || keyboard?.aKey.isPressed == true,
+                keyboard?.rightArrowKey.isPressed == true || keyboard?.dKey.isPressed == true,
+                dpad,
+                stick
+            );
+
+            bool submit =
+                keyboard?.enterKey.wasPressedThisFrame == true
+                || keyboard?.spaceKey.wasPressedThisFrame == true
+                || Gamepad.current?.buttonSouth.wasPressedThisFrame == true;
+            ProcessNavigation(horizontal, submit, Time.unscaledTime);
+        }
+
+        internal static float ResolveHorizontalInput(
+            bool left,
+            bool right,
+            Vector2 dpad,
+            Vector2 stick
+        )
+        {
+            if (Mathf.Abs(dpad.x) > 0.5f)
+                return Mathf.Sign(dpad.x);
+            if (Mathf.Abs(stick.x) > 0.5f)
+                return Mathf.Sign(stick.x);
+            if (left)
+                return -1f;
+            return right ? 1f : 0f;
+        }
+
+        internal void ProcessNavigation(float horizontal, bool submit, float now)
+        {
+            if (now - lastNavTime < NavRepeatDelay)
                 return;
-
-            float horizontal = 0f;
-
-            // Keyboard arrows
-            if (Input.GetKey(KeyCode.LeftArrow) || Input.GetKey(KeyCode.A))
-                horizontal = -1f;
-            else if (Input.GetKey(KeyCode.RightArrow) || Input.GetKey(KeyCode.D))
-                horizontal = 1f;
-
-            // Gamepad
-            if (Gamepad.current != null)
-            {
-                Vector2 dpad = Gamepad.current.dpad.ReadValue();
-                Vector2 stick = Gamepad.current.leftStick.ReadValue();
-
-                if (Mathf.Abs(dpad.x) > 0.5f)
-                    horizontal = Mathf.Sign(dpad.x);
-                else if (Mathf.Abs(stick.x) > 0.5f)
-                    horizontal = Mathf.Sign(stick.x);
-            }
-
-            // Navigate
             if (Mathf.Abs(horizontal) > 0.1f)
             {
-                lastNavTime = Time.unscaledTime;
+                lastNavTime = now;
                 int newIndex = selectedIndex + (int)Mathf.Sign(horizontal);
                 newIndex = Mathf.Clamp(newIndex, 0, 2);
                 SetSelectedIndex(newIndex);
-            }
-
-            // Submit with Enter/Space/Gamepad A
-            bool submit = Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.Space);
-            if (Gamepad.current != null && Gamepad.current.buttonSouth.wasPressedThisFrame)
-            {
-                submit = true;
             }
 
             if (submit)

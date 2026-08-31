@@ -170,7 +170,7 @@ namespace BudgetGameDev.Shared
             foreach (var obj in _active)
             {
                 if (obj != null)
-                    UnityEngine.Object.Destroy(obj.gameObject);
+                    DestroyPooled(obj);
             }
             _active.Clear();
 
@@ -178,8 +178,21 @@ namespace BudgetGameDev.Shared
             {
                 var obj = _available.Pop();
                 if (obj != null)
-                    UnityEngine.Object.Destroy(obj.gameObject);
+                    DestroyPooled(obj);
             }
+        }
+
+        /// <summary>
+        /// Destroys one pooled object. Object.Destroy only works while the game is
+        /// playing, and pools are also built and torn down by editor tooling, so
+        /// the immediate form is the only one that works there.
+        /// </summary>
+        private static void DestroyPooled(T obj)
+        {
+            if (Application.isPlaying)
+                UnityEngine.Object.Destroy(obj.gameObject);
+            else
+                UnityEngine.Object.DestroyImmediate(obj.gameObject);
         }
 
         private T TakeAvailable()

@@ -1,3 +1,4 @@
+using System;
 using BudgetGameDev.Shared;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -14,7 +15,15 @@ namespace BudgetGameDev.Hub
         /// <summary>Scene name of the launcher shipped by this package.</summary>
         public const string LauncherSceneName = "GameLauncher";
 
-        private const string LastPlayedKey = "Hub.LastPlayedGameId";
+        internal const string LastPlayedKey = "Hub.LastPlayedGameId";
+
+        /// <summary>
+        /// How a scene is actually opened. A scene load only exists in play mode, so
+        /// this is the seam edit-mode tests replace to observe the decision without
+        /// one, the way <see cref="LauncherStartup.Resolve"/> takes build membership
+        /// as a parameter. Nothing in the shipped game assigns it.
+        /// </summary>
+        internal static Action<string> SceneLoader = SceneManager.LoadScene;
 
         /// <summary>The running game, or null while the launcher is in front.</summary>
         public static GameDefinition Active { get; private set; }
@@ -25,7 +34,11 @@ namespace BudgetGameDev.Hub
         /// begin believing a game from the previous one is still running.
         /// </summary>
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        private static void ResetSessionState() => Active = null;
+        internal static void ResetSessionState()
+        {
+            Active = null;
+            SceneLoader = SceneManager.LoadScene;
+        }
 
         /// <summary>Id the launcher should preselect: whatever was played last.</summary>
         public static string LastPlayedId
@@ -81,8 +94,7 @@ namespace BudgetGameDev.Hub
             Active = game;
             LastPlayedId = game.Id;
             GameAudioSettings.Configure(game.MixerResourcePath, game.MainMenuSceneName);
-            Time.timeScale = 1f;
-            SceneManager.LoadScene(scene);
+            OpenScene(scene);
             return true;
         }
 
@@ -91,8 +103,18 @@ namespace BudgetGameDev.Hub
         {
             Active = null;
             GameAudioSettings.Configure(null, null);
+            OpenScene(LauncherSceneName);
+        }
+
+        /// <summary>
+        /// Opens a scene at normal speed. Every transition resets the time scale,
+        /// because a game paused when it was left would otherwise hand a frozen
+        /// clock to whatever opens next.
+        /// </summary>
+        internal static void OpenScene(string sceneName)
+        {
             Time.timeScale = 1f;
-            SceneManager.LoadScene(LauncherSceneName);
+            SceneLoader(sceneName);
         }
     }
 }

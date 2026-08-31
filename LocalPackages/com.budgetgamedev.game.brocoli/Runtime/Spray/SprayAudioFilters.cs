@@ -91,9 +91,9 @@ namespace BudgetGameDev.Games.Brocoli
         public static float SoftClip(float x)
         {
             if (x > 1f)
-                return 1f - Mathf.Exp(-(x - 1f) * 2f) * 0.3f + 0.7f;
+                return 1f - Mathf.Exp(-(x - 1f) * 2f) * 0.15f;
             if (x < -1f)
-                return -1f + Mathf.Exp(-(-x - 1f) * 2f) * 0.3f - 0.7f;
+                return -1f + Mathf.Exp(-(-x - 1f) * 2f) * 0.15f;
 
             // Subtle saturation in normal range
             return x - x * x * x * 0.15f;

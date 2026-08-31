@@ -152,7 +152,17 @@ namespace BudgetGameDev.Games.Brocoli
                 lowHpFraction
             );
 
-            Vector2 desired = currentIntent switch
+            Vector2 desired = NavigateIntent(currentIntent, position, enemies);
+
+            Move = Vector2.ClampMagnitude(desired, 1f);
+        }
+
+        private Vector2 NavigateIntent(
+            BotIntent intent,
+            Vector2 position,
+            EnemyObservation enemies
+        ) =>
+            intent switch
             {
                 BotIntent.Explore => NavigateTo(position, GetExplorationTarget(position)),
                 BotIntent.Engage => NavigateCombat(position, enemies, false),
@@ -161,9 +171,6 @@ namespace BudgetGameDev.Games.Brocoli
                 BotIntent.Recover => NavigateLocal(position, recoveryDirection),
                 _ => Vector2.zero,
             };
-
-            Move = Vector2.ClampMagnitude(desired, 1f);
-        }
 
         private bool ResolveWorld()
         {

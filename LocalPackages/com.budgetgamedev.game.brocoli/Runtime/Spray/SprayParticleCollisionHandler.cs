@@ -107,13 +107,24 @@ namespace BudgetGameDev.Games.Brocoli
             int numEvents = sprayParticles.GetCollisionEvents(other, collisionEvents);
             if (numEvents <= 0)
                 return;
+            ProcessCollision(other, collisionEvents, numEvents);
+        }
+
+        internal void ProcessCollision(
+            GameObject other,
+            IReadOnlyList<ParticleCollisionEvent> events,
+            int numEvents
+        )
+        {
+            if (other == null || events == null || numEvents <= 0)
+                return;
 
             collisionPoints.Clear();
             for (int i = 0; i < numEvents; i++)
-                collisionPoints.Add(collisionEvents[i].intersection);
+                collisionPoints.Add(events[i].intersection);
 
             ConsumeParticlesNear(collisionPoints);
-            hitSplash?.Emit(collisionEvents, numEvents);
+            hitSplash?.Emit(events, numEvents);
 
             // Check if it's an enemy
             EnemyBase enemy = other.GetComponentInParent<EnemyBase>();

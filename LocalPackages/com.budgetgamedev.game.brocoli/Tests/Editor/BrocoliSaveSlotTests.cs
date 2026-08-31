@@ -5,7 +5,7 @@ using UnityEngine;
 
 namespace BudgetGameDev.Games.Brocoli.Tests
 {
-    public sealed class BrocoliSaveSlotTests
+    public sealed partial class BrocoliSaveSlotTests
     {
         private readonly Dictionary<string, string> backup = new();
         private int backedUpActiveSlot;

@@ -463,17 +463,6 @@ namespace BudgetGameDev.Games.Brocoli
             ResolveLevelUps();
         }
 
-        private void ResolveLevelUps()
-        {
-            while (!_levelUpChoicePending && _currentExperience >= _currentMaxExperience)
-            {
-                _currentExperience -= _currentMaxExperience;
-                LevelUp();
-            }
-
-            _experienceBar?.UpdateBar(_currentExperience, _currentMaxExperience);
-        }
-
         /// <summary>
         /// Calculate final damage output with crit chance.
         /// Call this when dealing damage to enemies.

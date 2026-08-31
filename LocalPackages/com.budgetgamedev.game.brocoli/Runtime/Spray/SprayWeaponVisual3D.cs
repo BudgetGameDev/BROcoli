@@ -117,9 +117,10 @@ namespace BudgetGameDev.Games.Brocoli
             nozzleTransform.localScale = Vector3.one;
         }
 
-        private void BuildBottle()
+        private void BuildBottle() => BuildBottle(Resources.Load<GameObject>(BottleResourcePath));
+
+        internal void BuildBottle(GameObject bottlePrefab)
         {
-            GameObject bottlePrefab = Resources.Load<GameObject>(BottleResourcePath);
             if (bottlePrefab == null)
             {
                 Debug.LogError($"Missing sanitizer bottle resource: {BottleResourcePath}");
@@ -145,9 +146,11 @@ namespace BudgetGameDev.Games.Brocoli
             }
         }
 
-        private void BuildHand()
+        private void BuildHand() =>
+            BuildHand(Resources.Load<GameObject>(HandResourcePath), FindClip("GrabHold"));
+
+        internal void BuildHand(GameObject handPrefab, AnimationClip grip)
         {
-            GameObject handPrefab = Resources.Load<GameObject>(HandResourcePath);
             if (handPrefab == null)
             {
                 Debug.LogError($"Missing licensed hand resource: {HandResourcePath}");
@@ -170,7 +173,6 @@ namespace BudgetGameDev.Games.Brocoli
                 renderer.sharedMaterials = styled;
             }
 
-            AnimationClip grip = FindClip("GrabHold");
             if (grip != null)
             {
                 // Non-legacy clips require an Animator on the sampled root at runtime.

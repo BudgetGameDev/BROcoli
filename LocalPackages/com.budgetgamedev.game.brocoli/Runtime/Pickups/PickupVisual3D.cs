@@ -93,7 +93,13 @@ namespace BudgetGameDev.Games.Brocoli
 
         public static PickupVisual3D AttachBoost(BoostBase boost)
         {
-            ModelKind kind = boost.BoostSoundType switch
+            return Attach(boost.gameObject, ModelKindForSound(boost.BoostSoundType));
+        }
+
+        internal static ModelKind ModelKindForSound(
+            ProceduralBoostAudio.BoostSoundType soundType
+        ) =>
+            soundType switch
             {
                 ProceduralBoostAudio.BoostSoundType.Health => ModelKind.Health,
                 ProceduralBoostAudio.BoostSoundType.Damage => ModelKind.Damage,
@@ -107,9 +113,6 @@ namespace BudgetGameDev.Games.Brocoli
                 ProceduralBoostAudio.BoostSoundType.TimeSlow => ModelKind.Hourglass,
                 _ => ModelKind.ExperienceBoost,
             };
-
-            return Attach(boost.gameObject, kind);
-        }
 
         private static PickupVisual3D Attach(GameObject pickup, ModelKind kind)
         {
@@ -352,12 +355,7 @@ namespace BudgetGameDev.Games.Brocoli
             if (Materials.TryGetValue(key, out Material material) && material != null)
                 return material;
 
-            Shader shader = Shader.Find("Universal Render Pipeline/Lit");
-            if (shader == null)
-                shader = Shader.Find("Universal Render Pipeline/Simple Lit");
-            if (shader == null)
-                shader = Shader.Find("Sprites/Default");
-
+            Shader shader = FindPickupShader(Shader.Find);
             material = new Material(shader)
             {
                 name = $"Pickup3D {ColorUtility.ToHtmlStringRGB(color)}",
@@ -376,7 +374,7 @@ namespace BudgetGameDev.Games.Brocoli
             return material;
         }
 
-        private static (Color baseColor, Color rimColor, Color symbolColor) GetPalette(
+        internal static (Color baseColor, Color rimColor, Color symbolColor) GetPalette(
             ModelKind kind
         )
         {

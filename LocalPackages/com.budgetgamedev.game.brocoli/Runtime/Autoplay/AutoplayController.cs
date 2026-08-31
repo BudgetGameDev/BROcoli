@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using BudgetGameDev.Shared;
@@ -29,9 +30,14 @@ namespace BudgetGameDev.Games.Brocoli
         private static void Bootstrap()
         {
             var config = AutoplayConfig.FromCommandLine();
-            if (!config.Enabled)
-                return;
+            Bootstrap(config);
+        }
 
+        internal static AutoplayController Bootstrap(AutoplayConfig config) =>
+            config.Enabled ? StartAutoplay(config) : null;
+
+        internal static AutoplayController StartAutoplay(AutoplayConfig config)
+        {
             IsActive = true;
 
             var go = new GameObject("[AutoplayController]");
@@ -39,6 +45,7 @@ namespace BudgetGameDev.Games.Brocoli
             var controller = go.AddComponent<AutoplayController>();
             controller._config = config;
             controller.Begin();
+            return controller;
         }
 
         private void Begin()
@@ -116,12 +123,18 @@ namespace BudgetGameDev.Games.Brocoli
         public int MinLevel = 2; // pass threshold for the "progress" scenario
         public string Sha = ""; // git SHA, for the run manifest
 
-        public static AutoplayConfig FromCommandLine()
+        public static AutoplayConfig FromCommandLine() =>
+            FromArguments(Environment.GetCommandLineArgs(), Environment.GetEnvironmentVariable);
+
+        internal static AutoplayConfig FromArguments(
+            IEnumerable<string> arguments,
+            Func<string, string> environment
+        )
         {
             var cfg = new AutoplayConfig();
 
-            bool enabled = EnvFlag("BROCOLI_AUTOPLAY");
-            foreach (var arg in Environment.GetCommandLineArgs())
+            bool enabled = EnvFlag(environment("BROCOLI_AUTOPLAY"));
+            foreach (string arg in arguments)
             {
                 if (arg == "--autoplay")
                     enabled = true;
@@ -149,22 +162,22 @@ namespace BudgetGameDev.Games.Brocoli
             cfg.Enabled = enabled;
 
             // Environment variables act as fallbacks/overrides (convenient from a shell).
-            var s = Environment.GetEnvironmentVariable("BROCOLI_SEED");
+            var s = environment("BROCOLI_SEED");
             if (!string.IsNullOrEmpty(s))
                 TryInt(s, ref cfg.Seed);
-            var d = Environment.GetEnvironmentVariable("BROCOLI_DURATION");
+            var d = environment("BROCOLI_DURATION");
             if (!string.IsNullOrEmpty(d))
                 TryFloat(d, ref cfg.Duration);
-            var i = Environment.GetEnvironmentVariable("BROCOLI_INTERVAL");
+            var i = environment("BROCOLI_INTERVAL");
             if (!string.IsNullOrEmpty(i))
                 TryFloat(i, ref cfg.Interval);
-            var ts = Environment.GetEnvironmentVariable("BROCOLI_TIMESTEP");
+            var ts = environment("BROCOLI_TIMESTEP");
             if (!string.IsNullOrEmpty(ts))
                 TryFloat(ts, ref cfg.Timestep);
-            var o = Environment.GetEnvironmentVariable("BROCOLI_OUT");
+            var o = environment("BROCOLI_OUT");
             if (!string.IsNullOrEmpty(o))
                 cfg.OutDir = o;
-            var sc = Environment.GetEnvironmentVariable("BROCOLI_SCENARIO");
+            var sc = environment("BROCOLI_SCENARIO");
             if (!string.IsNullOrEmpty(sc))
                 cfg.Scenario = sc;
 
@@ -184,11 +197,8 @@ namespace BudgetGameDev.Games.Brocoli
             $"seed={Seed} duration={Duration}s interval={Interval}s timestep={Timestep:0.####} "
             + $"deterministic={Deterministic} scenario={Scenario} sha={Sha} out={OutDir}";
 
-        private static bool EnvFlag(string name)
-        {
-            var v = Environment.GetEnvironmentVariable(name);
-            return v == "1" || string.Equals(v, "true", StringComparison.OrdinalIgnoreCase);
-        }
+        private static bool EnvFlag(string value) =>
+            value == "1" || string.Equals(value, "true", StringComparison.OrdinalIgnoreCase);
 
         private static void TryInt(string raw, ref int target)
         {

@@ -58,7 +58,15 @@ namespace BudgetGameDev.Games.Brocoli
             _gunAudio = GetComponentInChildren<ProceduralGunAudio>();
 
             // Load projectile prefab from Resources
-            _projectilePrefab = Resources.Load<GameObject>(ProjectilePrefabPath);
+            ConfigureCombatAssets(
+                Resources.Load<GameObject>(ProjectilePrefabPath),
+                LayerMask.GetMask("Enemy")
+            );
+        }
+
+        internal void ConfigureCombatAssets(GameObject projectilePrefab, LayerMask enemyLayer)
+        {
+            _projectilePrefab = projectilePrefab;
             if (_projectilePrefab == null)
             {
                 Debug.LogWarning(
@@ -66,8 +74,7 @@ namespace BudgetGameDev.Games.Brocoli
                 );
             }
 
-            // Get enemy layer mask programmatically
-            _enemyLayer = LayerMask.GetMask("Enemy");
+            _enemyLayer = enemyLayer;
             if (_enemyLayer == 0)
             {
                 Debug.LogWarning(
@@ -106,6 +113,11 @@ namespace BudgetGameDev.Games.Brocoli
             if (hits.Length == 0)
                 return;
 
+            HandleCombat(hits, playerPos, detectionRange);
+        }
+
+        internal void HandleCombat(Collider[] hits, Vector2 playerPos, float detectionRange)
+        {
             Transform target = FindTarget(hits, playerPos, detectionRange);
             if (target == null)
                 return;

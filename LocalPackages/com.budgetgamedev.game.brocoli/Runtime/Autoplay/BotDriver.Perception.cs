@@ -4,7 +4,7 @@ namespace BudgetGameDev.Games.Brocoli
 {
     public partial class BotDriver
     {
-        private readonly struct EnemyObservation
+        internal readonly struct EnemyObservation
         {
             internal readonly int Count;
             internal readonly int CloseCount;
@@ -131,11 +131,7 @@ namespace BudgetGameDev.Games.Brocoli
                 Collider candidate = projectileBuffer[i];
                 if (candidate == null || candidate.GetComponent<EnemyProjectile>() == null)
                     continue;
-                Rigidbody body = candidate.attachedRigidbody;
-                if (body == null)
-                    continue;
-
-                Vector2 velocity = body.GroundVelocity();
+                TryGetProjectileVelocity(candidate.attachedRigidbody, out Vector2 velocity);
                 if (velocity.sqrMagnitude < 0.04f)
                     continue;
 
@@ -160,6 +156,12 @@ namespace BudgetGameDev.Games.Brocoli
             }
 
             return dodge;
+        }
+
+        internal static bool TryGetProjectileVelocity(Rigidbody body, out Vector2 velocity)
+        {
+            velocity = body != null ? body.GroundVelocity() : Vector2.zero;
+            return body != null;
         }
     }
 }

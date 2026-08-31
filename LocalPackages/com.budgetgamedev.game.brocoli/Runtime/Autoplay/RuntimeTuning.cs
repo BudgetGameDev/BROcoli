@@ -37,22 +37,34 @@ namespace BudgetGameDev.Games.Brocoli
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void Bootstrap()
         {
-            string path = ResolvePath();
+            Bootstrap(ResolvePath());
+        }
+
+        internal static void Bootstrap(string path) => Bootstrap(path, DontDestroyOnLoad);
+
+        internal static void Bootstrap(string path, Action<GameObject> persist)
+        {
             if (string.IsNullOrEmpty(path))
                 return;
 
             var go = new GameObject("[RuntimeTuning]");
-            DontDestroyOnLoad(go);
+            persist(go);
             go.AddComponent<RuntimeTuning>()._path = path;
             Debug.Log($"[RuntimeTuning] watching {path}");
         }
 
-        private static string ResolvePath()
+        private static string ResolvePath() =>
+            ResolvePath(
+                Environment.GetCommandLineArgs(),
+                Environment.GetEnvironmentVariable("BROCOLI_TUNING")
+            );
+
+        internal static string ResolvePath(string[] arguments, string environmentPath)
         {
-            foreach (var a in Environment.GetCommandLineArgs())
+            foreach (var a in arguments)
                 if (a.StartsWith("--tuning="))
                     return a.Substring(9);
-            return Environment.GetEnvironmentVariable("BROCOLI_TUNING");
+            return environmentPath;
         }
 
         private string _path;

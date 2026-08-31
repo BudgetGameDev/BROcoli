@@ -7,7 +7,7 @@ namespace BudgetGameDev.Games.Brocoli
     /// <summary>
     /// Central registry for all object pools. Handles pre-warming during loading.
     /// </summary>
-    public class PoolManager : MonoBehaviour
+    public partial class PoolManager : MonoBehaviour
     {
         private static PoolManager _instance;
         public static PoolManager Instance
@@ -333,7 +333,7 @@ namespace BudgetGameDev.Games.Brocoli
 
         private ObjectPool<EnemyProjectile> GetOrCreateProjectilePool(EnemyProjectile prefab)
         {
-            int id = prefab.gameObject.GetInstanceID();
+            int id = GetPrefabId(prefab);
             if (!_projectilePools.TryGetValue(id, out var pool))
             {
                 pool = new ObjectPool<EnemyProjectile>(

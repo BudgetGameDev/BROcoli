@@ -1,8 +1,6 @@
 using System.Runtime.InteropServices;
-using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using UnityEngine.UI;
 
 namespace BudgetGameDev.Shared
 {
@@ -15,21 +13,24 @@ namespace BudgetGameDev.Shared
     /// etc). Menu scenes are left running - they have no pause menu to resume from.
     /// Works on native builds, WebGL (including iOS Safari), and all platforms.
     /// </summary>
-    public static class ForceLandscapeAspect
+    public static partial class ForceLandscapeAspect
     {
         // Configuration
         private const float MIN_ASPECT_RATIO = 16f / 9f; // 1.777... - minimum width/height ratio
         private const float MAX_ASPECT_RATIO = 21f / 9f; // 2.333... - maximum (for ultra-wide)
-        private static readonly bool ENFORCE_MAX_ASPECT = false; // Set to true to also limit ultra-wide
-        private static readonly bool DEBUG_MODE = false; // Set to true for console logging
+
+        // Switches rather than constants: the pillarbox path and the verbose log
+        // trail are both meant to be turned on without editing this file.
+        internal static bool ENFORCE_MAX_ASPECT = false; // Set to true to also limit ultra-wide
+        internal static bool DEBUG_MODE = false; // Set to true for console logging
 
         private static int _lastScreenWidth;
         private static int _lastScreenHeight;
         private static bool _initialized = false;
-        private static bool _isPortrait = false;
-        private static bool _isFocusLost = false;
+        internal static bool _isPortrait = false;
+        internal static bool _isFocusLost = false;
         private static float _savedTimeScale = 1f;
-        private static GameObject _rotateOverlay;
+        internal static GameObject _rotateOverlay;
 
         // Debounce timer to prevent rapid state changes (especially on iOS Safari offline)
         private static float _lastOrientationChangeTime = -999f;
@@ -43,7 +44,7 @@ namespace BudgetGameDev.Shared
         /// Auto-initializes when the game starts (before any scene loads)
         /// </summary>
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
-        private static void Initialize()
+        internal static void Initialize()
         {
             if (_initialized)
                 return;
@@ -58,7 +59,7 @@ namespace BudgetGameDev.Shared
             // Create a persistent game object to run updates
             var updater = new GameObject("[ForceLandscapeAspect]");
             updater.AddComponent<AspectRatioUpdater>();
-            Object.DontDestroyOnLoad(updater);
+            KeepAcrossScenes(updater);
             updater.hideFlags = HideFlags.HideInHierarchy;
 
 #if UNITY_WEBGL && !UNITY_EDITOR
@@ -70,7 +71,7 @@ namespace BudgetGameDev.Shared
                 Debug.Log("[ForceLandscapeAspect] Initialized successfully");
         }
 
-        private static void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+        internal static void OnSceneLoaded(Scene scene, LoadSceneMode mode)
         {
             if (DEBUG_MODE)
                 Debug.Log(
@@ -83,24 +84,32 @@ namespace BudgetGameDev.Shared
         /// <summary>
         /// Updates the viewport of all active cameras to enforce landscape aspect ratio
         /// </summary>
-        public static void UpdateAllCameras()
-        {
-            _lastScreenWidth = Screen.width;
-            _lastScreenHeight = Screen.height;
+        public static void UpdateAllCameras() =>
+            UpdateAllCameras(Screen.width, Screen.height, Time.realtimeSinceStartup);
 
-            float screenAspect = (float)Screen.width / Screen.height;
+        /// <summary>
+        /// The same work with the screen size and the clock supplied by the caller,
+        /// so the portrait transition and its debounce can be driven on a desktop
+        /// editor that can neither rotate nor rewind.
+        /// </summary>
+        internal static void UpdateAllCameras(int screenWidth, int screenHeight, float now)
+        {
+            _lastScreenWidth = screenWidth;
+            _lastScreenHeight = screenHeight;
+
+            float screenAspect = (float)screenWidth / screenHeight;
             bool wasPortrait = _isPortrait;
             bool nowPortrait = screenAspect < 1f; // Portrait if height > width
 
             // Handle portrait/landscape transitions with debouncing
             // This prevents rapid state changes on iOS Safari offline where viewport may jitter
-            float timeSinceLastChange = Time.realtimeSinceStartup - _lastOrientationChangeTime;
+            float timeSinceLastChange = now - _lastOrientationChangeTime;
             bool canChangeState = timeSinceLastChange >= ORIENTATION_CHANGE_DEBOUNCE;
 
             if (nowPortrait != wasPortrait && canChangeState)
             {
                 _isPortrait = nowPortrait;
-                _lastOrientationChangeTime = Time.realtimeSinceStartup;
+                _lastOrientationChangeTime = now;
 
                 if (_isPortrait)
                 {
@@ -130,7 +139,7 @@ namespace BudgetGameDev.Shared
 
             if (DEBUG_MODE)
                 Debug.Log(
-                    $"[ForceLandscapeAspect] Updated {allCameras.Length} cameras. Screen: {Screen.width}x{Screen.height}, Aspect: {screenAspect:F3}, Rect: {targetRect}"
+                    $"[ForceLandscapeAspect] Updated {allCameras.Length} cameras. Screen: {screenWidth}x{screenHeight}, Aspect: {screenAspect:F3}, Rect: {targetRect}"
                 );
         }
 
@@ -172,7 +181,7 @@ namespace BudgetGameDev.Shared
 
             // Only gameplay auto-pauses. Menu scenes expose no IPauseController, so pausing
             // there would freeze the menu with no way to resume it.
-            IPauseController pauseMenu = PauseControllerLocator.Find();
+            IPauseController pauseMenu = FindPauseController();
             if (pauseMenu == null)
             {
                 if (DEBUG_MODE)
@@ -204,7 +213,7 @@ namespace BudgetGameDev.Shared
             // This is better UX than game suddenly resuming when you switch back
         }
 
-        private static void ShowRotateOverlay(bool show)
+        internal static void ShowRotateOverlay(bool show)
         {
             if (show)
             {
@@ -223,164 +232,7 @@ namespace BudgetGameDev.Shared
             }
         }
 
-        private static void CreateRotateOverlay()
-        {
-            // Create canvas
-            _rotateOverlay = new GameObject("[RotatePhoneOverlay]");
-            Object.DontDestroyOnLoad(_rotateOverlay);
-
-            Canvas canvas = _rotateOverlay.AddComponent<Canvas>();
-            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-            canvas.sortingOrder = 9999; // On top of everything
-
-            CanvasScaler scaler = _rotateOverlay.AddComponent<CanvasScaler>();
-            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1080, 1920); // Portrait reference
-            scaler.matchWidthOrHeight = 0.5f;
-
-            _rotateOverlay.AddComponent<GraphicRaycaster>();
-
-            // Dark background
-            GameObject bgObj = new GameObject("Background");
-            bgObj.transform.SetParent(_rotateOverlay.transform, false);
-            RectTransform bgRect = bgObj.AddComponent<RectTransform>();
-            bgRect.anchorMin = Vector2.zero;
-            bgRect.anchorMax = Vector2.one;
-            bgRect.offsetMin = Vector2.zero;
-            bgRect.offsetMax = Vector2.zero;
-
-            Image bgImage = bgObj.AddComponent<Image>();
-            bgImage.color = new Color(0f, 0f, 0f, 0.9f);
-
-            // Container for content
-            GameObject contentObj = new GameObject("Content");
-            contentObj.transform.SetParent(_rotateOverlay.transform, false);
-            RectTransform contentRect = contentObj.AddComponent<RectTransform>();
-            contentRect.anchorMin = new Vector2(0.5f, 0.5f);
-            contentRect.anchorMax = new Vector2(0.5f, 0.5f);
-            contentRect.sizeDelta = new Vector2(400, 300);
-
-            VerticalLayoutGroup layout = contentObj.AddComponent<VerticalLayoutGroup>();
-            layout.spacing = 30;
-            layout.childAlignment = TextAnchor.MiddleCenter;
-            layout.childControlWidth = false;
-            layout.childControlHeight = false;
-            layout.childForceExpandWidth = false;
-            layout.childForceExpandHeight = false;
-
-            // Phone icon with rotation arrow (using UI elements)
-            GameObject iconObj = new GameObject("PhoneIcon");
-            iconObj.transform.SetParent(contentObj.transform, false);
-            RectTransform iconRect = iconObj.AddComponent<RectTransform>();
-            iconRect.sizeDelta = new Vector2(120, 120);
-
-            // Create a simple phone shape
-            CreatePhoneIcon(iconObj);
-
-            // Add rotation animation
-            iconObj.AddComponent<RotateAnimator>();
-
-            // Text message
-            GameObject textObj = new GameObject("Message");
-            textObj.transform.SetParent(contentObj.transform, false);
-            RectTransform textRect = textObj.AddComponent<RectTransform>();
-            textRect.sizeDelta = new Vector2(350, 100);
-
-            TextMeshProUGUI text = textObj.AddComponent<TextMeshProUGUI>();
-            text.text = "Please rotate your device\nto landscape mode";
-            text.fontSize = 32;
-            text.alignment = TextAlignmentOptions.Center;
-            text.color = Color.white;
-
-            if (DEBUG_MODE)
-                Debug.Log("[ForceLandscapeAspect] Rotate overlay created");
-        }
-
-        private static void CreatePhoneIcon(GameObject parent)
-        {
-            // Phone body (portrait rectangle)
-            GameObject body = new GameObject("Body");
-            body.transform.SetParent(parent.transform, false);
-            RectTransform bodyRect = body.AddComponent<RectTransform>();
-            bodyRect.anchorMin = new Vector2(0.5f, 0.5f);
-            bodyRect.anchorMax = new Vector2(0.5f, 0.5f);
-            bodyRect.sizeDelta = new Vector2(60, 100);
-
-            Image bodyImg = body.AddComponent<Image>();
-            bodyImg.color = Color.white;
-
-            // Screen (inner dark rectangle)
-            GameObject screen = new GameObject("Screen");
-            screen.transform.SetParent(body.transform, false);
-            RectTransform screenRect = screen.AddComponent<RectTransform>();
-            screenRect.anchorMin = new Vector2(0.5f, 0.5f);
-            screenRect.anchorMax = new Vector2(0.5f, 0.5f);
-            screenRect.sizeDelta = new Vector2(50, 80);
-
-            Image screenImg = screen.AddComponent<Image>();
-            screenImg.color = new Color(0.2f, 0.2f, 0.2f);
-
-            // Curved arrow indicating rotation
-            GameObject arrow = new GameObject("Arrow");
-            arrow.transform.SetParent(parent.transform, false);
-            RectTransform arrowRect = arrow.AddComponent<RectTransform>();
-            arrowRect.anchorMin = new Vector2(0.5f, 0.5f);
-            arrowRect.anchorMax = new Vector2(0.5f, 0.5f);
-            arrowRect.sizeDelta = new Vector2(140, 140);
-            arrowRect.localRotation = Quaternion.Euler(0, 0, -45);
-
-            // Create arrow using lines
-            CreateArrowArc(arrow);
-        }
-
-        private static void CreateArrowArc(GameObject parent)
-        {
-            // Create curved arrow segments
-            Color arrowColor = new Color(0.3f, 0.7f, 1f); // Light blue
-
-            for (int i = 0; i < 6; i++)
-            {
-                GameObject segment = new GameObject($"Segment{i}");
-                segment.transform.SetParent(parent.transform, false);
-                RectTransform segRect = segment.AddComponent<RectTransform>();
-                segRect.anchorMin = new Vector2(0.5f, 0.5f);
-                segRect.anchorMax = new Vector2(0.5f, 0.5f);
-
-                float angle = i * 25f - 60f;
-                float rad = angle * Mathf.Deg2Rad;
-                float radius = 55f;
-
-                segRect.anchoredPosition = new Vector2(
-                    Mathf.Cos(rad) * radius,
-                    Mathf.Sin(rad) * radius
-                );
-                segRect.sizeDelta = new Vector2(12, 12);
-
-                Image segImg = segment.AddComponent<Image>();
-                segImg.color = arrowColor;
-            }
-
-            // Arrow head
-            GameObject arrowHead = new GameObject("ArrowHead");
-            arrowHead.transform.SetParent(parent.transform, false);
-            RectTransform headRect = arrowHead.AddComponent<RectTransform>();
-            headRect.anchorMin = new Vector2(0.5f, 0.5f);
-            headRect.anchorMax = new Vector2(0.5f, 0.5f);
-
-            float endAngle = 5 * 25f - 60f;
-            float endRad = endAngle * Mathf.Deg2Rad;
-            headRect.anchoredPosition = new Vector2(
-                Mathf.Cos(endRad) * 55f + 10f,
-                Mathf.Sin(endRad) * 55f
-            );
-            headRect.sizeDelta = new Vector2(20, 20);
-            headRect.localRotation = Quaternion.Euler(0, 0, -30);
-
-            Image headImg = arrowHead.AddComponent<Image>();
-            headImg.color = new Color(0.3f, 0.7f, 1f);
-        }
-
-        private static Rect CalculateViewportRect(float screenAspect)
+        internal static Rect CalculateViewportRect(float screenAspect)
         {
             // Check if screen is too tall (portrait or narrow aspect)
             if (screenAspect < MIN_ASPECT_RATIO)
@@ -410,31 +262,37 @@ namespace BudgetGameDev.Shared
         /// Checks if screen size changed and updates cameras if needed.
         /// Rate-limited to prevent excessive updates on iOS Safari offline where viewport may jitter.
         /// </summary>
-        public static void CheckForScreenChange()
+        public static void CheckForScreenChange() =>
+            CheckForScreenChange(Screen.width, Screen.height, Time.realtimeSinceStartup);
+
+        /// <summary>
+        /// The same check with the screen size and the clock supplied by the caller,
+        /// so the rate limit can be observed without waiting on a real clock.
+        /// </summary>
+        internal static void CheckForScreenChange(int screenWidth, int screenHeight, float now)
         {
             // Rate limit screen change checks to prevent overwhelming the system
-            float currentTime = Time.realtimeSinceStartup;
-            if (currentTime - _lastScreenChangeCheck < SCREEN_CHANGE_CHECK_INTERVAL)
+            if (now - _lastScreenChangeCheck < SCREEN_CHANGE_CHECK_INTERVAL)
             {
                 return;
             }
-            _lastScreenChangeCheck = currentTime;
+            _lastScreenChangeCheck = now;
 
-            if (Screen.width != _lastScreenWidth || Screen.height != _lastScreenHeight)
+            if (screenWidth != _lastScreenWidth || screenHeight != _lastScreenHeight)
             {
-                UpdateAllCameras();
+                UpdateAllCameras(screenWidth, screenHeight, now);
             }
         }
 
         /// <summary>
         /// Helper MonoBehaviour that runs the update loop and clears letterbox areas
         /// </summary>
-        private class AspectRatioUpdater : MonoBehaviour
+        internal class AspectRatioUpdater : MonoBehaviour
         {
             private Camera _clearCamera;
             private bool _initialFocusChecked = false;
 
-            void Start()
+            internal void Start()
             {
                 // Create a camera specifically for clearing the letterbox/pillarbox areas to black
                 var clearCamObj = new GameObject("[LetterboxClearCamera]");
@@ -450,7 +308,13 @@ namespace BudgetGameDev.Shared
                 UpdateAllCameras();
             }
 
-            void Update()
+            internal void Update() => Tick(Application.isFocused);
+
+            /// <summary>
+            /// The per-frame work with focus supplied by the caller: an editor test
+            /// cannot take focus away from the editor itself.
+            /// </summary>
+            internal void Tick(bool isFocused)
             {
                 CheckForScreenChange();
 
@@ -459,7 +323,7 @@ namespace BudgetGameDev.Shared
                 {
                     _initialFocusChecked = true;
                     // Check if we started without focus
-                    if (!Application.isFocused)
+                    if (!isFocused)
                     {
                         if (DEBUG_MODE)
                             Debug.Log(
@@ -470,7 +334,7 @@ namespace BudgetGameDev.Shared
                 }
             }
 
-            void OnApplicationFocus(bool hasFocus)
+            internal void OnApplicationFocus(bool hasFocus)
             {
                 if (!hasFocus)
                 {
@@ -482,7 +346,7 @@ namespace BudgetGameDev.Shared
                 }
             }
 
-            void OnApplicationPause(bool pauseStatus)
+            internal void OnApplicationPause(bool pauseStatus)
             {
                 // Also handle app pause (mobile backgrounding)
                 if (pauseStatus)
@@ -507,7 +371,7 @@ namespace BudgetGameDev.Shared
                 OnFocusRegained();
             }
 
-            void OnDestroy()
+            internal void OnDestroy()
             {
                 SceneManager.sceneLoaded -= OnSceneLoaded;
             }
@@ -517,17 +381,25 @@ namespace BudgetGameDev.Shared
         /// Simple animator for the rotate icon.
         /// Designed to be resilient to enable/disable cycles that can happen on iOS Safari offline.
         /// </summary>
-        private class RotateAnimator : MonoBehaviour
+        internal class RotateAnimator : MonoBehaviour
         {
             // Static state survives enable/disable cycles
-            private static float _persistedAngle = 0f;
-            private static float _persistedTargetAngle = -90f;
-            private static float _persistedPauseTimer = 0f;
+            internal static float _persistedAngle = 0f;
+            internal static float _persistedTargetAngle = -90f;
+            internal static float _persistedPauseTimer = 0f;
             private static bool _hasInitialized = false;
 
             private const float ANIM_SPEED = 2f;
 
-            void OnEnable()
+            internal static void ResetStatics()
+            {
+                _persistedAngle = 0f;
+                _persistedTargetAngle = -90f;
+                _persistedPauseTimer = 0f;
+                _hasInitialized = false;
+            }
+
+            internal void OnEnable()
             {
                 // Restore persisted state (survives rapid enable/disable)
                 if (_hasInitialized)
@@ -536,21 +408,27 @@ namespace BudgetGameDev.Shared
                 }
             }
 
-            void Update()
+            internal void Update() => Step(Time.unscaledDeltaTime);
+
+            /// <summary>
+            /// One animation step against a caller-supplied delta, so the sweep and
+            /// its pauses can be stepped exactly rather than at editor frame rate.
+            /// </summary>
+            internal void Step(float unscaledDeltaTime)
             {
                 _hasInitialized = true;
 
                 // Use unscaled time since game is paused
                 if (_persistedPauseTimer > 0f)
                 {
-                    _persistedPauseTimer -= Time.unscaledDeltaTime;
+                    _persistedPauseTimer -= unscaledDeltaTime;
                     return;
                 }
 
                 _persistedAngle = Mathf.MoveTowards(
                     _persistedAngle,
                     _persistedTargetAngle,
-                    Time.unscaledDeltaTime * 90f * ANIM_SPEED
+                    unscaledDeltaTime * 90f * ANIM_SPEED
                 );
                 transform.localRotation = Quaternion.Euler(0, 0, _persistedAngle);
 

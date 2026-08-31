@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -22,14 +23,25 @@ namespace BudgetGameDev.Games.Brocoli
                 enter
             );
 
-            bool anyKilled = false;
+            bool anyKilled = ProcessTriggeredParticles(
+                enter,
+                numEnter,
+                position => GroundPlane.OverlapPoint(position)
+            );
+            ApplyTriggerResults(sprayParticles, enter, anyKilled);
+        }
 
-            for (int i = 0; i < numEnter; i++)
+        internal bool ProcessTriggeredParticles(
+            List<ParticleSystem.Particle> enter,
+            int count,
+            Func<Vector3, Collider> overlapPoint
+        )
+        {
+            bool anyKilled = false;
+            for (int i = 0; i < count; i++)
             {
                 Vector3 particlePos = enter[i].position;
-
-                // Find enemy at this position
-                Collider hit = GroundPlane.OverlapPoint(particlePos);
+                Collider hit = overlapPoint(particlePos);
                 if (hit != null && hit.CompareTag("Enemy"))
                 {
                     EnemyBase enemy = hit.GetComponent<EnemyBase>();
@@ -45,12 +57,17 @@ namespace BudgetGameDev.Games.Brocoli
                     }
                 }
             }
+            return anyKilled;
+        }
 
-            // Write back modified particles
+        internal static void ApplyTriggerResults(
+            ParticleSystem sprayParticles,
+            List<ParticleSystem.Particle> enter,
+            bool anyKilled
+        )
+        {
             if (anyKilled)
-            {
                 sprayParticles.SetTriggerParticles(ParticleSystemTriggerEventType.Enter, enter);
-            }
         }
     }
 }

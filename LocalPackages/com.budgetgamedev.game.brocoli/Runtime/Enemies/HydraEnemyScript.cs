@@ -86,14 +86,10 @@ namespace BudgetGameDev.Games.Brocoli
             // If no enabled SpriteRenderer, find MeshRenderer (FBX models)
             if (visualRenderer == null)
             {
-                foreach (var mr in GetComponentsInChildren<MeshRenderer>(true))
-                {
-                    if (mr.enabled)
-                    {
-                        visualRenderer = mr;
-                        break;
-                    }
-                }
+                visualRenderer = System.Array.Find(
+                    GetComponentsInChildren<MeshRenderer>(true),
+                    renderer => renderer.enabled
+                );
             }
 
             // Set up visual transform from the renderer we found
@@ -399,13 +395,14 @@ namespace BudgetGameDev.Games.Brocoli
                 ).normalized;
 
                 if (playerController.TakeMeleeDamage(Damage, knockbackDir))
-                {
-                    if (meleeAudio != null)
-                    {
-                        meleeAudio.PlayMeleeSound();
-                    }
-                }
+                    PlaySuccessfulMeleeAudio();
             }
+        }
+
+        internal void PlaySuccessfulMeleeAudio()
+        {
+            if (meleeAudio != null)
+                meleeAudio.PlayMeleeSound();
         }
     }
 }

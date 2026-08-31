@@ -12,7 +12,7 @@
 309	LocalPackages/com.budgetgamedev.game.brocoli/Runtime/Audio/ProceduralXPPickupAudio.cs
 734	LocalPackages/com.budgetgamedev.game.brocoli/Runtime/Boost/ProceduralBoostAudio.cs
 322	LocalPackages/com.budgetgamedev.game.brocoli/Runtime/Core/GamePreloader.cs
-1005	LocalPackages/com.budgetgamedev.game.brocoli/Runtime/Enemies/EnemyBase.cs
+978	LocalPackages/com.budgetgamedev.game.brocoli/Runtime/Enemies/EnemyBase.cs
 486	LocalPackages/com.budgetgamedev.game.brocoli/Runtime/Enemies/EnemyScript.cs
 411	LocalPackages/com.budgetgamedev.game.brocoli/Runtime/Enemies/HydraEnemyScript.cs
 439	LocalPackages/com.budgetgamedev.game.brocoli/Runtime/Pickups/PickupVisual3D.cs
@@ -21,10 +21,10 @@
 361	LocalPackages/com.budgetgamedev.game.brocoli/Runtime/Spray/SanitizerSpray.cs
 389	LocalPackages/com.budgetgamedev.game.brocoli/Runtime/Spray/SprayParticleController.cs
 432	LocalPackages/com.budgetgamedev.game.brocoli/Runtime/UI/LevelUpScreen.cs
-660	LocalPackages/com.budgetgamedev.game.brocoli/Runtime/UI/PauseMenu.cs
+507	LocalPackages/com.budgetgamedev.game.brocoli/Runtime/UI/PauseMenu.cs
 384	LocalPackages/com.budgetgamedev.game.brocoli/Runtime/UI/UpgradeOption.cs
 537	LocalPackages/com.budgetgamedev.game.brocoli/Runtime/Visuals/ShuffleWalkVisual.cs
 306	LocalPackages/com.budgetgamedev.game.brocoli/Tests/Editor/OcclusionCoverageTests.cs
 686	LocalPackages/com.budgetgamedev.shared/Runtime/Input/TouchAction.cs
 936	LocalPackages/com.budgetgamedev.shared/Runtime/Input/VirtualController.cs
-574	LocalPackages/com.budgetgamedev.shared/Runtime/Platform/ForceLandscapeAspect.cs
+475	LocalPackages/com.budgetgamedev.shared/Runtime/Platform/ForceLandscapeAspect.cs

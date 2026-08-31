@@ -236,11 +236,22 @@ namespace BudgetGameDev.Games.Brocoli
             float offset = (1f - nearbyScrollRect.verticalNormalizedPosition) * maxScroll;
             float rowTop = index * (nearbyRowHeight + nearbyRowGap);
             float rowBottom = rowTop + nearbyRowHeight;
-            if (rowTop < offset)
-                offset = rowTop;
-            else if (rowBottom > offset + nearbyViewport.rect.height)
-                offset = rowBottom - nearbyViewport.rect.height;
+            offset = ResolveVisibleOffset(offset, rowTop, rowBottom, nearbyViewport.rect.height);
             nearbyScrollRect.verticalNormalizedPosition = 1f - Mathf.Clamp01(offset / maxScroll);
+        }
+
+        internal static float ResolveVisibleOffset(
+            float offset,
+            float rowTop,
+            float rowBottom,
+            float viewportHeight
+        )
+        {
+            if (rowTop < offset)
+                return rowTop;
+            else if (rowBottom > offset + viewportHeight)
+                return rowBottom - viewportHeight;
+            return offset;
         }
     }
 }

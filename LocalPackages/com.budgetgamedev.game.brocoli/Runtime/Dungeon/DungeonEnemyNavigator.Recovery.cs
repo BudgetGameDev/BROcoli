@@ -5,6 +5,8 @@ namespace BudgetGameDev.Games.Brocoli
 {
     public partial class DungeonEnemyNavigator
     {
+        internal delegate bool RecoveryCandidate(Vector2 direction, out Vector3 target);
+
         private const float ProgressCheckInterval = 0.45f;
         private const float MinimumProgress = 0.12f;
         private const float StuckRecoveryDelay = 0.9f;
@@ -63,6 +65,13 @@ namespace BudgetGameDev.Games.Brocoli
         private bool TryPickRecoveryTarget(out Vector3 target)
         {
             target = default;
+            Vector2 desired =
+                proxy != null
+                    ? proxy.position.ToGround() - transform.position.ToGround()
+                    : realPlayer.position.ToGround() - transform.position.ToGround();
+            if (desired.sqrMagnitude < 0.01f)
+                return false;
+
             if (
                 !NavMesh.SamplePosition(
                     transform.position,
@@ -73,36 +82,59 @@ namespace BudgetGameDev.Games.Brocoli
             )
                 return false;
 
-            Vector2 desired =
-                proxy != null
-                    ? proxy.position.ToGround() - transform.position.ToGround()
-                    : realPlayer.position.ToGround() - transform.position.ToGround();
-            if (desired.sqrMagnitude < 0.01f)
-                return false;
+            return TryRecoveryDirections(
+                desired,
+                recoverySide,
+                (Vector2 direction, out Vector3 candidate) =>
+                {
+                    candidate = default;
+                    Vector3 requested = (
+                        transform.position.ToGround() + direction * RecoveryDistance
+                    ).ToWorld();
+                    if (
+                        !NavMesh.SamplePosition(
+                            requested,
+                            out NavMeshHit hit,
+                            0.65f,
+                            NavMesh.AllAreas
+                        )
+                        || NavMesh.Raycast(
+                            originHit.position,
+                            hit.position,
+                            out _,
+                            NavMesh.AllAreas
+                        )
+                        || TryGetObstacleSlide(
+                            transform.position,
+                            hit.position,
+                            originHit.position,
+                            out _
+                        )
+                    )
+                        return false;
+                    candidate = hit.position;
+                    return true;
+                },
+                out target
+            );
+        }
 
+        internal static bool TryRecoveryDirections(
+            Vector2 desired,
+            int side,
+            RecoveryCandidate tryCandidate,
+            out Vector3 target
+        )
+        {
             for (int i = 0; i < RecoveryAngles.Length; i++)
             {
-                float angle = RecoveryAngles[i] * recoverySide;
+                float angle = RecoveryAngles[i] * side;
                 Vector2 direction = Quaternion.Euler(0f, 0f, angle) * desired.normalized;
-                Vector3 requested = (
-                    transform.position.ToGround() + direction * RecoveryDistance
-                ).ToWorld();
-                if (
-                    !NavMesh.SamplePosition(requested, out NavMeshHit hit, 0.65f, NavMesh.AllAreas)
-                    || NavMesh.Raycast(originHit.position, hit.position, out _, NavMesh.AllAreas)
-                    || TryGetObstacleSlide(
-                        transform.position,
-                        hit.position,
-                        originHit.position,
-                        out _
-                    )
-                )
+                if (!tryCandidate(direction, out target))
                     continue;
-
-                target = hit.position;
                 return true;
             }
-
+            target = default;
             return false;
         }
     }

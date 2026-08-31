@@ -1,3 +1,4 @@
+using System;
 using System.Runtime.InteropServices;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -33,7 +34,30 @@ namespace BudgetGameDev.Shared
         );
 #endif
 
-        private static bool _optimizationsApplied = false;
+        internal static bool _optimizationsApplied = false;
+
+        /// <summary>
+        /// How the host is kept alive across scene loads, and how a duplicate host
+        /// removes itself. Both engine calls are play-mode only - they throw or
+        /// complain outside it - so each is reached through a field an editor
+        /// context can substitute.
+        /// </summary>
+        internal static Action<GameObject> KeepAcrossScenes = DontDestroyOnLoad;
+
+        /// <inheritdoc cref="KeepAcrossScenes"/>
+        internal static Action<GameObject> RemoveSelf = Destroy;
+
+        /// <summary>
+        /// Clears the once-only latch. Statics survive a play session when domain
+        /// reloading is off, so without this the second run would skip the work.
+        /// </summary>
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        internal static void ResetStatics()
+        {
+            _optimizationsApplied = false;
+            KeepAcrossScenes = DontDestroyOnLoad;
+            RemoveSelf = Destroy;
+        }
 
         /// <summary>
         /// Installs itself before the first scene loads.
@@ -46,28 +70,28 @@ namespace BudgetGameDev.Shared
         /// game that forgot to add it, running unoptimised on iOS Safari.
         /// </remarks>
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
-        private static void Install()
+        internal static void Install()
         {
             if (_optimizationsApplied)
                 return;
 
             var host = new GameObject(nameof(iOSSafariWebGLOptimizer));
-            DontDestroyOnLoad(host);
+            KeepAcrossScenes(host);
             host.AddComponent<iOSSafariWebGLOptimizer>();
         }
 
-        private void Awake()
+        internal void Awake()
         {
             if (_optimizationsApplied)
             {
-                Destroy(gameObject);
+                RemoveSelf(gameObject);
                 return;
             }
 
             ApplyOptimizationsIfNeeded();
         }
 
-        private void ApplyOptimizationsIfNeeded()
+        internal void ApplyOptimizationsIfNeeded()
         {
             bool isiOSWebGL = false;
 
@@ -86,6 +110,11 @@ namespace BudgetGameDev.Shared
             }
 #endif
 
+            ApplyOptimizationsIfNeeded(isiOSWebGL);
+        }
+
+        internal void ApplyOptimizationsIfNeeded(bool isiOSWebGL)
+        {
             if (!isiOSWebGL)
             {
                 Debug.Log(
@@ -94,16 +123,31 @@ namespace BudgetGameDev.Shared
                 return;
             }
 
+            ApplyOptimizations();
+        }
+
+        internal void ApplyOptimizations() =>
+            ApplyOptimizations(
+                GraphicsSettings.currentRenderPipeline as UniversalRenderPipelineAsset
+            );
+
+        /// <summary>
+        /// The optimizations themselves, split from the detection so they can be
+        /// applied - and checked - on a platform that is not iOS Safari, and against
+        /// a pipeline asset that is not the one the project is rendering with.
+        /// </summary>
+        internal void ApplyOptimizations(UniversalRenderPipelineAsset urpAsset)
+        {
             Debug.Log("[iOSSafariOptimizer] iOS Safari WebGL detected - applying optimizations");
             _optimizationsApplied = true;
 
             ApplyLightingSafeQualitySettings();
-            ApplyLightingSafeURPSettings();
+            ApplyLightingSafeURPSettings(urpAsset);
             ReportLightingSettings();
             Debug.Log("[iOSSafariOptimizer] All optimizations applied");
         }
 
-        private void ReportLightingSettings()
+        internal void ReportLightingSettings()
         {
 #if UNITY_WEBGL && !UNITY_EDITOR
             var urpAsset = GraphicsSettings.currentRenderPipeline as UniversalRenderPipelineAsset;
@@ -116,7 +160,7 @@ namespace BudgetGameDev.Shared
 #endif
         }
 
-        private void ApplyLightingSafeQualitySettings()
+        internal static void ApplyLightingSafeQualitySettings()
         {
             // Do not switch quality levels here. The WebGL default preserves the pixel-light
             // budget used by the world and player-proximity lights. The Very Low profile has
@@ -141,10 +185,13 @@ namespace BudgetGameDev.Shared
             Debug.Log("[iOSSafariOptimizer] Additional quality reductions applied");
         }
 
-        private void ApplyLightingSafeURPSettings()
+        /// <summary>
+        /// Relaxes the pipeline's per-pixel cost. The caller supplies the asset so
+        /// both the "no URP asset" and the "URP asset present" paths can be
+        /// exercised without swapping the project's active render pipeline.
+        /// </summary>
+        internal static void ApplyLightingSafeURPSettings(UniversalRenderPipelineAsset urpAsset)
         {
-            // Try to modify URP asset settings at runtime
-            var urpAsset = GraphicsSettings.currentRenderPipeline as UniversalRenderPipelineAsset;
             if (urpAsset == null)
             {
                 Debug.LogWarning("[iOSSafariOptimizer] URP asset not found");

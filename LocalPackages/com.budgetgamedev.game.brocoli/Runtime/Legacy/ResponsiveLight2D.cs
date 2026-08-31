@@ -81,25 +81,33 @@ namespace BudgetGameDev.Games.Brocoli
         void UpdateTargetRadius()
         {
             float aspect = (float)Screen.width / Screen.height;
-            bool isPortrait = aspect < 1f;
+            CalculateRadii(
+                aspect,
+                baseLandscapeOuterRadius,
+                baseLandscapeInnerRadius,
+                portraitRadiusMultiplier,
+                out targetOuterRadius,
+                out targetInnerRadius
+            );
+        }
 
-            if (isPortrait)
+        internal static void CalculateRadii(
+            float aspect,
+            float landscapeOuter,
+            float landscapeInner,
+            float portraitMultiplier,
+            out float outer,
+            out float inner
+        )
+        {
+            float multiplier = 1f;
+            if (aspect < 1f)
             {
-                // Portrait mode: significantly reduce radius
-                // The more vertical the screen, the smaller the radius
                 float portraitFactor = Mathf.Clamp(aspect, 0.4f, 1f);
-                float multiplier = Mathf.Lerp(portraitRadiusMultiplier, 1f, portraitFactor);
-
-                targetOuterRadius = baseLandscapeOuterRadius * multiplier;
-                targetInnerRadius = baseLandscapeInnerRadius * multiplier;
+                multiplier = Mathf.Lerp(portraitMultiplier, 1f, portraitFactor);
             }
-            else
-            {
-                // Landscape: use base values
-                // Could also scale slightly for ultra-wide, but keep it simple for now
-                targetOuterRadius = baseLandscapeOuterRadius;
-                targetInnerRadius = baseLandscapeInnerRadius;
-            }
+            outer = landscapeOuter * multiplier;
+            inner = landscapeInner * multiplier;
         }
     }
 }
