@@ -29,6 +29,7 @@ it, which only works while none of it lives in `Assets/`.
    ```
    LocalPackages/com.budgetgamedev.game.<id>/
      package.json          name, version, displayName, unity, dependencies
+                           displayName ends in "Game", e.g. "BROcoliGame"
      README.md CHANGELOG.md LICENSE.md
      Runtime/  <Asm>.asmdef  csc.rsp
      Editor/   <Asm>.Editor.asmdef  csc.rsp
@@ -69,6 +70,9 @@ These matter because Unity flattens several namespaces across the whole project:
 - **Resources paths are global.** Put game resources under
   `Resources/<Id>/…` and load them as `"<Id>/…"`.
 - **Assembly names and namespaces** follow `BudgetGameDev.Games.<Name>`.
+- **Game package `displayName`s end in `Game`** (`"BROcoliGame"`), so game
+  packages are recognizable at a glance in the Package Manager next to the hub
+  and shared packages.
 - **Tags, layers, physics and quality settings are project-wide.** Packages
   cannot own them; coordinate changes across games.
 - **A game's Unity dependencies belong in its own `package.json`**, never moved

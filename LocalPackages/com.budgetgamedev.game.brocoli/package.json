@@ -1,7 +1,7 @@
 {
   "name": "com.budgetgamedev.game.brocoli",
   "version": "0.1.0",
-  "displayName": "BROcoli",
+  "displayName": "BROcoliGame",
   "description": "BROcoli: a top-down roguelite where a broccoli sprays its way through a procedurally generated dungeon of coronaviruses. Registers itself with the Budget GameDev Game Hub.",
   "unity": "6000.3",
   "license": "Elastic-2.0",
