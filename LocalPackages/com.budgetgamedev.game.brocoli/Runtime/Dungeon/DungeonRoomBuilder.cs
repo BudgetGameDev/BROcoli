@@ -15,6 +15,13 @@ namespace BudgetGameDev.Games.Brocoli
         private const float HalfRoomWidth = DungeonLayout.RoomWidth / 2f;
         private const float HalfRoomDepth = DungeonLayout.RoomDepth / 2f;
 
+        /// <summary>
+        /// Interior dividers are waist-high masonry, never room-height walls.
+        /// Keeping this as a construction invariant means a new room shape cannot
+        /// accidentally put an opaque shell wall through playable floor.
+        /// </summary>
+        public const float InteriorWallHeightScale = 0.46f;
+
         [Header("Modular Dungeon Kit pieces")]
         [SerializeField]
         private GameObject floorPrefab;

@@ -74,12 +74,12 @@ namespace BudgetGameDev.Games.Brocoli.Tests
         }
 
         /// <summary>
-        /// The planner rejects east-west interior walls because they can hide
-        /// playable floor. The built room must preserve that rule and still enroll
-        /// every remaining north-south slab in an occlusion section.
+        /// Interior dividers retain wall collision and grouping, but are always
+        /// built waist-high so they cannot become opaque walls through playable
+        /// floor.
         /// </summary>
         [Test]
-        public void BuiltInteriorsContainOnlyNorthSouthOcclusionSections()
+        public void BuiltInteriorsAreHalfHeightOcclusionSections()
         {
             var room = Vector2Int.zero;
             var archetype = new DungeonLayout.RoomArchetype(
@@ -92,6 +92,7 @@ namespace BudgetGameDev.Games.Brocoli.Tests
             var planned = new List<DungeonWallPiece>();
             DungeonRoomGeometry.AppendInteriorWalls(planned, room, archetype);
             Builder().BuildInterior(root.transform, room, archetype);
+            Physics.SyncTransforms();
 
             var sections = new Dictionary<Vector2, DungeonOcclusionSection>();
             foreach (Collider collider in root.GetComponentsInChildren<Collider>())
@@ -110,11 +111,18 @@ namespace BudgetGameDev.Games.Brocoli.Tests
             );
             foreach (DungeonWallPiece piece in planned)
             {
-                Assert.That(piece.AlongX, Is.False, $"planner emitted {piece}");
+                DungeonOcclusionSection section = SectionAt(sections, piece.Anchor);
+                Assert.That(section, Is.Not.Null, $"built slab at {piece.Anchor} was not enrolled");
+
+                Collider collider = section.GetComponentInChildren<Collider>();
+                Assert.That(collider, Is.Not.Null, $"built slab at {piece.Anchor} has no collider");
                 Assert.That(
-                    SectionAt(sections, piece.Anchor),
-                    Is.Not.Null,
-                    $"built slab at {piece.Anchor} was not enrolled in an occlusion section"
+                    collider.bounds.size.y,
+                    Is.EqualTo(
+                            DungeonWallPiece.SlabHeight * DungeonRoomBuilder.InteriorWallHeightScale
+                        )
+                        .Within(0.02f),
+                    $"interior slab at {piece.Anchor} was built as a full-height wall"
                 );
             }
         }

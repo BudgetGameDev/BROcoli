@@ -24,23 +24,24 @@ namespace BudgetGameDev.Games.Brocoli
                         archetype,
                         random,
                         occupied,
-                        random.Next(0, 3),
+                        2 + random.Next(0, 3),
                         DungeonPropTokens.Chair,
+                        DungeonPropTokens.Stones,
+                        DungeonPropTokens.Pot
+                    );
+                    PlaceSmallClusters(
+                        parent,
+                        center,
+                        archetype,
+                        random,
+                        occupied,
+                        1,
+                        3,
+                        5,
+                        DungeonPropTokens.Barrel,
+                        DungeonPropTokens.Pot,
                         DungeonPropTokens.Stones
                     );
-                    if (random.NextDouble() < 0.55)
-                        PlaceSmallClusters(
-                            parent,
-                            center,
-                            archetype,
-                            random,
-                            occupied,
-                            1,
-                            3,
-                            4,
-                            DungeonPropTokens.Barrel,
-                            DungeonPropTokens.Pot
-                        );
                     break;
                 case DungeonLayout.RoomTheme.Storage:
                     Scatter(
@@ -49,7 +50,7 @@ namespace BudgetGameDev.Games.Brocoli
                         archetype,
                         random,
                         occupied,
-                        3 + random.Next(0, 3),
+                        5 + random.Next(0, 4),
                         DungeonPropTokens.WoodSupport,
                         DungeonPropTokens.WoodStructure,
                         DungeonPropTokens.Table
@@ -60,9 +61,9 @@ namespace BudgetGameDev.Games.Brocoli
                         archetype,
                         random,
                         occupied,
-                        1 + random.Next(0, 2),
+                        2 + random.Next(0, 2),
                         3,
-                        5,
+                        6,
                         DungeonPropTokens.Barrel,
                         DungeonPropTokens.Pot
                     );
@@ -74,7 +75,7 @@ namespace BudgetGameDev.Games.Brocoli
                     BuildArmory(parent, center, archetype, random, occupied);
                     break;
                 case DungeonLayout.RoomTheme.Shrine:
-                    BuildShrine(parent, center, archetype, occupied);
+                    BuildShrine(parent, center, archetype, random, occupied);
                     break;
                 case DungeonLayout.RoomTheme.Flooded:
                     Scatter(
@@ -83,9 +84,22 @@ namespace BudgetGameDev.Games.Brocoli
                         archetype,
                         random,
                         occupied,
-                        3 + random.Next(0, 3),
+                        5 + random.Next(0, 4),
                         DungeonPropTokens.Rocks,
-                        DungeonPropTokens.Stones
+                        DungeonPropTokens.Stones,
+                        DungeonPropTokens.Pot
+                    );
+                    PlaceSmallClusters(
+                        parent,
+                        center,
+                        archetype,
+                        random,
+                        occupied,
+                        1,
+                        3,
+                        5,
+                        DungeonPropTokens.Stones,
+                        DungeonPropTokens.Pot
                     );
                     break;
                 case DungeonLayout.RoomTheme.TreasureVault:
@@ -95,15 +109,7 @@ namespace BudgetGameDev.Games.Brocoli
                     BuildCollapsed(parent, center, archetype, random, occupied);
                     break;
                 case DungeonLayout.RoomTheme.Arena:
-                    Scatter(
-                        parent,
-                        center,
-                        archetype,
-                        random,
-                        occupied,
-                        random.Next(1, 4),
-                        DungeonPropTokens.Stones
-                    );
+                    BuildArena(parent, center, archetype, random, occupied);
                     break;
             }
         }
@@ -155,7 +161,7 @@ namespace BudgetGameDev.Games.Brocoli
                 archetype,
                 random,
                 occupied,
-                1,
+                2,
                 3,
                 5,
                 DungeonPropTokens.Pot,
@@ -233,34 +239,6 @@ namespace BudgetGameDev.Games.Brocoli
                     DungeonPropTokens.Barrel,
                     DungeonPropTokens.Pot
                 );
-        }
-
-        private void BuildShrine(
-            Transform parent,
-            Vector2 center,
-            DungeonLayout.RoomArchetype archetype,
-            List<OccupiedSpot> occupied
-        )
-        {
-            // The four corner pillars this shrine was designed around asked for a
-            // "Column" prop that no longer exists, so they have been building as
-            // nothing at all. Restoring them needs a column prefab registered in
-            // propPrefabs, not a token nothing answers.
-            string offering = (archetype.Variant % 3) switch
-            {
-                0 => DungeonPropTokens.Potion,
-                1 => DungeonPropTokens.Coin,
-                _ => DungeonPropTokens.Key,
-            };
-            PlaceNamed(
-                parent,
-                center,
-                offering,
-                Vector2.zero,
-                archetype.Variant * 90f,
-                occupied,
-                1f
-            );
         }
     }
 }

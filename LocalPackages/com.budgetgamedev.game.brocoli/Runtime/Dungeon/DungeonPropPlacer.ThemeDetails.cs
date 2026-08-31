@@ -15,8 +15,6 @@ namespace BudgetGameDev.Games.Brocoli
             List<OccupiedSpot> occupied
         )
         {
-            // As in BuildShrine: this vault's corner pillars asked for a "Column"
-            // prop that no longer exists and have been building as nothing.
             foreach (
                 Vector2 p in new[]
                 {
@@ -34,6 +32,31 @@ namespace BudgetGameDev.Games.Brocoli
                     random.Next(0, 360),
                     occupied
                 );
+
+            Scatter(
+                parent,
+                center,
+                archetype,
+                random,
+                occupied,
+                4 + random.Next(0, 4),
+                DungeonPropTokens.Coin,
+                DungeonPropTokens.Pot,
+                DungeonPropTokens.Key
+            );
+            PlaceSmallClusters(
+                parent,
+                center,
+                archetype,
+                random,
+                occupied,
+                2,
+                3,
+                6,
+                DungeonPropTokens.Coin,
+                DungeonPropTokens.Pot,
+                DungeonPropTokens.Barrel
+            );
         }
 
         private void BuildCollapsed(
@@ -50,9 +73,21 @@ namespace BudgetGameDev.Games.Brocoli
                 archetype,
                 random,
                 occupied,
-                5 + random.Next(0, 4),
+                8 + random.Next(0, 5),
                 DungeonPropTokens.Rocks,
                 DungeonPropTokens.Stones
+            );
+            PlaceSmallClusters(
+                parent,
+                center,
+                archetype,
+                random,
+                occupied,
+                1 + random.Next(0, 2),
+                3,
+                6,
+                DungeonPropTokens.Stones,
+                DungeonPropTokens.Pot
             );
         }
 

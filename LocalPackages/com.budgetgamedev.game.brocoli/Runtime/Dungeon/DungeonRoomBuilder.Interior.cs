@@ -23,7 +23,13 @@ namespace BudgetGameDev.Games.Brocoli
             Dictionary<string, string> groups = DungeonWallGrouping.ResolveInteriorGroups(walls);
             sections.Clear();
             foreach (DungeonWallPiece piece in walls)
-                InstantiateWall(SectionFor(parent, groups, piece.Section, room), piece);
+                InstantiateScaledWall(
+                    SectionFor(parent, groups, piece.Section, room),
+                    piece,
+                    InteriorWallHeightScale,
+                    piece.BaseLift,
+                    name: "DungeonWall - Interior Half Wall"
+                );
             sections.Clear();
         }
 

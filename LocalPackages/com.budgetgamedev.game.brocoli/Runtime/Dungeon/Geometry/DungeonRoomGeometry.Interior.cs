@@ -12,11 +12,11 @@ namespace BudgetGameDev.Games.Brocoli
         private const int InteriorRunHalfTilesZ = DungeonLayout.RoomTilesZ / 2 - 1;
 
         /// <summary>
-        /// The interior runs that reshape a room's fixed grid shell. Only
-        /// north-south runs are allowed: an east-west run would have walkable
-        /// floor behind it from the camera and would need to become a half wall or
-        /// fade. Every run leaves a central circulation gap, so all outer-edge
-        /// opening patterns stay connected regardless of the chosen shape.
+        /// The interior runs that reshape a room's fixed grid shell. These are
+        /// collision plans, not full-height wall instructions: the room builder
+        /// always realizes them as half walls. Runs leave a central circulation
+        /// gap, so all outer-edge opening patterns stay connected regardless of
+        /// the chosen shape.
         /// </summary>
         public static void AppendInteriorWalls(
             List<DungeonWallPiece> walls,

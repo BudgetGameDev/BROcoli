@@ -123,7 +123,8 @@ namespace BudgetGameDev.Games.Brocoli
             DungeonWallPiece piece,
             float verticalScale,
             float lift,
-            float southOffset = 0f
+            float southOffset = 0f,
+            string name = null
         )
         {
             GameObject wall = Instantiate(
@@ -132,7 +133,8 @@ namespace BudgetGameDev.Games.Brocoli
                 piece.AlongX ? Quaternion.identity : Quaternion.Euler(0f, 90f, 0f),
                 parent
             );
-            wall.name = verticalScale < 1f ? "DungeonWall - Low Parapet" : "DungeonWall - Cliff";
+            wall.name =
+                name ?? (verticalScale < 1f ? "DungeonWall - Low Parapet" : "DungeonWall - Cliff");
             wall.transform.localScale = Vector3.Scale(
                 wall.transform.localScale,
                 new Vector3(1f, verticalScale, 1f)
