@@ -187,11 +187,17 @@ namespace BudgetGameDev.Games.Brocoli
                 for (int i = 0; i < torchCount && i < mounts.Count; i++)
                 {
                     // A wall fitting hangs where its pivot says, so it is placed
-                    // rather than stood on the floor like a prop.
+                    // rather than stood on the floor like a prop. On an interior
+                    // run the wall is half height, so the fitting hangs lower to
+                    // stay seated on the masonry.
+                    bool interiorRun =
+                        DungeonWallDressing.RequiredShellWall(mounts[i].Local) < 0;
                     EnrolAsOccluder(
                         Instantiate(
                             torchPrefab,
-                            (center + mounts[i].Local).ToWorld(),
+                            (center + mounts[i].Local).ToWorld(
+                                interiorRun ? -DungeonWallDressing.InteriorMountDrop : 0f
+                            ),
                             Quaternion.Euler(0f, mounts[i].Yaw, 0f),
                             parent
                         )

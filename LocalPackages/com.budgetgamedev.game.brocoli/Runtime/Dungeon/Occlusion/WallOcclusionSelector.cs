@@ -116,6 +116,8 @@ namespace BudgetGameDev.Games.Brocoli
             source.CollectEnclosing(target.Position, candidates);
             foreach (OcclusionCandidate candidate in candidates)
             {
+                if (!TallEnoughToHide(target, candidate.Bounds))
+                    continue;
                 if (WallOcclusionMath.ContainsGroundPoint(candidate.Bounds, target.Position))
                     Activate(candidate.GroupId, target, 1f, activations);
             }
@@ -139,6 +141,9 @@ namespace BudgetGameDev.Games.Brocoli
                 blockedHere.Clear();
                 foreach (OcclusionCandidate candidate in candidates)
                 {
+                    if (!TallEnoughToHide(target, candidate.Bounds))
+                        continue;
+
                     // Only geometry in the gap between the camera and the target can
                     // be hiding it: something level with or past the target has
                     // already been walked by, and something behind the camera is not
@@ -180,6 +185,23 @@ namespace BudgetGameDev.Games.Brocoli
             return measured.TryGetValue(groupId, out OcclusionActivation activation)
                 ? activation.Coverage
                 : 0f;
+        }
+
+        /// <summary>
+        /// Whether a piece of geometry stands tall enough to hide this target at
+        /// all. The enemy coverage threshold is deliberately tiny, which lets
+        /// waist-high interior masonry - built low precisely so characters stay
+        /// readable over it - qualify just by standing across an enemy's feet.
+        /// An enemy seen over a railing is an enemy that can be read and aimed
+        /// at, so nothing shorter than the height that could actually hide a
+        /// character is ever lowered for one. The player's far stricter
+        /// coverage threshold already leaves such pieces standing on its own.
+        /// </summary>
+        private static bool TallEnoughToHide(in OcclusionTarget target, Bounds bounds)
+        {
+            return target.Kind != OcclusionTargetKind.Enemy
+                || bounds.max.y
+                    >= target.Position.y + DungeonOccluder.MinimumAutomaticFadeHeight;
         }
 
         private static Vector2[] BuildSamples()

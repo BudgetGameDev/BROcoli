@@ -32,6 +32,17 @@ namespace BudgetGameDev.Games.Brocoli
         // doorway rather than being mounted on the wall beside it.
         public const float TorchDoorwayClearance = 0.9f;
 
+        /// <summary>
+        /// How far a wall fitting drops below its shell-wall hanging height when
+        /// its mount is an interior run. The torch prefab is proportioned for
+        /// the full-height shell slab, with its flame near that slab's top edge;
+        /// hung unchanged on a half-height interior wall the whole fitting
+        /// floats above the masonry. Dropping it this far seats the flame just
+        /// over the interior wall's top edge while keeping the bracket clear of
+        /// the floor.
+        /// </summary>
+        public const float InteriorMountDrop = 0.8f;
+
         /// <summary>Every shell side present, as bits of (1 &lt;&lt; direction).</summary>
         public const int AllShellWalls = 0b1111;
 

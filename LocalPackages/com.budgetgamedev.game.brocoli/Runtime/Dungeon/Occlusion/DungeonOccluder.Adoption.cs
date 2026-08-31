@@ -5,9 +5,13 @@ namespace BudgetGameDev.Games.Brocoli
     public partial class DungeonOccluder
     {
         /// <summary>
-        /// Freestanding geometry below this height stays fully visible. Both chest
-        /// variants fit beneath it; walls and explicitly grouped architecture do not
-        /// use this automatic-adoption threshold.
+        /// Geometry below this height is too low to hide a character. Freestanding
+        /// props beneath it stay fully visible and are never adopted as occluders;
+        /// both chest variants fit under it. <see cref="WallOcclusionSelector"/>
+        /// also refuses to lower anything under it for an enemy target, which is
+        /// what keeps the half-height interior walls and railings - grouped
+        /// architecture that skips this automatic-adoption check - standing
+        /// however much of an enemy's feet they happen to cover.
         /// </summary>
         public const float MinimumAutomaticFadeHeight = 1.5f;
 

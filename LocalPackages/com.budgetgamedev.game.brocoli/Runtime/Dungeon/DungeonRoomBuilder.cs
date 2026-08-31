@@ -16,17 +16,20 @@ namespace BudgetGameDev.Games.Brocoli
         private const float HalfRoomDepth = DungeonLayout.RoomDepth / 2f;
 
         /// <summary>
-        /// Interior dividers are waist-high masonry, never room-height walls.
-        /// Keeping this as a construction invariant means a new room shape cannot
-        /// accidentally put an opaque shell wall through playable floor.
+        /// Interior dividers are low masonry, never room-height walls. Keeping
+        /// this as a construction invariant means a new room shape cannot
+        /// accidentally put an opaque shell wall through playable floor. Tall
+        /// enough to carry a lowered torch fitting convincingly, yet still under
+        /// <see cref="DungeonOccluder.MinimumAutomaticFadeHeight"/> so characters
+        /// stay readable over it and nothing lowers it for an enemy.
         /// </summary>
-        public const float InteriorWallHeightScale = 0.46f;
+        public const float InteriorWallHeightScale = 0.56f;
 
         /// <summary>
         /// East-west pieces sit directly across the camera, so they read as low
         /// railings and remain even shorter than the other interior half walls.
         /// </summary>
-        public const float InteriorRailingHeightScale = 0.36f;
+        public const float InteriorRailingHeightScale = 0.44f;
 
         [Header("Modular Dungeon Kit pieces")]
         [SerializeField]
