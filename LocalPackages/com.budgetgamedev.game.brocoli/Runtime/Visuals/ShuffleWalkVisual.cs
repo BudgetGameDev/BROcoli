@@ -183,6 +183,13 @@ namespace BudgetGameDev.Games.Brocoli
             return BaseMaxJumpHeight * speedMult;
         }
 
+        private struct FrameOutput
+        {
+            public float Height;
+            public float SquashStretch;
+            public Vector2 Movement;
+        }
+
         void Update()
         {
             if (!controller)
@@ -195,327 +202,51 @@ namespace BudgetGameDev.Games.Brocoli
             if (input.sqrMagnitude > 1f)
                 input.Normalize();
 
-            // Store input magnitude for scaling hops (0-1)
             inputMagnitude = Mathf.Clamp01(input.magnitude);
-
             bool wantsToMove = input.sqrMagnitude >= DeadZone * DeadZone;
-
-            float targetHeight = 0f;
-            float targetSS = 0f;
-            Vector2 targetMovement = Vector2.zero;
+            FrameOutput output = default;
 
             switch (State)
             {
                 case HopState.Idle:
-                    // Side-to-side weight shifting sway
-                    idleSwayTimer -= dt;
-                    if (idleSwayTimer <= 0f)
-                    {
-                        // Pick new random lean angle (left or right)
-                        idleSwayTarget = Random.Range(-IdleSwayMaxAngle, IdleSwayMaxAngle);
-                        idleSwayTimer = Random.Range(1.2f, 2.5f);
-                    }
-                    idleSwayAngle = Mathf.Lerp(idleSwayAngle, idleSwayTarget, IdleSwaySpeed * dt);
-                    leanMultiplier = 0f; // No lean when idle
-
-                    // Subtle breathing in scale only, no height change
-                    float breathPhase = idleTime * IdleBreathSpeed * Mathf.PI * 2f;
-                    float breath = (Mathf.Sin(breathPhase) + 1f) * 0.5f;
-
-                    targetHeight = 0f; // No vertical movement
-                    targetSS = breath * 0.015f; // Very subtle scale pulse
-
-                    if (wantsToMove)
-                    {
-                        State = HopState.Charging;
-                        stateTimer = 0f;
-                        currentPower = 0f;
-                        committedDirection = input.normalized;
-                        releasedDuringCharge = false;
-                        idleSwayAngle = 0f; // Reset sway when starting to move
-                    }
-                    targetMovement = Vector2.zero;
+                    UpdateIdle(dt, input, wantsToMove, ref output);
                     break;
-
                 case HopState.Charging:
-                    stateTimer += dt;
-                    float chargeT = Mathf.Clamp01(stateTimer / MaxChargeTime);
-
-                    currentPower = Mathf.Lerp(MinJumpPower, MaxJumpPower, chargeT);
-
-                    float currentDip = Mathf.Lerp(MinChargeDip, MaxChargeDip, chargeT);
-                    targetHeight = -currentDip;
-                    targetSS = -ChargeSquash * chargeT;
-                    leanMultiplier = -chargeT * 0.3f; // Slight lean back while charging
-
-                    targetMovement = Vector2.zero; // LOCKED in place during charge
-
-                    // Update direction while still holding
-                    if (wantsToMove)
-                        committedDirection = input.normalized;
-                    else
-                        releasedDuringCharge = true; // Mark that player released
-
-                    bool maxCharged = chargeT >= 1f;
-                    bool minChargeReached = stateTimer >= MinChargeTime;
-
-                    // Auto-launch when: max charged OR min charge reached (if released or still holding)
-                    // Once you tap, you're committed - no canceling
-                    if (maxCharged || (minChargeReached && releasedDuringCharge))
-                    {
-                        LaunchJump();
-                    }
+                    UpdateCharging(dt, input, wantsToMove, ref output);
                     break;
-
                 case HopState.Airborne:
-                    stateTimer += dt;
-                    float jumpT = Mathf.Clamp01(stateTimer / currentJumpTime);
-
-                    float parabola = 4f * jumpT * (1f - jumpT);
-                    targetHeight = currentJumpHeight * parabola;
-                    targetSS = AirStretch * parabola * launchInputMagnitude;
-
-                    // Lean dynamics: slight lean back at edges, forward at peak
-                    leanMultiplier = Mathf.Sin(jumpT * Mathf.PI) * 0.6f;
-
-                    // Subtle twist during air
-                    bhopTwistAngle = Mathf.Lerp(bhopTwistAngle, bhopTwistTarget, 4f * dt);
-
-                    // Air strafing - can adjust direction mid-air
-                    if (wantsToMove)
-                    {
-                        committedDirection = Vector2.Lerp(
-                            committedDirection,
-                            input.normalized,
-                            8f * dt
-                        );
-                    }
-
-                    // Direction keeps the hop's momentum, while live stick travel
-                    // controls its speed so mobile input remains genuinely analog.
-                    float stumbleMultiplier = Mathf.Lerp(
-                        1f,
-                        StumbleSpeedMultiplier,
-                        stumblePenalty
-                    );
-                    targetMovement =
-                        committedDirection * currentPower * inputMagnitude * stumbleMultiplier;
-
-                    if (jumpT >= 1f)
-                    {
-                        // Landing clears stumble - player has recovered
-                        stumblePenalty = 0f;
-
-                        // Determine landing quality for next bounce
-                        landingQuality = Random.Range(0.5f, 1f);
-                        currentBounceTime = Mathf.Lerp(0.1f, 0.05f, landingQuality);
-
-                        if (wantsToMove)
-                        {
-                            // Continue bhopping - go to quick bounce
-                            State = HopState.BhopBounce;
-                            stateTimer = 0f;
-                        }
-                        else
-                        {
-                            // Stop - go to stopping animation with momentum
-                            State = HopState.Stopping;
-                            stateTimer = 0f;
-                            stoppingVelocity =
-                                committedDirection * currentPower * launchInputMagnitude;
-                        }
-                    }
+                    UpdateAirborne(dt, input, wantsToMove, ref output);
                     break;
-
                 case HopState.BhopBounce:
-                    stateTimer += dt;
-                    float bounceT = Mathf.Clamp01(stateTimer / currentBounceTime);
-
-                    // Quick bounce animation
-                    float bounceDown = Mathf.Sin(bounceT * Mathf.PI);
-                    float dipAmount = Mathf.Lerp(0.8f, 0.3f, landingQuality);
-                    targetHeight = -MaxChargeDip * dipAmount * bounceDown;
-                    targetSS = -LandSquash * dipAmount * bounceDown;
-
-                    // Lean back on landing
-                    float leanBackAmount = Mathf.Lerp(0.3f, 0.1f, landingQuality);
-                    leanMultiplier = -leanBackAmount * bounceDown;
-
-                    // CARRY MOMENTUM during bhop bounce (reduced if stumbling)
-                    float bhopStumbleMultiplier = Mathf.Lerp(
-                        1f,
-                        StumbleSpeedMultiplier,
-                        stumblePenalty
-                    );
-                    targetMovement =
-                        committedDirection * currentPower * inputMagnitude * bhopStumbleMultiplier;
-
-                    // Build up power while bhopping if holding direction
-                    if (wantsToMove)
-                    {
-                        currentPower = Mathf.MoveTowards(
-                            currentPower,
-                            MaxJumpPower,
-                            (MaxJumpPower - MinJumpPower) * 2f * dt
-                        );
-                        committedDirection = Vector2.Lerp(
-                            committedDirection,
-                            input.normalized,
-                            15f * dt
-                        );
-                    }
-
-                    if (bounceT >= 1f)
-                    {
-                        if (wantsToMove)
-                        {
-                            // Chain into next jump - use built up power
-                            // Get speed-scaled animation parameters for bhop chain
-                            float minHeight = GetScaledMinJumpHeight();
-                            float maxHeight = GetScaledMaxJumpHeight();
-                            float baseJumpTime = GetScaledJumpTime();
-
-                            launchInputMagnitude = inputMagnitude;
-                            currentJumpHeight = Mathf.Lerp(minHeight, maxHeight, currentPower);
-                            currentJumpHeight *= landingQuality * Random.Range(0.9f, 1.1f);
-                            currentJumpTime = baseJumpTime * Mathf.Lerp(0.8f, 1.1f, landingQuality);
-                            bhopTwistTarget = Random.Range(-BhopTwistMax, BhopTwistMax);
-
-                            State = HopState.Airborne;
-                            stateTimer = 0f;
-                        }
-                        else
-                        {
-                            State = HopState.Stopping;
-                            stateTimer = 0f;
-                            stoppingVelocity =
-                                committedDirection * currentPower * launchInputMagnitude;
-                        }
-                    }
+                    UpdateBhopBounce(dt, input, wantsToMove, ref output);
                     break;
-
                 case HopState.Landing:
-                    stateTimer += dt;
-                    float landT = Mathf.Clamp01(stateTimer / 0.1f); // 100ms landing
-
-                    // Landing squash animation
-                    float landSquash = Mathf.Sin(landT * Mathf.PI);
-                    targetHeight = -MinChargeDip * landSquash;
-                    targetSS = -LandSquash * 0.5f * landSquash;
-                    leanMultiplier = 0f;
-
-                    // NO movement during full stop landing
-                    targetMovement = Vector2.zero;
-
-                    if (landT >= 1f)
-                    {
-                        currentPower = 0f;
-                        if (wantsToMove)
-                        {
-                            State = HopState.Charging;
-                            stateTimer = 0f;
-                            committedDirection = input.normalized;
-                            releasedDuringCharge = false;
-                        }
-                        else
-                        {
-                            State = HopState.Idle;
-                            stateTimer = 0f;
-                            idleSwayTimer = 0f;
-                            idleSwayAngle = 0f;
-                        }
-                    }
+                    UpdateLanding(dt, input, wantsToMove, ref output);
                     break;
-
                 case HopState.Stopping:
-                    stateTimer += dt;
-                    float stopT = Mathf.Clamp01(stateTimer / StoppingTime);
-
-                    // Three phase stop: lean forward (skid), lean back (catch), settle
-                    float leanIntensity = stoppingVelocity.magnitude;
-
-                    if (stopT < 0.35f)
-                    {
-                        // Phase 1: Lean into momentum (skidding forward)
-                        float p = stopT / 0.35f;
-                        float leanFwd = Mathf.Sin(p * Mathf.PI * 0.5f);
-                        targetHeight = -MaxChargeDip * leanFwd * leanIntensity;
-                        targetSS = -0.18f * leanFwd * leanIntensity;
-                        targetMovement = stoppingVelocity * (1f - p * 0.7f);
-                        leanMultiplier = leanFwd * leanIntensity; // Lean forward while skidding
-                    }
-                    else if (stopT < 0.7f)
-                    {
-                        // Phase 2: Lean back (catching balance)
-                        float p = (stopT - 0.35f) / 0.35f;
-                        float leanBack = Mathf.Sin(p * Mathf.PI);
-                        targetHeight = MinChargeDip * leanBack * leanIntensity * 0.5f;
-                        targetSS = 0.08f * leanBack * leanIntensity;
-                        targetMovement = stoppingVelocity * 0.3f * (1f - p);
-                        leanMultiplier = -leanBack * leanIntensity * 0.5f; // Lean back catching balance
-                    }
-                    else
-                    {
-                        // Phase 3: Settle to idle
-                        float p = (stopT - 0.7f) / 0.3f;
-                        targetHeight = Mathf.Lerp(MinChargeDip * 0.2f, 0f, p);
-                        targetSS = Mathf.Lerp(0.02f, 0f, p);
-                        targetMovement = Vector2.zero;
-                        leanMultiplier = Mathf.Lerp(-0.15f, 0f, p); // Settle to neutral
-                    }
-
-                    if (stopT >= 1f)
-                    {
-                        currentPower = 0f;
-                        if (wantsToMove)
-                        {
-                            State = HopState.Charging;
-                            stateTimer = 0f;
-                            committedDirection = input.normalized;
-                            releasedDuringCharge = false;
-                        }
-                        else
-                        {
-                            State = HopState.Idle;
-                            stateTimer = 0f;
-                            idleSwayTimer = 0f;
-                            idleSwayAngle = 0f;
-                        }
-                    }
-                    else if (wantsToMove)
-                    {
-                        // Can interrupt stopping to start moving again
-                        State = HopState.Charging;
-                        stateTimer = 0f;
-                        currentPower = 0f;
-                        committedDirection = input.normalized;
-                        releasedDuringCharge = false;
-                    }
+                    UpdateStopping(dt, input, wantsToMove, ref output);
                     break;
             }
 
-            // Movement output - NO smoothing for tight physics sync
-            smoothedMovement = targetMovement;
+            smoothedMovement = output.Movement;
+            ApplyPresentation(dt, output);
+        }
 
-            // Visual smoothing
-            displayHeight = Mathf.Lerp(displayHeight, targetHeight, 25f * dt);
+        private void ApplyPresentation(float dt, FrameOutput output)
+        {
+            displayHeight = Mathf.Lerp(displayHeight, output.Height, 25f * dt);
 
             // Presentation cheat, not a real jump: the hop displaces along ground-
             // north, which the fixed chase camera reads as screen-up (pre-flip +Y).
-            // The screen-space hop is implemented as a real world-Z presentation
-            // offset. Keep that visual-only displacement inside the same footprint
-            // that blocks the player's physics root, otherwise the mesh can cross a
-            // wall even though movement has stopped correctly.
+            // Keep visual-only displacement inside the player's physics footprint.
             float visibleHopHeight = ClampHopOffsetAgainstWalls(displayHeight);
             Vector2 poseDirection =
-                targetMovement.sqrMagnitude > DeadZone * DeadZone
-                    ? targetMovement.normalized
+                output.Movement.sqrMagnitude > DeadZone * DeadZone
+                    ? output.Movement.normalized
                     : committedDirection;
             wallPoseFactor = GetWallPoseFactor(poseDirection);
 
-            // Preserve the bounce when its ground-north presentation offset is
-            // blocked. World-up projects to the same screen-up direction with this
-            // fixed chase camera, without moving the mesh through the wall.
+            // Preserve the bounce in world-up when the ground-north offset is blocked.
             float blockedPositiveHop = Mathf.Max(0f, displayHeight - visibleHopHeight);
             Vector3 hopOffset =
                 Vector3.forward * visibleHopHeight
@@ -523,9 +254,9 @@ namespace BudgetGameDev.Games.Brocoli
             transform.localPosition =
                 startLocalPos + transform.parent.InverseTransformDirection(hopOffset);
 
-            displaySS = Mathf.Lerp(displaySS, targetSS, 25f * dt);
+            displaySS = Mathf.Lerp(displaySS, output.SquashStretch, 25f * dt);
             float visibleSS = displaySS * wallPoseFactor;
-            float stretch = 1f + visibleSS; // along ground-north, like the hop offset
+            float stretch = 1f + visibleSS;
             float squash = 1f - visibleSS * 0.5f;
 
             displayScale.x = Mathf.Lerp(displayScale.x, startScale.x * squash, 25f * dt);

@@ -58,8 +58,9 @@ would rebuild, so `./cd.sh` publishes that one instead of paying twice.
   the measured coverage assemblies in `scripts/check_coverage.py` and
   `scripts/unity-coverage-check.sh`. Moving source between trees means updating
   all of them together.
-- `.quality/loc-baseline.tsv` records grandfathered oversized files. Entries may
-  only decrease; remove one once its file reaches the 300-line limit.
+- `.quality/loc-baseline.tsv` is the source-size ratchet and is currently empty.
+  Any future entry may only decrease and must be removed once its file reaches
+  the 300-line limit.
 - `.quality/coverage-baseline.tsv` records the uncovered lines each game-runtime
   file still carries. Entries may only decrease; remove one once its file
   reaches 100%. A runtime file with no entry must be fully covered.

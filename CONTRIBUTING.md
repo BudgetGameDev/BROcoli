@@ -70,11 +70,9 @@ required once per clone.
 
 ### 300-line source-file limit
 
-New first-party source files hard-fail above 300 physical lines. The project already
-had 35 larger files when the rule was introduced, so
-`.quality/loc-baseline.tsv` records their current ceilings. Those files may shrink
-but may not grow, and the baseline entry must be removed once a file reaches 300
-lines. This is a ratchet, not a general exemption.
+First-party source files hard-fail above 300 physical lines. No files are currently
+grandfathered. `.quality/loc-baseline.tsv` remains as the ratchet mechanism: any
+entry may only decrease and must be removed once its file reaches 300 lines.
 
 ### Game-runtime line coverage
 

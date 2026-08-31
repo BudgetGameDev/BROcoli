@@ -20,7 +20,7 @@ namespace BudgetGameDev.Games.Brocoli.Tests
     /// The occluder's height and width, and the character's, then decide the answer
     /// on their own, with nothing to tune per prop.
     /// </summary>
-    public sealed class OcclusionCoverageTests
+    public sealed partial class OcclusionCoverageTests
     {
         // The Broccoli player and the gameplay camera as the Dungeon scene builds
         // them. The camera looks down steeply, which is exactly why height matters
@@ -261,46 +261,6 @@ namespace BudgetGameDev.Games.Brocoli.Tests
                 world,
                 Group
             );
-        }
-
-        private static OcclusionCameraModel Camera(Vector3 playerPosition)
-        {
-            return OcclusionCameraModel.Perspective(
-                playerPosition + CameraOffset,
-                Quaternion.LookRotation(-CameraOffset.normalized, Vector3.up),
-                35f,
-                16f / 9f,
-                0.3f,
-                1000f
-            );
-        }
-
-        /// <summary>
-        /// A character to be kept readable, with no threshold of its own, so the
-        /// measured fraction comes back rather than a yes or no.
-        /// </summary>
-        private static OcclusionTarget Target(
-            in OcclusionCameraModel camera,
-            Vector3 position,
-            float characterHeight
-        )
-        {
-            var bounds = new Bounds(
-                position + Vector3.up * (characterHeight / 2f),
-                new Vector3(PlayerWidth, characterHeight, PlayerWidth)
-            );
-            Assert.That(
-                OcclusionTarget.TryCreate(
-                    camera,
-                    OcclusionTargetKind.Player,
-                    position,
-                    bounds,
-                    0f,
-                    out OcclusionTarget target
-                ),
-                "the character is not on screen"
-            );
-            return target;
         }
     }
 }
