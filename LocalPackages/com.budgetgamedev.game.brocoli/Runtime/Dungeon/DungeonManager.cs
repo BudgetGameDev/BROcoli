@@ -224,7 +224,8 @@ namespace BudgetGameDev.Games.Brocoli
                 room,
                 archetype,
                 doorways,
-                layout.RoomRandom(room, 707)
+                layout.RoomRandom(room, 707),
+                layout.ShellWallMask(room)
             );
 
             BuildRoomEdges(room);

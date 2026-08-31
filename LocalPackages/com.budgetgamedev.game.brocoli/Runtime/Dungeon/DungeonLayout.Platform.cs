@@ -130,6 +130,24 @@ namespace BudgetGameDev.Games.Brocoli
         }
 
         /// <summary>
+        /// Which sides of a room keep their full-height shell walls once the
+        /// platform boundary is applied, as bits of (1 &lt;&lt; direction).
+        /// Boundary and crossing edges build railings, rock lines, or nothing
+        /// at all, so wall fittings must not hang there.
+        /// </summary>
+        public int ShellWallMask(Vector2Int room)
+        {
+            int mask = 0;
+            for (int direction = 0; direction < 4; direction++)
+            {
+                DungeonEdge edge = EdgeBetween(room, direction);
+                if (PlayableEdgeStyle(edge) == DungeonEdgeStyle.Interior)
+                    mask |= 1 << direction;
+            }
+            return mask;
+        }
+
+        /// <summary>
         /// Whether the built world actually lets the player walk out of this room
         /// on this side. The platform seals its own boundary, so this - not
         /// <see cref="IsDoorOpen"/>, which describes the unbounded grid - is what

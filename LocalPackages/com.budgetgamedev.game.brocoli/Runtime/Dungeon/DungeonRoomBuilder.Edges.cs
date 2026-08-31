@@ -53,10 +53,12 @@ namespace BudgetGameDev.Games.Brocoli
         }
 
         /// <summary>
-        /// Builds a safe outer edge without deciding that every environment is a
-        /// dungeon. Dungeon runs use the available masonry as a low railing. The
-        /// other themes get a renderer-free collision line; their visual dressing
-        /// is supplied by DungeonPropPlacer when assets exist for that palette.
+        /// Builds a safe outer edge in the style the environment's profile asks
+        /// for. Masonry-railing themes use the available masonry as a low
+        /// railing. The other styles get a renderer-free collision line here;
+        /// rock-line themes have their visual dressing supplied by
+        /// DungeonPropPlacer, and undressed themes gain theirs once their
+        /// profile points at real boundary assets.
         /// </summary>
         private void BuildEnvironmentBoundary(
             Transform parent,
@@ -65,7 +67,8 @@ namespace BudgetGameDev.Games.Brocoli
             bool buildCliffFace
         )
         {
-            if (environment == DungeonLayout.EnvironmentTheme.Dungeon)
+            DungeonEnvironmentProfile profile = DungeonEnvironmentProfile.Of(environment);
+            if (profile.BoundaryStyle == DungeonBoundaryStyle.MasonryRailing)
             {
                 BuildDungeonRailing(parent, edge, buildCliffFace);
                 return;

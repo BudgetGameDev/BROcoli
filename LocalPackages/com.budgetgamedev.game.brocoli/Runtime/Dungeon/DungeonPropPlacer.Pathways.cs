@@ -137,13 +137,7 @@ namespace BudgetGameDev.Games.Brocoli
             Vector2 local
         )
         {
-            string[] tokens =
-            {
-                DungeonPropTokens.Stones,
-                DungeonPropTokens.Pot,
-                DungeonPropTokens.Barrel,
-                DungeonPropTokens.Rocks,
-            };
+            string[] tokens = DungeonEnvironmentProfile.Of(archetype.Environment).PathwayTokens;
             GameObject prefab = FindProp(tokens[random.Next(tokens.Length)]);
             if (prefab == null)
                 return;

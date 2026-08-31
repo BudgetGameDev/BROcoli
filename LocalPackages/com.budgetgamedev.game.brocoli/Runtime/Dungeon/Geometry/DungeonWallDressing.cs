@@ -32,24 +32,34 @@ namespace BudgetGameDev.Games.Brocoli
         // doorway rather than being mounted on the wall beside it.
         public const float TorchDoorwayClearance = 0.9f;
 
+        /// <summary>Every shell side present, as bits of (1 &lt;&lt; direction).</summary>
+        public const int AllShellWalls = 0b1111;
+
         private const float TorchSpacing = 3f;
 
         /// <summary>
         /// The room's torch mounting points, minus any that would sit inside a
-        /// doorway. When the shape's preferred spots are mostly doorways, the
-        /// remaining solid outer-wall pieces make up the difference so a room is
-        /// never left unlit.
+        /// doorway or hang on a shell side missing from
+        /// <paramref name="shellWallMask"/>. The platform boundary replaces some
+        /// shell walls with railings, rock lines, or open air, and a fitting
+        /// mounted there would float in mid-air at the level edge. When the
+        /// shape's preferred spots are mostly doorways, the remaining solid
+        /// outer-wall pieces make up the difference so a room is never left
+        /// unlit.
         /// </summary>
         public static List<DungeonWallMount> TorchMounts(
             DungeonLayout.RoomArchetype archetype,
             DungeonLayout.RoomDoorways doorways,
             int wanted,
-            System.Random random
+            System.Random random,
+            int shellWallMask = AllShellWalls
         )
         {
             var mounts = new List<DungeonWallMount>();
             foreach (DungeonWallMount mount in ShapeTorchMounts(archetype))
             {
+                if (!HasShellWall(mount.Local, shellWallMask))
+                    continue;
                 if (!doorways.BlocksDoorway(mount.Local, TorchDoorwayClearance))
                     mounts.Add(mount);
             }
@@ -63,11 +73,42 @@ namespace BudgetGameDev.Games.Brocoli
             {
                 if (mounts.Count >= wanted)
                     break;
+                if (!HasShellWall(mount.Local, shellWallMask))
+                    continue;
                 if (!IsClearOfMounts(mounts, mount.Local))
                     continue;
                 mounts.Add(mount);
             }
             return mounts;
+        }
+
+        /// <summary>
+        /// Whether the wall a mount hangs on actually exists. A mount away from
+        /// the outer shell hangs on an interior run, which the platform never
+        /// removes; a mount on a shell face needs that side's bit in the mask.
+        /// </summary>
+        public static bool HasShellWall(Vector2 local, int shellWallMask)
+        {
+            int side = RequiredShellWall(local);
+            return side < 0 || (shellWallMask & (1 << side)) != 0;
+        }
+
+        /// <summary>
+        /// The shell side a mounting point hangs on, or -1 for an interior wall
+        /// run.
+        /// </summary>
+        public static int RequiredShellWall(Vector2 local)
+        {
+            const float epsilon = 0.05f;
+            if (Mathf.Abs(local.y - InnerFace(HalfRoomDepth)) < epsilon)
+                return DungeonLayout.North;
+            if (Mathf.Abs(local.y - InnerFace(-HalfRoomDepth)) < epsilon)
+                return DungeonLayout.South;
+            if (Mathf.Abs(local.x - InnerFace(HalfRoomWidth)) < epsilon)
+                return DungeonLayout.East;
+            if (Mathf.Abs(local.x - InnerFace(-HalfRoomWidth)) < epsilon)
+                return DungeonLayout.West;
+            return -1;
         }
 
         /// <summary>

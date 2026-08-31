@@ -150,13 +150,18 @@ namespace BudgetGameDev.Games.Brocoli
             return placedChests;
         }
 
-        /// <summary>Places lighting and pools appropriate to the room theme.</summary>
+        /// <summary>
+        /// Places lighting and pools appropriate to the room theme. The shell
+        /// wall mask says which outer sides still carry full-height walls after
+        /// the platform boundary is applied; fittings never hang on the others.
+        /// </summary>
         public void BuildAtmosphere(
             Transform parent,
             Vector2Int room,
             DungeonLayout.RoomArchetype archetype,
             DungeonLayout.RoomDoorways roomDoorways,
-            System.Random random
+            System.Random random,
+            int shellWallMask = DungeonWallDressing.AllShellWalls
         )
         {
             Vector2 center = DungeonLayout.RoomCenter(room);
@@ -176,7 +181,8 @@ namespace BudgetGameDev.Games.Brocoli
                     archetype,
                     roomDoorways,
                     torchCount,
-                    random
+                    random,
+                    shellWallMask
                 );
                 for (int i = 0; i < torchCount && i < mounts.Count; i++)
                 {

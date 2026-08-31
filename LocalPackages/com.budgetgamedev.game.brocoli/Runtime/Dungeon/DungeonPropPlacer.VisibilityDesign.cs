@@ -6,13 +6,14 @@ namespace BudgetGameDev.Games.Brocoli
     public partial class DungeonPropPlacer
     {
         private static readonly Vector3 LowBarrierScale = new(1.65f, 0.65f, 1.65f);
-        private static readonly Vector3 CaveBoundaryScale = new(1.45f, 1.15f, 1.45f);
+        private static readonly Vector3 BoundaryRockScale = new(1.1f, 0.9f, 1.1f);
 
         /// <summary>
-        /// Adds the visual boundary owned by a broad environment theme. Dungeon
-        /// railings are structural and are built by DungeonRoomBuilder; cave
-        /// boundaries use the available rocks. The remaining categories are
-        /// intentionally no-ops until their own assets are assigned here.
+        /// Adds the visual boundary owned by a broad environment theme.
+        /// Masonry railings are structural and are built by DungeonRoomBuilder;
+        /// rock-line themes use their profile's boundary props. Undressed
+        /// themes are intentionally no-ops until their own assets are assigned
+        /// in <see cref="DungeonEnvironmentProfile"/>.
         /// </summary>
         public void BuildBoundaryDressing(
             Transform parent,
@@ -22,32 +23,32 @@ namespace BudgetGameDev.Games.Brocoli
             System.Random random
         )
         {
-            if (environment != DungeonLayout.EnvironmentTheme.Cave)
+            DungeonEnvironmentProfile profile = DungeonEnvironmentProfile.Of(environment);
+            if (profile.BoundaryStyle != DungeonBoundaryStyle.RockLine)
                 return;
 
-            GameObject rocks = FindProp(DungeonPropTokens.Rocks);
-            GameObject stones = FindProp(DungeonPropTokens.Stones);
-            for (int i = 0; i < 4; i++)
+            int count = profile.BoundaryPropsPerEdge;
+            for (int i = 0; i < count; i++)
             {
-                GameObject prefab = (i & 1) == 0 ? rocks : stones;
+                GameObject prefab = FindProp(profile.BoundaryTokens[i % profile.BoundaryTokens.Length]);
                 if (prefab == null)
-                    prefab = rocks != null ? rocks : stones;
+                    prefab = FindProp(profile.BoundaryTokens[0]);
                 if (prefab == null)
                     return;
 
-                float radius = Measure(prefab).Radius * CaveBoundaryScale.x;
+                float radius = Measure(prefab).Radius * BoundaryRockScale.x;
                 float halfRun = direction is DungeonLayout.North or DungeonLayout.South
                     ? HalfRoomWidth
                     : HalfRoomDepth;
                 float available = Mathf.Max(0f, halfRun - radius - 0.3f);
-                float along = Mathf.Lerp(-available, available, (i + 0.5f) / 4f);
+                float along = Mathf.Lerp(-available, available, (i + 0.5f) / count);
                 along += Mathf.Lerp(-0.3f, 0.3f, (float)random.NextDouble());
                 SpawnScaledProp(
                     parent,
                     prefab,
                     BoundaryDressingSpot(room, direction, along, radius),
                     GroundPlane.YawRotation(random.Next(0, 360)),
-                    CaveBoundaryScale
+                    BoundaryRockScale
                 );
             }
         }
@@ -70,10 +71,13 @@ namespace BudgetGameDev.Games.Brocoli
             float halfRun = direction is DungeonLayout.North or DungeonLayout.South
                 ? HalfRoomWidth
                 : HalfRoomDepth;
+            // The deeper inset keeps a prop's full base visibly on the floor
+            // slab even at the camera-facing cliff, where anything flush with
+            // the lip reads as hanging over the void.
             float safeRadius = Mathf.Max(0f, radius);
             float safeAlong = Mathf.Clamp(along, -halfRun + safeRadius, halfRun - safeRadius);
             return DungeonLayout.RoomCenter(room)
-                + outward * (halfDepth - safeRadius - 0.25f)
+                + outward * (halfDepth - safeRadius - 0.6f)
                 + tangent * safeAlong;
         }
 
@@ -90,8 +94,11 @@ namespace BudgetGameDev.Games.Brocoli
             List<OccupiedSpot> occupied
         )
         {
+            DungeonEnvironmentProfile profile = DungeonEnvironmentProfile.Of(
+                archetype.Environment
+            );
             if (
-                archetype.Environment != DungeonLayout.EnvironmentTheme.Cave
+                !profile.UsesRubbleBarriers
                 || archetype.Shape != DungeonLayout.RoomShape.DiagonalGallery
             )
                 return;
@@ -99,7 +106,7 @@ namespace BudgetGameDev.Games.Brocoli
             foreach (float x in new[] { -8f, -4f, 4f, 8f })
             {
                 float z = -4.5f + x * 0.25f;
-                PlaceLowBarrier(parent, center, new Vector2(x, z), random, occupied);
+                PlaceLowBarrier(parent, center, new Vector2(x, z), random, occupied, profile);
             }
         }
 
@@ -108,11 +115,13 @@ namespace BudgetGameDev.Games.Brocoli
             Vector2 center,
             Vector2 local,
             System.Random random,
-            List<OccupiedSpot> occupied
+            List<OccupiedSpot> occupied,
+            DungeonEnvironmentProfile profile
         )
         {
+            string[] tokens = profile.RubbleTokens;
             GameObject prefab = FindProp(
-                random.NextDouble() < 0.72 ? DungeonPropTokens.Rocks : DungeonPropTokens.Stones
+                random.NextDouble() < 0.72 ? tokens[0] : tokens[Mathf.Min(1, tokens.Length - 1)]
             );
             if (prefab == null)
                 return;

@@ -13,29 +13,18 @@ namespace BudgetGameDev.Games.Brocoli
             List<OccupiedSpot> occupied
         )
         {
-            if (archetype.Environment == DungeonLayout.EnvironmentTheme.Cave)
-                Scatter(
-                    parent,
-                    center,
-                    archetype,
-                    random,
-                    occupied,
-                    6 + random.Next(0, 4),
-                    DungeonPropTokens.Rocks,
-                    DungeonPropTokens.Stones
-                );
-            else
-                Scatter(
-                    parent,
-                    center,
-                    archetype,
-                    random,
-                    occupied,
-                    5 + random.Next(0, 4),
-                    DungeonPropTokens.WoodSupport,
-                    DungeonPropTokens.WoodStructure,
-                    DungeonPropTokens.Pot
-                );
+            DungeonEnvironmentProfile profile = DungeonEnvironmentProfile.Of(
+                archetype.Environment
+            );
+            Scatter(
+                parent,
+                center,
+                archetype,
+                random,
+                occupied,
+                4 + random.Next(0, 3),
+                profile.RubbleTokens
+            );
             PlaceSmallClusters(
                 parent,
                 center,
@@ -45,10 +34,7 @@ namespace BudgetGameDev.Games.Brocoli
                 1 + random.Next(0, 2),
                 3,
                 6,
-                archetype.Environment == DungeonLayout.EnvironmentTheme.Cave
-                    ? DungeonPropTokens.Stones
-                    : DungeonPropTokens.Barrel,
-                DungeonPropTokens.Pot
+                profile.ClutterTokens
             );
         }
 
@@ -60,14 +46,9 @@ namespace BudgetGameDev.Games.Brocoli
             List<OccupiedSpot> occupied
         )
         {
-            string terrain =
-                archetype.Environment == DungeonLayout.EnvironmentTheme.Cave
-                    ? DungeonPropTokens.Rocks
-                    : DungeonPropTokens.WoodSupport;
-            string debris =
-                archetype.Environment == DungeonLayout.EnvironmentTheme.Cave
-                    ? DungeonPropTokens.Stones
-                    : DungeonPropTokens.Barrel;
+            DungeonEnvironmentProfile profile = DungeonEnvironmentProfile.Of(
+                archetype.Environment
+            );
             Scatter(
                 parent,
                 center,
@@ -75,9 +56,7 @@ namespace BudgetGameDev.Games.Brocoli
                 random,
                 occupied,
                 4 + random.Next(0, 3),
-                terrain,
-                debris,
-                DungeonPropTokens.Pot
+                profile.RubbleTokens
             );
             PlaceSmallClusters(
                 parent,
@@ -88,8 +67,7 @@ namespace BudgetGameDev.Games.Brocoli
                 1,
                 3,
                 5,
-                debris,
-                DungeonPropTokens.Pot
+                profile.ClutterTokens
             );
         }
     }
