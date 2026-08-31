@@ -7,8 +7,7 @@ namespace BudgetGameDev.Games.Brocoli
     /// <summary>
     /// Runs the dungeon-crawler game mode: an infinite east-west platform of
     /// procedurally generated rooms joined by doorways. Rooms (geometry, props, loot, and a
-    /// dormant enemy group) are generated one step ahead of the player, so
-    /// whatever waits behind a doorway already exists before it is entered.
+    /// dormant enemy group) are generated ahead of the player.
     /// Far-away rooms unload; the deterministic seed rebuilds them identically
     /// when the player backtracks.
     /// </summary>
@@ -228,29 +227,7 @@ namespace BudgetGameDev.Games.Brocoli
                 layout.RoomRandom(room, 707)
             );
 
-            for (int direction = 0; direction < 4; direction++)
-            {
-                DungeonEdge edge = DungeonLayout.EdgeBetween(room, direction);
-                if (!loadedEdges.ContainsKey(edge))
-                {
-                    DungeonEdgeStyle style = layout.PlayableEdgeStyle(edge);
-                    GameObject builtEdge = builder.BuildEdge(
-                        transform,
-                        edge,
-                        layout.PlayablePassage(room, direction),
-                        style
-                    );
-                    loadedEdges[edge] = builtEdge;
-                    if (style == DungeonEdgeStyle.SouthCliff)
-                    {
-                        decor.BuildSouthCliffDressing(
-                            builtEdge.transform,
-                            edge,
-                            layout.RoomRandom(new Vector2Int(edge.X, edge.Y), 1202)
-                        );
-                    }
-                }
-            }
+            BuildRoomEdges(room);
 
             var loaded = new LoadedRoom { Root = root, DormantEnemies = new List<EnemyBase>() };
             if (!state.Visited)

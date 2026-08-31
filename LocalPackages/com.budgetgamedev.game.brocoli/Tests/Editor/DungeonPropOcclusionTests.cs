@@ -162,7 +162,14 @@ namespace BudgetGameDev.Games.Brocoli.Tests
                 List<GameObject> prefabs = DungeonPropFixtures.AllPrefabs();
                 var layout = new DungeonLayout(20260830);
                 var cell = new Vector2Int(1, 1);
-                DungeonLayout.RoomArchetype archetype = layout.Archetype(cell);
+                var archetype = new DungeonLayout.RoomArchetype(
+                    DungeonLayout.RoomShape.DiagonalGallery,
+                    DungeonLayout.RoomTheme.Sparse,
+                    DungeonLayout.EnvironmentTheme.Cave,
+                    10.2f,
+                    6.4f,
+                    0
+                );
 
                 DungeonPropFixtures.Builder(host).BuildInterior(room.transform, cell, archetype);
                 DungeonPropFixtures

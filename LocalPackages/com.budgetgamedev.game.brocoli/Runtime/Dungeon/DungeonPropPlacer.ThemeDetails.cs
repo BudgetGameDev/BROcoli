@@ -59,38 +59,6 @@ namespace BudgetGameDev.Games.Brocoli
             );
         }
 
-        private void BuildCollapsed(
-            Transform parent,
-            Vector2 center,
-            DungeonLayout.RoomArchetype archetype,
-            System.Random random,
-            List<OccupiedSpot> occupied
-        )
-        {
-            Scatter(
-                parent,
-                center,
-                archetype,
-                random,
-                occupied,
-                8 + random.Next(0, 5),
-                DungeonPropTokens.Rocks,
-                DungeonPropTokens.Stones
-            );
-            PlaceSmallClusters(
-                parent,
-                center,
-                archetype,
-                random,
-                occupied,
-                1 + random.Next(0, 2),
-                3,
-                6,
-                DungeonPropTokens.Stones,
-                DungeonPropTokens.Pot
-            );
-        }
-
         private void Scatter(
             Transform parent,
             Vector2 center,
@@ -196,7 +164,7 @@ namespace BudgetGameDev.Games.Brocoli
 
             DungeonPropMeasurement measurement = Measure(prefab);
             float radius = measurement.Radius * scale;
-            if (OverlapsReservedChest(local, radius, occupied))
+            if (!FitsOnRoomFloor(local, radius) || OverlapsReservedChest(local, radius, occupied))
                 return;
             SpawnProp(parent, prefab, center + local, Quaternion.Euler(0f, yaw, 0f), scale, lift);
             occupied.Add(new OccupiedSpot(local, radius, measurement.IsLarge));

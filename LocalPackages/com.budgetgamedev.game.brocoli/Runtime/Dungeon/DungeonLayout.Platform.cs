@@ -20,8 +20,43 @@ namespace BudgetGameDev.Games.Brocoli
     public sealed partial class DungeonLayout
     {
         private const int PlatformCurveSalt = 1201;
+        private const int EnvironmentCycleSalt = 1203;
         private const int PlatformDepthInRooms = 2;
         private const int PlatformDiagonalRun = 12;
+
+        public const int RoomsPerEnvironmentTheme = 20;
+        public const int ColumnsPerEnvironmentTheme =
+            RoomsPerEnvironmentTheme / PlatformDepthInRooms;
+
+        /// <summary>
+        /// Broad environment at a room coordinate. Ten consecutive columns share
+        /// one theme; because the platform is two rooms deep, that is a run of
+        /// about twenty rooms. The starting band is always Dungeon so existing
+        /// runs begin in a fully dressed environment, while the remaining five
+        /// themes are shuffled deterministically for each run seed.
+        /// </summary>
+        public EnvironmentTheme EnvironmentAt(Vector2Int room)
+        {
+            int segment = EnvironmentSegmentAtColumn(room.x);
+            return environmentCycle[PositiveModulo(segment, environmentCycle.Length)];
+        }
+
+        /// <summary>The environment belonging to the playable side of an edge.</summary>
+        public EnvironmentTheme EnvironmentAt(DungeonEdge edge)
+        {
+            EdgeRooms(edge, out Vector2Int first, out Vector2Int second);
+            if (IsPlayableRoom(first))
+                return EnvironmentAt(first);
+            if (IsPlayableRoom(second))
+                return EnvironmentAt(second);
+            return EnvironmentAt(first);
+        }
+
+        public static int EnvironmentSegmentAtColumn(int x)
+        {
+            int centred = x + ColumnsPerEnvironmentTheme / 2;
+            return FloorDivide(centred, ColumnsPerEnvironmentTheme);
+        }
 
         /// <summary>
         /// The dungeon is an endless east-west platform rather than an endless
@@ -130,6 +165,39 @@ namespace BudgetGameDev.Games.Brocoli
             if (wrapped < 0)
                 wrapped += period;
             return wrapped <= PlatformDiagonalRun ? wrapped : period - wrapped;
+        }
+
+        private EnvironmentTheme[] BuildEnvironmentCycle()
+        {
+            var cycle = new[]
+            {
+                EnvironmentTheme.Dungeon,
+                EnvironmentTheme.Cave,
+                EnvironmentTheme.Plains,
+                EnvironmentTheme.Forest,
+                EnvironmentTheme.Mountain,
+                EnvironmentTheme.Desert,
+            };
+            var random = new System.Random((int)Hash(0, 0, EnvironmentCycleSalt));
+            for (int i = cycle.Length - 1; i > 1; i--)
+            {
+                int other = random.Next(1, i + 1);
+                (cycle[i], cycle[other]) = (cycle[other], cycle[i]);
+            }
+            return cycle;
+        }
+
+        private static int FloorDivide(int value, int divisor)
+        {
+            int quotient = value / divisor;
+            int remainder = value % divisor;
+            return remainder < 0 ? quotient - 1 : quotient;
+        }
+
+        private static int PositiveModulo(int value, int divisor)
+        {
+            int remainder = value % divisor;
+            return remainder < 0 ? remainder + divisor : remainder;
         }
 
         private static void EdgeRooms(

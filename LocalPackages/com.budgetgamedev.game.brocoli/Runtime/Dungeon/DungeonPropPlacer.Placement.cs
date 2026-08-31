@@ -99,6 +99,19 @@ namespace BudgetGameDev.Games.Brocoli
             return OverlapsInteriorWall(point, 0.65f, archetype);
         }
 
+        /// <summary>
+        /// Whether a prop's whole measured footprint remains on generated floor.
+        /// Authored set-piece coordinates use this just like random placement, so
+        /// adding a wider replacement prefab cannot make it hang over the void.
+        /// </summary>
+        internal static bool FitsOnRoomFloor(Vector2 local, float radius)
+        {
+            float safeRadius = Mathf.Max(0f, radius);
+            const float edgeInset = 0.25f;
+            return Mathf.Abs(local.x) + safeRadius <= HalfRoomWidth - edgeInset
+                && Mathf.Abs(local.y) + safeRadius <= HalfRoomDepth - edgeInset;
+        }
+
         internal static Vector2 PoolSpot(
             DungeonLayout.RoomArchetype archetype,
             System.Random random

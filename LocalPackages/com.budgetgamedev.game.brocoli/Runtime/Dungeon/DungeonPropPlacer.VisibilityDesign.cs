@@ -6,73 +6,75 @@ namespace BudgetGameDev.Games.Brocoli
     public partial class DungeonPropPlacer
     {
         private static readonly Vector3 LowBarrierScale = new(1.65f, 0.65f, 1.65f);
-        private static readonly Vector3 OutcropScale = new(2.1f, 1.7f, 2.1f);
+        private static readonly Vector3 CaveBoundaryScale = new(1.45f, 1.15f, 1.45f);
 
         /// <summary>
-        /// Breaks up the south cliff with low boulder clusters. Their broad
-        /// colliders keep the player away from the lip, while their deliberately
-        /// low profile stays below automatic occlusion-fade height.
+        /// Adds the visual boundary owned by a broad environment theme. Dungeon
+        /// railings are structural and are built by DungeonRoomBuilder; cave
+        /// boundaries use the available rocks. The remaining categories are
+        /// intentionally no-ops until their own assets are assigned here.
         /// </summary>
-        public void BuildSouthCliffDressing(
+        public void BuildBoundaryDressing(
             Transform parent,
-            DungeonEdge edge,
+            Vector2Int room,
+            int direction,
+            DungeonLayout.EnvironmentTheme environment,
             System.Random random
         )
         {
+            if (environment != DungeonLayout.EnvironmentTheme.Cave)
+                return;
+
             GameObject rocks = FindProp(DungeonPropTokens.Rocks);
             GameObject stones = FindProp(DungeonPropTokens.Stones);
-            Vector2 boundary = DungeonLayout.RoomCenter(new Vector2Int(edge.X, edge.Y));
-            boundary.y += DungeonLayout.RoomDepth * 0.5f;
-            Vector2 lip = boundary + Vector2.up * 1.05f;
-
-            for (int i = -2; i <= 2; i++)
+            for (int i = 0; i < 4; i++)
             {
-                // Keep one clear lookout in the middle: the parapet itself still
-                // blocks the drop, while the side clusters discourage walking the
-                // whole lip and preserve a readable silhouette around the player.
-                if (i == 0)
-                    continue;
                 GameObject prefab = (i & 1) == 0 ? rocks : stones;
                 if (prefab == null)
                     prefab = rocks != null ? rocks : stones;
-                float jitter = Mathf.Lerp(-0.35f, 0.35f, (float)random.NextDouble());
+                if (prefab == null)
+                    return;
+
+                float radius = Measure(prefab).Radius * CaveBoundaryScale.x;
+                float halfRun = direction is DungeonLayout.North or DungeonLayout.South
+                    ? HalfRoomWidth
+                    : HalfRoomDepth;
+                float available = Mathf.Max(0f, halfRun - radius - 0.3f);
+                float along = Mathf.Lerp(-available, available, (i + 0.5f) / 4f);
+                along += Mathf.Lerp(-0.3f, 0.3f, (float)random.NextDouble());
                 SpawnScaledProp(
                     parent,
                     prefab,
-                    lip + new Vector2(i * 5.1f + jitter, 0f),
+                    BoundaryDressingSpot(room, direction, along, radius),
                     GroundPlane.YawRotation(random.Next(0, 360)),
-                    LowBarrierScale
+                    CaveBoundaryScale
                 );
             }
+        }
 
-            // Rock shoulders jut from the cliff face beyond the parapet, mostly
-            // sunk below floor level. They break the masonry's straight silhouette
-            // where it meets the void, selling the drop as natural terrain the
-            // platform was carved from - and, standing outside the playable floor,
-            // they can never stand between the camera and a character.
-            for (int i = -2; i <= 2; i++)
-            {
-                // An uneven line: some positions stay bare, and every shoulder
-                // rolls its own bulk and depth, so the lip reads as broken
-                // terrain rather than a second, rockier parapet.
-                bool bare = random.NextDouble() < 0.25;
-                GameObject prefab = (i & 1) == 0 ? stones : rocks;
-                if (prefab == null)
-                    prefab = rocks != null ? rocks : stones;
-                float jitter = Mathf.Lerp(-0.6f, 0.6f, (float)random.NextDouble());
-                float reach = Mathf.Lerp(-2.3f, -1.4f, (float)random.NextDouble());
-                float sink = Mathf.Lerp(0.7f, 1.4f, (float)random.NextDouble());
-                float bulk = Mathf.Lerp(0.75f, 1.25f, (float)random.NextDouble());
-                if (!bare)
-                    SpawnScaledProp(
-                        parent,
-                        prefab,
-                        boundary + new Vector2(i * 4.6f + jitter, reach),
-                        GroundPlane.YawRotation(random.Next(0, 360)),
-                        OutcropScale * bulk,
-                        -sink
-                    );
-            }
+        internal static Vector2 BoundaryDressingSpot(
+            Vector2Int room,
+            int direction,
+            float along,
+            float radius
+        )
+        {
+            Vector2Int gridOutward = DungeonLayout.DirectionOffsets[direction];
+            var outward = new Vector2(gridOutward.x, gridOutward.y);
+            Vector2 tangent = direction is DungeonLayout.North or DungeonLayout.South
+                ? Vector2.right
+                : Vector2.up;
+            float halfDepth = direction is DungeonLayout.North or DungeonLayout.South
+                ? HalfRoomDepth
+                : HalfRoomWidth;
+            float halfRun = direction is DungeonLayout.North or DungeonLayout.South
+                ? HalfRoomWidth
+                : HalfRoomDepth;
+            float safeRadius = Mathf.Max(0f, radius);
+            float safeAlong = Mathf.Clamp(along, -halfRun + safeRadius, halfRun - safeRadius);
+            return DungeonLayout.RoomCenter(room)
+                + outward * (halfDepth - safeRadius - 0.25f)
+                + tangent * safeAlong;
         }
 
         /// <summary>
@@ -88,7 +90,10 @@ namespace BudgetGameDev.Games.Brocoli
             List<OccupiedSpot> occupied
         )
         {
-            if (archetype.Shape != DungeonLayout.RoomShape.DiagonalGallery)
+            if (
+                archetype.Environment != DungeonLayout.EnvironmentTheme.Cave
+                || archetype.Shape != DungeonLayout.RoomShape.DiagonalGallery
+            )
                 return;
 
             foreach (float x in new[] { -8f, -4f, 4f, 8f })

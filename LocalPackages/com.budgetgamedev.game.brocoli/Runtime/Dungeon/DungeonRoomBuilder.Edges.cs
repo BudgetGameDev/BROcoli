@@ -18,7 +18,8 @@ namespace BudgetGameDev.Games.Brocoli
             Transform parent,
             DungeonEdge edge,
             DungeonPassage passage,
-            DungeonEdgeStyle style = DungeonEdgeStyle.Interior
+            DungeonEdgeStyle style = DungeonEdgeStyle.Interior,
+            DungeonLayout.EnvironmentTheme environment = DungeonLayout.EnvironmentTheme.Dungeon
         )
         {
             GameObject root = new GameObject(
@@ -26,9 +27,14 @@ namespace BudgetGameDev.Games.Brocoli
             );
             root.transform.SetParent(parent, false);
 
-            if (style == DungeonEdgeStyle.SouthCliff)
+            if (style == DungeonEdgeStyle.SouthCliff || style == DungeonEdgeStyle.SolidBoundary)
             {
-                BuildSouthCliff(root.transform, edge);
+                BuildEnvironmentBoundary(
+                    root.transform,
+                    edge,
+                    environment,
+                    style == DungeonEdgeStyle.SouthCliff
+                );
                 return root;
             }
 
@@ -47,32 +53,74 @@ namespace BudgetGameDev.Games.Brocoli
         }
 
         /// <summary>
-        /// Builds a camera-facing platform edge. A knee-high parapet provides the
-        /// collision/readability of a railing without ever hiding a character;
-        /// the same modular masonry continues below floor level as a cliff face.
-        /// Two courses deep, the lower one stepped slightly outward, the drop
-        /// reads as the battered flank of a tall platform rather than a table
-        /// edge, so the playable floor sits in a larger vertical world.
+        /// Builds a safe outer edge without deciding that every environment is a
+        /// dungeon. Dungeon runs use the available masonry as a low railing. The
+        /// other themes get a renderer-free collision line; their visual dressing
+        /// is supplied by DungeonPropPlacer when assets exist for that palette.
         /// </summary>
-        private void BuildSouthCliff(Transform parent, DungeonEdge edge)
+        private void BuildEnvironmentBoundary(
+            Transform parent,
+            DungeonEdge edge,
+            DungeonLayout.EnvironmentTheme environment,
+            bool buildCliffFace
+        )
+        {
+            if (environment == DungeonLayout.EnvironmentTheme.Dungeon)
+            {
+                BuildDungeonRailing(parent, edge, buildCliffFace);
+                return;
+            }
+
+            GameObject collision = new GameObject($"{environment} Boundary Collision");
+            collision.transform.SetParent(parent, false);
+            Vector2 center = edge.Horizontal
+                ? new Vector2(
+                    edge.X * DungeonLayout.RoomWidth,
+                    (edge.Y + 0.5f) * DungeonLayout.RoomDepth
+                )
+                : new Vector2(
+                    (edge.X + 0.5f) * DungeonLayout.RoomWidth,
+                    edge.Y * DungeonLayout.RoomDepth
+                );
+            collision.transform.position = center.ToWorld(0.7f);
+            var collider = collision.AddComponent<BoxCollider>();
+            collider.size = edge.Horizontal
+                ? new Vector3(DungeonLayout.RoomWidth, 1.4f, DungeonWallPiece.SlabThickness)
+                : new Vector3(DungeonWallPiece.SlabThickness, 1.4f, DungeonLayout.RoomDepth);
+            int wallLayer = LayerMask.NameToLayer("Wall");
+            if (wallLayer >= 0)
+                collision.layer = wallLayer;
+        }
+
+        /// <summary>
+        /// A knee-high dungeon railing. On the camera-facing side, the same
+        /// modular masonry continues below floor level as a two-course cliff.
+        /// </summary>
+        private void BuildDungeonRailing(Transform parent, DungeonEdge edge, bool buildCliffFace)
         {
             const float parapetScale = 0.3f;
             const float cliffFaceScale = 1.5f;
             const float lowerCourseOutset = 0.45f;
 
-            Transform parapet = new GameObject("Low South Parapet").transform;
+            Transform parapet = new GameObject("Low Dungeon Railing").transform;
             parapet.SetParent(parent, false);
             parapet.gameObject.AddComponent<DungeonContentRoot>();
 
-            Transform cliffFace = new GameObject("Cliff Face Below Floor").transform;
-            cliffFace.SetParent(parent, false);
-            cliffFace.gameObject.AddComponent<DungeonContentRoot>();
+            Transform cliffFace = null;
+            if (buildCliffFace)
+            {
+                cliffFace = new GameObject("Cliff Face Below Floor").transform;
+                cliffFace.SetParent(parent, false);
+                cliffFace.gameObject.AddComponent<DungeonContentRoot>();
+            }
 
             edgeWalls.Clear();
             DungeonRoomGeometry.AppendEdgeWalls(edgeWalls, edge, new DungeonPassage(false, 0, 0));
             foreach (DungeonWallPiece piece in edgeWalls)
             {
                 InstantiateScaledWall(parapet, piece, parapetScale, piece.BaseLift);
+                if (!buildCliffFace)
+                    continue;
                 float upperCourseLift =
                     piece.BaseLift - DungeonWallPiece.SlabHeight * cliffFaceScale;
                 InstantiateScaledWall(cliffFace, piece, cliffFaceScale, upperCourseLift);

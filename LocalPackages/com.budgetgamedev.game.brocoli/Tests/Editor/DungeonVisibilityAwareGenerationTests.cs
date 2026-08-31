@@ -202,7 +202,7 @@ namespace BudgetGameDev.Games.Brocoli.Tests
                     new DungeonPassage(false, 0, 0),
                     DungeonEdgeStyle.SouthCliff
                 );
-                Transform parapet = edge.transform.Find("Low South Parapet");
+                Transform parapet = edge.transform.Find("Low Dungeon Railing");
                 Transform cliff = edge.transform.Find("Cliff Face Below Floor");
                 Assert.That(parapet, Is.Not.Null);
                 Assert.That(cliff, Is.Not.Null);

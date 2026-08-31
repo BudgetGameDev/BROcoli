@@ -11,8 +11,9 @@ namespace BudgetGameDev.Games.Brocoli
         /// </summary>
         public RoomArchetype Archetype(Vector2Int room)
         {
+            EnvironmentTheme environment = EnvironmentAt(room);
             if (Ring(room) == 0)
-                return CreateArchetype(RoomShape.OpenHall, RoomTheme.Sparse, 0);
+                return CreateArchetype(RoomShape.OpenHall, RoomTheme.Sparse, environment, 0);
 
             if (TryGetMegaCluster(room, out Vector2Int anchor, out _))
             {
@@ -27,7 +28,12 @@ namespace BudgetGameDev.Games.Brocoli
                     < 0.84 => RoomTheme.Storage,
                     _ => RoomTheme.Sparse,
                 };
-                return CreateArchetype(RoomShape.MegaSection, megaTheme, megaRandom.Next(0, 4));
+                return CreateArchetype(
+                    RoomShape.MegaSection,
+                    megaTheme,
+                    environment,
+                    megaRandom.Next(0, 4)
+                );
             }
 
             System.Random themeRandom = RoomRandom(room, 808);
@@ -115,7 +121,7 @@ namespace BudgetGameDev.Games.Brocoli
                     break;
             }
 
-            return CreateArchetype(shape, theme, shapeRandom.Next(0, 4));
+            return CreateArchetype(shape, theme, environment, shapeRandom.Next(0, 4));
         }
 
         /// <summary>
@@ -197,23 +203,26 @@ namespace BudgetGameDev.Games.Brocoli
             return new RoomPopulation(capacity - cellRandom.Next(0, 3), false);
         }
 
-        private static RoomArchetype CreateArchetype(RoomShape shape, RoomTheme theme, int variant)
+        private static RoomArchetype CreateArchetype(
+            RoomShape shape,
+            RoomTheme theme,
+            EnvironmentTheme environment,
+            int variant
+        )
         {
-            return shape switch
+            (float halfWidth, float halfDepth) = shape switch
             {
-                RoomShape.GrandArena => new RoomArchetype(shape, theme, 12f, 8.2f, variant),
-                RoomShape.MegaSection => new RoomArchetype(shape, theme, 12f, 8.2f, variant),
-                RoomShape.Tiny => new RoomArchetype(shape, theme, 2.8f, 2.8f, variant),
-                RoomShape.Compact => new RoomArchetype(shape, theme, 4.7f, 4.7f, variant),
-                RoomShape.NarrowHorizontal => new RoomArchetype(shape, theme, 10.2f, 2.8f, variant),
-                RoomShape.NarrowVertical => new RoomArchetype(shape, theme, 2.8f, 8.2f, variant),
-                RoomShape.LargeSquare => new RoomArchetype(shape, theme, 8.2f, 6.4f, variant),
-                RoomShape.LongHorizontal => new RoomArchetype(shape, theme, 10.2f, 4.5f, variant),
-                RoomShape.LongVertical => new RoomArchetype(shape, theme, 4.5f, 6.4f, variant),
-                RoomShape.DiagonalGallery => new RoomArchetype(shape, theme, 10.2f, 6.4f, variant),
-                RoomShape.Divided => new RoomArchetype(shape, theme, 10.2f, 6.4f, variant),
-                _ => new RoomArchetype(shape, theme, 10.2f, 6.4f, variant),
+                RoomShape.GrandArena or RoomShape.MegaSection => (12f, 8.2f),
+                RoomShape.Tiny => (2.8f, 2.8f),
+                RoomShape.Compact => (4.7f, 4.7f),
+                RoomShape.NarrowHorizontal => (10.2f, 2.8f),
+                RoomShape.NarrowVertical => (2.8f, 8.2f),
+                RoomShape.LargeSquare => (8.2f, 6.4f),
+                RoomShape.LongHorizontal => (10.2f, 4.5f),
+                RoomShape.LongVertical => (4.5f, 6.4f),
+                _ => (10.2f, 6.4f),
             };
+            return new RoomArchetype(shape, theme, environment, halfWidth, halfDepth, variant);
         }
 
         /// <summary>Health multiplier applied to enemies the deeper the player goes.</summary>

@@ -110,6 +110,12 @@ namespace BudgetGameDev.Games.Brocoli
 
         private MegaBlockLayout LayoutOfBlock(Vector2Int block)
         {
+            int leftColumn = block.x * 2;
+            if (
+                EnvironmentSegmentAtColumn(leftColumn) != EnvironmentSegmentAtColumn(leftColumn + 1)
+            )
+                return MegaBlockLayout.None;
+
             float roll = Hash(block.x, block.y, MegaBlockSalt) / (float)uint.MaxValue;
             return roll switch
             {

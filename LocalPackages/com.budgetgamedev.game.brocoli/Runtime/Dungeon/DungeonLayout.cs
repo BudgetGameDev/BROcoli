@@ -39,10 +39,12 @@ namespace BudgetGameDev.Games.Brocoli
         private const int DeadEndBreakSalt = 204;
 
         private readonly int seed;
+        private readonly EnvironmentTheme[] environmentCycle;
 
         public DungeonLayout(int seed)
         {
             this.seed = seed;
+            environmentCycle = BuildEnvironmentCycle();
         }
 
         /// <summary>Ground-plane centre of a room.</summary>
@@ -164,6 +166,22 @@ namespace BudgetGameDev.Games.Brocoli
         }
 
         /// <summary>
+        /// The broad environment shared by a long run of rooms. This is separate
+        /// from <see cref="RoomTheme"/>, which only describes one room's contents.
+        /// Environment themes own the platform boundary and are the extension
+        /// point for future floor, lighting, prop, and atmosphere palettes.
+        /// </summary>
+        public enum EnvironmentTheme
+        {
+            Dungeon,
+            Cave,
+            Plains,
+            Forest,
+            Mountain,
+            Desert,
+        }
+
+        /// <summary>
         /// A room's deterministic visual and gameplay profile. The outer room grid
         /// never changes (so shared doorways remain compatible), while interior
         /// walls turn that shell into compact, long, square, or divided spaces.
@@ -172,6 +190,7 @@ namespace BudgetGameDev.Games.Brocoli
         {
             public readonly RoomShape Shape;
             public readonly RoomTheme Theme;
+            public readonly EnvironmentTheme Environment;
             public readonly float HalfWidth;
             public readonly float HalfDepth;
             public readonly int Variant;
@@ -183,9 +202,20 @@ namespace BudgetGameDev.Games.Brocoli
                 float halfDepth,
                 int variant
             )
+                : this(shape, theme, EnvironmentTheme.Dungeon, halfWidth, halfDepth, variant) { }
+
+            public RoomArchetype(
+                RoomShape shape,
+                RoomTheme theme,
+                EnvironmentTheme environment,
+                float halfWidth,
+                float halfDepth,
+                int variant
+            )
             {
                 Shape = shape;
                 Theme = theme;
+                Environment = environment;
                 HalfWidth = halfWidth;
                 HalfDepth = halfDepth;
                 Variant = variant;
@@ -212,7 +242,7 @@ namespace BudgetGameDev.Games.Brocoli
 
             public override string ToString()
             {
-                return $"{Shape} / {Theme}";
+                return $"{Environment} / {Shape} / {Theme}";
             }
         }
     }

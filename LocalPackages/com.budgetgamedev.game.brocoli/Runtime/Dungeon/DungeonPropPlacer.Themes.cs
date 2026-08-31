@@ -26,7 +26,7 @@ namespace BudgetGameDev.Games.Brocoli
                         occupied,
                         2 + random.Next(0, 3),
                         DungeonPropTokens.Chair,
-                        DungeonPropTokens.Stones,
+                        DungeonPropTokens.Barrel,
                         DungeonPropTokens.Pot
                     );
                     PlaceSmallClusters(
@@ -39,8 +39,7 @@ namespace BudgetGameDev.Games.Brocoli
                         3,
                         5,
                         DungeonPropTokens.Barrel,
-                        DungeonPropTokens.Pot,
-                        DungeonPropTokens.Stones
+                        DungeonPropTokens.Pot
                     );
                     break;
                 case DungeonLayout.RoomTheme.Storage:
@@ -78,29 +77,7 @@ namespace BudgetGameDev.Games.Brocoli
                     BuildShrine(parent, center, archetype, random, occupied);
                     break;
                 case DungeonLayout.RoomTheme.Flooded:
-                    Scatter(
-                        parent,
-                        center,
-                        archetype,
-                        random,
-                        occupied,
-                        5 + random.Next(0, 4),
-                        DungeonPropTokens.Rocks,
-                        DungeonPropTokens.Stones,
-                        DungeonPropTokens.Pot
-                    );
-                    PlaceSmallClusters(
-                        parent,
-                        center,
-                        archetype,
-                        random,
-                        occupied,
-                        1,
-                        3,
-                        5,
-                        DungeonPropTokens.Stones,
-                        DungeonPropTokens.Pot
-                    );
+                    BuildFlooded(parent, center, archetype, random, occupied);
                     break;
                 case DungeonLayout.RoomTheme.TreasureVault:
                     BuildVault(parent, center, archetype, random, occupied);
