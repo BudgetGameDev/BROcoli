@@ -63,6 +63,13 @@ namespace BudgetGameDev.Games.Brocoli.Tests
             scroll.verticalNormalizedPosition = 1f;
             InvokeHierarchy(layout, "EnsureSelectedRowVisible");
 
+            // The first row sits fully inside the viewport once the list is
+            // scrolled to the top, so the scroll is already where it needs to be
+            // and the method leaves it alone.
+            SetHierarchyField(layout, "savesFocus", 0);
+            scroll.verticalNormalizedPosition = 1f;
+            InvokeHierarchy(layout, "EnsureSelectedRowVisible");
+
             var selectables = GetHierarchyField<List<Selectable>>(layout, "savesSelectables");
             var savedSelectables = new List<Selectable>(selectables);
             selectables.Clear();

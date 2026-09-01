@@ -107,6 +107,7 @@ namespace BudgetGameDev.Games.Brocoli.Tests
             SetHierarchyField(manager, "unloadDistance", 2);
             ExerciseStreamingRevisionDuringNavmesh(manager);
             ExerciseCameraOcclusionFader();
+            ExerciseOcclusionActivation();
 
             EnemyBase enemy = enemies.Find(candidate => candidate != null);
             if (enemy != null)
