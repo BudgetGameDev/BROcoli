@@ -13,13 +13,17 @@ namespace BudgetGameDev.Games.Brocoli
         /// planned geometry. An open run drops one to three pieces to form
         /// doorways, at most one of which is framed by an archway; a closed run is
         /// unbroken. Both neighbouring rooms share this geometry.
+        /// <paramref name="parapetJoinMask"/> names the ends of the run that land
+        /// on a corner where the platform's boundary parapet turns, so those
+        /// pieces can be built to the parapet's height instead.
         /// </summary>
         public GameObject BuildEdge(
             Transform parent,
             DungeonEdge edge,
             DungeonPassage passage,
             DungeonEdgeStyle style = DungeonEdgeStyle.Interior,
-            DungeonLayout.EnvironmentTheme environment = DungeonLayout.EnvironmentTheme.Dungeon
+            DungeonLayout.EnvironmentTheme environment = DungeonLayout.EnvironmentTheme.Dungeon,
+            int parapetJoinMask = 0
         )
         {
             GameObject root = new GameObject(
@@ -50,7 +54,11 @@ namespace BudgetGameDev.Games.Brocoli
             edgeWalls.Clear();
             DungeonRoomGeometry.AppendEdgeWalls(edgeWalls, edge, passage);
             foreach (DungeonWallPiece piece in edgeWalls)
-                InstantiateWall(wallRun, piece);
+                InstantiateWall(
+                    wallRun,
+                    piece,
+                    DungeonRoomGeometry.IsRunEndPiece(edge, piece, parapetJoinMask)
+                );
 
             BuildArchways(wallRun, edge, passage);
             return root;
@@ -102,10 +110,12 @@ namespace BudgetGameDev.Games.Brocoli
         /// <summary>
         /// A knee-high dungeon railing. On the camera-facing side, the same
         /// modular masonry continues below floor level as a two-course cliff.
+        /// Every piece on a cliff sheds its loose base dressing: there the wall
+        /// model's apron side is the drop, and the rocks scattered on it have
+        /// nothing to stand on (see <see cref="DungeonWallBaseTrim"/>).
         /// </summary>
         private void BuildDungeonRailing(Transform parent, DungeonEdge edge, bool buildCliffFace)
         {
-            const float parapetScale = 0.3f;
             const float cliffFaceScale = 1.5f;
             const float lowerCourseOutset = 0.45f;
 
@@ -125,18 +135,29 @@ namespace BudgetGameDev.Games.Brocoli
             DungeonRoomGeometry.AppendEdgeWalls(edgeWalls, edge, new DungeonPassage(false, 0, 0));
             foreach (DungeonWallPiece piece in edgeWalls)
             {
-                InstantiateScaledWall(parapet, piece, parapetScale, piece.BaseLift);
+                GameObject lip = InstantiateScaledWall(
+                    parapet,
+                    piece,
+                    BoundaryParapetHeightScale,
+                    piece.BaseLift
+                );
                 if (!buildCliffFace)
                     continue;
+
+                DungeonWallBaseTrim.RemoveLooseBase(lip);
                 float upperCourseLift =
                     piece.BaseLift - DungeonWallPiece.SlabHeight * cliffFaceScale;
-                InstantiateScaledWall(cliffFace, piece, cliffFaceScale, upperCourseLift);
-                InstantiateScaledWall(
-                    cliffFace,
-                    piece,
-                    cliffFaceScale,
-                    upperCourseLift - DungeonWallPiece.SlabHeight * cliffFaceScale,
-                    lowerCourseOutset
+                DungeonWallBaseTrim.RemoveLooseBase(
+                    InstantiateScaledWall(cliffFace, piece, cliffFaceScale, upperCourseLift)
+                );
+                DungeonWallBaseTrim.RemoveLooseBase(
+                    InstantiateScaledWall(
+                        cliffFace,
+                        piece,
+                        cliffFaceScale,
+                        upperCourseLift - DungeonWallPiece.SlabHeight * cliffFaceScale,
+                        lowerCourseOutset
+                    )
                 );
             }
         }
@@ -162,19 +183,31 @@ namespace BudgetGameDev.Games.Brocoli
             ConfigureGatewayOcclusion(gatewayRoot, wallRun);
         }
 
-        /// <summary>Instantiates one planned wall piece on its slab centre line.</summary>
-        private void InstantiateWall(Transform parent, DungeonWallPiece piece)
+        /// <summary>
+        /// Instantiates one planned wall piece on its slab centre line. A piece
+        /// meeting the boundary parapet takes the parapet's height, so the two
+        /// runs read as one line of masonry turning the corner.
+        /// </summary>
+        private void InstantiateWall(
+            Transform parent,
+            DungeonWallPiece piece,
+            bool joinsBoundaryParapet
+        )
         {
             InstantiateScaledWall(
                 parent,
                 piece,
-                SharedEdgeRailingHeightScale,
+                joinsBoundaryParapet ? BoundaryParapetHeightScale : SharedEdgeRailingHeightScale,
                 piece.BaseLift,
-                name: "DungeonWall - Shared Half-Height Railing"
+                name: joinsBoundaryParapet
+                    ? "DungeonWall - Shared Railing At Boundary"
+                    : "DungeonWall - Shared Half-Height Railing"
             );
         }
 
-        private void InstantiateScaledWall(
+        /// <summary>Instantiates one wall piece, and hands it back so a caller
+        /// can dress or trim it.</summary>
+        private GameObject InstantiateScaledWall(
             Transform parent,
             DungeonWallPiece piece,
             float verticalScale,
@@ -198,6 +231,7 @@ namespace BudgetGameDev.Games.Brocoli
                 wall.transform.localScale,
                 new Vector3(1f, verticalScale, 1f)
             );
+            return wall;
         }
 
         private static void ConfigureGatewayOcclusion(Transform gatewayRoot, Transform section)

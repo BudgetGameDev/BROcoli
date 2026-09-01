@@ -19,7 +19,8 @@ namespace BudgetGameDev.Games.Brocoli
                     edge,
                     layout.PlayablePassage(room, direction),
                     style,
-                    environment
+                    environment,
+                    layout.BoundaryParapetJoinMask(edge)
                 );
                 loadedEdges[edge] = builtEdge;
                 if (

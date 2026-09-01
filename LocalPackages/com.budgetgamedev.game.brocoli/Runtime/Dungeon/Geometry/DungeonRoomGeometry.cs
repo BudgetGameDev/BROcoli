@@ -117,6 +117,32 @@ namespace BudgetGameDev.Games.Brocoli
             }
         }
 
+        /// <summary>
+        /// Whether this shell piece stands in one of the run's end slots named
+        /// by <paramref name="endMask"/> (see <see cref="DungeonLayout.RunEndLow"/>
+        /// and <see cref="DungeonLayout.RunEndHigh"/>). Only an end piece reaches
+        /// the grid corner, so only an end piece can meet whatever run turns or
+        /// continues there.
+        /// </summary>
+        public static bool IsRunEndPiece(DungeonEdge edge, DungeonWallPiece piece, int endMask)
+        {
+            if (endMask == 0)
+                return false;
+
+            int slotCount = edge.Horizontal ? DungeonLayout.RoomTilesX : DungeonLayout.RoomTilesZ;
+            Vector2 roomCenter = DungeonLayout.RoomCenter(new Vector2Int(edge.X, edge.Y));
+            float offset = edge.Horizontal
+                ? piece.Anchor.x - roomCenter.x
+                : piece.Anchor.y - roomCenter.y;
+            if (
+                (endMask & DungeonLayout.RunEndLow) != 0
+                && Mathf.Approximately(offset, DungeonPassage.SlotOffset(0, slotCount))
+            )
+                return true;
+            return (endMask & DungeonLayout.RunEndHigh) != 0
+                && Mathf.Approximately(offset, DungeonPassage.SlotOffset(slotCount - 1, slotCount));
+        }
+
         /// <summary>The archway frames standing in this edge's openings.</summary>
         public static void AppendEdgeArchways(
             List<DungeonArchway> archways,

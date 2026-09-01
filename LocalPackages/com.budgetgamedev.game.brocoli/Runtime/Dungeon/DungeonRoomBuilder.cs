@@ -38,8 +38,19 @@ namespace BudgetGameDev.Games.Brocoli
         /// Shared boundaries between ordinary rooms are half-height railings by
         /// default. They still divide navigation and retain doorway gaps, but
         /// stay below the automatic fade threshold so the route remains readable.
+        /// The exception is a piece landing on a corner where the platform's
+        /// boundary parapet turns: see <see cref="BoundaryParapetHeightScale"/>.
         /// </summary>
         public const float SharedEdgeRailingHeightScale = 0.5f;
+
+        /// <summary>
+        /// The platform's outer lip, a knee-high parapet standing on the cliff
+        /// courses below the floor. A shared run reaching the grid corner where
+        /// one of these turns is built at this height instead of
+        /// <see cref="SharedEdgeRailingHeightScale"/>: the two runs meet as one
+        /// continuous line of masonry rather than stepping at the join.
+        /// </summary>
+        public const float BoundaryParapetHeightScale = 0.3f;
 
         [Header("Modular Dungeon Kit pieces")]
         [SerializeField]

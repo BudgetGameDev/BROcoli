@@ -73,6 +73,18 @@ namespace BudgetGameDev.Games.Brocoli
         public const float MeshDepthAlongNormal = 0.3f;
         public const float MeshDepthAgainstNormal = 1.7f;
 
+        /// <summary>
+        /// How far the mesh's one connected body reaches against the normal:
+        /// the outer edge of the tile the model was authored standing on.
+        /// <see cref="MeshDepthAgainstNormal"/> is larger because it also
+        /// covers the small rocks scattered on that tile past its edge, loose
+        /// islands joined to nothing. On a cliff, where the tile hangs over the
+        /// drop, a piece drops those rather than leave them in mid-air - see
+        /// <see cref="DungeonWallBaseTrim"/>, which is what makes this the
+        /// depth a boundary piece actually reaches.
+        /// </summary>
+        public const float MeshBodyDepthAgainstNormal = 0.91f;
+
         /// <summary>The centre line of this piece's solid slab.</summary>
         public readonly Vector2 Anchor;
 

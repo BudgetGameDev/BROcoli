@@ -106,6 +106,67 @@ namespace BudgetGameDev.Games.Brocoli
             return DungeonEdgeStyle.SolidBoundary;
         }
 
+        /// <summary>Bit for the south or west end of a wall run.</summary>
+        public const int RunEndLow = 1 << 0;
+
+        /// <summary>Bit for the north or east end of a wall run.</summary>
+        public const int RunEndHigh = 1 << 1;
+
+        /// <summary>
+        /// Which ends of a shared wall run butt into the platform's boundary
+        /// parapet, as bits of <see cref="RunEndLow"/> and
+        /// <see cref="RunEndHigh"/>. A run reaches exactly to its grid corner,
+        /// where up to three other runs meet it: its own collinear continuation
+        /// and the two perpendicular runs on either side. Where one of those is
+        /// a boundary built from masonry, the parapet is shorter than an
+        /// ordinary shared railing, and the corner reads as a broken join
+        /// unless the piece landing on it is built to match.
+        /// </summary>
+        public int BoundaryParapetJoinMask(DungeonEdge edge)
+        {
+            int mask = 0;
+            if (JoinsBoundaryParapet(edge, false))
+                mask |= RunEndLow;
+            if (JoinsBoundaryParapet(edge, true))
+                mask |= RunEndHigh;
+            return mask;
+        }
+
+        private bool JoinsBoundaryParapet(DungeonEdge edge, bool highEnd)
+        {
+            int step = highEnd ? 0 : -1;
+            DungeonEdge collinear = edge.Horizontal
+                ? new DungeonEdge(edge.X + (highEnd ? 1 : -1), edge.Y, true)
+                : new DungeonEdge(edge.X, edge.Y + (highEnd ? 1 : -1), false);
+
+            // The two runs crossing this corner at a right angle: one on each
+            // side of the line this run travels along.
+            DungeonEdge near = edge.Horizontal
+                ? new DungeonEdge(edge.X + step, edge.Y, false)
+                : new DungeonEdge(edge.X, edge.Y + step, true);
+            DungeonEdge far = edge.Horizontal
+                ? new DungeonEdge(edge.X + step, edge.Y + 1, false)
+                : new DungeonEdge(edge.X + 1, edge.Y + step, true);
+
+            return BuildsBoundaryParapet(collinear)
+                || BuildsBoundaryParapet(near)
+                || BuildsBoundaryParapet(far);
+        }
+
+        /// <summary>
+        /// Whether this edge is an outer boundary that an environment dresses
+        /// with structural masonry. Rock-line and undressed boundaries put no
+        /// wall piece on the corner at all, so nothing joins them.
+        /// </summary>
+        private bool BuildsBoundaryParapet(DungeonEdge edge)
+        {
+            DungeonEdgeStyle style = PlayableEdgeStyle(edge);
+            if (style == DungeonEdgeStyle.Interior || style == DungeonEdgeStyle.OpenCrossing)
+                return false;
+            return DungeonEnvironmentProfile.Of(EnvironmentAt(edge)).BoundaryStyle
+                == DungeonBoundaryStyle.MasonryRailing;
+        }
+
         /// <summary>
         /// A broad crossing between playable neighbours. East-west wall runs can
         /// safely remain around vertical crossings. Horizontal crossings open
