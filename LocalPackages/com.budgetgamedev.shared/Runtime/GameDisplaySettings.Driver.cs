@@ -31,6 +31,7 @@ namespace BudgetGameDev.Shared
                 instance = this;
                 InitializeCanvasComposition();
                 CreateTonemappingOverride();
+                RefreshSystemHdrState();
                 TryUseNativeDisplayCalibration();
                 Apply();
                 lastStatus = HdrStatus;
@@ -40,6 +41,7 @@ namespace BudgetGameDev.Shared
             {
                 if (focused)
                 {
+                    RefreshSystemHdrState();
                     TryUseNativeDisplayCalibration();
                     Apply();
                 }
@@ -51,10 +53,13 @@ namespace BudgetGameDev.Shared
                     return;
 
                 nextStatusPoll = Time.unscaledTime + StatusPollInterval;
+                bool systemChanged = RefreshSystemHdrState();
+                if (systemChanged)
+                    Apply();
                 TryUseNativeDisplayCalibration();
 
                 string status = HdrStatus;
-                if (string.Equals(status, lastStatus, StringComparison.Ordinal))
+                if (!systemChanged && string.Equals(status, lastStatus, StringComparison.Ordinal))
                     return;
 
                 lastStatus = status;
@@ -97,8 +102,11 @@ namespace BudgetGameDev.Shared
 
             internal void Apply(bool switchable, bool displayDetected, Action<bool> requestHdrMode)
             {
-                ConfigureTonemapping(HdrEnabled);
-                ConfigureCanvasComposition(HdrEnabled && displayDetected);
+                // The HDR grade re-exposes the scene for a wide-luminance swapchain. On an SDR
+                // desktop it only flattens the picture, so it needs a detected HDR display too.
+                bool enabled = HdrEnabled && displayDetected;
+                ConfigureTonemapping(enabled);
+                ConfigureCanvasComposition(enabled);
                 if (switchable && displayDetected)
                     requestHdrMode(HdrEnabled);
             }
@@ -124,9 +132,7 @@ namespace BudgetGameDev.Shared
                 volume.enabled = enabled;
                 tonemapping.active = enabled;
                 tonemapping.mode.Override(TonemappingMode.Neutral);
-                tonemapping.neutralHDRRangeReductionMode.Override(
-                    NeutralRangeReductionMode.BT2390
-                );
+                tonemapping.neutralHDRRangeReductionMode.Override(NeutralRangeReductionMode.BT2390);
                 tonemapping.hueShiftAmount.Override(0f);
                 // Paper white is an OS/display preference, not a content capability. Keep it
                 // automatic and calibrate only the physical black and peak limits.

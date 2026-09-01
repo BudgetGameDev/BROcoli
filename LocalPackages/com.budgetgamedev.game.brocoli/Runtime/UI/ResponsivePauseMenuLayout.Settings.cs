@@ -197,6 +197,7 @@ namespace BudgetGameDev.Games.Brocoli
                 volumeValues[index].text = $"{Mathf.RoundToInt(values[index] * 100f)}%";
             }
             hdrToggleValue.text = GameDisplaySettings.HdrEnabled ? "ON" : "OFF";
+            hdrToggleButton.interactable = GameDisplaySettings.CanToggleHdr;
             hdrStatus.text = GameDisplaySettings.HdrStatus;
         }
 

@@ -15,21 +15,27 @@ namespace BudgetGameDev.Shared
             bool tenBit,
             string format,
             bool systemDefaults,
-            float peakNits
+            float peakNits,
+            SystemHdrState systemState = SystemHdrState.Unknown
         )
         {
             if (!nativeHdrPlayer)
                 return "NATIVE HDR • WINDOWS / MACOS BUILDS ONLY";
+            string system = windows ? "WINDOWS" : "SYSTEM";
             if (!enabled)
             {
                 if (!active)
-                    return "NATIVE HDR OUTPUT DISABLED";
+                    return systemState == SystemHdrState.Disabled
+                        ? $"FOLLOWS {system} • HDR IS OFF IN {system} DISPLAY SETTINGS"
+                        : "NATIVE HDR OUTPUT DISABLED";
                 return canSwitch
                     ? "SWITCHING TO SDR…"
                     : "HDR ACTIVE • PLATFORM DOES NOT SUPPORT LIVE SWITCHING";
             }
             if (!available && !active)
-                return "ENABLE HDR IN SYSTEM DISPLAY SETTINGS";
+                return systemState == SystemHdrState.Enabled
+                    ? $"FOLLOWS {system} • HDR IS ON BUT NO HDR OUTPUT WAS DETECTED"
+                    : $"ENABLE HDR IN {system} DISPLAY SETTINGS";
             if (!active)
                 return "SWITCHING TO NATIVE HDR…";
 
@@ -39,7 +45,8 @@ namespace BudgetGameDev.Shared
                 : macOS ? "NATIVE METAL HDR ACTIVE"
                 : $"HDR ACTIVE • {format}";
             string source = systemDefaults ? "SYSTEM DISPLAY PROFILE" : "IN-GAME CALIBRATION";
-            return $"{output} • {Mathf.RoundToInt(peakNits)} NITS • {source}";
+            string prefix = systemState == SystemHdrState.Enabled ? $"FOLLOWS {system} • " : "";
+            return $"{prefix}{output} • {Mathf.RoundToInt(peakNits)} NITS • {source}";
         }
     }
 }

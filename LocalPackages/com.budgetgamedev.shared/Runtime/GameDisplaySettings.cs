@@ -45,15 +45,6 @@ namespace BudgetGameDev.Shared
 
         public static event Action ValuesChanged;
 
-        public static bool HdrEnabled
-        {
-            get
-            {
-                LoadValues();
-                return hdrEnabled;
-            }
-        }
-
         public static float PeakBrightnessNits
         {
             get
@@ -134,7 +125,8 @@ namespace BudgetGameDev.Shared
                     IsTenBitHdrActive,
                     IsHdrActive ? HDROutputSettings.main.graphicsFormat.ToString() : string.Empty,
                     UsingSystemCalibrationDefaults,
-                    PeakBrightnessNits
+                    PeakBrightnessNits,
+                    systemHdrState
                 );
         }
 
@@ -144,6 +136,8 @@ namespace BudgetGameDev.Shared
             instance = null;
             valuesLoaded = false;
             calibrationPreviewActive = false;
+            systemHdrState = SystemHdrState.Unknown;
+            systemHdrStateProvider = null;
             hasDetectedHdrProfile = false;
             detectedPeakBrightnessNits = 0f;
             detectedFullFrameBrightnessNits = 0f;
@@ -187,8 +181,6 @@ namespace BudgetGameDev.Shared
             hdrEnabled = enabled;
             SaveAndApply();
         }
-
-        public static void ToggleHdr() => SetHdrEnabled(!HdrEnabled);
 
         public static void SetCalibration(float peakNits, float paperWhite, float blackLevel)
         {

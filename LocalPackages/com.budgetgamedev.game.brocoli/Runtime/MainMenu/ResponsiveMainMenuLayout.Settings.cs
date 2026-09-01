@@ -257,6 +257,8 @@ namespace BudgetGameDev.Games.Brocoli
         {
             if (hdrToggleValue != null)
                 hdrToggleValue.text = GameDisplaySettings.HdrEnabled ? "ON" : "OFF";
+            if (hdrToggleButton != null)
+                hdrToggleButton.interactable = GameDisplaySettings.CanToggleHdr;
             if (hdrStatus != null)
                 hdrStatus.text = GameDisplaySettings.HdrStatus;
             if (HdrDetailsOpen)

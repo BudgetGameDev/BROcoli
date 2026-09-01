@@ -1,0 +1,221 @@
+using NUnit.Framework;
+using UnityEngine;
+using UnityEngine.Rendering;
+
+namespace BudgetGameDev.Shared.Tests
+{
+    public sealed partial class GameDisplaySettingsTests
+    {
+        [Test]
+        public void HdrOutputFollowsTheOperatingSystemSwitchInBothDirections()
+        {
+            Assert.That(GameDisplaySettings.SystemHdrState, Is.EqualTo(SystemHdrState.Unknown));
+            Assert.That(GameDisplaySettings.HdrFollowsSystem, Is.False);
+            Assert.That(GameDisplaySettings.CanToggleHdr, Is.True);
+
+            GameDisplaySettings.SetHdrEnabled(false);
+            GameDisplaySettings.systemHdrStateProvider = () => SystemHdrState.Enabled;
+            Assert.That(GameDisplaySettings.RefreshSystemHdrState(), Is.True);
+            Assert.That(GameDisplaySettings.RefreshSystemHdrState(), Is.False);
+            Assert.That(GameDisplaySettings.HdrEnabled, Is.True);
+            Assert.That(GameDisplaySettings.HdrPreferred, Is.False);
+            Assert.That(GameDisplaySettings.HdrFollowsSystem, Is.True);
+            Assert.That(GameDisplaySettings.CanToggleHdr, Is.False);
+
+            GameDisplaySettings.ToggleHdr();
+            Assert.That(GameDisplaySettings.HdrEnabled, Is.True);
+            Assert.That(GameDisplaySettings.HdrPreferred, Is.False);
+
+            GameDisplaySettings.SetHdrEnabled(true);
+            GameDisplaySettings.systemHdrStateProvider = () => SystemHdrState.Disabled;
+            Assert.That(GameDisplaySettings.RefreshSystemHdrState(), Is.True);
+            Assert.That(GameDisplaySettings.HdrEnabled, Is.False);
+            Assert.That(GameDisplaySettings.HdrPreferred, Is.True);
+
+            GameDisplaySettings.systemHdrStateProvider = () => SystemHdrState.Unknown;
+            Assert.That(GameDisplaySettings.RefreshSystemHdrState(), Is.True);
+            Assert.That(GameDisplaySettings.HdrEnabled, Is.True);
+            Assert.That(GameDisplaySettings.CanToggleHdr, Is.True);
+            GameDisplaySettings.ToggleHdr();
+            Assert.That(GameDisplaySettings.HdrEnabled, Is.False);
+        }
+
+        [Test]
+        public void OutputPolicyOnlyDefersToThePreferenceWhenTheSystemSwitchIsUnknown()
+        {
+            Assert.That(
+                GameDisplaySettings.ResolveHdrOutputEnabled(SystemHdrState.Enabled, false),
+                Is.True
+            );
+            Assert.That(
+                GameDisplaySettings.ResolveHdrOutputEnabled(SystemHdrState.Disabled, true),
+                Is.False
+            );
+            Assert.That(
+                GameDisplaySettings.ResolveHdrOutputEnabled(SystemHdrState.Unknown, true),
+                Is.True
+            );
+            Assert.That(
+                GameDisplaySettings.ResolveHdrOutputEnabled(SystemHdrState.Unknown, false),
+                Is.False
+            );
+        }
+
+        [Test]
+        public void NativeSystemSwitchQueryIsUnavailableOutsideWindowsPlayers()
+        {
+            Assert.That(
+                GameDisplaySettings.QuerySystemHdrState(),
+                Is.EqualTo(SystemHdrState.Unknown)
+            );
+            Assert.That(WindowsDisplayHdrState.Query(), Is.EqualTo(SystemHdrState.Unknown));
+            Assert.That(
+                WindowsDisplayHdrState.ResolveAdvancedColorMode(2),
+                Is.EqualTo(SystemHdrState.Enabled)
+            );
+            Assert.That(
+                WindowsDisplayHdrState.ResolveAdvancedColorMode(1),
+                Is.EqualTo(SystemHdrState.Disabled)
+            );
+            Assert.That(
+                WindowsDisplayHdrState.ResolveLegacyAdvancedColor(0x3),
+                Is.EqualTo(SystemHdrState.Enabled)
+            );
+            Assert.That(
+                WindowsDisplayHdrState.ResolveLegacyAdvancedColor(0x1),
+                Is.EqualTo(SystemHdrState.Disabled)
+            );
+        }
+
+        [Test]
+        public void HdrGradeNeedsBothTheSwitchAndADetectedHdrDisplay()
+        {
+            GameObject root = new("HDR Display Driver Policy Test");
+            try
+            {
+                var driver = root.AddComponent<GameDisplaySettings.HdrDisplayDriver>();
+                driver.Awake();
+                Volume volume = root.GetComponent<Volume>();
+
+                bool? requested = null;
+                driver.Apply(true, false, value => requested = value);
+                Assert.That(volume.enabled, Is.False);
+                Assert.That(requested, Is.Null);
+
+                GameDisplaySettings.systemHdrStateProvider = () => SystemHdrState.Disabled;
+                GameDisplaySettings.RefreshSystemHdrState();
+                driver.Apply(true, true, value => requested = value);
+                Assert.That(volume.enabled, Is.False);
+                Assert.That(requested, Is.False);
+
+                GameDisplaySettings.SetHdrEnabled(false);
+                GameDisplaySettings.systemHdrStateProvider = () => SystemHdrState.Enabled;
+                GameDisplaySettings.RefreshSystemHdrState();
+                driver.Apply(true, true, value => requested = value);
+                Assert.That(volume.enabled, Is.True);
+                Assert.That(requested, Is.True);
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
+        public void DriverPollReappliesAndNotifiesWhenTheSystemSwitchChanges()
+        {
+            GameObject root = new("HDR Display Driver Poll Test");
+            try
+            {
+                SystemHdrState state = SystemHdrState.Disabled;
+                GameDisplaySettings.systemHdrStateProvider = () => state;
+                var driver = root.AddComponent<GameDisplaySettings.HdrDisplayDriver>();
+                driver.Awake();
+                int notifications = 0;
+                GameDisplaySettings.ValuesChanged += () => notifications++;
+
+                SetDriverField(driver, "nextStatusPoll", 0f);
+                driver.Update();
+                Assert.That(notifications, Is.EqualTo(0));
+
+                state = SystemHdrState.Enabled;
+                SetDriverField(driver, "nextStatusPoll", 0f);
+                driver.Update();
+                Assert.That(notifications, Is.EqualTo(1));
+                Assert.That(GameDisplaySettings.HdrEnabled, Is.True);
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
+        public void HdrStatusExplainsWhenTheOperatingSystemOwnsTheSwitch()
+        {
+            Assert.That(
+                Status(false, false, false, true, SystemHdrState.Disabled),
+                Is.EqualTo("FOLLOWS WINDOWS • HDR IS OFF IN WINDOWS DISPLAY SETTINGS")
+            );
+            Assert.That(
+                Status(false, false, false, false, SystemHdrState.Disabled),
+                Does.StartWith("FOLLOWS SYSTEM")
+            );
+            Assert.That(
+                Status(false, false, false, true, SystemHdrState.Unknown),
+                Is.EqualTo("NATIVE HDR OUTPUT DISABLED")
+            );
+            Assert.That(
+                Status(true, false, false, true, SystemHdrState.Enabled),
+                Does.Contain("NO HDR OUTPUT WAS DETECTED")
+            );
+            Assert.That(
+                Status(true, false, false, true, SystemHdrState.Unknown),
+                Is.EqualTo("ENABLE HDR IN WINDOWS DISPLAY SETTINGS")
+            );
+            Assert.That(
+                Status(true, true, true, true, SystemHdrState.Enabled),
+                Does.StartWith("FOLLOWS WINDOWS • 10-BIT HDR10 ACTIVE")
+            );
+            Assert.That(
+                Status(true, true, true, true, SystemHdrState.Unknown),
+                Does.StartWith("10-BIT HDR10 ACTIVE")
+            );
+        }
+
+        private static string Status(
+            bool enabled,
+            bool active,
+            bool available,
+            bool windows,
+            SystemHdrState systemState
+        ) =>
+            GameDisplaySettings.ResolveHdrStatus(
+                true,
+                enabled,
+                active,
+                true,
+                available,
+                windows,
+                false,
+                true,
+                "R10G10B10A2",
+                true,
+                600f,
+                systemState
+            );
+
+        private static void SetDriverField(
+            GameDisplaySettings.HdrDisplayDriver driver,
+            string name,
+            object value
+        ) =>
+            typeof(GameDisplaySettings.HdrDisplayDriver)
+                .GetField(
+                    name,
+                    System.Reflection.BindingFlags.Instance
+                        | System.Reflection.BindingFlags.NonPublic
+                )
+                .SetValue(driver, value);
+    }
+}

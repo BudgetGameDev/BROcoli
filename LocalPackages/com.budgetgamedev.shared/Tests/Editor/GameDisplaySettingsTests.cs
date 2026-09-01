@@ -162,11 +162,7 @@ namespace BudgetGameDev.Shared.Tests
         {
             GameDisplaySettings.TryApplyDetectedCalibrationDefaults(800f, 200f, 0.001f);
 
-            bool applied = GameDisplaySettings.TryApplyDetectedCalibrationDefaults(
-                1200f,
-                240f,
-                0f
-            );
+            bool applied = GameDisplaySettings.TryApplyDetectedCalibrationDefaults(1200f, 240f, 0f);
 
             Assert.That(applied, Is.True);
             Assert.That(GameDisplaySettings.PeakBrightnessNits, Is.EqualTo(1200f));
@@ -248,6 +244,7 @@ namespace BudgetGameDev.Shared.Tests
             {
                 var driver = root.AddComponent<GameDisplaySettings.HdrDisplayDriver>();
                 driver.Awake();
+                driver.Apply(false, true, _ => { });
 
                 Volume volume = root.GetComponent<Volume>();
                 Assert.That(volume, Is.Not.Null);
