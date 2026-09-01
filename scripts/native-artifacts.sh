@@ -66,9 +66,10 @@ native_artifacts_verify() {
             return 1
         fi
     done
+    # Keep the checker's own chatter off stdout; callers read asset paths there.
     (
         cd "$artifacts_root"
-        shasum -a 256 -c SHA256SUMS
+        shasum -a 256 -c SHA256SUMS >&2
     ) || return 1
 
     local build_commit
