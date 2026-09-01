@@ -1,7 +1,6 @@
 using BudgetGameDev.Shared;
 using TMPro;
 using UnityEngine;
-using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using static BudgetGameDev.Shared.MenuTheme;
 
@@ -43,140 +42,6 @@ namespace BudgetGameDev.Games.Brocoli
         private float initialBlackLevel;
 
         public static bool HdrCalibrationOpen { get; private set; }
-
-        private void BuildHdrCalibrationPresentation()
-        {
-            hdrCalibrationPanel = CreateRect("HdrCalibrationPanel", card);
-            hdrCalibrationTitle = CreateText(
-                "HdrCalibrationTitle",
-                hdrCalibrationPanel,
-                "HDR CALIBRATION",
-                22f,
-                OnSurface
-            );
-            hdrCalibrationStepLabel = CreateText(
-                "HdrCalibrationStep",
-                hdrCalibrationPanel,
-                string.Empty,
-                15f,
-                Primary
-            );
-            hdrCalibrationInstructions = CreateText(
-                "HdrCalibrationInstructions",
-                hdrCalibrationPanel,
-                string.Empty,
-                15f,
-                OnSurfaceMuted
-            );
-            hdrCalibrationInstructions.textWrappingMode = TextWrappingModes.Normal;
-            hdrCalibrationInstructions.alignment = TextAlignmentOptions.Center;
-
-            hdrCalibrationPreview = CreatePanel(
-                "HdrCalibrationPreview",
-                hdrCalibrationPanel,
-                Color.black
-            );
-            hdrPreviewBackground = hdrCalibrationPreview.GetComponent<Image>();
-            hdrPreviewReference = CreatePanel("ReferencePatch", hdrCalibrationPreview, Color.white)
-                .GetComponent<Image>();
-            hdrPreviewMark = CreatePanel("CenterMark", hdrCalibrationPreview, Color.white)
-                .GetComponent<Image>();
-            CreateHdrPreviewMaterials();
-
-            hdrCalibrationValue = CreateText(
-                "HdrCalibrationValue",
-                hdrCalibrationPanel,
-                string.Empty,
-                20f,
-                OnSurface
-            );
-            hdrCalibrationSlider = CreateHdrCalibrationSlider();
-            hdrCalibrationSlider.onValueChanged.AddListener(OnHdrCalibrationSliderChanged);
-
-            hdrCalibrationBackButton = CreateButton(
-                "HdrCalibrationBackButton",
-                hdrCalibrationPanel,
-                "CANCEL"
-            );
-            hdrCalibrationBackButton.onClick.AddListener(PreviousHdrCalibrationStep);
-            hdrCalibrationNextButton = CreateButton(
-                "HdrCalibrationNextButton",
-                hdrCalibrationPanel,
-                "NEXT"
-            );
-            hdrCalibrationNextButton.onClick.AddListener(NextHdrCalibrationStep);
-            hdrCalibrationActionButtons = new[]
-            {
-                hdrCalibrationBackButton,
-                hdrCalibrationNextButton,
-            };
-            hdrCalibrationSelectables = new Selectable[]
-            {
-                hdrCalibrationSlider,
-                hdrCalibrationBackButton,
-                hdrCalibrationNextButton,
-            };
-            RegisterHdrCalibrationPointerSelection();
-            hdrCalibrationPanel.gameObject.SetActive(false);
-        }
-
-        private Slider CreateHdrCalibrationSlider()
-        {
-            RectTransform track = CreatePanel(
-                "HdrCalibrationTrack",
-                hdrCalibrationPanel,
-                Hex("#53645A")
-            );
-            track.GetComponent<Image>().raycastTarget = true;
-            RectTransform fillArea = CreateRect("Fill Area", track);
-            RectTransform fill = CreatePanel("Fill", fillArea, Primary);
-            RectTransform handleArea = CreateRect("Handle Slide Area", track);
-            RectTransform handle = CreatePanel("Handle", handleArea, OnSurface);
-            handle.GetComponent<Image>().raycastTarget = true;
-
-            Slider slider = track.gameObject.AddComponent<Slider>();
-            slider.fillRect = fill;
-            slider.handleRect = handle;
-            slider.targetGraphic = handle.GetComponent<Image>();
-            return slider;
-        }
-
-        private void CreateHdrPreviewMaterials()
-        {
-            Shader shader = Shader.Find("UI/Default");
-            if (shader == null)
-                return;
-
-            Image[] images = { hdrPreviewBackground, hdrPreviewReference, hdrPreviewMark };
-            hdrPreviewMaterials = new Material[images.Length];
-            for (int index = 0; index < images.Length; index++)
-            {
-                Material material = new(shader)
-                {
-                    name = $"HDR Calibration Preview {index}",
-                    hideFlags = HideFlags.HideAndDontSave,
-                };
-                images[index].color = Color.white;
-                images[index].material = material;
-                hdrPreviewMaterials[index] = material;
-            }
-        }
-
-        private void DestroyHdrCalibrationMaterials()
-        {
-            if (hdrPreviewMaterials == null)
-                return;
-
-            foreach (Material material in hdrPreviewMaterials)
-            {
-                if (material == null)
-                    continue;
-                if (Application.isPlaying)
-                    Destroy(material);
-                else
-                    DestroyImmediate(material);
-            }
-        }
 
         private void OpenHdrCalibration()
         {
@@ -407,30 +272,6 @@ namespace BudgetGameDev.Games.Brocoli
                 )
             );
             return Mathf.Lerp(zeroDetent, 1f, logarithmicPosition);
-        }
-
-        private void RegisterHdrCalibrationPointerSelection()
-        {
-            for (int index = 0; index < hdrCalibrationSelectables.Length; index++)
-            {
-                int capturedIndex = index;
-                EventTrigger trigger = hdrCalibrationSelectables[index]
-                    .gameObject.AddComponent<EventTrigger>();
-                EventTrigger.Entry entry = new() { eventID = EventTriggerType.PointerEnter };
-                entry.callback.AddListener(_ => selectedHdrCalibrationControl = capturedIndex);
-                trigger.triggers.Add(entry);
-            }
-        }
-
-        private void SelectHdrCalibrationControl(int index, bool playSound = true)
-        {
-            selectedHdrCalibrationControl =
-                (index + hdrCalibrationSelectables.Length) % hdrCalibrationSelectables.Length;
-            EventSystem.current?.SetSelectedGameObject(
-                hdrCalibrationSelectables[selectedHdrCalibrationControl].gameObject
-            );
-            if (playSound)
-                ProceduralUIAudio.PlayHover();
         }
     }
 }

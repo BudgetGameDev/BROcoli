@@ -37,11 +37,9 @@ namespace BudgetGameDev.Games.Brocoli
             RoomsPerEnvironmentTheme / PlatformDepthInRooms;
 
         /// <summary>
-        /// Broad environment at a room coordinate. Ten consecutive columns share
-        /// one theme; because the platform is two rooms deep, that is a run of
-        /// about twenty rooms. The starting band is always Dungeon so existing
-        /// runs begin in a fully dressed environment, while the remaining five
-        /// themes are shuffled deterministically for each run seed.
+        /// Broad environment at a room coordinate. Ten columns share one theme,
+        /// or about twenty rooms. The starting band is Dungeon; the remaining five
+        /// themes are deterministically shuffled for each run seed.
         /// </summary>
         public EnvironmentTheme EnvironmentAt(Vector2Int room)
         {
@@ -49,7 +47,7 @@ namespace BudgetGameDev.Games.Brocoli
             return environmentCycle[PositiveModulo(segment, environmentCycle.Length)];
         }
 
-        /// <summary>The environment belonging to the playable side of an edge.</summary>
+        /// <summary>The environment on the playable side of an edge.</summary>
         public EnvironmentTheme EnvironmentAt(DungeonEdge edge)
         {
             EdgeRooms(edge, out Vector2Int first, out Vector2Int second);
@@ -68,8 +66,8 @@ namespace BudgetGameDev.Games.Brocoli
 
         /// <summary>
         /// The dungeon is an endless east-west platform rather than an endless
-        /// square grid. Its two-room-deep strip follows long diagonal stair-step
-        /// runs, turning after a seeded interval. Neighbouring columns still move
+        /// square grid. Its two-room-deep strip follows long diagonal runs,
+        /// turning after a seeded interval. Neighbouring columns still move
         /// by exactly one row, so the strip remains continuously connected while
         /// reading as a diagonal route rather than a horizontal corridor.
         /// </summary>

@@ -279,29 +279,5 @@ namespace BudgetGameDev.Games.Brocoli
             if (playSound)
                 ProceduralUIAudio.PlayHover();
         }
-
-        private void Update()
-        {
-            if (SavesOpen)
-            {
-                UpdateSavesInput();
-                return;
-            }
-
-            if (CreditsOpen)
-            {
-                UpdateCreditsInput();
-                return;
-            }
-
-            if (!SettingsOpen)
-                return;
-            if (HdrCalibrationOpen)
-            {
-                UpdateHdrCalibrationInput();
-                return;
-            }
-            UpdateSettingsInput();
-        }
     }
 }

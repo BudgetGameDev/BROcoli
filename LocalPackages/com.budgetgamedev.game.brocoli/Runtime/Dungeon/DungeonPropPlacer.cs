@@ -295,25 +295,5 @@ namespace BudgetGameDev.Games.Brocoli
                 placedPools.Add(placement);
             }
         }
-
-        private int ChestCount(
-            Vector2Int room,
-            DungeonLayout.RoomArchetype archetype,
-            System.Random random
-        )
-        {
-            if (DungeonLayout.Ring(room) == 0 || archetype.Theme == DungeonLayout.RoomTheme.Empty)
-                return 0;
-            if (archetype.Theme == DungeonLayout.RoomTheme.TreasureVault)
-                return archetype.Shape == DungeonLayout.RoomShape.Tiny ? 2 : 4;
-
-            float chance = chestChance;
-            if (
-                archetype.Theme == DungeonLayout.RoomTheme.Storage
-                || archetype.Theme == DungeonLayout.RoomTheme.Shrine
-            )
-                chance += 0.12f;
-            return random.NextDouble() < chance ? 1 : 0;
-        }
     }
 }

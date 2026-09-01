@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
@@ -6,6 +7,30 @@ namespace BudgetGameDev.Games.Brocoli
 {
     public sealed partial class ResponsiveMainMenuLayout
     {
+        private void RegisterHdrCalibrationPointerSelection()
+        {
+            for (int index = 0; index < hdrCalibrationSelectables.Length; index++)
+            {
+                int capturedIndex = index;
+                EventTrigger trigger = hdrCalibrationSelectables[index]
+                    .gameObject.AddComponent<EventTrigger>();
+                EventTrigger.Entry entry = new() { eventID = EventTriggerType.PointerEnter };
+                entry.callback.AddListener(_ => selectedHdrCalibrationControl = capturedIndex);
+                trigger.triggers.Add(entry);
+            }
+        }
+
+        private void SelectHdrCalibrationControl(int index, bool playSound = true)
+        {
+            selectedHdrCalibrationControl =
+                (index + hdrCalibrationSelectables.Length) % hdrCalibrationSelectables.Length;
+            EventSystem.current?.SetSelectedGameObject(
+                hdrCalibrationSelectables[selectedHdrCalibrationControl].gameObject
+            );
+            if (playSound)
+                ProceduralUIAudio.PlayHover();
+        }
+
         private void UpdateHdrCalibrationInput()
         {
             Keyboard keyboard = Keyboard.current;

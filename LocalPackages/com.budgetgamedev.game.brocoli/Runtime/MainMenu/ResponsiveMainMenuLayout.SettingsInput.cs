@@ -7,6 +7,30 @@ namespace BudgetGameDev.Games.Brocoli
 {
     public sealed partial class ResponsiveMainMenuLayout
     {
+        private void Update()
+        {
+            if (SavesOpen)
+            {
+                UpdateSavesInput();
+                return;
+            }
+
+            if (CreditsOpen)
+            {
+                UpdateCreditsInput();
+                return;
+            }
+
+            if (!SettingsOpen)
+                return;
+            if (HdrCalibrationOpen)
+            {
+                UpdateHdrCalibrationInput();
+                return;
+            }
+            UpdateSettingsInput();
+        }
+
         private void UpdateSettingsInput()
         {
             Keyboard keyboard = Keyboard.current;

@@ -5,11 +5,8 @@ using UnityEngine;
 namespace BudgetGameDev.Games.Brocoli
 {
     /// <summary>
-    /// Runs the dungeon-crawler game mode: an infinite east-west platform of
-    /// procedurally generated rooms joined by doorways. Rooms (geometry, props, loot, and a
-    /// dormant enemy group) are generated ahead of the player.
-    /// Far-away rooms unload; the deterministic seed rebuilds them identically
-    /// when the player backtracks.
+    /// Runs the dungeon crawler: an infinite east-west platform of procedurally generated rooms.
+    /// Rooms generate ahead of the player and rebuild deterministically after unloading.
     /// </summary>
     public partial class DungeonManager : MonoBehaviour
     {
