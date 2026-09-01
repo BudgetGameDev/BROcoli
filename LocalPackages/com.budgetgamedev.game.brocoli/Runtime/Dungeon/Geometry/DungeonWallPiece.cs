@@ -52,38 +52,20 @@ namespace BudgetGameDev.Games.Brocoli
         /// <summary>The wall prefab's untrimmed length, one floor tile.</summary>
         public const float NominalLength = DungeonLayout.TileSize;
 
-        // The mesh's base is a stack of flat horizontal surfaces: dirt decals at
-        // 0, 0.03 and 0.06 above the floor and moulding ledges at 0.11 and 0.5,
-        // reaching MeshDepthAgainstNormal out from the slab. Two crossing runs
-        // repeat that stack at identical heights, so their base aprons overlap
-        // coplanar and z-fight across a corner region far wider than any junction
-        // post could cap. Seating the two orientations a couple of millimetres
-        // apart - and both clear of the floor plane at 0 - separates every such
-        // pair. The gaps are a fraction of a screen pixel through the gameplay
-        // camera and orders of magnitude above depth-buffer resolution there, so
-        // nothing reads as floating and nothing flickers.
+        // Crossing runs still interpenetrate at their structural tops and caps.
+        // Seating the two orientations a couple of millimetres apart keeps those
+        // surfaces from landing on the same depth plane. The gap is a fraction of
+        // a screen pixel through the gameplay camera, so nothing reads as floating.
         public const float LiftAlongX = 0.002f;
         public const float LiftAlongZ = 0.004f;
 
-        // The mesh is wider than the slab: floor moulding skirts the base on the
-        // side the slab's normal points away from. Occlusion works on what is
-        // drawn, not on what collides, so the visible footprint is its own
-        // question - a wall stops fading only once its whole mesh is past you.
+        // The apron-free wall mesh follows the slab closely, with only its face
+        // stones extending a few centimetres past the structural back. Occlusion
+        // works on what is drawn rather than only what collides, so the visible
+        // footprint remains its own measured question.
         public const float MeshHalfLength = NominalLength / 2f;
         public const float MeshDepthAlongNormal = 0.3f;
-        public const float MeshDepthAgainstNormal = 1.7f;
-
-        /// <summary>
-        /// How far the mesh's one connected body reaches against the normal:
-        /// the outer edge of the tile the model was authored standing on.
-        /// <see cref="MeshDepthAgainstNormal"/> is larger because it also
-        /// covers the small rocks scattered on that tile past its edge, loose
-        /// islands joined to nothing. On a cliff, where the tile hangs over the
-        /// drop, a piece drops those rather than leave them in mid-air - see
-        /// <see cref="DungeonWallBaseTrim"/>, which is what makes this the
-        /// depth a boundary piece actually reaches.
-        /// </summary>
-        public const float MeshBodyDepthAgainstNormal = 0.91f;
+        public const float MeshDepthAgainstNormal = 0.34f;
 
         /// <summary>The centre line of this piece's solid slab.</summary>
         public readonly Vector2 Anchor;

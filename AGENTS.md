@@ -19,6 +19,11 @@ dependencies. Scene names and `Resources/` paths are global across the whole
 build and have naming rules, the shared package may not name a specific game,
 and a game's Unity dependencies belong in its own `package.json`.
 
+## Version control workflow
+
+Never create or use feature branches. Work and commit directly to `dev` by
+default unless explicitly instructed otherwise.
+
 ## Verification gates
 
 `dev` is ungated on purpose. Never wire CI, a pre-push gate, a workflow, a

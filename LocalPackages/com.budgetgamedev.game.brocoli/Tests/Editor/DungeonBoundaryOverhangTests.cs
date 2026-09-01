@@ -4,18 +4,16 @@ using UnityEngine;
 namespace BudgetGameDev.Games.Brocoli.Tests
 {
     /// <summary>
-    /// The wall model stands on the floor tile it was authored with, and small
-    /// rocks are scattered on that tile in front of the masonry. Which way that
-    /// tile faces decides whether they land on floor or on nothing: on a cliff
-    /// the model's apron side is the drop, so the rocks end up hanging in open
-    /// air past the lip. These tests pin how deep a built piece reaches on each
-    /// kind of edge.
+    /// The imported wall model includes its own floor tile and loose rocks, but
+    /// the dungeon's wall prefabs use an apron-free derivative. These tests pin
+    /// the compact visible depth on every edge style so the source geometry
+    /// cannot return unnoticed.
     /// </summary>
     public sealed class DungeonBoundaryOverhangTests
     {
         private const float Tolerance = 0.05f;
 
-        private static readonly float DressedDepth =
+        private static readonly float ApronFreeDepth =
             DungeonWallPiece.MeshDepthAlongNormal + DungeonWallPiece.MeshDepthAgainstNormal;
 
         private GameObject host;
@@ -38,13 +36,12 @@ namespace BudgetGameDev.Games.Brocoli.Tests
         }
 
         /// <summary>
-        /// Why the cliff styles are the ones that need trimming at all: the
-        /// model is seated with its apron pointing away from the playable
-        /// floor, so its own tile already overhangs, and anything loose lying
-        /// further out on that tile has nothing beneath it whatsoever.
+        /// The camera-facing facade still projects slightly beyond the collision
+        /// line because its stones have visible depth, but never by the source
+        /// floor tile's broad apron.
         /// </summary>
         [Test]
-        public void TheCliffSeatsItsModelWithTheApronOverTheDrop()
+        public void TheCliffFacadeProjectsPastItsCollisionLine()
         {
             var edge = new DungeonEdge(0, 0, true);
             GameObject built = Build(edge, DungeonEdgeStyle.SouthCliff);
@@ -114,36 +111,34 @@ namespace BudgetGameDev.Games.Brocoli.Tests
         }
 
         /// <summary>
-        /// A solid boundary turns its apron inwards, onto the room's own floor,
-        /// so it keeps every rock it was modelled with. Trimming there would
-        /// quietly strip the dressing off the whole northern and eastern rim.
+        /// A solid boundary uses the same apron-free masonry as every other
+        /// regular dungeon wall.
         /// </summary>
         [Test]
-        public void ASolidBoundaryKeepsTheRocksItStandsOn()
+        public void ASolidBoundaryHasNoSourceFloorApron()
         {
             GameObject built = Build(new DungeonEdge(0, 0, true), DungeonEdgeStyle.SolidBoundary);
 
             Assert.That(
                 DeepestPiece(built, Vector3.back),
-                Is.EqualTo(DressedDepth).Within(Tolerance),
-                "the boundary lost the base dressing lying on its own floor"
+                Is.EqualTo(ApronFreeDepth).Within(Tolerance),
+                "the boundary still carries the source floor apron"
             );
         }
 
         /// <summary>
-        /// An ordinary shared run has floor on both sides and keeps everything,
-        /// which is the other half of the rule: the trim is a cliff measure,
-        /// not a change to how the kit's walls look.
+        /// An ordinary shared run also exposes only the masonry slab, allowing
+        /// the authored dungeon floor to continue cleanly on both sides.
         /// </summary>
         [Test]
-        public void ASharedRunKeepsTheRocksItStandsOn()
+        public void ASharedRunHasNoSourceFloorApron()
         {
             GameObject built = Build(new DungeonEdge(0, 0, true), DungeonEdgeStyle.Interior);
 
             Assert.That(
                 DeepestPiece(built, Vector3.back),
-                Is.EqualTo(DressedDepth).Within(Tolerance),
-                "a shared run lost the base dressing lying on its own floor"
+                Is.EqualTo(ApronFreeDepth).Within(Tolerance),
+                "a shared run still carries the source floor apron"
             );
         }
 

@@ -12,10 +12,6 @@ PrefabInstance:
       propertyPath: m_Name
       value: DungeonWallShell
       objectReference: {fileID: 0}
-    - target: {fileID: 3753115091994352318, guid: cb85b3812063e4ec7ab39daf1e1000ef, type: 3}
-      propertyPath: m_Mesh
-      value:
-      objectReference: {fileID: 4300000, guid: 4454b119103d248ecb1e038d17d10174, type: 2}
     - target: {fileID: 7416459159335669639, guid: cb85b3812063e4ec7ab39daf1e1000ef, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0

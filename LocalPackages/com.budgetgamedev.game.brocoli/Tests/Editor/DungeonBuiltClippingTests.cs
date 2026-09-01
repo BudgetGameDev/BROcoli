@@ -102,6 +102,70 @@ namespace BudgetGameDev.Games.Brocoli.Tests
             );
         }
 
+        [Test]
+        public void RegularWallPrefabDoesNotCarryTheSourceFloorApron()
+        {
+            var wallPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(WallPrefabPath);
+            MeshFilter filter = wallPrefab.GetComponentInChildren<MeshFilter>();
+            Matrix4x4 modelToWall =
+                wallPrefab.transform.worldToLocalMatrix * filter.transform.localToWorldMatrix;
+            float minimumDepth = float.PositiveInfinity;
+            foreach (Vector3 vertex in filter.sharedMesh.vertices)
+                minimumDepth = Mathf.Min(
+                    minimumDepth,
+                    modelToWall.MultiplyPoint3x4(vertex).z
+                );
+
+            Assert.That(
+                minimumDepth,
+                Is.GreaterThan(0.3f),
+                "the regular wall still projects an orange floor apron behind its slab"
+            );
+        }
+
+        [Test]
+        public void FloorAndWallUseOneCompleteStylizedPbrSet()
+        {
+            var wallPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(WallPrefabPath);
+            var floorPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(FloorPrefabPath);
+            MeshFilter filter = wallPrefab.GetComponentInChildren<MeshFilter>();
+            Material wallMaterial =
+                wallPrefab.GetComponentInChildren<MeshRenderer>().sharedMaterial;
+            Material floorMaterial =
+                floorPrefab.GetComponentInChildren<MeshRenderer>().sharedMaterial;
+
+            Assert.That(filter.sharedMesh.name, Is.EqualTo("DungeonWallMasonry"));
+            AssertCompletePbrMaterial(wallMaterial, "DungeonStylizedBrickWall");
+            AssertCompletePbrMaterial(floorMaterial, "DungeonStylizedStoneFloor");
+
+            Vector2[] uv = filter.sharedMesh.uv;
+            Assert.That(uv, Has.Length.EqualTo(filter.sharedMesh.vertexCount));
+            float horizontalSpan = 0f;
+            foreach (Vector2 point in uv)
+                horizontalSpan = Mathf.Max(horizontalSpan, Mathf.Abs(point.x));
+            Assert.That(
+                horizontalSpan,
+                Is.GreaterThan(0.5f),
+                "the masonry UVs collapsed back into the source model's color atlas"
+            );
+        }
+
+        private static void AssertCompletePbrMaterial(Material material, string expectedName)
+        {
+            Assert.That(material, Is.Not.Null);
+            Assert.That(material.name, Is.EqualTo(expectedName));
+            Assert.That(material.shader.name, Is.EqualTo("Universal Render Pipeline/Lit"));
+            Assert.That(material.GetTexture("_BaseMap"), Is.Not.Null);
+            Assert.That(material.GetTexture("_BumpMap"), Is.Not.Null);
+            Assert.That(material.GetTexture("_OcclusionMap"), Is.Not.Null);
+            Assert.That(material.GetTexture("_ParallaxMap"), Is.Not.Null);
+            Assert.That(material.GetTexture("_MetallicGlossMap"), Is.Not.Null);
+            Assert.That(material.IsKeywordEnabled("_NORMALMAP"), Is.True);
+            Assert.That(material.IsKeywordEnabled("_OCCLUSIONMAP"), Is.True);
+            Assert.That(material.IsKeywordEnabled("_PARALLAXMAP"), Is.True);
+            Assert.That(material.IsKeywordEnabled("_METALLICSPECGLOSSMAP"), Is.True);
+        }
+
         private void ForEachBuiltRoom(System.Action<int, Vector2Int> check)
         {
             foreach (int seed in DungeonGeometryModel.Seeds)

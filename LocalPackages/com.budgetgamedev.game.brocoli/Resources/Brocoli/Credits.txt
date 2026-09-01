@@ -1,6 +1,6 @@
 BROCOLI
 CREDITS, DEPENDENCIES & LICENSES
-Last updated: 2026-08-30
+Last updated: 2026-09-01
 
 BROCOLI AND BUDGET GAMEDEV SOFTWARE
 
@@ -99,6 +99,12 @@ CREATIVE COMMONS ATTRIBUTION CONTENT
 "Dungeon wall torch" by UriZX, licensed under Creative Commons Attribution 4.0.
 https://sketchfab.com/3d-models/dungeon-wall-torch-1439096bf4414ff9bbd615a4c727fbff
 License: https://creativecommons.org/licenses/by/4.0/
+
+"Texture Pack: Stylized 01" by Julio Sillet (JulioVII / Sillet 3D Art),
+licensed under CC-BY. BROcoli uses the Stylized 01 Bricks and Stylized 02 Stone
+Ground PBR materials; the Stone Ground base color is desaturated for a moss-free
+dungeon-floor variation.
+https://juliovii.itch.io/stylizedpk01
 
 "Spray bottle" by naincube, licensed under Creative Commons Attribution 4.0.
 https://sketchfab.com/3d-models/spray-bottle-9c409cce01714fd5ab3e82d213cbf91a
