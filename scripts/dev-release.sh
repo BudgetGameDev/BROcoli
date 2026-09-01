@@ -4,6 +4,7 @@ set -euo pipefail
 
 PROJECT_PATH="$(cd "$(dirname "$0")/.." && pwd)"
 ARTIFACTS_ROOT="$PROJECT_PATH/build/native/artifacts"
+PUBLISH_ROOT="$PROJECT_PATH/build/native/publish"
 TAG="nightly"
 TARGETS="windows"
 TITLE=""
@@ -59,6 +60,11 @@ while [ "$#" -gt 0 ]; do
     shift
 done
 
+if ! printf '%s' "$TAG" | grep -Eq '^[A-Za-z0-9][A-Za-z0-9._-]*$'; then
+    echo "dev-release: '$TAG' is not usable as a tag and file name suffix" >&2
+    exit 2
+fi
+
 for tool in git gh awk shasum; do
     if ! command -v "$tool" >/dev/null 2>&1; then
         echo "dev-release: missing required tool '$tool'" >&2
@@ -100,14 +106,49 @@ if [ "${#ASSETS[@]}" -eq 0 ]; then
     exit 1
 fi
 
+BUILD_ID="$(native_artifacts_field "$ARTIFACTS_ROOT" build_id)"
 BUILD_TARGETS="$(native_artifacts_field "$ARTIFACTS_ROOT" targets)"
 BUILD_UNITY="$(native_artifacts_field "$ARTIFACTS_ROOT" unity)"
 BUILD_AT="$(native_artifacts_field "$ARTIFACTS_ROOT" built_at)"
+if [ -z "$BUILD_ID" ]; then
+    echo "dev-release: build-info records no build id; rebuild" >&2
+    exit 1
+fi
 if [ "$(native_artifacts_field "$ARTIFACTS_ROOT" development)" = "true" ]; then
     BUILD_KIND="development"
 else
     BUILD_KIND="release"
 fi
+
+# A player archive is named after the channel it ships in, so a downloaded file
+# still says which release it came from. The packaged artifacts stay generic:
+# the same build can be published to another channel.
+channel_name() {
+    case "$1" in
+        *.tar.gz) printf '%s-%s.tar.gz' "${1%.tar.gz}" "$TAG" ;;
+        *.zip) printf '%s-%s.zip' "${1%.zip}" "$TAG" ;;
+        *) printf '%s' "$1" ;;
+    esac
+}
+
+rm -rf -- "$PUBLISH_ROOT"
+mkdir -p "$PUBLISH_ROOT"
+UPLOADS=()
+for asset in "${ASSETS[@]}"; do
+    published="$PUBLISH_ROOT/$(channel_name "$(basename "$asset")")"
+    cp "$asset" "$published"
+    UPLOADS+=("$published")
+done
+
+# Rename the entries rather than rehashing, so the published sums stay the ones
+# that were just verified against the packaged build.
+while read -r checksum name; do
+    printf '%s  %s\n' "$checksum" "$(channel_name "$name")"
+done <"$ARTIFACTS_ROOT/SHA256SUMS" >"$PUBLISH_ROOT/SHA256SUMS"
+(
+    cd "$PUBLISH_ROOT"
+    shasum -a 256 -c SHA256SUMS >&2
+)
 
 BRANCH="$(git rev-parse --abbrev-ref HEAD)"
 if ! git rev-parse --verify --quiet "refs/remotes/origin/$BRANCH" >/dev/null; then
@@ -122,13 +163,13 @@ fi
 NOTES_FILE="$(mktemp "${TMPDIR:-/tmp}/brocoli-dev-release.XXXXXX")"
 trap 'rm -f -- "$NOTES_FILE"' EXIT
 cat >"$NOTES_FILE" <<EOF
-Rolling development build of BROcoli. This release is overwritten in place: the
+Rolling \`$TAG\` build of BROcoli. This release is overwritten in place: the
 \`$TAG\` tag and every asset below move to the newest published build, so
-download links always serve the latest dev player.
+download links always serve the latest \`$TAG\` player.
 
+- Build ID: \`$BUILD_ID\`
 - Commit: \`$HEAD_COMMIT\`
-- Players: ${BUILD_TARGETS//,/, }
-- Build: $BUILD_KIND
+- Players: ${BUILD_TARGETS//,/, } ($BUILD_KIND)
 - Unity: $BUILD_UNITY
 - Packaged: $BUILD_AT
 
@@ -141,7 +182,7 @@ git tag -f "$TAG" "$HEAD_COMMIT" >/dev/null
 git push --force origin "refs/tags/$TAG"
 
 if [ -z "$TITLE" ]; then
-    TITLE="Development build"
+    TITLE="$TAG"
 fi
 
 if gh release view "$TAG" >/dev/null 2>&1; then
@@ -155,11 +196,11 @@ if gh release view "$TAG" >/dev/null 2>&1; then
     done < <(gh release view "$TAG" --json assets --jq '.assets[].name')
     gh release edit "$TAG" \
         --title "$TITLE" --notes-file "$NOTES_FILE" --prerelease --draft=false
-    gh release upload "$TAG" "${ASSETS[@]}" --clobber
+    gh release upload "$TAG" "${UPLOADS[@]}" --clobber
 else
     echo "dev-release: creating the '$TAG' release"
     gh release create "$TAG" --verify-tag --prerelease \
-        --title "$TITLE" --notes-file "$NOTES_FILE" "${ASSETS[@]}"
+        --title "$TITLE" --notes-file "$NOTES_FILE" "${UPLOADS[@]}"
 fi
 
 echo ""

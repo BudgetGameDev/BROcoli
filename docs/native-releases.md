@@ -44,6 +44,10 @@ artifacts directory is cleared first, so it always holds exactly the players
 the last run selected, and `build-info.txt` records that selection. A subset
 that omits macOS does not need a macOS host.
 
+`build-info.txt` also carries a `build_id` of the form
+`<UTC timestamp>-<short commit>`. Rebuilding the same commit produces a new
+id, which is what lets a rolling release name the specific build it is serving.
+
 Individual player builds are also available in Unity under
 `Tools > Build > Native`.
 
@@ -79,6 +83,14 @@ new ones. The release URL and the per-asset download URLs stay the same, so a
 link to the dev build keeps working while the build behind it changes. Publish
 more platforms with `--targets windows,linux`; the assets that platform set no
 longer covers are dropped from the release rather than left behind stale.
+
+Published players carry the channel in their name, so a downloaded file still
+says where it came from: `BROcoli-windows-x86_64-nightly.zip`. The packaged
+artifacts under `build/native/artifacts/` keep their generic names, because the
+same build can go to another channel; the renamed copies are staged under
+`build/native/publish/` with a `SHA256SUMS` whose entries are the verified sums
+under the published names. The release is titled after its tag and its notes
+name the `build_id`, so two downloads of the same URL can be told apart.
 
 The publisher still requires a clean checkout, and requires HEAD to be pushed
 to its origin branch, because the tag must name a commit others can fetch.

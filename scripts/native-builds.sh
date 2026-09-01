@@ -215,13 +215,19 @@ else
     DEVELOPMENT_BUILD=false
 fi
 
+# The identifier has to change when the same commit is rebuilt, because a
+# rolling release publishes many builds under one tag.
+BUILT_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+BUILD_ID="${BUILT_AT//[-:]/}-$(git -C "$PROJECT_PATH" rev-parse --short=7 HEAD)"
+
 cat >"$ARTIFACTS_ROOT/build-info.txt" <<EOF
+build_id=$BUILD_ID
 commit=$COMMIT_SHA
 unity=$UNITY_VERSION
 targets=$SELECTED_TARGETS
 development=$DEVELOPMENT_BUILD
 dirty=$DIRTY
-built_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+built_at=$BUILT_AT
 EOF
 
 (
