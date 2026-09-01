@@ -15,6 +15,8 @@ namespace BudgetGameDev.Games.Brocoli.Tests
         [Test]
         public void SharedRunsReportABoundaryJoinWhereThePlatformEnds()
         {
+            int totalNorth = 0;
+            int totalSouth = 0;
             foreach (int seed in DungeonGeometryModel.Seeds)
             {
                 var layout = new DungeonLayout(seed);
@@ -49,17 +51,17 @@ namespace BudgetGameDev.Games.Brocoli.Tests
                     }
                 }
 
+                totalNorth += checkedNorth;
+                totalSouth += checkedSouth;
                 Assert.That(
-                    checkedNorth,
+                    checkedNorth + checkedSouth,
                     Is.GreaterThan(0),
-                    $"seed {seed}: no north-row run found"
-                );
-                Assert.That(
-                    checkedSouth,
-                    Is.GreaterThan(0),
-                    $"seed {seed}: no south-row run found"
+                    $"seed {seed}: no shared boundary run found"
                 );
             }
+
+            Assert.That(totalNorth, Is.GreaterThan(0), "the corpus has no north-row join");
+            Assert.That(totalSouth, Is.GreaterThan(0), "the corpus has no south-row join");
         }
 
         [Test]

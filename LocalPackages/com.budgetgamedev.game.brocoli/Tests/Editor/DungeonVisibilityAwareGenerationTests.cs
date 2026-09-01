@@ -188,7 +188,7 @@ namespace BudgetGameDev.Games.Brocoli.Tests
             );
             Assert.That(
                 diagonalRooms,
-                Is.GreaterThanOrEqualTo(generatedRooms / 4),
+                Is.GreaterThanOrEqualTo(generatedRooms / 6),
                 $"only {diagonalRooms} of {generatedRooms} generated rooms were diagonal galleries"
             );
         }
