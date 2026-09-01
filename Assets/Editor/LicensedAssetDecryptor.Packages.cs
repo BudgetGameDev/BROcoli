@@ -3,9 +3,13 @@ using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Threading;
 
 public sealed partial class LicensedAssetDecryptor
 {
+    private const int FileSystemOperationMaximumAttempts = 6;
+    private const int FileSystemOperationInitialDelayMilliseconds = 50;
+
     private static void RestoreFile(string payloadPath, AssetMetadata metadata)
     {
         string targetPath = ProjectPath(metadata.generatedPath);
@@ -20,25 +24,25 @@ public sealed partial class LicensedAssetDecryptor
         {
             File.Copy(payloadPath, stagingPath, false);
             if (File.Exists(targetPath))
-                File.Move(targetPath, backupPath);
+                MoveFileWithRetry(targetPath, backupPath);
             try
             {
-                File.Move(stagingPath, targetPath);
+                MoveFileWithRetry(stagingPath, targetPath);
                 targetReplaced = true;
             }
             catch
             {
                 if (File.Exists(backupPath) && !File.Exists(targetPath))
-                    File.Move(backupPath, targetPath);
+                    MoveFileWithRetry(backupPath, targetPath);
                 throw;
             }
-            File.Delete(backupPath);
+            DeleteFileIfPresent(backupPath);
         }
         finally
         {
-            File.Delete(stagingPath);
+            DeleteFileIfPresent(stagingPath);
             if (targetReplaced)
-                File.Delete(backupPath);
+                DeleteFileIfPresent(backupPath);
         }
     }
 
@@ -70,16 +74,16 @@ public sealed partial class LicensedAssetDecryptor
             );
 
             if (Directory.Exists(targetPath))
-                Directory.Move(targetPath, backupPath);
+                MoveDirectoryWithRetry(targetPath, backupPath);
             try
             {
-                Directory.Move(stagingPath, targetPath);
+                MoveDirectoryWithRetry(stagingPath, targetPath);
                 targetReplaced = true;
             }
             catch
             {
                 if (Directory.Exists(backupPath) && !Directory.Exists(targetPath))
-                    Directory.Move(backupPath, targetPath);
+                    MoveDirectoryWithRetry(backupPath, targetPath);
                 throw;
             }
 
@@ -235,7 +239,92 @@ public sealed partial class LicensedAssetDecryptor
 
     private static void DeleteDirectoryIfPresent(string path)
     {
-        if (Directory.Exists(path))
-            Directory.Delete(path, true);
+        RetryFileSystemOperation(
+            () =>
+            {
+                if (Directory.Exists(path))
+                    Directory.Delete(path, true);
+            },
+            $"delete directory '{path}'"
+        );
+    }
+
+    private static void DeleteFileIfPresent(string path)
+    {
+        RetryFileSystemOperation(() => File.Delete(path), $"delete file '{path}'");
+    }
+
+    private static void MoveFileWithRetry(string sourcePath, string destinationPath)
+    {
+        RetryFileSystemOperation(
+            () => File.Move(sourcePath, destinationPath),
+            $"move file '{sourcePath}' to '{destinationPath}'"
+        );
+    }
+
+    private static void MoveDirectoryWithRetry(string sourcePath, string destinationPath)
+    {
+        RetryFileSystemOperation(
+            () => Directory.Move(sourcePath, destinationPath),
+            $"move directory '{sourcePath}' to '{destinationPath}'"
+        );
+    }
+
+    private static void RetryFileSystemOperation(Action operation, string description)
+    {
+        RetryFileSystemOperation(
+            operation,
+            description,
+            Thread.Sleep,
+            FileSystemOperationMaximumAttempts
+        );
+    }
+
+    private static void RetryFileSystemOperation(
+        Action operation,
+        string description,
+        Action<int> delay,
+        int maximumAttempts
+    )
+    {
+        if (operation == null)
+            throw new ArgumentNullException(nameof(operation));
+        if (delay == null)
+            throw new ArgumentNullException(nameof(delay));
+        if (maximumAttempts < 1)
+            throw new ArgumentOutOfRangeException(nameof(maximumAttempts));
+
+        int delayMilliseconds = FileSystemOperationInitialDelayMilliseconds;
+        for (int attempt = 1; ; attempt++)
+        {
+            try
+            {
+                operation();
+                return;
+            }
+            catch (Exception exception) when (IsRetryableFileSystemException(exception))
+            {
+                if (attempt >= maximumAttempts)
+                {
+                    exception.Data["LicensedAssetOperation"] = description;
+                    exception.Data["LicensedAssetAttempts"] = attempt;
+                    throw;
+                }
+
+                delay(delayMilliseconds);
+                delayMilliseconds *= 2;
+            }
+        }
+    }
+
+    private static bool IsRetryableFileSystemException(Exception exception)
+    {
+        if (exception is UnauthorizedAccessException)
+            return true;
+        return exception is IOException
+            && exception is not FileNotFoundException
+            && exception is not DirectoryNotFoundException
+            && exception is not DriveNotFoundException
+            && exception is not PathTooLongException;
     }
 }
