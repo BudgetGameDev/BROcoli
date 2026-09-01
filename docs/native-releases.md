@@ -6,9 +6,9 @@ automatic build and deployment path remains WebGL-only.
 
 ## Prerequisites
 
-Run the tooling on macOS because Unity can only produce the macOS player on a
-Mac. Install the project editor version and its Windows and Linux Mono build
-support modules:
+Run the multi-platform tooling on macOS because Unity can only produce the
+macOS player on a Mac. Install the project editor version and its Windows and
+Linux Mono build support modules:
 
 ```bash
 UNITY_VERSION="$(sed -n 's/^m_EditorVersion: //p' ProjectSettings/ProjectVersion.txt)"
@@ -20,6 +20,21 @@ The scripts also require `git`, `ditto`, `zip`, `tar`, and `shasum`. Publishing
 requires an authenticated GitHub CLI (`gh auth login`). Close the Unity Editor
 before starting a multi-target build so one batch Editor can switch platforms
 safely.
+
+Windows has a PowerShell-native Windows-only builder that requires only `unity`
+and `git`; archive creation and SHA-256 checksums use the installed .NET runtime.
+Windows Mono player support is bundled with the Windows Editor, so install the
+matching editor, then close it before running the build:
+
+```powershell
+$UnityVersion = (Select-String ProjectSettings\ProjectVersion.txt `
+    -Pattern '^m_EditorVersion: (.+)$').Matches[0].Groups[1].Value
+unity install $UnityVersion --yes --accept-eula
+.\scripts\native-builds.ps1
+```
+
+Open the project afterwards in the automated mode expected by the repository's
+live Unity tooling with `.\scripts\unity-open.ps1`.
 
 ## Build all native players
 
@@ -43,6 +58,11 @@ Pass `--targets` to build a subset, for example `--targets windows`. The
 artifacts directory is cleared first, so it always holds exactly the players
 the last run selected, and `build-info.txt` records that selection. A subset
 that omits macOS does not need a macOS host.
+
+On Windows, `native-builds.ps1` always selects the Windows player and accepts
+`-Development` for a diagnostic build. It produces the same Windows archive,
+`build-info.txt`, and `SHA256SUMS` as the shell builder, so the existing release
+verification and publishing scripts can consume its output.
 
 `build-info.txt` also carries a `build_id` of the form
 `<UTC timestamp>-<short commit>`. Rebuilding the same commit produces a new
