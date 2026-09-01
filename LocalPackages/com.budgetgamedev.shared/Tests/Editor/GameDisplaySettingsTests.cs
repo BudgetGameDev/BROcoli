@@ -252,7 +252,11 @@ namespace BudgetGameDev.Shared.Tests
                 Assert.That(volume.priority, Is.EqualTo(float.MaxValue));
                 Assert.That(volume.enabled, Is.True);
                 Assert.That(volume.profile.TryGet(out Tonemapping tonemapping), Is.True);
-                Assert.That(volume.profile.TryGet(out Bloom bloom), Is.True);
+                Assert.That(
+                    volume.profile.TryGet(out Bloom _),
+                    Is.False,
+                    "HDR inherits the scene's bloom rather than overriding it"
+                );
                 Assert.That(volume.profile.TryGet(out ColorAdjustments _), Is.False);
                 Assert.That(tonemapping.mode.value, Is.EqualTo(TonemappingMode.ACES));
                 Assert.That(tonemapping.acesPreset.value, Is.EqualTo(HDRACESPreset.ACES1000Nits));
@@ -261,8 +265,6 @@ namespace BudgetGameDev.Shared.Tests
                 Assert.That(tonemapping.detectBrightnessLimits.value, Is.False);
                 Assert.That(tonemapping.minNits.value, Is.EqualTo(0.0005f));
                 Assert.That(tonemapping.maxNits.value, Is.EqualTo(600f));
-                Assert.That(bloom.active, Is.True);
-                Assert.That(bloom.intensity.value, Is.EqualTo(0f));
 
                 GameDisplaySettings.BeginHdrCalibrationPreview();
                 Assert.That(tonemapping.detectBrightnessLimits.value, Is.True);

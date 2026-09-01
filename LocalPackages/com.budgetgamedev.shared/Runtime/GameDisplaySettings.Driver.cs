@@ -15,7 +15,6 @@ namespace BudgetGameDev.Shared
             private Volume volume;
             private VolumeProfile profile;
             private Tonemapping tonemapping;
-            private Bloom bloom;
             private string lastStatus;
             private float nextStatusPoll;
 
@@ -110,6 +109,14 @@ namespace BudgetGameDev.Shared
                     requestHdrMode(HdrEnabled);
             }
 
+            /// <summary>
+            /// Only the tone map is overridden for HDR. In particular the scene's bloom is left
+            /// alone: it is deliberately blown out, admitting everything above 0.85 and adding it
+            /// back at 135%, and that glow around the torches is most of the dungeon's
+            /// atmosphere rather than an artefact of SDR clipping. Inheriting it makes the HDR
+            /// picture the SDR one with its highlights carried past display white instead of
+            /// pinned to it.
+            /// </summary>
             private void CreateTonemappingOverride()
             {
                 volume = gameObject.AddComponent<Volume>();
@@ -118,7 +125,6 @@ namespace BudgetGameDev.Shared
                 profile = ScriptableObject.CreateInstance<VolumeProfile>();
                 profile.hideFlags = HideFlags.HideAndDontSave;
                 tonemapping = profile.Add<Tonemapping>();
-                bloom = profile.Add<Bloom>();
                 volume.profile = profile;
             }
 
@@ -150,13 +156,6 @@ namespace BudgetGameDev.Shared
                 );
                 tonemapping.minNits.Override(BlackLevelNits);
                 tonemapping.maxNits.Override(PeakBrightnessNits);
-
-                // SDR fakes highlight brightness with a wide, generous bloom. HDR does not need
-                // it: emissive highlights are rendered at the display's peak instead. Bloom would
-                // only spread that energy into a halo around the flame and raise the frame's
-                // average brightness, which is what an OLED dims the whole picture for.
-                bloom.active = enabled;
-                bloom.intensity.Override(0f);
             }
         }
     }
