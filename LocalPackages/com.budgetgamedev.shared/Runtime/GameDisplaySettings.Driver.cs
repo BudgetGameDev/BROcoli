@@ -8,7 +8,7 @@ namespace BudgetGameDev.Shared
     public static partial class GameDisplaySettings
     {
         [DefaultExecutionOrder(-32000)]
-        internal sealed class HdrDisplayDriver : MonoBehaviour
+        internal sealed partial class HdrDisplayDriver : MonoBehaviour
         {
             private const float StatusPollInterval = 0.5f;
 
@@ -27,6 +27,7 @@ namespace BudgetGameDev.Shared
                 }
 
                 instance = this;
+                InitializeCanvasComposition();
                 CreateTonemappingOverride();
                 TryUseNativeDisplayCalibration();
                 Apply();
@@ -69,6 +70,7 @@ namespace BudgetGameDev.Shared
                 Action<UnityEngine.Object> destroyImmediate
             )
             {
+                ShutdownCanvasComposition();
                 if (instance == this)
                     instance = null;
                 if (profile != null)
@@ -94,6 +96,7 @@ namespace BudgetGameDev.Shared
             internal void Apply(bool switchable, bool displayDetected, Action<bool> requestHdrMode)
             {
                 ConfigureTonemapping(HdrEnabled);
+                ConfigureCanvasComposition(HdrEnabled && displayDetected);
                 if (switchable && displayDetected)
                     requestHdrMode(HdrEnabled);
             }
