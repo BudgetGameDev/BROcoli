@@ -130,6 +130,44 @@ namespace BudgetGameDev.Shared
         }
 
         /// <summary>
+        /// The scene-linear colour the tone map renders at <paramref name="targetNits"/>. Used to
+        /// author display-referred content -- interface colours above all -- that is drawn into
+        /// the scene and therefore tone mapped along with it.
+        /// </summary>
+        public static Vector3 SceneColorForDisplayNits(
+            Vector3 targetNits,
+            float paperWhiteNits,
+            HDRACESPreset preset
+        )
+        {
+            // The transform is monotonic per primary but mixes them, so it is inverted by fixed
+            // point rather than in closed form. A dozen rounds settle well inside 8 bit output.
+            const int Rounds = 16;
+            const float Floor = 1e-4f;
+
+            Vector3 scene = targetNits / Mathf.Max(paperWhiteNits, Floor);
+            for (int round = 0; round < Rounds; round++)
+            {
+                Vector3 nits = DisplayNits(scene, paperWhiteNits, preset);
+                scene = new Vector3(
+                    Correct(scene.x, nits.x, targetNits.x),
+                    Correct(scene.y, nits.y, targetNits.y),
+                    Correct(scene.z, nits.z, targetNits.z)
+                );
+            }
+            return scene;
+        }
+
+        private static float Correct(float scene, float nits, float target)
+        {
+            if (target <= 0f)
+                return 0f;
+            if (nits <= 1e-6f)
+                return Mathf.Min(Mathf.Max(scene, 1e-6f) * 2f, MaximumSceneValue);
+            return Mathf.Clamp(scene * (target / nits), 0f, MaximumSceneValue);
+        }
+
+        /// <summary>
         /// Bisects the tone scale, which is monotonic, for the scale that puts the brightest
         /// primary of <paramref name="direction"/> at <paramref name="nits"/>.
         /// </summary>

@@ -94,15 +94,18 @@ namespace BudgetGameDev.Games.Brocoli.Tests
                 // Additive particles contribute the material colour through their own alpha.
                 float alpha = HdrTorchFlamePresentation.PeakParticleAlpha(particles);
                 Assert.That(alpha, Is.EqualTo(0.5f).Within(0.001f));
+                Assert.That(GameDisplaySettings.HighlightOvershoot, Is.GreaterThan(1f));
                 Vector3 nits = AcesToneScale.DisplayNits(
                     new Vector3(material.r, material.g, material.b) * alpha,
                     GameDisplaySettings.PaperWhiteNits,
                     GameDisplaySettings.HdrToneMapPreset
                 );
+                float target =
+                    GameDisplaySettings.PeakBrightnessNits * GameDisplaySettings.HighlightOvershoot;
                 Assert.That(
                     Mathf.Max(nits.x, Mathf.Max(nits.y, nits.z)),
-                    Is.EqualTo(GameDisplaySettings.PeakBrightnessNits)
-                        .Within(GameDisplaySettings.PeakBrightnessNits * 0.02f)
+                    Is.EqualTo(target).Within(target * 0.02f),
+                    "the flame is driven past the peak so the panel clips it flat"
                 );
             }
             finally

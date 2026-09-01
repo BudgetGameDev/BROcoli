@@ -155,6 +155,54 @@ namespace BudgetGameDev.Shared.Tests
         }
 
         [Test]
+        public void SceneColorForDisplayNitsInvertsTheToneMap()
+        {
+            // The emerald the menus are built from, and the surface behind it.
+            foreach (Color authored in new[] { new Color(0.06f, 0.35f, 0.07f), Color.white })
+            {
+                Vector3 target = new Vector3(authored.r, authored.g, authored.b) * PaperWhite;
+
+                Vector3 scene = AcesToneScale.SceneColorForDisplayNits(
+                    target,
+                    PaperWhite,
+                    HDRACESPreset.ACES1000Nits
+                );
+                Vector3 rendered = AcesToneScale.DisplayNits(
+                    scene,
+                    PaperWhite,
+                    HDRACESPreset.ACES1000Nits
+                );
+
+                Assert.That(
+                    rendered.x,
+                    Is.EqualTo(target.x).Within(Mathf.Max(target.x, 1f) * 0.01f)
+                );
+                Assert.That(
+                    rendered.y,
+                    Is.EqualTo(target.y).Within(Mathf.Max(target.y, 1f) * 0.01f)
+                );
+                Assert.That(
+                    rendered.z,
+                    Is.EqualTo(target.z).Within(Mathf.Max(target.z, 1f) * 0.01f)
+                );
+            }
+        }
+
+        [Test]
+        public void CompensatingAColourBrightensItRatherThanLeavingItToTheToe()
+        {
+            Vector3 target = new Vector3(0.06f, 0.35f, 0.07f) * PaperWhite;
+
+            Vector3 scene = AcesToneScale.SceneColorForDisplayNits(
+                target,
+                PaperWhite,
+                HDRACESPreset.ACES1000Nits
+            );
+
+            Assert.That(scene.y, Is.GreaterThan(0.35f), "the toe has to be undone, not reinforced");
+        }
+
+        [Test]
         public void SelectPresetLeavesShoulderHeadroomAboveTheCalibratedPeak()
         {
             Assert.That(AcesToneScale.SelectPreset(600f), Is.EqualTo(HDRACESPreset.ACES1000Nits));

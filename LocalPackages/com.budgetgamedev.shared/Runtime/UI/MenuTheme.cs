@@ -12,19 +12,25 @@ namespace BudgetGameDev.Shared
     /// </summary>
     public static class MenuTheme
     {
-        public static readonly Color Background = Hex("#0F1713");
-        public static readonly Color HeroSurface = Hex("#173E2B");
-        public static readonly Color CardSurface = Hex("#1D2923");
-        public static readonly Color SurfaceVariant = Hex("#2A3831");
-        public static readonly Color Primary = Hex("#43A047");
-        public static readonly Color PrimaryHover = Hex("#55B95A");
-        public static readonly Color PrimaryPressed = Hex("#347C38");
-        public static readonly Color OnSurface = Hex("#F4F7F5");
-        public static readonly Color OnSurfaceMuted = Hex("#B8C6BE");
-        public static readonly Color Divider = new(0.65f, 0.84f, 0.71f, 0.22f);
+        // Read through properties rather than held in fields: under native HDR output the menus
+        // are drawn through the camera and graded with the scene, so every palette colour is
+        // re-authored for the grade as it is handed out. A field would be fixed at type load,
+        // before the swapchain has switched.
+        public static Color Background => Hex("#0F1713");
+        public static Color HeroSurface => Hex("#173E2B");
+        public static Color CardSurface => Hex("#1D2923");
+        public static Color SurfaceVariant => Hex("#2A3831");
+        public static Color Primary => Hex("#43A047");
+        public static Color PrimaryHover => Hex("#55B95A");
+        public static Color PrimaryPressed => Hex("#347C38");
+        public static Color OnSurface => Hex("#F4F7F5");
+        public static Color OnSurfaceMuted => Hex("#B8C6BE");
+        public static Color Divider =>
+            GameDisplaySettings.HdrUiColor(new(0.65f, 0.84f, 0.71f, 0.22f));
 
         /// <summary>Outline drawn around the button the controller is on.</summary>
-        public static readonly Color SelectionOutline = new(0.64f, 1f, 0.76f, 0.95f);
+        public static Color SelectionOutline =>
+            GameDisplaySettings.HdrUiColor(new(0.64f, 1f, 0.76f, 0.95f));
         public static readonly Vector2 SelectionThickness = new(5f, 5f);
         public const float SelectedScale = 1.06f;
         public const float SelectionLerpSpeed = 12f;
@@ -220,9 +226,17 @@ namespace BudgetGameDev.Shared
             return null;
         }
 
+        /// <summary>
+        /// A palette colour, re-authored for the HDR grade when native HDR output is in effect so
+        /// it reaches the panel as the colour it was picked as rather than as the grade's toe
+        /// leaves it. Outside HDR the interface composites after the grade and this is identity.
+        /// </summary>
         public static Color Hex(string value)
         {
-            return ColorUtility.TryParseHtmlString(value, out Color color) ? color : Color.white;
+            Color color = ColorUtility.TryParseHtmlString(value, out Color parsed)
+                ? parsed
+                : Color.white;
+            return GameDisplaySettings.HdrUiColor(color);
         }
     }
 }
