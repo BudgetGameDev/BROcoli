@@ -17,6 +17,8 @@ namespace BudgetGameDev.Games.Brocoli
         private Vector2 _smoothedInput;
         private Vector2 _lastNonZeroInput;
         private VirtualController _virtualController;
+        private LastInputPriorityAxis _horizontalWasd;
+        private LastInputPriorityAxis _verticalWasd;
 
         /// <summary>
         /// The unprocessed input direction. Magnitude is 0-1 for analog, exactly 1 for keyboard.
@@ -66,13 +68,13 @@ namespace BudgetGameDev.Games.Brocoli
             Keyboard keyboard = Keyboard.current;
             Vector2 keyboardInput =
                 keyboard != null
-                    ? ComposeWasd(
+                    ? ResolveWasd(
                         keyboard.aKey.isPressed,
                         keyboard.dKey.isPressed,
                         keyboard.sKey.isPressed,
                         keyboard.wKey.isPressed
                     )
-                    : Vector2.zero;
+                    : ResolveWasd(false, false, false, false);
 
             Gamepad gamepad = Gamepad.current;
             Vector2 gamepadInput =
@@ -124,6 +126,15 @@ namespace BudgetGameDev.Games.Brocoli
         {
             _rawInput = Vector2.zero;
             _smoothedInput = Vector2.zero;
+            _horizontalWasd.ResetHeldState();
+            _verticalWasd.ResetHeldState();
+        }
+
+        internal Vector2 ResolveWasd(bool left, bool right, bool down, bool up)
+        {
+            return ClampMovementInput(
+                new Vector2(_horizontalWasd.Resolve(left, right), _verticalWasd.Resolve(down, up))
+            );
         }
 
         internal static Vector2 ComposeWasd(bool left, bool right, bool down, bool up)
@@ -148,5 +159,37 @@ namespace BudgetGameDev.Games.Brocoli
 
         private static Vector2 ClampMovementInput(Vector2 input) =>
             input.sqrMagnitude > 1f ? input.normalized : input;
+
+        internal struct LastInputPriorityAxis
+        {
+            private bool _negativeWasHeld;
+            private bool _positiveWasHeld;
+            private float _lastDirection;
+
+            internal float Resolve(bool negativeHeld, bool positiveHeld)
+            {
+                bool negativePressed = negativeHeld && !_negativeWasHeld;
+                bool positivePressed = positiveHeld && !_positiveWasHeld;
+
+                if (negativePressed != positivePressed)
+                    _lastDirection = positivePressed ? 1f : -1f;
+                else if (negativeHeld != positiveHeld)
+                    _lastDirection = positiveHeld ? 1f : -1f;
+
+                _negativeWasHeld = negativeHeld;
+                _positiveWasHeld = positiveHeld;
+                if (negativeHeld && positiveHeld)
+                    return _lastDirection;
+                if (positiveHeld)
+                    return 1f;
+                return negativeHeld ? -1f : 0f;
+            }
+
+            internal void ResetHeldState()
+            {
+                _negativeWasHeld = false;
+                _positiveWasHeld = false;
+            }
+        }
     }
 }

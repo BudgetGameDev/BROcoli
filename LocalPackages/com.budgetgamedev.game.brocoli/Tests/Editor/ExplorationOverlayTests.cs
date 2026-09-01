@@ -84,6 +84,46 @@ namespace BudgetGameDev.Games.Brocoli.Tests
         }
 
         [Test]
+        public void WasdSocdUsesTheLastPressedDirectionOnEachAxis()
+        {
+            GameObject host = new("SOCD input test");
+            try
+            {
+                PlayerInputHandler input = host.AddComponent<PlayerInputHandler>();
+
+                Assert.That(input.ResolveWasd(true, false, false, false), Is.EqualTo(Vector2.left));
+                Assert.That(input.ResolveWasd(true, true, false, false), Is.EqualTo(Vector2.right));
+                Assert.That(input.ResolveWasd(true, false, false, false), Is.EqualTo(Vector2.left));
+
+                Assert.That(input.ResolveWasd(false, false, false, true), Is.EqualTo(Vector2.up));
+                Assert.That(input.ResolveWasd(false, false, true, true), Is.EqualTo(Vector2.down));
+                Assert.That(input.ResolveWasd(false, false, false, true), Is.EqualTo(Vector2.up));
+            }
+            finally
+            {
+                Object.DestroyImmediate(host);
+            }
+        }
+
+        [Test]
+        public void WasdSocdUsesTheLastMovedDirectionForSimultaneousOpposites()
+        {
+            var axis = new PlayerInputHandler.LastInputPriorityAxis();
+
+            Assert.That(axis.Resolve(true, true), Is.Zero);
+            Assert.That(axis.Resolve(false, true), Is.EqualTo(1f));
+            Assert.That(axis.Resolve(false, false), Is.Zero);
+            Assert.That(axis.Resolve(true, true), Is.EqualTo(1f));
+
+            Assert.That(axis.Resolve(true, false), Is.EqualTo(-1f));
+            Assert.That(axis.Resolve(false, false), Is.Zero);
+            Assert.That(axis.Resolve(true, true), Is.EqualTo(-1f));
+
+            axis.ResetHeldState();
+            Assert.That(axis.Resolve(true, true), Is.EqualTo(-1f));
+        }
+
+        [Test]
         public void MockItemsTransferIntoTheFirstOpenDestinationSlot()
         {
             var nearby = new List<string> { "RELIC", "KEY" };
