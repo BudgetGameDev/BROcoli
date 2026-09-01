@@ -18,13 +18,7 @@ namespace BudgetGameDev.Games.Brocoli.Tests
             "Packages/com.budgetgamedev.game.brocoli/Prefabs/Dungeon/DungeonWall.prefab";
 
         private static DungeonLayout.RoomArchetype Eligible =>
-            new(
-                DungeonLayout.RoomShape.OpenHall,
-                DungeonLayout.RoomTheme.Storage,
-                10.2f,
-                6.4f,
-                1
-            );
+            new(DungeonLayout.RoomShape.OpenHall, DungeonLayout.RoomTheme.Storage, 10.2f, 6.4f, 1);
 
         /// <summary>
         /// The keep-out band starts at the wall's back face and covers the whole

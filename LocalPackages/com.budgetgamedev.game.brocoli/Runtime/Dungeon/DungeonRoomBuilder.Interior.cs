@@ -37,7 +37,7 @@ namespace BudgetGameDev.Games.Brocoli
                     heightScale,
                     piece.BaseLift,
                     name: piece.Kind == DungeonWallKind.InteriorFeature
-                        ? "DungeonWall - Interior Feature Wall"
+                            ? "DungeonWall - Interior Feature Wall"
                         : piece.AlongX ? "DungeonWall - Interior Low Railing"
                         : "DungeonWall - Interior Half Wall"
                 );

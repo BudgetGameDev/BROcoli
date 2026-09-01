@@ -61,10 +61,7 @@ namespace BudgetGameDev.Games.Brocoli
             float radians = -yawDegrees * Mathf.Deg2Rad;
             float cos = Mathf.Cos(radians);
             float sin = Mathf.Sin(radians);
-            return new Vector2(
-                ground.x * cos - ground.y * sin,
-                ground.x * sin + ground.y * cos
-            );
+            return new Vector2(ground.x * cos - ground.y * sin, ground.x * sin + ground.y * cos);
         }
 
         // ==================== Rigidbody ground helpers ====================

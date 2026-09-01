@@ -120,16 +120,18 @@ namespace BudgetGameDev.Shared
                 if (entry.Value == null)
                     continue;
 
-                FieldInfo listField = entry.Value
-                    .GetType()
+                FieldInfo listField = entry
+                    .Value.GetType()
                     .GetField("m_List", BindingFlags.Instance | BindingFlags.NonPublic);
                 if (listField?.GetValue(entry.Value) is not IList list)
                     continue;
 
-                MethodInfo remove = entry.Value.GetType().GetMethod(
-                    "Remove",
-                    BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic
-                );
+                MethodInfo remove = entry
+                    .Value.GetType()
+                    .GetMethod(
+                        "Remove",
+                        BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic
+                    );
                 if (remove == null)
                     continue;
 

@@ -72,8 +72,7 @@ namespace BudgetGameDev.Games.Brocoli
 
             // The scene authors the rig looking due north; the diagonal view is
             // applied here so the one yaw constant also governs input mapping.
-            transform.rotation =
-                Quaternion.Euler(0f, WorldYawDegrees, 0f) * transform.rotation;
+            transform.rotation = Quaternion.Euler(0f, WorldYawDegrees, 0f) * transform.rotation;
 
             // Check if we're on mobile
             isMobile = CheckIsMobile();
@@ -106,8 +105,7 @@ namespace BudgetGameDev.Games.Brocoli
         private void CaptureYawedOffset()
         {
             offset =
-                Quaternion.Euler(0f, WorldYawDegrees, 0f)
-                * (transform.position - target.position);
+                Quaternion.Euler(0f, WorldYawDegrees, 0f) * (transform.position - target.position);
             transform.position = target.position + offset;
         }
 

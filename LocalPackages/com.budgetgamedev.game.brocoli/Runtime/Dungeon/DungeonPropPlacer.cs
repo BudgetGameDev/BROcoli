@@ -191,8 +191,7 @@ namespace BudgetGameDev.Games.Brocoli
                     // rather than stood on the floor like a prop. On an interior
                     // run the wall is half height, so the fitting hangs lower to
                     // stay seated on the masonry.
-                    bool interiorRun =
-                        DungeonWallDressing.RequiredShellWall(mounts[i].Local) < 0;
+                    bool interiorRun = DungeonWallDressing.RequiredShellWall(mounts[i].Local) < 0;
                     EnrolAsOccluder(
                         Instantiate(
                             torchPrefab,

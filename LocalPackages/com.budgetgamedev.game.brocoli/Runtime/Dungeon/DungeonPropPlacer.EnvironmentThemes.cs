@@ -13,9 +13,7 @@ namespace BudgetGameDev.Games.Brocoli
             List<OccupiedSpot> occupied
         )
         {
-            DungeonEnvironmentProfile profile = DungeonEnvironmentProfile.Of(
-                archetype.Environment
-            );
+            DungeonEnvironmentProfile profile = DungeonEnvironmentProfile.Of(archetype.Environment);
             Scatter(
                 parent,
                 center,
@@ -46,9 +44,7 @@ namespace BudgetGameDev.Games.Brocoli
             List<OccupiedSpot> occupied
         )
         {
-            DungeonEnvironmentProfile profile = DungeonEnvironmentProfile.Of(
-                archetype.Environment
-            );
+            DungeonEnvironmentProfile profile = DungeonEnvironmentProfile.Of(archetype.Environment);
             Scatter(
                 parent,
                 center,

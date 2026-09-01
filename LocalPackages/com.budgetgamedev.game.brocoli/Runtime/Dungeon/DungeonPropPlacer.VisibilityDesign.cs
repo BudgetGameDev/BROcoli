@@ -30,7 +30,9 @@ namespace BudgetGameDev.Games.Brocoli
             int count = profile.BoundaryPropsPerEdge;
             for (int i = 0; i < count; i++)
             {
-                GameObject prefab = FindProp(profile.BoundaryTokens[i % profile.BoundaryTokens.Length]);
+                GameObject prefab = FindProp(
+                    profile.BoundaryTokens[i % profile.BoundaryTokens.Length]
+                );
                 if (prefab == null)
                     prefab = FindProp(profile.BoundaryTokens[0]);
                 if (prefab == null)
@@ -95,9 +97,7 @@ namespace BudgetGameDev.Games.Brocoli
             List<OccupiedSpot> occupied
         )
         {
-            DungeonEnvironmentProfile profile = DungeonEnvironmentProfile.Of(
-                archetype.Environment
-            );
+            DungeonEnvironmentProfile profile = DungeonEnvironmentProfile.Of(archetype.Environment);
             if (
                 !profile.UsesRubbleBarriers
                 || archetype.Shape != DungeonLayout.RoomShape.DiagonalGallery

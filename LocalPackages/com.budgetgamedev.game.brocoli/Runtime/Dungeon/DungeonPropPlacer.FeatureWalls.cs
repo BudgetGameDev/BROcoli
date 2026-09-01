@@ -61,11 +61,7 @@ namespace BudgetGameDev.Games.Brocoli
                         FeatureScreenScale
                     );
                     occupied.Add(
-                        new OccupiedSpot(
-                            local,
-                            measurement.Radius * FeatureScreenScale.x,
-                            true
-                        )
+                        new OccupiedSpot(local, measurement.Radius * FeatureScreenScale.x, true)
                     );
                 }
             }

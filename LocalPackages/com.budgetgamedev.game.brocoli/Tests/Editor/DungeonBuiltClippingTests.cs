@@ -111,10 +111,7 @@ namespace BudgetGameDev.Games.Brocoli.Tests
                 wallPrefab.transform.worldToLocalMatrix * filter.transform.localToWorldMatrix;
             float minimumDepth = float.PositiveInfinity;
             foreach (Vector3 vertex in filter.sharedMesh.vertices)
-                minimumDepth = Mathf.Min(
-                    minimumDepth,
-                    modelToWall.MultiplyPoint3x4(vertex).z
-                );
+                minimumDepth = Mathf.Min(minimumDepth, modelToWall.MultiplyPoint3x4(vertex).z);
 
             Assert.That(
                 minimumDepth,
@@ -129,10 +126,12 @@ namespace BudgetGameDev.Games.Brocoli.Tests
             var wallPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(WallPrefabPath);
             var floorPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(FloorPrefabPath);
             MeshFilter filter = wallPrefab.GetComponentInChildren<MeshFilter>();
-            Material wallMaterial =
-                wallPrefab.GetComponentInChildren<MeshRenderer>().sharedMaterial;
-            Material floorMaterial =
-                floorPrefab.GetComponentInChildren<MeshRenderer>().sharedMaterial;
+            Material wallMaterial = wallPrefab
+                .GetComponentInChildren<MeshRenderer>()
+                .sharedMaterial;
+            Material floorMaterial = floorPrefab
+                .GetComponentInChildren<MeshRenderer>()
+                .sharedMaterial;
 
             Assert.That(filter.sharedMesh.name, Is.EqualTo("DungeonWallMasonry"));
             AssertCompletePbrMaterial(wallMaterial, "DungeonStylizedBrickWall");

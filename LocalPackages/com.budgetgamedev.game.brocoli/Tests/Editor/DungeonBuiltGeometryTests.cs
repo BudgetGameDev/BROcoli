@@ -108,8 +108,8 @@ namespace BudgetGameDev.Games.Brocoli.Tests
                     foreach (DungeonRailingSegment segment in plannedRailings)
                     {
                         Assert.That(
-                            builtRailings.Exists(
-                                actual => segment.DistanceTo(actual) < Tolerance + 0.35f
+                            builtRailings.Exists(actual =>
+                                segment.DistanceTo(actual) < Tolerance + 0.35f
                             ),
                             $"seed {seed}: room {room} planned {segment} but built nothing on it"
                         );

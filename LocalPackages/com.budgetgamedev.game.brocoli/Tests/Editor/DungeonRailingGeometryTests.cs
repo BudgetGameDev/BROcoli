@@ -28,10 +28,7 @@ namespace BudgetGameDev.Games.Brocoli.Tests
             }
         }
 
-        private static List<DungeonRailingSegment> RailingsOf(
-            DungeonLayout layout,
-            Vector2Int room
-        )
+        private static List<DungeonRailingSegment> RailingsOf(DungeonLayout layout, Vector2Int room)
         {
             var railings = new List<DungeonRailingSegment>();
             DungeonRoomGeometry.AppendInteriorRailings(railings, room, layout.Archetype(room));

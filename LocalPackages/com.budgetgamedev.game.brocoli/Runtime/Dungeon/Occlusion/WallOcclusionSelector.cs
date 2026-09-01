@@ -200,8 +200,7 @@ namespace BudgetGameDev.Games.Brocoli
         private static bool TallEnoughToHide(in OcclusionTarget target, Bounds bounds)
         {
             return target.Kind != OcclusionTargetKind.Enemy
-                || bounds.max.y
-                    >= target.Position.y + DungeonOccluder.MinimumAutomaticFadeHeight;
+                || bounds.max.y >= target.Position.y + DungeonOccluder.MinimumAutomaticFadeHeight;
         }
 
         private static Vector2[] BuildSamples()
