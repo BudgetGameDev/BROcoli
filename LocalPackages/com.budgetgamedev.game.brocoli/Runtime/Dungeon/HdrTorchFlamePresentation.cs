@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using BudgetGameDev.Shared;
 using UnityEngine;
 
@@ -32,6 +33,8 @@ namespace BudgetGameDev.Games.Brocoli
 
         private ParticleSystemRenderer[] flameRenderers;
         private MaterialPropertyBlock propertyBlock;
+        private readonly Dictionary<ParticleSystem, ParticleSystem.MinMaxGradient> authoredFades =
+            new();
 
         private void Awake()
         {
@@ -71,17 +74,17 @@ namespace BudgetGameDev.Games.Brocoli
                 if (!hdrActive)
                 {
                     flameRenderer.SetPropertyBlock(null);
+                    RestoreFade(flameRenderer.GetComponent<ParticleSystem>());
                     continue;
                 }
 
-                Color color = MaterialColorForPeak(
-                    peak,
-                    PeakParticleAlpha(flameRenderer.GetComponent<ParticleSystem>())
-                );
+                ParticleSystem particles = flameRenderer.GetComponent<ParticleSystem>();
+                Color color = MaterialColorForPeak(peak, PeakParticleAlpha(particles));
                 flameRenderer.GetPropertyBlock(propertyBlock);
                 propertyBlock.SetColor(BaseColorId, color);
                 propertyBlock.SetColor(ColorId, color);
                 flameRenderer.SetPropertyBlock(propertyBlock);
+                SteepenFade(particles, BoostOver(flameRenderer.sharedMaterial, color));
             }
         }
 
@@ -139,6 +142,105 @@ namespace BudgetGameDev.Games.Brocoli
             foreach (GradientAlphaKey key in gradient.alphaKeys)
                 alpha = Mathf.Max(alpha, key.alpha);
             return alpha;
+        }
+
+        /// <summary>
+        /// How much brighter than its authored self the flame material has been driven. The whole
+        /// plume is one colour times each particle's alpha, so this boost lands on the faded
+        /// particles at the edge as much as on the young ones at the core.
+        /// </summary>
+        internal static float BoostOver(Material authored, Color boosted)
+        {
+            if (authored == null || !authored.HasProperty(BaseColorId))
+                return 1f;
+
+            Color source = authored.GetColor(BaseColorId);
+            float from = Mathf.Max(source.r, Mathf.Max(source.g, source.b));
+            float to = Mathf.Max(boosted.r, Mathf.Max(boosted.g, boosted.b));
+            return from <= 0f ? 1f : Mathf.Max(to / from, 1f);
+        }
+
+        /// <summary>
+        /// Bends the particle's fade so the boost reaches only the hottest particles. Without it
+        /// the faded tail of the plume is lifted just as far as the core and reads as a lit orb
+        /// hanging around the flame; the core is what should be spending the display's range.
+        /// </summary>
+        internal void SteepenFade(ParticleSystem particles, float boost)
+        {
+            if (particles == null || boost <= 1f)
+                return;
+
+            ParticleSystem.ColorOverLifetimeModule fade = particles.colorOverLifetime;
+            if (!fade.enabled || !TryReadGradient(fade.color, out Gradient authored))
+                return;
+
+            if (!authoredFades.ContainsKey(particles))
+                authoredFades[particles] = fade.color;
+
+            // Cancelling the boost by the time a particle is half faded keeps the tail at the
+            // brightness SDR draws it at while the young particles keep every bit of the boost.
+            float exponent = 1f + (Mathf.Log(boost) / Mathf.Log(2f));
+            fade.color = new ParticleSystem.MinMaxGradient(Steepen(authored, exponent));
+        }
+
+        private void RestoreFade(ParticleSystem particles)
+        {
+            if (particles == null || !authoredFades.TryGetValue(particles, out var authored))
+                return;
+
+            ParticleSystem.ColorOverLifetimeModule fade = particles.colorOverLifetime;
+            fade.color = authored;
+            authoredFades.Remove(particles);
+        }
+
+        /// <summary>
+        /// Resamples <paramref name="source"/> with its alpha raised to <paramref name="exponent"/>
+        /// about its own peak, so the brightest point is untouched and everything dimmer falls
+        /// away faster. Gradients hold eight keys, which is enough to carry the curve.
+        /// </summary>
+        internal static Gradient Steepen(Gradient source, float exponent)
+        {
+            const int Keys = 8;
+            float peak = 0f;
+            foreach (GradientAlphaKey key in source.alphaKeys)
+                peak = Mathf.Max(peak, key.alpha);
+            if (peak <= 0f)
+                return source;
+
+            GradientAlphaKey[] alphas = new GradientAlphaKey[Keys];
+            for (int index = 0; index < Keys; index++)
+            {
+                float time = index / (float)(Keys - 1);
+                float alpha = source.Evaluate(time).a;
+                alphas[index] = new GradientAlphaKey(
+                    peak * Mathf.Pow(Mathf.Clamp01(alpha / peak), exponent),
+                    time
+                );
+            }
+
+            Gradient steepened = new();
+            steepened.SetKeys(source.colorKeys, alphas);
+            return steepened;
+        }
+
+        private static bool TryReadGradient(
+            ParticleSystem.MinMaxGradient source,
+            out Gradient gradient
+        )
+        {
+            switch (source.mode)
+            {
+                case ParticleSystemGradientMode.Gradient:
+                case ParticleSystemGradientMode.RandomColor:
+                    gradient = source.gradient;
+                    return gradient != null;
+                case ParticleSystemGradientMode.TwoGradients:
+                    gradient = source.gradientMax;
+                    return gradient != null;
+                default:
+                    gradient = null;
+                    return false;
+            }
         }
 
         private void CacheRenderers()

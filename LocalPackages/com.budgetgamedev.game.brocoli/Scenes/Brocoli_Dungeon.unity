@@ -1410,6 +1410,7 @@ GameObject:
   m_Component:
   - component: {fileID: 681564222}
   - component: {fileID: 681564223}
+  - component: {fileID: 8100000002}
   m_Layer: 0
   m_Name: PlayerProximityLight
   m_TagString: Untagged
@@ -2543,6 +2544,7 @@ GameObject:
   - component: {fileID: 1037325169}
   - component: {fileID: 1037325168}
   - component: {fileID: 1037325167}
+  - component: {fileID: 8100000001}
   m_Layer: 0
   m_Name: Light
   m_TagString: Untagged
@@ -8444,3 +8446,29 @@ SceneRoots:
   - {fileID: 99900002}
   - {fileID: 99900102}
   - {fileID: 1804916125}
+--- !u!114 &8100000001
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1037325166}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 344f943436407494a9cf3f281af35633, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  hdrIntensityScale: 0.45
+--- !u!114 &8100000002
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 681564221}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 344f943436407494a9cf3f281af35633, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  hdrIntensityScale: 2.2

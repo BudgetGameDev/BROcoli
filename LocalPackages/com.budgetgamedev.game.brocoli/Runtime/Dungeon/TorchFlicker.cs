@@ -1,3 +1,4 @@
+using BudgetGameDev.Shared;
 using UnityEngine;
 
 namespace BudgetGameDev.Games.Brocoli
@@ -19,6 +20,14 @@ namespace BudgetGameDev.Games.Brocoli
         [SerializeField, Min(0.1f)]
         private float flickerSpeed = 7f;
 
+        /// <summary>
+        /// How much harder the torch lights the room under native HDR output. The scene's fill is
+        /// pulled down there, so the torch has to carry more of the room for the stone around it
+        /// to pool orange rather than sit in flat grey.
+        /// </summary>
+        [SerializeField, Min(0.1f)]
+        private float hdrIntensityScale = 1.6f;
+
         private float baseIntensity;
         private Vector3 basePosition;
         private float noiseSeed;
@@ -38,6 +47,11 @@ namespace BudgetGameDev.Games.Brocoli
             noiseSeed = Random.value * 100f;
         }
 
+        private float HdrIntensity() =>
+            GameDisplaySettings.HdrEnabled && GameDisplaySettings.IsHdrActive
+                ? hdrIntensityScale
+                : 1f;
+
         private void Update()
         {
             if (torchLight == null)
@@ -46,7 +60,9 @@ namespace BudgetGameDev.Games.Brocoli
             float t = Time.time * flickerSpeed;
             float noise = Mathf.PerlinNoise(t, noiseSeed);
             torchLight.intensity =
-                baseIntensity * (1f - flickerAmount * 0.5f + flickerAmount * noise);
+                baseIntensity
+                * HdrIntensity()
+                * (1f - flickerAmount * 0.5f + flickerAmount * noise);
             torchLight.transform.localPosition =
                 basePosition
                 + new Vector3(

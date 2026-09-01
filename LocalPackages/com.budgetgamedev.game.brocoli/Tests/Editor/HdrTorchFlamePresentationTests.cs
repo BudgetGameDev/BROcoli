@@ -159,6 +159,48 @@ namespace BudgetGameDev.Games.Brocoli.Tests
             Assert.That(material.a, Is.EqualTo(1f).Within(0.001f));
         }
 
+        [Test]
+        public void SteepeningTheFadeLeavesThePeakAloneAndDropsTheTail()
+        {
+            Gradient authored = new();
+            authored.SetKeys(
+                new[] { new GradientColorKey(Color.white, 0f) },
+                new[] { new GradientAlphaKey(0.9f, 0f), new GradientAlphaKey(0f, 1f) }
+            );
+
+            // A four times boost should be cancelled by the time a particle is half faded.
+            Gradient steepened = HdrTorchFlamePresentation.Steepen(authored, 3f);
+
+            Assert.That(steepened.Evaluate(0f).a, Is.EqualTo(0.9f).Within(0.01f));
+            Assert.That(
+                steepened.Evaluate(0.5f).a,
+                Is.EqualTo(authored.Evaluate(0.5f).a / 4f).Within(0.02f),
+                "the faded tail that reads as an orb falls back to its SDR brightness"
+            );
+            Assert.That(steepened.Evaluate(1f).a, Is.EqualTo(0f).Within(0.01f));
+        }
+
+        [Test]
+        public void BoostIsMeasuredAgainstTheAuthoredMaterial()
+        {
+            Material authored = new(Shader.Find("Universal Render Pipeline/Particles/Unlit"));
+            try
+            {
+                authored.SetColor("_BaseColor", new Color(6f, 1.5f, 0.08f, 1f));
+
+                float boost = HdrTorchFlamePresentation.BoostOver(
+                    authored,
+                    new Color(24f, 10f, 1f, 1f)
+                );
+
+                Assert.That(boost, Is.EqualTo(4f).Within(0.01f));
+            }
+            finally
+            {
+                Object.DestroyImmediate(authored);
+            }
+        }
+
         private static ParticleSystemRenderer CreateFlameRenderer(
             Transform parent,
             string name,
