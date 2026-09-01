@@ -39,6 +39,11 @@ Artifacts are written under `build/native/artifacts/`. The macOS build is a
 universal Intel/Apple-silicon app. Windows and macOS retain the native HDR
 configuration; Linux uses Vulkan with OpenGL Core as a fallback.
 
+Pass `--targets` to build a subset, for example `--targets windows`. The
+artifacts directory is cleared first, so it always holds exactly the players
+the last run selected, and `build-info.txt` records that selection. A subset
+that omits macOS does not need a macOS host.
+
 Individual player builds are also available in Unity under
 `Tools > Build > Native`.
 
@@ -56,4 +61,30 @@ The publisher requires the tag to point at the current clean checkout. It
 builds all three players, verifies that the packages came from that exact
 commit, pass their recorded SHA-256 checksums, and are not development builds,
 then creates the GitHub Release with generated notes. Useful options include
-`--draft`, `--prerelease`, `--notes-file <path>`, and `--skip-build`.
+`--draft`, `--prerelease`, `--notes-file <path>`, and `--skip-build`. A tagged
+release must carry all three players.
+
+## Publish the rolling development release
+
+`./scripts/dev-release.sh` maintains one prerelease that is meant to be
+overwritten. It publishes only the Windows player by default:
+
+```bash
+./scripts/dev-release.sh
+```
+
+Each run rebuilds the selected players, force-moves the `nightly` tag to
+HEAD, removes every asset currently attached to the release, and uploads the
+new ones. The release URL and the per-asset download URLs stay the same, so a
+link to the dev build keeps working while the build behind it changes. Publish
+more platforms with `--targets windows,linux`; the assets that platform set no
+longer covers are dropped from the release rather than left behind stale.
+
+The publisher still requires a clean checkout, and requires HEAD to be pushed
+to its origin branch, because the tag must name a commit others can fetch.
+Unlike the tagged release it accepts `--development` players and records that
+in the release notes. `--tag <name>` publishes a different rolling channel, and
+`--skip-build` reuses the already-packaged artifacts.
+
+Do not point this at a tag that a tagged release already uses: the tag is
+force-moved and the assets are replaced.

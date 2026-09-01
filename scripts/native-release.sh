@@ -109,32 +109,22 @@ if [ "$SKIP_BUILD" -eq 0 ]; then
     "$PROJECT_PATH/scripts/native-builds.sh"
 fi
 
-ASSETS=(
-    "$ARTIFACTS_ROOT/BROcoli-windows-x86_64.zip"
-    "$ARTIFACTS_ROOT/BROcoli-macos-universal.zip"
-    "$ARTIFACTS_ROOT/BROcoli-linux-x86_64.tar.gz"
-    "$ARTIFACTS_ROOT/SHA256SUMS"
-    "$ARTIFACTS_ROOT/build-info.txt"
-)
-for asset in "${ASSETS[@]}"; do
-    if [ ! -f "$asset" ]; then
-        echo "native-release: missing artifact '$asset'" >&2
-        exit 1
-    fi
-done
-(
-    cd "$ARTIFACTS_ROOT"
-    shasum -a 256 -c SHA256SUMS
-)
+# shellcheck source=scripts/native-artifacts.sh
+. "$PROJECT_PATH/scripts/native-artifacts.sh"
 
-BUILD_COMMIT="$(awk -F= '$1 == "commit" { print $2 }' "$ARTIFACTS_ROOT/build-info.txt")"
-BUILD_DIRTY="$(awk -F= '$1 == "dirty" { print $2 }' "$ARTIFACTS_ROOT/build-info.txt")"
-BUILD_DEVELOPMENT="$(awk -F= '$1 == "development" { print $2 }' "$ARTIFACTS_ROOT/build-info.txt")"
-if [ "$BUILD_COMMIT" != "$HEAD_COMMIT" ] || [ "$BUILD_DIRTY" != "false" ]; then
-    echo "native-release: artifacts are not from this clean HEAD commit" >&2
+ASSETS=()
+while IFS= read -r asset; do
+    ASSETS+=("$asset")
+done < <(native_artifacts_verify "$ARTIFACTS_ROOT" "$HEAD_COMMIT")
+if [ "${#ASSETS[@]}" -eq 0 ]; then
+    echo "native-release: artifact verification failed" >&2
     exit 1
 fi
-if [ "$BUILD_DEVELOPMENT" != "false" ]; then
+if [ "$(native_artifacts_field "$ARTIFACTS_ROOT" targets)" != "windows,macos,linux" ]; then
+    echo "native-release: a tagged release must contain all three players" >&2
+    exit 1
+fi
+if [ "$(native_artifacts_field "$ARTIFACTS_ROOT" development)" != "false" ]; then
     echo "native-release: refusing to publish development players" >&2
     exit 1
 fi

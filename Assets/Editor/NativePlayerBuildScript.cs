@@ -12,6 +12,8 @@ public sealed class NativePlayerBuildScript : IPreprocessBuildWithReport
 {
     private const string DefaultBuildRoot = "build/native/players";
 
+    private static readonly string[] KnownTargets = { "windows", "macos", "linux" };
+
     public int callbackOrder => -10000;
 
     public void OnPreprocessBuild(BuildReport report)
@@ -24,30 +26,69 @@ public sealed class NativePlayerBuildScript : IPreprocessBuildWithReport
     {
         string root = ReadArgument("-buildOutput") ?? DefaultBuildRoot;
         bool development = HasArgument("-development");
+        string[] selected = ReadSelectedTargets();
         string[] scenes = PrepareBuild();
 
-        BuildPlayer(
-            BuildTarget.StandaloneWindows64,
-            CombinePath(root, "windows/BROcoli.exe"),
-            "Windows HDR10",
-            scenes,
-            development
-        );
-        BuildPlayer(
-            BuildTarget.StandaloneOSX,
-            CombinePath(root, "macos/BROcoli.app"),
-            "macOS Metal HDR",
-            scenes,
-            development
-        );
-        BuildPlayer(
-            BuildTarget.StandaloneLinux64,
-            CombinePath(root, "linux/BROcoli.x86_64"),
-            "Linux",
-            scenes,
-            development
-        );
+        if (Array.IndexOf(selected, "windows") >= 0)
+        {
+            BuildPlayer(
+                BuildTarget.StandaloneWindows64,
+                CombinePath(root, "windows/BROcoli.exe"),
+                "Windows HDR10",
+                scenes,
+                development
+            );
+        }
+        if (Array.IndexOf(selected, "macos") >= 0)
+        {
+            BuildPlayer(
+                BuildTarget.StandaloneOSX,
+                CombinePath(root, "macos/BROcoli.app"),
+                "macOS Metal HDR",
+                scenes,
+                development
+            );
+        }
+        if (Array.IndexOf(selected, "linux") >= 0)
+        {
+            BuildPlayer(
+                BuildTarget.StandaloneLinux64,
+                CombinePath(root, "linux/BROcoli.x86_64"),
+                "Linux",
+                scenes,
+                development
+            );
+        }
     }
+
+    /// <summary>Reads the -buildTargets selection, defaulting to every player.</summary>
+    internal static string[] ParseSelectedTargets(string argument)
+    {
+        if (string.IsNullOrWhiteSpace(argument))
+            return KnownTargets;
+
+        string[] selected = argument
+            .Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Select(name => name.Trim().ToLowerInvariant())
+            .Distinct()
+            .ToArray();
+        if (selected.Length == 0)
+            throw new BuildFailedException("-buildTargets selected no native players.");
+
+        string unknown = selected.FirstOrDefault(name => Array.IndexOf(KnownTargets, name) < 0);
+        if (unknown != null)
+        {
+            throw new BuildFailedException(
+                $"Unknown native build target '{unknown}'. "
+                    + $"Expected one of {string.Join(", ", KnownTargets)}."
+            );
+        }
+
+        return selected;
+    }
+
+    private static string[] ReadSelectedTargets() =>
+        ParseSelectedTargets(ReadArgument("-buildTargets"));
 
     [MenuItem("Tools/Build/Native/Windows HDR10 Player")]
     public static void BuildWindows() =>
