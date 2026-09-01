@@ -1901,15 +1901,14 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 512
   fadeSpeed: 6
-  wallFadeFeatherFraction: 0.12
-  visibleWallBaseFraction: 0.4
+  fadeFeatherFraction: 0.12
+  visibleBaseFraction: 0.4
   targetHeight: 0.65
   flickerReacquireWindow: 0.45
   flickerStabilityHold: 0.65
   minimumPlayerCoverage: 0.8
   minimumEnemyCoverage: 0.05
   releaseDelay: 0.2
-  enemyApproachRadius: 6
 --- !u!1 &777000001
 GameObject:
   m_ObjectHideFlags: 0
@@ -4572,6 +4571,7 @@ MonoBehaviour:
   - {fileID: 8304392093301095946, guid: af3df506950534e24927a868adba4957, type: 3}
   - {fileID: 6457426828032582540, guid: 5f9b17e327df849d1a1126a827b9add9, type: 3}
   wallPrefab: {fileID: 1656019326883635403, guid: cb85b3812063e4ec7ab39daf1e1000ef, type: 3}
+  boundaryShellPrefab: {fileID: 6216682271337829639, guid: d530a92f7be894c05a0d0c0c9e2e71c9, type: 3}
   gateOpenPrefab: {fileID: 8584222620348506169, guid: 6ad6e09ffdc13409e84c2b24c52b09b2, type: 3}
   floorVariantChance: 0.18
 --- !u!4 &1804916125
@@ -6386,7 +6386,6 @@ MonoBehaviour:
   pauseButton: {fileID: 7777770000}
   resumeButton: {fileID: 8888880023}
   mainMenuButton: {fileID: 8888880033}
-  statsText: {fileID: 8888880201}
 --- !u!4 &8888880099
 Transform:
   m_ObjectHideFlags: 0

@@ -63,6 +63,10 @@ namespace BudgetGameDev.Games.Brocoli
         private GameObject wallPrefab;
 
         [SerializeField]
+        [Tooltip("Flat-backed wall used for the outer cliff parapet and its ledge-free courses.")]
+        private GameObject boundaryShellPrefab;
+
+        [SerializeField]
         private GameObject gateOpenPrefab;
 
         [SerializeField, Range(0f, 1f)]

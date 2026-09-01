@@ -108,16 +108,14 @@ namespace BudgetGameDev.Games.Brocoli
         }
 
         /// <summary>
-        /// A knee-high dungeon railing. On the camera-facing side, the same
-        /// modular masonry continues below floor level as a two-course cliff.
-        /// Every piece on a cliff sheds its loose base dressing: there the wall
-        /// model's apron side is the drop, and the rocks scattered on it have
-        /// nothing to stand on (see <see cref="DungeonWallBaseTrim"/>).
+        /// A knee-high dungeon railing. On the camera-facing side, one flat-backed
+        /// variant of the same masonry forms the parapet and continues below floor
+        /// level as a two-course cliff. All three courses share one face, without
+        /// the source wall's apron ledge or a step between the stacked pieces.
         /// </summary>
         private void BuildDungeonRailing(Transform parent, DungeonEdge edge, bool buildCliffFace)
         {
             const float cliffFaceScale = 1.5f;
-            const float lowerCourseOutset = 0.45f;
 
             Transform parapet = new GameObject("Low Dungeon Railing").transform;
             parapet.SetParent(parent, false);
@@ -139,26 +137,38 @@ namespace BudgetGameDev.Games.Brocoli
                     parapet,
                     piece,
                     BoundaryParapetHeightScale,
-                    piece.BaseLift
+                    piece.BaseLift,
+                    name: buildCliffFace ? "DungeonWall - Cliff Parapet" : null,
+                    prefabOverride: buildCliffFace ? boundaryShellPrefab : null
                 );
                 if (!buildCliffFace)
                     continue;
 
-                DungeonWallBaseTrim.RemoveLooseBase(lip);
+                if (boundaryShellPrefab == null)
+                    DungeonWallBaseTrim.RemoveLooseBase(lip);
                 float upperCourseLift =
                     piece.BaseLift - DungeonWallPiece.SlabHeight * cliffFaceScale;
-                DungeonWallBaseTrim.RemoveLooseBase(
-                    InstantiateScaledWall(cliffFace, piece, cliffFaceScale, upperCourseLift)
+                GameObject upperCourse = InstantiateScaledWall(
+                    cliffFace,
+                    piece,
+                    cliffFaceScale,
+                    upperCourseLift,
+                    name: "DungeonWall - Cliff Shell",
+                    prefabOverride: boundaryShellPrefab
                 );
-                DungeonWallBaseTrim.RemoveLooseBase(
-                    InstantiateScaledWall(
-                        cliffFace,
-                        piece,
-                        cliffFaceScale,
-                        upperCourseLift - DungeonWallPiece.SlabHeight * cliffFaceScale,
-                        lowerCourseOutset
-                    )
+                GameObject lowerCourse = InstantiateScaledWall(
+                    cliffFace,
+                    piece,
+                    cliffFaceScale,
+                    upperCourseLift - DungeonWallPiece.SlabHeight * cliffFaceScale,
+                    name: "DungeonWall - Cliff Shell",
+                    prefabOverride: boundaryShellPrefab
                 );
+                if (boundaryShellPrefab == null)
+                {
+                    DungeonWallBaseTrim.RemoveLooseBase(upperCourse);
+                    DungeonWallBaseTrim.RemoveLooseBase(lowerCourse);
+                }
             }
         }
 
@@ -212,16 +222,13 @@ namespace BudgetGameDev.Games.Brocoli
             DungeonWallPiece piece,
             float verticalScale,
             float lift,
-            float outwardOffset = 0f,
-            string name = null
+            string name = null,
+            GameObject prefabOverride = null
         )
         {
-            // Cliff courses step outward away from the playable floor: south
-            // for the camera-facing cliff, west for the side cliffs the yawed
-            // camera sees at the platform's stair-steps.
             GameObject wall = Instantiate(
-                wallPrefab,
-                (piece.PrefabPosition - piece.Normal * outwardOffset).ToWorld(lift),
+                prefabOverride != null ? prefabOverride : wallPrefab,
+                piece.PrefabPosition.ToWorld(lift),
                 piece.AlongX ? Quaternion.identity : Quaternion.Euler(0f, 90f, 0f),
                 parent
             );

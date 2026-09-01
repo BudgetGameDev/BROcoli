@@ -21,6 +21,7 @@ namespace BudgetGameDev.Games.Brocoli.Tests
         public const string PrefabFolder =
             "Packages/com.budgetgamedev.game.brocoli/Prefabs/Dungeon";
         public const string WallPrefabPath = PrefabFolder + "/DungeonWall.prefab";
+        public const string BoundaryShellPrefabPath = PrefabFolder + "/DungeonWallShell.prefab";
         public const string FloorPrefabPath = PrefabFolder + "/DungeonFloor.prefab";
 
         /// <summary>Every prop prefab the project ships, whatever they are.</summary>
@@ -90,6 +91,7 @@ namespace BudgetGameDev.Games.Brocoli.Tests
             DungeonRoomBuilder builder = host.AddComponent<DungeonRoomBuilder>();
             var serialized = new SerializedObject(builder);
             Assign(serialized, "wallPrefab", WallPrefabPath);
+            Assign(serialized, "boundaryShellPrefab", BoundaryShellPrefabPath);
             Assign(serialized, "floorPrefab", FloorPrefabPath);
             serialized.ApplyModifiedProperties();
             return builder;
