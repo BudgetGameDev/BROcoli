@@ -64,14 +64,15 @@ sysinfo.txt
 # Crashlytics generated file
 crashlytics-build.properties
 
-UserSettings/EditorUserSettings.asset
-UserSettings/Layouts/default-2021.dwlt
+# Unity editor preferences, searches, layouts, and play-mode selections are
+# machine-local. Project-wide settings belong under ProjectSettings/ instead.
+/[Uu]ser[Ss]ettings/
 
 *.app/*
 out/*
 *.dwlt
-UserSettings/Layouts/default-6000.dwlt
 .DS_Store
+.idea/
 .ruff_cache/
 .semgrep/
 
