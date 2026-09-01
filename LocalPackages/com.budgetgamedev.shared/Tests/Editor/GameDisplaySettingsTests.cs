@@ -108,12 +108,30 @@ namespace BudgetGameDev.Shared.Tests
         {
             GameDisplaySettings.SetCalibration(725f, 210f, 0.001f);
 
-            bool applied = GameDisplaySettings.TryApplyDetectedCalibrationDefaults(1300f, 250f, 0f);
+            bool applied = GameDisplaySettings.TryUseNativeDisplayCalibration(
+                true,
+                true,
+                true,
+                1300f,
+                250f,
+                0f,
+                450f
+            );
 
             Assert.That(applied, Is.False);
             Assert.That(GameDisplaySettings.PeakBrightnessNits, Is.EqualTo(725f));
             Assert.That(GameDisplaySettings.PaperWhiteNits, Is.EqualTo(210f));
             Assert.That(GameDisplaySettings.UsingSystemCalibrationDefaults, Is.False);
+            Assert.That(GameDisplaySettings.HasDetectedHdrProfile, Is.True);
+            Assert.That(GameDisplaySettings.DetectedPeakBrightnessNits, Is.EqualTo(1300f));
+            Assert.That(GameDisplaySettings.DetectedFullFrameBrightnessNits, Is.EqualTo(450f));
+            Assert.That(GameDisplaySettings.DetectedPaperWhiteNits, Is.EqualTo(250f));
+
+            Assert.That(GameDisplaySettings.ResetToDetectedHdrProfile(), Is.True);
+            Assert.That(GameDisplaySettings.PeakBrightnessNits, Is.EqualTo(1300f));
+            Assert.That(GameDisplaySettings.PaperWhiteNits, Is.EqualTo(250f));
+            Assert.That(GameDisplaySettings.BlackLevelNits, Is.Zero);
+            Assert.That(GameDisplaySettings.UsingSystemCalibrationDefaults, Is.True);
         }
 
         [Test]
@@ -137,6 +155,24 @@ namespace BudgetGameDev.Shared.Tests
 
             Assert.That(GameDisplaySettings.UsingSystemCalibrationDefaults, Is.False);
             Assert.That(PlayerPrefs.GetInt(GameDisplaySettings.SystemCalibrationKey), Is.Zero);
+        }
+
+        [Test]
+        public void SystemCalibrationRefreshesWhenTheDisplayProfileChanges()
+        {
+            GameDisplaySettings.TryApplyDetectedCalibrationDefaults(800f, 200f, 0.001f);
+
+            bool applied = GameDisplaySettings.TryApplyDetectedCalibrationDefaults(
+                1200f,
+                240f,
+                0f
+            );
+
+            Assert.That(applied, Is.True);
+            Assert.That(GameDisplaySettings.PeakBrightnessNits, Is.EqualTo(1200f));
+            Assert.That(GameDisplaySettings.PaperWhiteNits, Is.EqualTo(240f));
+            Assert.That(GameDisplaySettings.BlackLevelNits, Is.Zero);
+            Assert.That(GameDisplaySettings.UsingSystemCalibrationDefaults, Is.True);
         }
 
         [Test]
@@ -219,11 +255,24 @@ namespace BudgetGameDev.Shared.Tests
                 Assert.That(volume.priority, Is.EqualTo(float.MaxValue));
                 Assert.That(volume.enabled, Is.True);
                 Assert.That(volume.profile.TryGet(out Tonemapping tonemapping), Is.True);
-                Assert.That(tonemapping.detectPaperWhite.value, Is.False);
+                Assert.That(volume.profile.TryGet(out ColorAdjustments colorAdjustments), Is.True);
+                Assert.That(tonemapping.mode.value, Is.EqualTo(TonemappingMode.Neutral));
+                Assert.That(
+                    tonemapping.neutralHDRRangeReductionMode.value,
+                    Is.EqualTo(NeutralRangeReductionMode.BT2390)
+                );
+                Assert.That(tonemapping.detectPaperWhite.value, Is.True);
                 Assert.That(tonemapping.paperWhite.value, Is.EqualTo(200f));
                 Assert.That(tonemapping.detectBrightnessLimits.value, Is.False);
                 Assert.That(tonemapping.minNits.value, Is.EqualTo(0.0005f));
                 Assert.That(tonemapping.maxNits.value, Is.EqualTo(600f));
+                Assert.That(colorAdjustments.active, Is.True);
+                Assert.That(colorAdjustments.contrast.value, Is.EqualTo(12f));
+
+                GameDisplaySettings.BeginHdrCalibrationPreview();
+                Assert.That(tonemapping.detectBrightnessLimits.value, Is.True);
+                GameDisplaySettings.EndHdrCalibrationPreview();
+                Assert.That(tonemapping.detectBrightnessLimits.value, Is.False);
 
                 GameDisplaySettings.SetCalibration(775f, 225f, 0.003f);
                 Assert.That(tonemapping.maxNits.value, Is.EqualTo(775f));

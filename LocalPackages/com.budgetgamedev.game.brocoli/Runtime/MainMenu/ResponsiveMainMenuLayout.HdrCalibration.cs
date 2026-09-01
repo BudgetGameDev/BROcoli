@@ -11,11 +11,8 @@ namespace BudgetGameDev.Games.Brocoli
         internal enum HdrCalibrationStep
         {
             PeakBrightness,
-            PaperWhite,
             BlackLevel,
         }
-
-        private const int HdrCalibrationStepCount = 3;
 
         private RectTransform hdrCalibrationPanel;
         private TMP_Text hdrCalibrationTitle;
@@ -27,6 +24,7 @@ namespace BudgetGameDev.Games.Brocoli
         private Image hdrPreviewReference;
         private Image hdrPreviewMark;
         private Slider hdrCalibrationSlider;
+        private Button hdrCalibrationSystemButton;
         private Button hdrCalibrationBackButton;
         private Button hdrCalibrationNextButton;
         private Button[] hdrCalibrationActionButtons;
@@ -37,23 +35,25 @@ namespace BudgetGameDev.Games.Brocoli
         private float lastHdrCalibrationNavTime;
         private bool suppressHdrCalibrationCallback;
         private bool initialHdrEnabled;
-        private float initialPeakBrightness;
-        private float initialPaperWhite;
-        private float initialBlackLevel;
+        private float pendingPeakBrightness;
+        private float pendingBlackLevel;
 
         public static bool HdrCalibrationOpen { get; private set; }
 
         private void OpenHdrCalibration()
         {
             ProceduralUIAudio.PlaySelect();
+            hdrCalibrationReturnToDetails = HdrDetailsOpen;
             initialHdrEnabled = GameDisplaySettings.HdrEnabled;
-            initialPeakBrightness = GameDisplaySettings.PeakBrightnessNits;
-            initialPaperWhite = GameDisplaySettings.PaperWhiteNits;
-            initialBlackLevel = GameDisplaySettings.BlackLevelNits;
+            pendingPeakBrightness = GameDisplaySettings.PeakBrightnessNits;
+            pendingBlackLevel = GameDisplaySettings.BlackLevelNits;
             GameDisplaySettings.SetHdrEnabled(true);
+            GameDisplaySettings.BeginHdrCalibrationPreview();
 
             HdrCalibrationOpen = true;
+            HdrDetailsOpen = false;
             settingsPanel.gameObject.SetActive(false);
+            hdrDetailsPanel.gameObject.SetActive(false);
             hdrCalibrationPanel.gameObject.SetActive(true);
             SetHdrCalibrationStep(HdrCalibrationStep.PeakBrightness);
             SelectHdrCalibrationControl(0, false);
@@ -65,25 +65,56 @@ namespace BudgetGameDev.Games.Brocoli
             if (!HdrCalibrationOpen)
                 return;
 
-            if (!save)
+            GameDisplaySettings.EndHdrCalibrationPreview();
+            if (save)
             {
                 GameDisplaySettings.SetCalibration(
-                    initialPeakBrightness,
-                    initialPaperWhite,
-                    initialBlackLevel
+                    pendingPeakBrightness,
+                    GameDisplaySettings.PaperWhiteNits,
+                    pendingBlackLevel
                 );
+            }
+            else
+            {
                 GameDisplaySettings.SetHdrEnabled(initialHdrEnabled);
             }
 
+            DismissHdrCalibrationPanel();
+        }
+
+        private void ResetHdrCalibrationToSystem()
+        {
+            if (!HdrCalibrationOpen)
+                return;
+
+            ProceduralUIAudio.PlaySelect();
+            GameDisplaySettings.EndHdrCalibrationPreview();
+            GameDisplaySettings.ResetToSystemCalibration();
+            DismissHdrCalibrationPanel();
+        }
+
+        private void DismissHdrCalibrationPanel()
+        {
             HdrCalibrationOpen = false;
             hdrCalibrationPanel.gameObject.SetActive(false);
             if (SettingsOpen)
             {
-                settingsPanel.gameObject.SetActive(true);
-                SyncHdrControl();
-                int index = System.Array.IndexOf(settingsSelectables, hdrCalibrationButton);
-                SelectSetting(Mathf.Max(0, index), false);
+                if (hdrCalibrationReturnToDetails)
+                {
+                    HdrDetailsOpen = true;
+                    hdrDetailsPanel.gameObject.SetActive(true);
+                    SyncHdrDetails();
+                    SelectHdrDetailsControl(2, false);
+                }
+                else
+                {
+                    settingsPanel.gameObject.SetActive(true);
+                    SyncHdrControl();
+                    int index = System.Array.IndexOf(settingsSelectables, hdrCalibrationButton);
+                    SelectSetting(Mathf.Max(0, index), false);
+                }
             }
+            hdrCalibrationReturnToDetails = false;
             ApplyResponsiveLayout(true);
         }
 
@@ -118,40 +149,27 @@ namespace BudgetGameDev.Games.Brocoli
             switch (step)
             {
                 case HdrCalibrationStep.PeakBrightness:
-                    hdrCalibrationStepLabel.text = "STEP 1 OF 3  •  PEAK BRIGHTNESS";
+                    hdrCalibrationStepLabel.text = "STEP 1 OF 2  •  MAXIMUM LUMINANCE";
                     hdrCalibrationInstructions.text =
-                        "Increase the value until the center square is only just distinguishable "
-                        + "from the surrounding bright patch.";
+                        "Sets the brightest highlight your display can reproduce. Move right "
+                        + "until the center square disappears, then move left one step so it is "
+                        + "barely visible.";
                     hdrCalibrationSlider.minValue = GameDisplaySettings.MinimumPeakBrightnessNits;
                     hdrCalibrationSlider.maxValue = GameDisplaySettings.MaximumPeakBrightnessNits;
                     hdrCalibrationSlider.wholeNumbers = true;
-                    hdrCalibrationSlider.SetValueWithoutNotify(
-                        GameDisplaySettings.PeakBrightnessNits
-                    );
-                    break;
-                case HdrCalibrationStep.PaperWhite:
-                    hdrCalibrationStepLabel.text = "STEP 2 OF 3  •  PAPER WHITE";
-                    hdrCalibrationInstructions.text =
-                        "Adjust until the white patch is comfortably bright for menus and text, "
-                        + "without looking dull or glaring.";
-                    hdrCalibrationSlider.minValue = GameDisplaySettings.MinimumPaperWhiteNits;
-                    hdrCalibrationSlider.maxValue = Mathf.Min(
-                        GameDisplaySettings.MaximumPaperWhiteNits,
-                        GameDisplaySettings.PeakBrightnessNits
-                    );
-                    hdrCalibrationSlider.wholeNumbers = true;
-                    hdrCalibrationSlider.SetValueWithoutNotify(GameDisplaySettings.PaperWhiteNits);
+                    hdrCalibrationSlider.SetValueWithoutNotify(pendingPeakBrightness);
                     break;
                 default:
-                    hdrCalibrationStepLabel.text = "STEP 3 OF 3  •  BLACK LEVEL";
+                    hdrCalibrationStepLabel.text = "STEP 2 OF 2  •  MINIMUM LUMINANCE";
                     hdrCalibrationInstructions.text =
-                        "Raise the value from zero until the center square is barely visible, "
-                        + "then stop before the background looks gray.";
+                        "Sets the darkest shadow your display can distinguish. Start at zero and "
+                        + "move right until the center square is barely visible while the "
+                        + "surrounding area still looks black.";
                     hdrCalibrationSlider.minValue = 0f;
                     hdrCalibrationSlider.maxValue = 1f;
                     hdrCalibrationSlider.wholeNumbers = false;
                     hdrCalibrationSlider.SetValueWithoutNotify(
-                        BlackLevelToSlider(GameDisplaySettings.BlackLevelNits)
+                        BlackLevelToSlider(pendingBlackLevel)
                     );
                     break;
             }
@@ -171,13 +189,14 @@ namespace BudgetGameDev.Games.Brocoli
             switch (hdrCalibrationStep)
             {
                 case HdrCalibrationStep.PeakBrightness:
-                    GameDisplaySettings.SetPeakBrightness(Mathf.Round(value / 25f) * 25f);
-                    break;
-                case HdrCalibrationStep.PaperWhite:
-                    GameDisplaySettings.SetPaperWhite(Mathf.Round(value / 5f) * 5f);
+                    pendingPeakBrightness = Mathf.Clamp(
+                        Mathf.Round(value / 25f) * 25f,
+                        GameDisplaySettings.MinimumPeakBrightnessNits,
+                        GameDisplaySettings.MaximumPeakBrightnessNits
+                    );
                     break;
                 default:
-                    GameDisplaySettings.SetBlackLevel(SliderToBlackLevel(value));
+                    pendingBlackLevel = SliderToBlackLevel(value);
                     break;
             }
             suppressHdrCalibrationCallback = true;
@@ -185,13 +204,10 @@ namespace BudgetGameDev.Games.Brocoli
             switch (hdrCalibrationStep)
             {
                 case HdrCalibrationStep.PeakBrightness:
-                    sliderValue = GameDisplaySettings.PeakBrightnessNits;
-                    break;
-                case HdrCalibrationStep.PaperWhite:
-                    sliderValue = GameDisplaySettings.PaperWhiteNits;
+                    sliderValue = pendingPeakBrightness;
                     break;
                 default:
-                    sliderValue = BlackLevelToSlider(GameDisplaySettings.BlackLevelNits);
+                    sliderValue = BlackLevelToSlider(pendingBlackLevel);
                     break;
             }
             hdrCalibrationSlider.SetValueWithoutNotify(sliderValue);
@@ -210,24 +226,16 @@ namespace BudgetGameDev.Games.Brocoli
             switch (hdrCalibrationStep)
             {
                 case HdrCalibrationStep.PeakBrightness:
-                    hdrCalibrationValue.text =
-                        $"{Mathf.RoundToInt(GameDisplaySettings.PeakBrightnessNits)} NITS";
+                    hdrCalibrationValue.text = $"{Mathf.RoundToInt(pendingPeakBrightness)} NITS";
                     backgroundNits = 0f;
-                    referenceNits = GameDisplaySettings.PeakBrightnessNits * 0.9f;
-                    markNits = GameDisplaySettings.PeakBrightnessNits;
-                    break;
-                case HdrCalibrationStep.PaperWhite:
-                    hdrCalibrationValue.text =
-                        $"{Mathf.RoundToInt(GameDisplaySettings.PaperWhiteNits)} NITS";
-                    backgroundNits = GameDisplaySettings.PaperWhiteNits * 0.08f;
-                    referenceNits = GameDisplaySettings.PaperWhiteNits;
-                    markNits = GameDisplaySettings.PaperWhiteNits * 0.8f;
+                    referenceNits = pendingPeakBrightness * 0.9f;
+                    markNits = pendingPeakBrightness;
                     break;
                 default:
-                    hdrCalibrationValue.text = $"{GameDisplaySettings.BlackLevelNits:0.0000} NITS";
+                    hdrCalibrationValue.text = $"{pendingBlackLevel:0.0000} NITS";
                     backgroundNits = 0f;
                     referenceNits = 0f;
-                    markNits = Mathf.Max(0.0001f, GameDisplaySettings.BlackLevelNits);
+                    markNits = pendingBlackLevel;
                     break;
             }
 

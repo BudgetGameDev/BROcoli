@@ -122,6 +122,7 @@ namespace BudgetGameDev.Games.Brocoli
             StyleButtons(settingsActionButtons);
             StyleButton(hdrToggleButton, false, materialFont);
             StyleButton(hdrCalibrationButton, false, materialFont);
+            StyleButtons(hdrDetailsActionButtons);
             StyleButtons(hdrCalibrationActionButtons);
             StyleButtons(creditsActionButtons);
             StyleButtons(savesActionButtons);

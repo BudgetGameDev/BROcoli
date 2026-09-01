@@ -1,4 +1,5 @@
 using BudgetGameDev.Shared;
+using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
@@ -7,6 +8,27 @@ namespace BudgetGameDev.Games.Brocoli.Tests
 {
     public sealed partial class RuntimeSceneSmokeTests
     {
+        private static void ExerciseHdrDetails(ResponsiveMainMenuLayout layout)
+        {
+            if (!ResponsiveMainMenuLayout.SettingsOpen)
+                InvokeHierarchy(layout, "OpenSettings");
+            InvokeHierarchy(layout, "OpenHdrDetails");
+            InvokeHierarchy(layout, "SyncHdrDetails");
+            InvokeHierarchy(layout, "UseHdrProfileValues");
+            InvokeHierarchy(layout, "UseEdidValues");
+            SetHierarchyField(layout, "selectedHdrDetailsControl", 0);
+            SetHierarchyField(layout, "lastHdrDetailsNavTime", -10f);
+            layout.ProcessHdrDetailsInput(false, 0f, 1f, false, Time.unscaledTime);
+            SetHierarchyField(layout, "lastHdrDetailsNavTime", -10f);
+            layout.ProcessHdrDetailsInput(false, -1f, 0f, false, Time.unscaledTime + 1f);
+            InvokeHierarchy(layout, "OpenHdrCalibration");
+            InvokeHierarchy(layout, "CloseHdrCalibration", false);
+            Assert.That(ResponsiveMainMenuLayout.HdrDetailsOpen, Is.True);
+            ResetMenuInputGate();
+            layout.ProcessHdrDetailsInput(true, 0f, 0f, false, Time.unscaledTime + 2f);
+            Assert.That(ResponsiveMainMenuLayout.HdrDetailsOpen, Is.False);
+        }
+
         private static void ExerciseHdrCalibration(ResponsiveMainMenuLayout layout)
         {
             if (!ResponsiveMainMenuLayout.SettingsOpen)
@@ -33,7 +55,6 @@ namespace BudgetGameDev.Games.Brocoli.Tests
                 ResponsiveMainMenuLayout.HdrCalibrationStep step in new[]
                 {
                     ResponsiveMainMenuLayout.HdrCalibrationStep.PeakBrightness,
-                    ResponsiveMainMenuLayout.HdrCalibrationStep.PaperWhite,
                     ResponsiveMainMenuLayout.HdrCalibrationStep.BlackLevel,
                 }
             )
@@ -42,7 +63,6 @@ namespace BudgetGameDev.Games.Brocoli.Tests
                 float value = step switch
                 {
                     ResponsiveMainMenuLayout.HdrCalibrationStep.PeakBrightness => 725f,
-                    ResponsiveMainMenuLayout.HdrCalibrationStep.PaperWhite => 225f,
                     _ => 0.4f,
                 };
                 InvokeHierarchy(layout, "OnHdrCalibrationSliderChanged", value);
@@ -58,7 +78,7 @@ namespace BudgetGameDev.Games.Brocoli.Tests
             InvokeHierarchy(
                 layout,
                 "SetHdrCalibrationStep",
-                ResponsiveMainMenuLayout.HdrCalibrationStep.PaperWhite
+                ResponsiveMainMenuLayout.HdrCalibrationStep.BlackLevel
             );
             InvokeHierarchy(layout, "PreviousHdrCalibrationStep");
             InvokeHierarchy(layout, "NextHdrCalibrationStep");
@@ -66,16 +86,12 @@ namespace BudgetGameDev.Games.Brocoli.Tests
             SetHierarchyField(layout, "selectedHdrCalibrationControl", 0);
             ResetMenuInputGate();
             layout.ProcessHdrCalibrationInput(false, 0f, 0f, true, Time.unscaledTime + 1f);
+
+            InvokeHierarchy(layout, "OpenHdrCalibration");
             SetHierarchyField(layout, "selectedHdrCalibrationControl", 1);
             ResetMenuInputGate();
             layout.ProcessHdrCalibrationInput(false, 0f, 0f, true, Time.unscaledTime + 2f);
 
-            InvokeHierarchy(
-                layout,
-                "SetHdrCalibrationStep",
-                ResponsiveMainMenuLayout.HdrCalibrationStep.BlackLevel
-            );
-            InvokeHierarchy(layout, "NextHdrCalibrationStep");
             InvokeHierarchy(layout, "CloseHdrCalibration", true);
 
             InvokeHierarchy(layout, "OpenHdrCalibration");

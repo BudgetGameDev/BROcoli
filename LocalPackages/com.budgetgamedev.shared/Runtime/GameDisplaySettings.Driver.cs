@@ -15,6 +15,7 @@ namespace BudgetGameDev.Shared
             private Volume volume;
             private VolumeProfile profile;
             private Tonemapping tonemapping;
+            private ColorAdjustments colorAdjustments;
             private string lastStatus;
             private float nextStatusPoll;
 
@@ -109,6 +110,7 @@ namespace BudgetGameDev.Shared
                 profile = ScriptableObject.CreateInstance<VolumeProfile>();
                 profile.hideFlags = HideFlags.HideAndDontSave;
                 tonemapping = profile.Add<Tonemapping>();
+                colorAdjustments = profile.Add<ColorAdjustments>();
                 volume.profile = profile;
             }
 
@@ -119,11 +121,26 @@ namespace BudgetGameDev.Shared
 
                 volume.enabled = enabled;
                 tonemapping.active = enabled;
-                tonemapping.detectPaperWhite.Override(false);
+                tonemapping.mode.Override(TonemappingMode.Neutral);
+                tonemapping.neutralHDRRangeReductionMode.Override(
+                    NeutralRangeReductionMode.BT2390
+                );
+                tonemapping.hueShiftAmount.Override(0f);
+                // Paper white is an OS/display preference, not a content capability. Keep it
+                // automatic and calibrate only the physical black and peak limits.
+                tonemapping.detectPaperWhite.Override(true);
                 tonemapping.paperWhite.Override(PaperWhiteNits);
-                tonemapping.detectBrightnessLimits.Override(false);
+                tonemapping.detectBrightnessLimits.Override(
+                    calibrationPreviewActive || UsingSystemCalibrationDefaults
+                );
                 tonemapping.minNits.Override(BlackLevelNits);
                 tonemapping.maxNits.Override(PeakBrightnessNits);
+
+                // SDR uses the scene's ACES curve. A small HDR-only contrast expansion keeps
+                // midtones from looking washed out after switching to the calibratable Neutral
+                // output path without lifting the whole image or sacrificing highlight headroom.
+                colorAdjustments.active = enabled;
+                colorAdjustments.contrast.Override(12f);
             }
         }
     }

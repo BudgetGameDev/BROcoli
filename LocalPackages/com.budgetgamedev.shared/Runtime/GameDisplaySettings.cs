@@ -32,10 +32,16 @@ namespace BudgetGameDev.Shared
         private static bool valuesLoaded;
         private static bool hasSavedCalibration;
         private static bool usingSystemCalibrationDefaults;
+        private static bool calibrationPreviewActive;
+        private static bool hasDetectedHdrProfile;
         private static bool hdrEnabled;
         private static float peakBrightnessNits;
         private static float paperWhiteNits;
         private static float blackLevelNits;
+        private static float detectedPeakBrightnessNits;
+        private static float detectedFullFrameBrightnessNits;
+        private static float detectedPaperWhiteNits;
+        private static float detectedBlackLevelNits;
 
         public static event Action ValuesChanged;
 
@@ -104,6 +110,16 @@ namespace BudgetGameDev.Shared
             }
         }
 
+        public static bool HasDetectedHdrProfile => hasDetectedHdrProfile;
+
+        public static float DetectedPeakBrightnessNits => detectedPeakBrightnessNits;
+
+        public static float DetectedFullFrameBrightnessNits => detectedFullFrameBrightnessNits;
+
+        public static float DetectedPaperWhiteNits => detectedPaperWhiteNits;
+
+        public static float DetectedBlackLevelNits => detectedBlackLevelNits;
+
         public static string HdrStatus
         {
             get =>
@@ -127,6 +143,12 @@ namespace BudgetGameDev.Shared
         {
             instance = null;
             valuesLoaded = false;
+            calibrationPreviewActive = false;
+            hasDetectedHdrProfile = false;
+            detectedPeakBrightnessNits = 0f;
+            detectedFullFrameBrightnessNits = 0f;
+            detectedPaperWhiteNits = 0f;
+            detectedBlackLevelNits = 0f;
             ValuesChanged = null;
         }
 
@@ -198,7 +220,31 @@ namespace BudgetGameDev.Shared
         public static void SetBlackLevel(float nits) =>
             SetCalibration(PeakBrightnessNits, PaperWhiteNits, nits);
 
+        public static bool ResetToDetectedHdrProfile()
+        {
+            LoadValues();
+            if (!hasDetectedHdrProfile)
+                return false;
+
+            peakBrightnessNits = detectedPeakBrightnessNits;
+            paperWhiteNits = detectedPaperWhiteNits;
+            blackLevelNits = detectedBlackLevelNits;
+            hasSavedCalibration = true;
+            usingSystemCalibrationDefaults = true;
+            SaveAndApply();
+            return true;
+        }
+
         public static void ResetToDefault()
+        {
+            ResetToSystemCalibration();
+        }
+
+        /// <summary>
+        /// Discards the player's manual HDR limits and returns to the values reported by the
+        /// operating system and display. Defaults are used only when the platform reports none.
+        /// </summary>
+        public static void ResetToSystemCalibration()
         {
             LoadValues();
             hdrEnabled = DefaultHdrEnabled;
@@ -216,6 +262,28 @@ namespace BudgetGameDev.Shared
                 SaveAndApply();
         }
 
+        /// <summary>
+        /// Temporarily lets URP use the display's native luminance limits while calibration
+        /// patterns are shown, so moving a slider changes the pattern instead of its tone map.
+        /// </summary>
+        public static void BeginHdrCalibrationPreview()
+        {
+            if (calibrationPreviewActive)
+                return;
+
+            calibrationPreviewActive = true;
+            instance?.Apply();
+        }
+
+        public static void EndHdrCalibrationPreview()
+        {
+            if (!calibrationPreviewActive)
+                return;
+
+            calibrationPreviewActive = false;
+            instance?.Apply();
+        }
+
         internal static bool TryApplyDetectedCalibrationDefaults(
             float peakNits,
             float paperWhite,
@@ -224,7 +292,7 @@ namespace BudgetGameDev.Shared
         {
             LoadValues();
             if (
-                hasSavedCalibration
+                (hasSavedCalibration && !usingSystemCalibrationDefaults)
                 || !TryNormalizeDetectedCalibration(
                     peakNits,
                     paperWhite,
@@ -236,12 +304,19 @@ namespace BudgetGameDev.Shared
             )
                 return false;
 
+            bool changed =
+                !Mathf.Approximately(peakBrightnessNits, peakNits)
+                || !Mathf.Approximately(paperWhiteNits, paperWhite)
+                || !Mathf.Approximately(blackLevelNits, blackLevel)
+                || !hasSavedCalibration
+                || !usingSystemCalibrationDefaults;
             peakBrightnessNits = peakNits;
             paperWhiteNits = paperWhite;
             blackLevelNits = blackLevel;
             hasSavedCalibration = true;
             usingSystemCalibrationDefaults = true;
-            SaveAndApply();
+            if (changed)
+                SaveAndApply();
             return true;
         }
 

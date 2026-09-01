@@ -100,9 +100,6 @@ namespace BudgetGameDev.Games.Brocoli
                         case HdrCalibrationStep.PeakBrightness:
                             hdrCalibrationSlider.value += direction * 25f;
                             break;
-                        case HdrCalibrationStep.PaperWhite:
-                            hdrCalibrationSlider.value += direction * 5f;
-                            break;
                         default:
                             hdrCalibrationSlider.value += direction * 0.02f;
                             break;

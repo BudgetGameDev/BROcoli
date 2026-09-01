@@ -55,7 +55,8 @@ namespace BudgetGameDev.Games.Brocoli
             hdrCalibrationInstructions.fontSize = narrow ? 11f : (compact ? 12f : 14f);
             cursor -= instructionsHeight + gap;
 
-            float reservedBelow = valueHeight + sliderHeight + handleSize + buttonHeight + gap * 4f;
+            float reservedBelow =
+                valueHeight + sliderHeight + handleSize + buttonHeight * 2f + gap * 5f;
             float previewHeight = Mathf.Clamp(
                 cursor - bottom - reservedBelow,
                 compact ? 100f : 130f,
@@ -88,27 +89,27 @@ namespace BudgetGameDev.Games.Brocoli
             Stretch(handleArea);
             (handleArea.GetChild(0) as RectTransform).sizeDelta = Vector2.one * handleSize;
 
+            float systemButtonY = bottom + buttonHeight + gap + buttonHeight * 0.5f;
+            SetCenteredRect(
+                hdrCalibrationSystemButton.GetComponent<RectTransform>(),
+                width,
+                buttonHeight,
+                systemButtonY
+            );
+
             float buttonWidth = (width - gap) * 0.5f;
             float buttonY = bottom + buttonHeight * 0.5f;
-            SetCenteredRect(
-                hdrCalibrationBackButton.GetComponent<RectTransform>(),
-                buttonWidth,
-                buttonHeight,
-                buttonY
-            );
-            SetCenteredRect(
-                hdrCalibrationNextButton.GetComponent<RectTransform>(),
-                buttonWidth,
-                buttonHeight,
-                buttonY
-            );
-            hdrCalibrationBackButton.transform.localPosition +=
-                Vector3.left * (buttonWidth + gap) * 0.5f;
-            hdrCalibrationNextButton.transform.localPosition +=
-                Vector3.right * (buttonWidth + gap) * 0.5f;
+            RectTransform backRect = hdrCalibrationBackButton.GetComponent<RectTransform>();
+            RectTransform nextRect = hdrCalibrationNextButton.GetComponent<RectTransform>();
+            SetCenteredRect(backRect, buttonWidth, buttonHeight, buttonY);
+            SetCenteredRect(nextRect, buttonWidth, buttonHeight, buttonY);
+            float buttonOffset = (buttonWidth + gap) * 0.5f;
+            backRect.anchoredPosition = new Vector2(-buttonOffset, buttonY);
+            nextRect.anchoredPosition = new Vector2(buttonOffset, buttonY);
             foreach (
                 ButtonLabelSize size in new[]
                 {
+                    new ButtonLabelSize(hdrCalibrationSystemButton, narrow ? 12f : 15f),
                     new ButtonLabelSize(hdrCalibrationBackButton, narrow ? 14f : 17f),
                     new ButtonLabelSize(hdrCalibrationNextButton, narrow ? 14f : 17f),
                 }
@@ -122,7 +123,6 @@ namespace BudgetGameDev.Games.Brocoli
 
         private void LayoutHdrCalibrationPreview(float height, bool narrow)
         {
-            Stretch(hdrPreviewBackground.rectTransform);
             float referenceWidth = hdrCalibrationPreview.rect.width * (narrow ? 0.66f : 0.58f);
             float referenceHeight = height * 0.65f;
             SetCenteredRect(hdrPreviewReference.rectTransform, referenceWidth, referenceHeight, 0f);

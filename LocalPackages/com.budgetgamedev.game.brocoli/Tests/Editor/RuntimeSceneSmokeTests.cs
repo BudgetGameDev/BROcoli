@@ -96,6 +96,7 @@ namespace BudgetGameDev.Games.Brocoli.Tests
             Assert.That(layout, Is.Not.Null);
             ExerciseMainMenuInput(layout);
             ExerciseSettingsInput(layout);
+            ExerciseHdrDetails(layout);
             ExerciseHdrCalibration(layout);
             Invoke(layout, "OnRectTransformDimensionsChange");
             Invoke(layout, "OpenSettings");

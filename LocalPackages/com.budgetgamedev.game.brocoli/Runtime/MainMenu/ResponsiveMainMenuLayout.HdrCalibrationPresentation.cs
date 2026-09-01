@@ -56,6 +56,12 @@ namespace BudgetGameDev.Games.Brocoli
             hdrCalibrationSlider = CreateHdrCalibrationSlider();
             hdrCalibrationSlider.onValueChanged.AddListener(OnHdrCalibrationSliderChanged);
 
+            hdrCalibrationSystemButton = CreateButton(
+                "HdrCalibrationSystemButton",
+                hdrCalibrationPanel,
+                "RESET TO SYSTEM DETECTED"
+            );
+            hdrCalibrationSystemButton.onClick.AddListener(ResetHdrCalibrationToSystem);
             hdrCalibrationBackButton = CreateButton(
                 "HdrCalibrationBackButton",
                 hdrCalibrationPanel,
@@ -70,12 +76,14 @@ namespace BudgetGameDev.Games.Brocoli
             hdrCalibrationNextButton.onClick.AddListener(NextHdrCalibrationStep);
             hdrCalibrationActionButtons = new[]
             {
+                hdrCalibrationSystemButton,
                 hdrCalibrationBackButton,
                 hdrCalibrationNextButton,
             };
             hdrCalibrationSelectables = new Selectable[]
             {
                 hdrCalibrationSlider,
+                hdrCalibrationSystemButton,
                 hdrCalibrationBackButton,
                 hdrCalibrationNextButton,
             };

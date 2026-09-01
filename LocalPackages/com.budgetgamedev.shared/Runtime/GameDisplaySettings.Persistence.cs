@@ -73,13 +73,22 @@ namespace BudgetGameDev.Shared
 
         private static bool TryUseNativeDisplayCalibration()
         {
+            if (
+                !IsNativeHdrPlayer
+                || (!HDROutputSettings.main.available && !HDROutputSettings.main.active)
+            )
+            {
+                return false;
+            }
+
             return TryUseNativeDisplayCalibration(
-                IsNativeHdrPlayer,
+                true,
                 HDROutputSettings.main.available,
                 HDROutputSettings.main.active,
                 HDROutputSettings.main.maxToneMapLuminance,
                 HDROutputSettings.main.paperWhiteNits,
-                HDROutputSettings.main.minToneMapLuminance
+                HDROutputSettings.main.minToneMapLuminance,
+                HDROutputSettings.main.maxFullFrameToneMapLuminance
             );
         }
 
@@ -89,14 +98,56 @@ namespace BudgetGameDev.Shared
             bool active,
             float peakNits,
             float paperWhite,
-            float blackLevel
+            float blackLevel,
+            float fullFrameNits = float.NaN
         )
         {
             LoadValues();
-            if (hasSavedCalibration || !nativeHdrPlayer || (!available && !active))
+            if (
+                !nativeHdrPlayer
+                || (!available && !active)
+                || !TryNormalizeDetectedCalibration(
+                    peakNits,
+                    paperWhite,
+                    blackLevel,
+                    out float normalizedPeak,
+                    out float normalizedPaperWhite,
+                    out float normalizedBlack
+                )
+            )
                 return false;
 
-            return TryApplyDetectedCalibrationDefaults(peakNits, paperWhite, blackLevel);
+            float normalizedFullFrame =
+                float.IsFinite(fullFrameNits) && fullFrameNits > 0f
+                    ? SanitizePeakBrightness(fullFrameNits)
+                    : normalizedPeak;
+            bool detectedChanged =
+                !hasDetectedHdrProfile
+                || !Mathf.Approximately(detectedPeakBrightnessNits, normalizedPeak)
+                || !Mathf.Approximately(
+                    detectedFullFrameBrightnessNits,
+                    normalizedFullFrame
+                )
+                || !Mathf.Approximately(detectedPaperWhiteNits, normalizedPaperWhite)
+                || !Mathf.Approximately(detectedBlackLevelNits, normalizedBlack);
+            hasDetectedHdrProfile = true;
+            detectedPeakBrightnessNits = normalizedPeak;
+            detectedFullFrameBrightnessNits = normalizedFullFrame;
+            detectedPaperWhiteNits = normalizedPaperWhite;
+            detectedBlackLevelNits = normalizedBlack;
+
+            if (hasSavedCalibration && !usingSystemCalibrationDefaults)
+            {
+                if (detectedChanged)
+                    ValuesChanged?.Invoke();
+                return false;
+            }
+
+            return TryApplyDetectedCalibrationDefaults(
+                normalizedPeak,
+                normalizedPaperWhite,
+                normalizedBlack
+            );
         }
     }
 }
