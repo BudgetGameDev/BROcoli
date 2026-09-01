@@ -252,25 +252,17 @@ namespace BudgetGameDev.Shared.Tests
                 Assert.That(volume.priority, Is.EqualTo(float.MaxValue));
                 Assert.That(volume.enabled, Is.True);
                 Assert.That(volume.profile.TryGet(out Tonemapping tonemapping), Is.True);
-                Assert.That(volume.profile.TryGet(out ColorAdjustments colorAdjustments), Is.True);
                 Assert.That(volume.profile.TryGet(out Bloom bloom), Is.True);
-                Assert.That(tonemapping.mode.value, Is.EqualTo(TonemappingMode.Neutral));
-                Assert.That(
-                    tonemapping.neutralHDRRangeReductionMode.value,
-                    Is.EqualTo(NeutralRangeReductionMode.BT2390)
-                );
-                Assert.That(tonemapping.detectPaperWhite.value, Is.True);
+                Assert.That(volume.profile.TryGet(out ColorAdjustments _), Is.False);
+                Assert.That(tonemapping.mode.value, Is.EqualTo(TonemappingMode.ACES));
+                Assert.That(tonemapping.acesPreset.value, Is.EqualTo(HDRACESPreset.ACES1000Nits));
+                Assert.That(tonemapping.detectPaperWhite.value, Is.False);
                 Assert.That(tonemapping.paperWhite.value, Is.EqualTo(200f));
                 Assert.That(tonemapping.detectBrightnessLimits.value, Is.False);
                 Assert.That(tonemapping.minNits.value, Is.EqualTo(0.0005f));
                 Assert.That(tonemapping.maxNits.value, Is.EqualTo(600f));
-                Assert.That(colorAdjustments.active, Is.True);
-                Assert.That(colorAdjustments.postExposure.value, Is.EqualTo(-0.65f));
-                Assert.That(colorAdjustments.contrast.value, Is.EqualTo(8f));
                 Assert.That(bloom.active, Is.True);
-                Assert.That(bloom.threshold.value, Is.EqualTo(4f));
-                Assert.That(bloom.intensity.value, Is.EqualTo(0.2f));
-                Assert.That(bloom.scatter.value, Is.EqualTo(0.2f));
+                Assert.That(bloom.intensity.value, Is.EqualTo(0f));
 
                 GameDisplaySettings.BeginHdrCalibrationPreview();
                 Assert.That(tonemapping.detectBrightnessLimits.value, Is.True);
@@ -281,6 +273,14 @@ namespace BudgetGameDev.Shared.Tests
                 Assert.That(tonemapping.maxNits.value, Is.EqualTo(775f));
                 Assert.That(tonemapping.paperWhite.value, Is.EqualTo(225f));
                 Assert.That(tonemapping.minNits.value, Is.EqualTo(0.003f));
+                Assert.That(tonemapping.acesPreset.value, Is.EqualTo(HDRACESPreset.ACES1000Nits));
+
+                GameDisplaySettings.SetCalibration(1200f, 225f, 0.003f);
+                Assert.That(
+                    tonemapping.acesPreset.value,
+                    Is.EqualTo(HDRACESPreset.ACES2000Nits),
+                    "a peak the 1000 nit shoulder cannot reach moves up a preset"
+                );
                 GameDisplaySettings.SetHdrEnabled(false);
                 Assert.That(volume.enabled, Is.False);
             }

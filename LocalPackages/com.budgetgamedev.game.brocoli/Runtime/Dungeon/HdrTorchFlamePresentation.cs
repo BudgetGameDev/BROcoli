@@ -4,8 +4,10 @@ using UnityEngine;
 namespace BudgetGameDev.Games.Brocoli
 {
     /// <summary>
-    /// Reserves HDR highlight energy for the visible flame silhouette. The shared materials
-    /// retain their authored SDR values; HDR only boosts the compact primary particle layer.
+    /// Drives the visible flame silhouette to the display's calibrated peak brightness while HDR
+    /// output is active. The shared materials retain their authored SDR values; only the compact
+    /// primary particle layer is re-authored, so the torch is the one thing in the dungeon that
+    /// spends the display's highlight range.
     /// </summary>
     [DisallowMultipleComponent]
     internal sealed class HdrTorchFlamePresentation : MonoBehaviour
@@ -14,7 +16,19 @@ namespace BudgetGameDev.Games.Brocoli
 
         private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
         private static readonly int ColorId = Shader.PropertyToID("_Color");
-        private static readonly Color HdrPrimaryColor = new(30f, 15f, 1.5f, 1f);
+
+        /// <summary>
+        /// The flame's colour at the peak, chosen so the tone map renders the hottest particles
+        /// at the hue the SDR grade renders them at. Only the direction matters; the calibration
+        /// decides the length.
+        /// </summary>
+        private static readonly Color FlameHue = new(1f, 0.451f, 0.053f);
+
+        /// <summary>
+        /// Particles that fade out entirely would ask for an unbounded material colour, so the
+        /// alpha the flame is authored against is never taken below this.
+        /// </summary>
+        private const float MinimumParticleAlpha = 0.05f;
 
         private ParticleSystemRenderer[] flameRenderers;
         private MaterialPropertyBlock propertyBlock;
@@ -46,6 +60,9 @@ namespace BudgetGameDev.Games.Brocoli
             if (flameRenderers == null)
                 CacheRenderers();
 
+            Color peak = hdrActive
+                ? GameDisplaySettings.HdrSceneColorAtPeakBrightness(FlameHue)
+                : Color.black;
             foreach (ParticleSystemRenderer flameRenderer in flameRenderers)
             {
                 if (flameRenderer == null || !IsPrimaryFlame(flameRenderer.sharedMaterial))
@@ -57,9 +74,13 @@ namespace BudgetGameDev.Games.Brocoli
                     continue;
                 }
 
+                Color color = MaterialColorForPeak(
+                    peak,
+                    PeakParticleAlpha(flameRenderer.GetComponent<ParticleSystem>())
+                );
                 flameRenderer.GetPropertyBlock(propertyBlock);
-                propertyBlock.SetColor(BaseColorId, HdrPrimaryColor);
-                propertyBlock.SetColor(ColorId, HdrPrimaryColor);
+                propertyBlock.SetColor(BaseColorId, color);
+                propertyBlock.SetColor(ColorId, color);
                 flameRenderer.SetPropertyBlock(propertyBlock);
             }
         }
@@ -67,6 +88,57 @@ namespace BudgetGameDev.Games.Brocoli
         internal static bool IsPrimaryFlame(Material material)
         {
             return material != null && material.name == PrimaryMaterialName;
+        }
+
+        /// <summary>
+        /// The flame blends additively through the particle alpha, so the material has to be
+        /// authored that much brighter for the hottest particles to land on the wanted colour.
+        /// </summary>
+        internal static Color MaterialColorForPeak(Color peak, float particleAlpha)
+        {
+            float scale = 1f / Mathf.Max(particleAlpha, MinimumParticleAlpha);
+            return new Color(peak.r * scale, peak.g * scale, peak.b * scale, 1f);
+        }
+
+        /// <summary>The alpha the brightest particle of a system is drawn with.</summary>
+        internal static float PeakParticleAlpha(ParticleSystem particles)
+        {
+            if (particles == null)
+                return 1f;
+
+            float alpha = PeakAlpha(particles.main.startColor);
+            ParticleSystem.ColorOverLifetimeModule fade = particles.colorOverLifetime;
+            if (fade.enabled)
+                alpha *= PeakAlpha(fade.color);
+            return Mathf.Clamp(alpha, MinimumParticleAlpha, 1f);
+        }
+
+        private static float PeakAlpha(ParticleSystem.MinMaxGradient gradient) =>
+            gradient.mode switch
+            {
+                ParticleSystemGradientMode.Color => gradient.color.a,
+                ParticleSystemGradientMode.TwoColors => Mathf.Max(
+                    gradient.colorMin.a,
+                    gradient.colorMax.a
+                ),
+                ParticleSystemGradientMode.Gradient or ParticleSystemGradientMode.RandomColor =>
+                    PeakAlpha(gradient.gradient),
+                ParticleSystemGradientMode.TwoGradients => Mathf.Max(
+                    PeakAlpha(gradient.gradientMin),
+                    PeakAlpha(gradient.gradientMax)
+                ),
+                _ => 1f,
+            };
+
+        private static float PeakAlpha(Gradient gradient)
+        {
+            if (gradient == null)
+                return 1f;
+
+            float alpha = 0f;
+            foreach (GradientAlphaKey key in gradient.alphaKeys)
+                alpha = Mathf.Max(alpha, key.alpha);
+            return alpha;
         }
 
         private void CacheRenderers()

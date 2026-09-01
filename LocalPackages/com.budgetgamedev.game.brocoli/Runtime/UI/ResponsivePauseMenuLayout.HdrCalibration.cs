@@ -210,7 +210,9 @@ namespace BudgetGameDev.Games.Brocoli
         {
             if (image?.material == null)
                 return;
-            float sceneValue = Mathf.Max(0f, nits / GameDisplaySettings.PaperWhiteNits);
+            // The HDR grade tone maps this patch like any other scene colour, so the value
+            // that shows the wanted luminance has to come back through the tone map's inverse.
+            float sceneValue = GameDisplaySettings.HdrSceneValueForNits(nits);
             image.material.SetColor("_Color", new Color(sceneValue, sceneValue, sceneValue, 1f));
         }
     }

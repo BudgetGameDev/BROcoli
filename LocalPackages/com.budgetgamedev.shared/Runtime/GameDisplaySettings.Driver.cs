@@ -15,7 +15,6 @@ namespace BudgetGameDev.Shared
             private Volume volume;
             private VolumeProfile profile;
             private Tonemapping tonemapping;
-            private ColorAdjustments colorAdjustments;
             private Bloom bloom;
             private string lastStatus;
             private float nextStatusPoll;
@@ -119,7 +118,6 @@ namespace BudgetGameDev.Shared
                 profile = ScriptableObject.CreateInstance<VolumeProfile>();
                 profile.hideFlags = HideFlags.HideAndDontSave;
                 tonemapping = profile.Add<Tonemapping>();
-                colorAdjustments = profile.Add<ColorAdjustments>();
                 bloom = profile.Add<Bloom>();
                 volume.profile = profile;
             }
@@ -131,12 +129,21 @@ namespace BudgetGameDev.Shared
 
                 volume.enabled = enabled;
                 tonemapping.active = enabled;
-                tonemapping.mode.Override(TonemappingMode.Neutral);
-                tonemapping.neutralHDRRangeReductionMode.Override(NeutralRangeReductionMode.BT2390);
+
+                // The scene is graded for ACES in SDR. Neutral tone mapping has no filmic curve
+                // at all on an HDR swapchain: it scales the scene straight into nits, which lifts
+                // the dungeon's shadows several times above what SDR shows and leaves the picture
+                // milky. ACES keeps the SDR tone curve below diffuse white and spends the
+                // display's extra range on the highlights instead.
+                tonemapping.mode.Override(TonemappingMode.ACES);
+                tonemapping.acesPreset.Override(HdrToneMapPreset);
                 tonemapping.hueShiftAmount.Override(0f);
-                // Paper white is an OS/display preference, not a content capability. Keep it
-                // automatic and calibrate only the physical black and peak limits.
-                tonemapping.detectPaperWhite.Override(true);
+
+                // Paper white decides where diffuse white lands, and therefore how bright the
+                // whole picture is. The calibration seeds itself from the operating system, so
+                // this is the system's value until the player overrides it; reading it from the
+                // saved calibration keeps it in step with the luminance the torches solve for.
+                tonemapping.detectPaperWhite.Override(false);
                 tonemapping.paperWhite.Override(PaperWhiteNits);
                 tonemapping.detectBrightnessLimits.Override(
                     calibrationPreviewActive || UsingSystemCalibrationDefaults
@@ -144,20 +151,12 @@ namespace BudgetGameDev.Shared
                 tonemapping.minNits.Override(BlackLevelNits);
                 tonemapping.maxNits.Override(PeakBrightnessNits);
 
-                // Keep ordinary HDR scene values below SDR reference white so the display's
-                // highlight range remains available to compact emissive details such as flames.
-                // SDR retains the authored ACES exposure and bloom from the scene profile.
-                colorAdjustments.active = enabled;
-                colorAdjustments.postExposure.Override(-0.65f);
-                colorAdjustments.contrast.Override(8f);
-
-                // The scene bloom is intentionally generous for SDR. In HDR that produces a
-                // broad halo and makes the glow brighter than the visible flame, so admit only
-                // the hottest pixels and keep their spread tight.
+                // SDR fakes highlight brightness with a wide, generous bloom. HDR does not need
+                // it: emissive highlights are rendered at the display's peak instead. Bloom would
+                // only spread that energy into a halo around the flame and raise the frame's
+                // average brightness, which is what an OLED dims the whole picture for.
                 bloom.active = enabled;
-                bloom.threshold.Override(4f);
-                bloom.intensity.Override(0.2f);
-                bloom.scatter.Override(0.2f);
+                bloom.intensity.Override(0f);
             }
         }
     }
