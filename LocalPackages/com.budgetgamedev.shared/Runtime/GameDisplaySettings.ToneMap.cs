@@ -37,17 +37,47 @@ namespace BudgetGameDev.Shared
         public const float HdrSaturationLift = 12f;
 
         /// <summary>
+        /// Contrast given to the HDR grade, in URP's units where zero is no change. The HDR
+        /// output transform has a shallower toe than the SDR one, so the dark end of the picture
+        /// renders one and a half to two and a half times brighter than SDR shows it: fogged
+        /// distance that reads as black there stays visible here, which both flattens the dungeon
+        /// and lets the player see further. This is the fit that puts the fogged range back on
+        /// SDR, within a sixth of a stop from a fiftieth of middle grey up to a third of it.
+        /// </summary>
+        public const float HdrContrastLift = 17f;
+
+        /// <summary>The contrast multiplier the grade applies, as URP forms it.</summary>
+        private static float ContrastMultiplier => (HdrContrastLift / 100f) + 1f;
+
+        /// <summary>
         /// <paramref name="hue"/> scaled so the HDR tone map drives its brightest primary past
         /// the calibrated peak by <see cref="HighlightOvershoot"/>. Emissive highlights are
         /// authored through this so the display clips them flat instead of rolling them off.
         /// </summary>
-        public static Color HdrSceneColorAtPeakBrightness(Color hue) =>
-            AcesToneScale.SceneColorForPeakNits(
+        public static Color HdrSceneColorAtPeakBrightness(Color hue)
+        {
+            Color solved = AcesToneScale.SceneColorForPeakNits(
                 hue,
                 PeakBrightnessNits * HighlightOvershoot,
                 PaperWhiteNits,
                 HdrToneMapPreset
             );
+            return UndoGradeContrast(solved);
+        }
+
+        /// <summary>
+        /// Undoes the contrast the grade is about to apply. Both the flame and the interface are
+        /// authored for a luminance the tone map produces, and contrast runs before it, so
+        /// without this the grade would move them off the values they were solved for.
+        /// </summary>
+        private static Color UndoGradeContrast(Color color)
+        {
+            Vector3 undone = AcesToneScale.ApplyContrast(
+                new Vector3(color.r, color.g, color.b),
+                1f / ContrastMultiplier
+            );
+            return new Color(undone.x, undone.y, undone.z, color.a);
+        }
 
         /// <summary>
         /// <paramref name="color"/> re-authored so the HDR grade renders it as the colour it was
@@ -66,7 +96,7 @@ namespace BudgetGameDev.Shared
                 PaperWhiteNits,
                 HdrToneMapPreset
             );
-            return new Color(scene.x, scene.y, scene.z, color.a);
+            return UndoGradeContrast(new Color(scene.x, scene.y, scene.z, color.a));
         }
     }
 }

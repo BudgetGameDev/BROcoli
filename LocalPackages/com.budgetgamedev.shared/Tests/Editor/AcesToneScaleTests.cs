@@ -203,6 +203,40 @@ namespace BudgetGameDev.Shared.Tests
         }
 
         [Test]
+        public void ContrastPivotsOnMiddleGreyAndInvertsCleanly()
+        {
+            Vector3 shadow = new(0.02f, 0.02f, 0.02f);
+            Vector3 highlight = new(1f, 1f, 1f);
+
+            Vector3 darkened = AcesToneScale.ApplyContrast(shadow, 1.17f);
+            Vector3 brightened = AcesToneScale.ApplyContrast(highlight, 1.17f);
+
+            Assert.That(darkened.x, Is.LessThan(shadow.x), "contrast crushes below middle grey");
+            Assert.That(brightened.x, Is.GreaterThan(highlight.x), "and lifts above it");
+
+            // Content authored for a display luminance is pre-compensated with the inverse, so
+            // the two have to cancel.
+            foreach (Vector3 sample in new[] { shadow, highlight, new Vector3(0.18f, 0.4f, 0.05f) })
+            {
+                Vector3 undone = AcesToneScale.ApplyContrast(sample, 1f / 1.17f);
+                Vector3 roundTripped = AcesToneScale.ApplyContrast(undone, 1.17f);
+                Assert.That(roundTripped.x, Is.EqualTo(sample.x).Within(sample.x * 0.02f + 1e-4f));
+                Assert.That(roundTripped.y, Is.EqualTo(sample.y).Within(sample.y * 0.02f + 1e-4f));
+                Assert.That(roundTripped.z, Is.EqualTo(sample.z).Within(sample.z * 0.02f + 1e-4f));
+            }
+        }
+
+        [Test]
+        public void MiddleGreyIsTheContrastPivot()
+        {
+            Vector3 grey = new(0.18f, 0.18f, 0.18f);
+
+            Vector3 graded = AcesToneScale.ApplyContrast(grey, 1.4f);
+
+            Assert.That(graded.x, Is.EqualTo(0.18f).Within(0.01f));
+        }
+
+        [Test]
         public void SelectPresetLeavesShoulderHeadroomAboveTheCalibratedPeak()
         {
             Assert.That(AcesToneScale.SelectPreset(600f), Is.EqualTo(HDRACESPreset.ACES1000Nits));

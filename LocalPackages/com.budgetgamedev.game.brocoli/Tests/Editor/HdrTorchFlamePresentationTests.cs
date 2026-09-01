@@ -95,8 +95,14 @@ namespace BudgetGameDev.Games.Brocoli.Tests
                 float alpha = HdrTorchFlamePresentation.PeakParticleAlpha(particles);
                 Assert.That(alpha, Is.EqualTo(0.5f).Within(0.001f));
                 Assert.That(GameDisplaySettings.HighlightOvershoot, Is.GreaterThan(1f));
-                Vector3 nits = AcesToneScale.DisplayNits(
+                // The grade applies its contrast before the tone map, and the material is
+                // authored to survive it, so the whole path has to be walked to land on the peak.
+                Vector3 graded = AcesToneScale.ApplyContrast(
                     new Vector3(material.r, material.g, material.b) * alpha,
+                    (GameDisplaySettings.HdrContrastLift / 100f) + 1f
+                );
+                Vector3 nits = AcesToneScale.DisplayNits(
+                    graded,
                     GameDisplaySettings.PaperWhiteNits,
                     GameDisplaySettings.HdrToneMapPreset
                 );

@@ -319,6 +319,57 @@ namespace BudgetGameDev.Shared
             3.6696204376f,
         };
 
+        private const float AcesCcMidGray = 0.4135884f;
+
+        /// <summary>
+        /// URP's contrast, which is applied to the graded scene in ACEScc log space before the
+        /// tone map, pivoting on middle grey. Modelled here so content authored against a display
+        /// luminance can be pre-compensated for it: pass 1 / contrast to undo it.
+        /// </summary>
+        public static Vector3 ApplyContrast(Vector3 sceneColor, float contrast)
+        {
+            if (Mathf.Approximately(contrast, 1f))
+                return sceneColor;
+
+            Vector3 aces = Transform(Ap1ToAp0, Transform(SRgbToAp1, Positive(sceneColor)));
+            Vector3 graded = new(
+                AcesCcToLinear(
+                    ((LinearToAcesCc(aces.x) - AcesCcMidGray) * contrast) + AcesCcMidGray
+                ),
+                AcesCcToLinear(
+                    ((LinearToAcesCc(aces.y) - AcesCcMidGray) * contrast) + AcesCcMidGray
+                ),
+                AcesCcToLinear(
+                    ((LinearToAcesCc(aces.z) - AcesCcMidGray) * contrast) + AcesCcMidGray
+                )
+            );
+            return Positive(Transform(Ap1ToSRgb, Transform(Ap0ToAp1, graded)));
+        }
+
+        private static float LinearToAcesCc(float value)
+        {
+            const float Tiny = 1f / 65536f; // 2^-16
+            if (value <= 0f)
+                return (Mathf.Log(Tiny, 2f) + 9.72f) / 17.52f;
+            if (value < 1f / 32768f) // 2^-15
+                return (Mathf.Log(Tiny + (value * 0.5f), 2f) + 9.72f) / 17.52f;
+            return (Mathf.Log(value, 2f) + 9.72f) / 17.52f;
+        }
+
+        private static float AcesCcToLinear(float value)
+        {
+            const float Tiny = 1f / 65536f;
+            if (value < (9.72f - 15f) / 17.52f)
+                return (Mathf.Pow(2f, (value * 17.52f) - 9.72f) * 2f) - Tiny;
+            return Mathf.Pow(2f, (value * 17.52f) - 9.72f);
+        }
+
+        private static readonly Matrix4x4 Ap1ToSRgb = FromRows(
+            new Vector3(1.70505f, -0.62179f, -0.08326f),
+            new Vector3(-0.13026f, 1.14080f, -0.01055f),
+            new Vector3(-0.02400f, -0.12897f, 1.15297f)
+        );
+
         private static Vector3 Positive(Vector3 value) =>
             new(Mathf.Max(value.x, 0f), Mathf.Max(value.y, 0f), Mathf.Max(value.z, 0f));
 

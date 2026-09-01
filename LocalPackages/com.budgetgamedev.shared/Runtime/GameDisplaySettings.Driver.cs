@@ -159,10 +159,11 @@ namespace BudgetGameDev.Shared
                 tonemapping.minNits.Override(BlackLevelNits);
                 tonemapping.maxNits.Override(PeakBrightnessNits);
 
-                // Chroma only. Exposure and contrast stay where the scene grades them, so the
-                // HDR picture keeps the tone curve SDR is authored for.
+                // Chroma and the toe. Exposure stays where the scene sets it, so the HDR picture
+                // is the SDR one re-seated on the HDR transform rather than a second grade.
                 colorAdjustments.active = enabled;
                 colorAdjustments.saturation.Override(HdrSaturationLift);
+                colorAdjustments.contrast.Override(HdrContrastLift);
             }
         }
     }

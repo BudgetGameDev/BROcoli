@@ -260,12 +260,12 @@ namespace BudgetGameDev.Shared.Tests
                 Assert.That(volume.profile.TryGet(out ColorAdjustments colorAdjustments), Is.True);
                 Assert.That(colorAdjustments.active, Is.True);
                 Assert.That(colorAdjustments.saturation.value, Is.EqualTo(12f));
+                Assert.That(colorAdjustments.contrast.value, Is.EqualTo(17f));
                 Assert.That(
                     colorAdjustments.postExposure.overrideState,
                     Is.False,
-                    "the HDR grade lifts chroma only; exposure stays with the scene"
+                    "exposure stays with the scene; the HDR grade only reshapes it"
                 );
-                Assert.That(colorAdjustments.contrast.overrideState, Is.False);
                 Assert.That(tonemapping.mode.value, Is.EqualTo(TonemappingMode.ACES));
                 Assert.That(tonemapping.acesPreset.value, Is.EqualTo(HDRACESPreset.ACES1000Nits));
                 Assert.That(tonemapping.detectPaperWhite.value, Is.False);
