@@ -50,6 +50,17 @@ namespace BudgetGameDev.Shared
         private static float ContrastMultiplier => (HdrContrastLift / 100f) + 1f;
 
         /// <summary>
+        /// The floor the HDR grade subtracts, in scene-linear units, so the darkest part of the
+        /// picture falls to true black. The SDR output transform subtracts a black level and
+        /// clamps, so anything below roughly a five hundredth of middle grey is simply gone
+        /// there; the HDR one keeps fading smoothly toward a ten thousandth of a nit instead, and
+        /// on a panel that holds its blacks those hundredths of a nit stay visible. That is what
+        /// leaves geometry legible at the edges of the screen, far from any light, when the SDR
+        /// grade has already swallowed it. Matched against SDR through the deep range.
+        /// </summary>
+        public const float HdrBlackFloor = -0.0008f;
+
+        /// <summary>
         /// <paramref name="hue"/> scaled so the HDR tone map drives its brightest primary past
         /// the calibrated peak by <see cref="HighlightOvershoot"/>. Emissive highlights are
         /// authored through this so the display clips them flat instead of rolling them off.
@@ -62,20 +73,23 @@ namespace BudgetGameDev.Shared
                 PaperWhiteNits,
                 HdrToneMapPreset
             );
-            return UndoGradeContrast(solved);
+            return UndoGrade(solved);
         }
 
         /// <summary>
-        /// Undoes the contrast the grade is about to apply. Both the flame and the interface are
-        /// authored for a luminance the tone map produces, and contrast runs before it, so
-        /// without this the grade would move them off the values they were solved for.
+        /// Undoes what the grade is about to do. Both the flame and the interface are authored
+        /// for a luminance the tone map produces, and the grade reshapes the scene before it, so
+        /// without this they would be moved off the values they were solved for. The grade
+        /// applies contrast first and the floor last, so this walks back the other way.
         /// </summary>
-        private static Color UndoGradeContrast(Color color)
+        private static Color UndoGrade(Color color)
         {
-            Vector3 undone = AcesToneScale.ApplyContrast(
-                new Vector3(color.r, color.g, color.b),
-                1f / ContrastMultiplier
+            Vector3 raised = new(
+                color.r - HdrBlackFloor,
+                color.g - HdrBlackFloor,
+                color.b - HdrBlackFloor
             );
+            Vector3 undone = AcesToneScale.ApplyContrast(raised, 1f / ContrastMultiplier);
             return new Color(undone.x, undone.y, undone.z, color.a);
         }
 
@@ -96,7 +110,7 @@ namespace BudgetGameDev.Shared
                 PaperWhiteNits,
                 HdrToneMapPreset
             );
-            return UndoGradeContrast(new Color(scene.x, scene.y, scene.z, color.a));
+            return UndoGrade(new Color(scene.x, scene.y, scene.z, color.a));
         }
     }
 }

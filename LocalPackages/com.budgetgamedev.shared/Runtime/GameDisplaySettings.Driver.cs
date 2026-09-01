@@ -16,6 +16,7 @@ namespace BudgetGameDev.Shared
             private VolumeProfile profile;
             private Tonemapping tonemapping;
             private ColorAdjustments colorAdjustments;
+            private LiftGammaGain liftGammaGain;
             private string lastStatus;
             private float nextStatusPoll;
 
@@ -127,6 +128,7 @@ namespace BudgetGameDev.Shared
                 profile.hideFlags = HideFlags.HideAndDontSave;
                 tonemapping = profile.Add<Tonemapping>();
                 colorAdjustments = profile.Add<ColorAdjustments>();
+                liftGammaGain = profile.Add<LiftGammaGain>();
                 volume.profile = profile;
             }
 
@@ -164,6 +166,12 @@ namespace BudgetGameDev.Shared
                 colorAdjustments.active = enabled;
                 colorAdjustments.saturation.Override(HdrSaturationLift);
                 colorAdjustments.contrast.Override(HdrContrastLift);
+
+                // URP folds lift's fourth channel straight into a scene-linear offset, and the
+                // grade clamps at zero afterwards, which is the black floor the SDR transform has
+                // and the HDR one does not.
+                liftGammaGain.active = enabled;
+                liftGammaGain.lift.Override(new Vector4(0f, 0f, 0f, HdrBlackFloor));
             }
         }
     }

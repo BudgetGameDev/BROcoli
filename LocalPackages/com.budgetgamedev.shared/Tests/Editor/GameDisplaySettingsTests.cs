@@ -261,6 +261,14 @@ namespace BudgetGameDev.Shared.Tests
                 Assert.That(colorAdjustments.active, Is.True);
                 Assert.That(colorAdjustments.saturation.value, Is.EqualTo(12f));
                 Assert.That(colorAdjustments.contrast.value, Is.EqualTo(17f));
+                Assert.That(volume.profile.TryGet(out LiftGammaGain liftGammaGain), Is.True);
+                Assert.That(liftGammaGain.active, Is.True);
+                Assert.That(
+                    liftGammaGain.lift.value.w,
+                    Is.LessThan(0f),
+                    "the grade needs a floor to reach true black the way SDR does"
+                );
+                Assert.That(liftGammaGain.lift.value.w, Is.EqualTo(-0.0008f).Within(1e-6f));
                 Assert.That(
                     colorAdjustments.postExposure.overrideState,
                     Is.False,
