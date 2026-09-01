@@ -23,6 +23,14 @@ namespace BudgetGameDev.Games.Brocoli
         /// </summary>
         public const float WorldYawDegrees = 45f;
 
+        /// <summary>
+        /// The ground direction this camera reads as straight up the screen.
+        /// Presentation cheats that used to displace a sprite up the screen (the
+        /// hop bounce) must aim along this, not along ground north: since the rig
+        /// is yawed, ground north now reads as up-and-left.
+        /// </summary>
+        public static Vector2 ScreenUpGround => Vector2.up.RotatedByYaw(WorldYawDegrees);
+
 #if UNITY_WEBGL && !UNITY_EDITOR
         [DllImport("__Internal")]
         private static extern int IsMobileBrowser();

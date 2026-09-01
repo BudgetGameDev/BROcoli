@@ -131,9 +131,13 @@ namespace BudgetGameDev.Games.Brocoli.Tests
             Assert.That(wallLayer, Is.GreaterThanOrEqualTo(0));
             SetHierarchyField(visual, "playerCollider", playerCollider);
             SetHierarchyField(visual, "wallLayerMask", 1 << wallLayer);
+            // The hop displaces along screen-up, so the wall that is supposed to
+            // block it has to stand across that direction, not across ground north.
+            Vector2 screenUpGround = CameraController.ScreenUpGround;
+            Vector3 hopDirection = screenUpGround.ToWorld();
             playerCollider.enabled = false;
-            InvokeHierarchy(visual, "ClampHopOffsetAgainstWalls", 0.25f);
-            InvokeHierarchy(visual, "GetWallPoseFactor", Vector2.up);
+            InvokeHierarchy(visual, "ClampHopOffsetAgainstWalls", hopDirection, 0.25f);
+            InvokeHierarchy(visual, "GetWallPoseFactor", screenUpGround);
             playerCollider.enabled = true;
 
             GameObject wall = GameObject.CreatePrimitive(PrimitiveType.Cube);
@@ -141,11 +145,12 @@ namespace BudgetGameDev.Games.Brocoli.Tests
             wall.layer = wallLayer;
             Bounds playerBounds = playerCollider.bounds;
             wall.transform.position =
-                playerBounds.center + Vector3.forward * (playerBounds.extents.z + 0.1f);
+                playerBounds.center + hopDirection * (playerBounds.extents.z + 0.1f);
+            wall.transform.rotation = Quaternion.LookRotation(hopDirection, Vector3.up);
             wall.transform.localScale = new Vector3(4f, 4f, 0.1f);
             Physics.SyncTransforms();
-            InvokeHierarchy(visual, "ClampHopOffsetAgainstWalls", 0.5f);
-            InvokeHierarchy(visual, "GetWallPoseFactor", Vector2.up);
+            InvokeHierarchy(visual, "ClampHopOffsetAgainstWalls", hopDirection, 0.5f);
+            InvokeHierarchy(visual, "GetWallPoseFactor", screenUpGround);
             Object.Destroy(wall);
 
             DriveHopState(visual, input, ShuffleWalkVisual.HopState.Idle, 0f, Vector2.zero);

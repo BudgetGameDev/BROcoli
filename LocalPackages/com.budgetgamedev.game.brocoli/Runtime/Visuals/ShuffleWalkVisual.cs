@@ -236,20 +236,23 @@ namespace BudgetGameDev.Games.Brocoli
         {
             displayHeight = Mathf.Lerp(displayHeight, output.Height, 25f * dt);
 
-            // Presentation cheat, not a real jump: the hop displaces along ground-
-            // north, which the fixed chase camera reads as screen-up (pre-flip +Y).
+            // Presentation cheat, not a real jump: the hop displaces along the
+            // ground direction the yawed chase camera reads as screen-up (pre-flip
+            // +Y). Aiming this at ground north instead makes the hop read as a
+            // lurch along the walk direction when heading up the screen.
             // Keep visual-only displacement inside the player's physics footprint.
-            float visibleHopHeight = ClampHopOffsetAgainstWalls(displayHeight);
+            Vector3 hopDirection = CameraController.ScreenUpGround.ToWorld();
+            float visibleHopHeight = ClampHopOffsetAgainstWalls(hopDirection, displayHeight);
             Vector2 poseDirection =
                 output.Movement.sqrMagnitude > DeadZone * DeadZone
                     ? output.Movement.normalized
                     : committedDirection;
             wallPoseFactor = GetWallPoseFactor(poseDirection);
 
-            // Preserve the bounce in world-up when the ground-north offset is blocked.
+            // Preserve the bounce in world-up when the screen-up offset is blocked.
             float blockedPositiveHop = Mathf.Max(0f, displayHeight - visibleHopHeight);
             Vector3 hopOffset =
-                Vector3.forward * visibleHopHeight
+                hopDirection * visibleHopHeight
                 + Vector3.up * (blockedPositiveHop * VerticalHopFallbackScale);
             transform.localPosition =
                 startLocalPos + transform.parent.InverseTransformDirection(hopOffset);

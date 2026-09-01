@@ -4,7 +4,7 @@ namespace BudgetGameDev.Games.Brocoli
 {
     public partial class ShuffleWalkVisual
     {
-        private float ClampHopOffsetAgainstWalls(float desiredOffset)
+        private float ClampHopOffsetAgainstWalls(Vector3 hopDirection, float desiredOffset)
         {
             float distance = Mathf.Abs(desiredOffset);
             if (distance <= Mathf.Epsilon || playerCollider == null || wallLayerMask == 0)
@@ -20,7 +20,7 @@ namespace BudgetGameDev.Games.Brocoli
             )
                 return desiredOffset;
 
-            Vector3 direction = desiredOffset > 0f ? Vector3.forward : Vector3.back;
+            Vector3 direction = desiredOffset > 0f ? hopDirection : -hopDirection;
             int hitCount = Physics.CapsuleCastNonAlloc(
                 castTop,
                 castBottom,
