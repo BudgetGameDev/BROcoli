@@ -28,6 +28,15 @@ namespace BudgetGameDev.Shared
         public const float HighlightOvershoot = 1.3f;
 
         /// <summary>
+        /// Chroma given back to the HDR grade. ACES desaturates as it climbs its shoulder, and
+        /// HDR lights the scene harder than SDR does -- the light on the player alone is scaled
+        /// 2.2x -- so the same surface sits further up that shoulder and renders paler: measured
+        /// against the SDR grade, greens lose 7 to 11 percent of their saturation. This is the
+        /// lift that puts them back, in URP's units where zero is no change.
+        /// </summary>
+        public const float HdrSaturationLift = 12f;
+
+        /// <summary>
         /// <paramref name="hue"/> scaled so the HDR tone map drives its brightest primary past
         /// the calibrated peak by <see cref="HighlightOvershoot"/>. Emissive highlights are
         /// authored through this so the display clips them flat instead of rolling them off.

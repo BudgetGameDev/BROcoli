@@ -257,7 +257,15 @@ namespace BudgetGameDev.Shared.Tests
                     Is.False,
                     "HDR inherits the scene's bloom rather than overriding it"
                 );
-                Assert.That(volume.profile.TryGet(out ColorAdjustments _), Is.False);
+                Assert.That(volume.profile.TryGet(out ColorAdjustments colorAdjustments), Is.True);
+                Assert.That(colorAdjustments.active, Is.True);
+                Assert.That(colorAdjustments.saturation.value, Is.EqualTo(12f));
+                Assert.That(
+                    colorAdjustments.postExposure.overrideState,
+                    Is.False,
+                    "the HDR grade lifts chroma only; exposure stays with the scene"
+                );
+                Assert.That(colorAdjustments.contrast.overrideState, Is.False);
                 Assert.That(tonemapping.mode.value, Is.EqualTo(TonemappingMode.ACES));
                 Assert.That(tonemapping.acesPreset.value, Is.EqualTo(HDRACESPreset.ACES1000Nits));
                 Assert.That(tonemapping.detectPaperWhite.value, Is.False);

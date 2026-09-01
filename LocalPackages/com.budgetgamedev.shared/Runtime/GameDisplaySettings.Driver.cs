@@ -15,6 +15,7 @@ namespace BudgetGameDev.Shared
             private Volume volume;
             private VolumeProfile profile;
             private Tonemapping tonemapping;
+            private ColorAdjustments colorAdjustments;
             private string lastStatus;
             private float nextStatusPoll;
 
@@ -125,6 +126,7 @@ namespace BudgetGameDev.Shared
                 profile = ScriptableObject.CreateInstance<VolumeProfile>();
                 profile.hideFlags = HideFlags.HideAndDontSave;
                 tonemapping = profile.Add<Tonemapping>();
+                colorAdjustments = profile.Add<ColorAdjustments>();
                 volume.profile = profile;
             }
 
@@ -156,6 +158,11 @@ namespace BudgetGameDev.Shared
                 );
                 tonemapping.minNits.Override(BlackLevelNits);
                 tonemapping.maxNits.Override(PeakBrightnessNits);
+
+                // Chroma only. Exposure and contrast stay where the scene grades them, so the
+                // HDR picture keeps the tone curve SDR is authored for.
+                colorAdjustments.active = enabled;
+                colorAdjustments.saturation.Override(HdrSaturationLift);
             }
         }
     }
