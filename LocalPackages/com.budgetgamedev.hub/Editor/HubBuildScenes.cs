@@ -80,7 +80,10 @@ namespace BudgetGameDev.Hub.Editor
                     yield return AssetDatabase.GetAssetPath(scene);
         }
 
-        private static string FindLauncherScene() =>
+        /// <summary>
+        /// The launcher scene's asset path, or null when it cannot be found.
+        /// </summary>
+        public static string FindLauncherScene() =>
             AssetDatabase
                 .FindAssets($"t:SceneAsset {GameSession.LauncherSceneName}")
                 .Select(AssetDatabase.GUIDToAssetPath)
