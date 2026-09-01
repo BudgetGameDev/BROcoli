@@ -1,3 +1,4 @@
+using BudgetGameDev.Shared;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
