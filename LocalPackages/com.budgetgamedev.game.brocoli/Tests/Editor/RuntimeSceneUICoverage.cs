@@ -59,6 +59,7 @@ namespace BudgetGameDev.Games.Brocoli.Tests
             InvokeHierarchy(pause, "ResetMenuNavigation");
             pause.TogglePause();
             pause.TogglePause();
+            ExercisePauseSettings(pause);
             ExercisePauseGamepad(pause);
 
             GameObject panel = pause.pauseMenuUI;
@@ -71,11 +72,39 @@ namespace BudgetGameDev.Games.Brocoli.Tests
             ExercisePauseEdgeCases(pause);
         }
 
+        private static void ExercisePauseSettings(PauseMenu pause)
+        {
+            pause.Pause();
+            InvokeHierarchy(pause, "OpenSettings");
+            ResponsivePauseMenuLayout layout =
+                pause.pauseMenuUI.GetComponent<ResponsivePauseMenuLayout>();
+            Assert.That(layout, Is.Not.Null);
+            Assert.That(layout.SettingsOpen, Is.True);
+            Assert.That(pause.IsPaused(), Is.True);
+            Assert.That(Time.timeScale, Is.Zero);
+            InvokeHierarchy(layout, "ShowHdrDetails");
+            Assert.That(layout.HdrDetailsOpen, Is.True);
+            InvokeHierarchy(layout, "OpenHdrCalibration");
+            Assert.That(layout.HdrCalibrationOpen, Is.True);
+            InvokeHierarchy(layout, "EndHdrCalibration", false);
+            Assert.That(layout.HdrCalibrationOpen, Is.False);
+            Assert.That(layout.HdrDetailsOpen, Is.True);
+            InvokeHierarchy(layout, "HideHdrDetails");
+            layout.HideSettings();
+            Assert.That(layout.SettingsOpen, Is.False);
+            Assert.That(pause.IsPaused(), Is.True);
+            InvokeHierarchy(pause, "OpenSettings");
+            Assert.That(layout.SettingsOpen, Is.True);
+            pause.Resume();
+            Assert.That(layout.SettingsOpen, Is.False);
+        }
+
         private static void ExercisePauseEdgeCases(PauseMenu pause)
         {
             GameObject originalPanel = pause.pauseMenuUI;
             GameObject originalPauseButton = pause.pauseButton;
             Button originalResume = pause.resumeButton;
+            Button originalSettings = pause.settingsButton;
             Button originalMainMenu = pause.mainMenuButton;
             GameObject panel = new("Coverage Pause Panel", typeof(RectTransform));
             panel.SetActive(false);
@@ -101,13 +130,17 @@ namespace BudgetGameDev.Games.Brocoli.Tests
             InvokeHierarchy(coverageLayout, "LateUpdate");
             pause.pauseMenuUI = panel;
             pause.resumeButton = null;
+            pause.settingsButton = null;
             pause.mainMenuButton = null;
             InvokeHierarchy(pause, "SetupButtons");
+            Assert.That(pause.settingsButton, Is.Not.Null);
 
             GameObject emptyPanel = new("Coverage Empty Pause Panel", typeof(RectTransform));
             pause.pauseMenuUI = emptyPanel;
             pause.resumeButton = null;
+            pause.settingsButton = null;
             pause.mainMenuButton = null;
+            LogAssert.Expect(LogType.Error, "[PauseMenu] Settings button not found!");
             LogAssert.Expect(LogType.Error, "[PauseMenu] Resume button not found!");
             LogAssert.Expect(LogType.Error, "[PauseMenu] MainMenu button not found!");
             InvokeHierarchy(pause, "SetupButtons");
@@ -123,6 +156,9 @@ namespace BudgetGameDev.Games.Brocoli.Tests
 
             pause.pauseMenuUI = panel;
             pause.resumeButton = resume;
+            pause.settingsButton = panel
+                .transform.Find("SafeArea/PauseCard/SettingsButton")
+                ?.GetComponent<Button>();
             pause.mainMenuButton = mainMenu;
             SetHierarchyField(pause, "navigationInitialized", false);
             InvokeHierarchy(pause, "SetupMenuNavigation");
@@ -208,6 +244,7 @@ namespace BudgetGameDev.Games.Brocoli.Tests
             pause.pauseMenuUI = originalPanel;
             pause.pauseButton = originalPauseButton;
             pause.resumeButton = originalResume;
+            pause.settingsButton = originalSettings;
             pause.mainMenuButton = originalMainMenu;
             SetHierarchyField(pause, "eventSystem", replacement);
             Object.Destroy(panel);

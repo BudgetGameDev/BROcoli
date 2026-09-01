@@ -18,12 +18,14 @@ namespace BudgetGameDev.Games.Brocoli
         public GameObject pauseMenuUI;
         public GameObject pauseButton;
         public Button resumeButton;
+        public Button settingsButton;
         public Button mainMenuButton;
 
         private bool isPaused = false;
         private bool isMobilePlatform = false;
         private EventSystem eventSystem;
         private Canvas mainCanvas;
+        private ResponsivePauseMenuLayout responsiveLayout;
 
         // Controller navigation
         private Button[] menuButtons;
@@ -50,6 +52,8 @@ namespace BudgetGameDev.Games.Brocoli
                 pauseMenuUI.SetActive(false);
                 if (pauseMenuUI.GetComponent<ResponsivePauseMenuLayout>() == null)
                     pauseMenuUI.AddComponent<ResponsivePauseMenuLayout>();
+                responsiveLayout = pauseMenuUI.GetComponent<ResponsivePauseMenuLayout>();
+                responsiveLayout.EnsureBuilt();
             }
 
             // CRITICAL: Ensure EventSystem is active immediately
@@ -186,7 +190,21 @@ namespace BudgetGameDev.Games.Brocoli
                 Button[] allButtons = pauseMenuUI.GetComponentsInChildren<Button>(true);
 
                 resumeButton ??= FindNamedButton(allButtons, "resume");
+                settingsButton ??= FindNamedButton(allButtons, "settings");
                 mainMenuButton ??= FindNamedButton(allButtons, "mainmenu", "main menu");
+            }
+
+            if (settingsButton != null)
+            {
+                settingsButton.onClick.RemoveAllListeners();
+                settingsButton.onClick.AddListener(OpenSettings);
+                Debug.Log(
+                    $"[PauseMenu] Settings button connected: {settingsButton.gameObject.name}"
+                );
+            }
+            else
+            {
+                Debug.LogError("[PauseMenu] Settings button not found!");
             }
 
             // Connect Resume button
@@ -220,6 +238,11 @@ namespace BudgetGameDev.Games.Brocoli
         {
             Keyboard keyboard = Keyboard.current;
             Gamepad gamepad = Gamepad.current;
+            if (isPaused && responsiveLayout != null && responsiveLayout.SettingsOpen)
+            {
+                responsiveLayout.HandleSettingsInput(keyboard, gamepad);
+                return;
+            }
             ProcessToggleInput(
                 keyboard != null && keyboard.escapeKey.wasPressedThisFrame,
                 gamepad != null && gamepad.startButton.wasPressedThisFrame

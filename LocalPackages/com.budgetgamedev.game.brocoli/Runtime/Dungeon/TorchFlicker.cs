@@ -25,6 +25,9 @@ namespace BudgetGameDev.Games.Brocoli
 
         private void Awake()
         {
+            if (GetComponent<HdrTorchFlamePresentation>() == null)
+                gameObject.AddComponent<HdrTorchFlamePresentation>();
+
             if (torchLight == null)
                 torchLight = GetComponentInChildren<Light>();
             if (torchLight != null)

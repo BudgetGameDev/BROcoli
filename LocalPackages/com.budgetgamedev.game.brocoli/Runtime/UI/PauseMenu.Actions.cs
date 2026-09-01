@@ -173,6 +173,9 @@ namespace BudgetGameDev.Games.Brocoli
 
             ProceduralUIAudio.PlaySelect();
 
+            if (responsiveLayout != null && responsiveLayout.SettingsOpen)
+                responsiveLayout.HideSettings(false);
+
             ResetMenuNavigation();
 
             // Hide menu
@@ -186,6 +189,26 @@ namespace BudgetGameDev.Games.Brocoli
             GameAudioSettings.SetPauseMenuOpen(false);
 
             Debug.Log("[PauseMenu] Game RESUMED");
+        }
+
+        private void OpenSettings()
+        {
+            if (responsiveLayout == null && pauseMenuUI != null)
+                responsiveLayout = pauseMenuUI.GetComponent<ResponsivePauseMenuLayout>();
+            if (responsiveLayout == null)
+                return;
+
+            ProceduralUIAudio.PlaySelect();
+            ResetMenuNavigation();
+            responsiveLayout.ShowSettings(OnSettingsClosed);
+        }
+
+        private void OnSettingsClosed()
+        {
+            navigationInitialized = false;
+            SetupMenuNavigation();
+            int index = System.Array.IndexOf(menuButtons, settingsButton);
+            SelectMenuButton(Mathf.Max(0, index));
         }
 
         public void GoToMainMenu() => GoToMainMenu(SceneManager.LoadScene);

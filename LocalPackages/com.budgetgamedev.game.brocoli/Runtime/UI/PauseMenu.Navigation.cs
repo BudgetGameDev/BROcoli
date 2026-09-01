@@ -88,7 +88,7 @@ namespace BudgetGameDev.Games.Brocoli
             var buttonList = new List<Button>();
             foreach (Button button in allButtons)
             {
-                if (button != null && button.interactable)
+                if (button != null && button.interactable && button.gameObject.activeInHierarchy)
                     buttonList.Add(button);
             }
 

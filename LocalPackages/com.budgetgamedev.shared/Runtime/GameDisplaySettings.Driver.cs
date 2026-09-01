@@ -16,6 +16,7 @@ namespace BudgetGameDev.Shared
             private VolumeProfile profile;
             private Tonemapping tonemapping;
             private ColorAdjustments colorAdjustments;
+            private Bloom bloom;
             private string lastStatus;
             private float nextStatusPoll;
 
@@ -111,6 +112,7 @@ namespace BudgetGameDev.Shared
                 profile.hideFlags = HideFlags.HideAndDontSave;
                 tonemapping = profile.Add<Tonemapping>();
                 colorAdjustments = profile.Add<ColorAdjustments>();
+                bloom = profile.Add<Bloom>();
                 volume.profile = profile;
             }
 
@@ -136,11 +138,20 @@ namespace BudgetGameDev.Shared
                 tonemapping.minNits.Override(BlackLevelNits);
                 tonemapping.maxNits.Override(PeakBrightnessNits);
 
-                // SDR uses the scene's ACES curve. A small HDR-only contrast expansion keeps
-                // midtones from looking washed out after switching to the calibratable Neutral
-                // output path without lifting the whole image or sacrificing highlight headroom.
+                // Keep ordinary HDR scene values below SDR reference white so the display's
+                // highlight range remains available to compact emissive details such as flames.
+                // SDR retains the authored ACES exposure and bloom from the scene profile.
                 colorAdjustments.active = enabled;
-                colorAdjustments.contrast.Override(12f);
+                colorAdjustments.postExposure.Override(-0.65f);
+                colorAdjustments.contrast.Override(8f);
+
+                // The scene bloom is intentionally generous for SDR. In HDR that produces a
+                // broad halo and makes the glow brighter than the visible flame, so admit only
+                // the hottest pixels and keep their spread tight.
+                bloom.active = enabled;
+                bloom.threshold.Override(4f);
+                bloom.intensity.Override(0.2f);
+                bloom.scatter.Override(0.2f);
             }
         }
     }

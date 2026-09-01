@@ -13,7 +13,7 @@ namespace BudgetGameDev.Games.Brocoli
     /// Button and onClick instances are kept, so <see cref="PauseMenu"/> keeps working.
     /// </summary>
     [DisallowMultipleComponent]
-    public sealed class ResponsivePauseMenuLayout : MonoBehaviour
+    public sealed partial class ResponsivePauseMenuLayout : MonoBehaviour
     {
         private const float MaximumCardWidth = 680f;
         private const float MaximumCardHeight = 800f;
@@ -34,6 +34,13 @@ namespace BudgetGameDev.Games.Brocoli
 
         private void Awake()
         {
+            EnsureBuilt();
+        }
+
+        internal void EnsureBuilt()
+        {
+            if (built)
+                return;
             root = transform as RectTransform;
             materialFont = TMP_Settings.defaultFontAsset;
             BuildPresentation();
@@ -41,6 +48,13 @@ namespace BudgetGameDev.Games.Brocoli
         }
 
         private void OnEnable() => ApplyResponsiveLayout(true);
+
+        private void OnDestroy()
+        {
+            if (HdrCalibrationOpen)
+                GameDisplaySettings.EndHdrCalibrationPreview();
+            DestroyPauseHdrCalibrationMaterials();
+        }
 
         private void LateUpdate() => ApplyResponsiveLayout(false);
 
@@ -93,7 +107,15 @@ namespace BudgetGameDev.Games.Brocoli
                 materialFont
             );
 
-            buttons = new[] { FindButton("ResumeButton"), FindButton("MainMenuButton") };
+            settingsButton = FindButton("SettingsButton");
+            if (settingsButton == null)
+                settingsButton = CreateButton("SettingsButton", card, "SETTINGS");
+            buttons = new[]
+            {
+                FindButton("ResumeButton"),
+                settingsButton,
+                FindButton("MainMenuButton"),
+            };
             foreach (Button button in buttons)
             {
                 if (button == null)
@@ -104,7 +126,9 @@ namespace BudgetGameDev.Games.Brocoli
             }
 
             SetButtonLabel("ResumeButton", "RESUME");
+            SetButtonLabel("SettingsButton", "SETTINGS");
             SetButtonLabel("MainMenuButton", "MAIN MENU");
+            BuildSettingsPresentation();
 
             built = true;
         }
@@ -189,6 +213,8 @@ namespace BudgetGameDev.Games.Brocoli
                     label.fontSize = narrow ? (compact ? 17f : 20f) : (compact ? 19f : 23f);
                 y -= buttonHeight + gap;
             }
+
+            LayoutSettingsPanels(innerWidth, contentTop, contentBottom, compact, narrow);
         }
 
         private void SetButtonLabel(string buttonName, string value)
@@ -208,6 +234,18 @@ namespace BudgetGameDev.Games.Brocoli
         {
             Transform match = FindDescendant(transform, objectName);
             return match != null ? match.GetComponent<TMP_Text>() : null;
+        }
+
+        private Button CreateButton(string name, RectTransform parent, string label)
+        {
+            RectTransform rect = CreatePanel(name, parent, Color.white);
+            rect.GetComponent<Image>().raycastTarget = true;
+            Button button = rect.gameObject.AddComponent<Button>();
+            button.targetGraphic = rect.GetComponent<Image>();
+            TMP_Text text = CreateText("Label", rect, label, 17f, OnSurface, materialFont);
+            text.raycastTarget = false;
+            Stretch(text.rectTransform);
+            return button;
         }
     }
 }
