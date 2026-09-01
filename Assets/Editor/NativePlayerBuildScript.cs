@@ -116,6 +116,8 @@ public sealed class NativePlayerBuildScript : IPreprocessBuildWithReport
 
     internal static void ConfigureTarget(BuildTarget target)
     {
+        ConfigureSplashScreen();
+
         switch (target)
         {
             case BuildTarget.StandaloneWindows64:
@@ -128,6 +130,12 @@ public sealed class NativePlayerBuildScript : IPreprocessBuildWithReport
                 ConfigureLinux();
                 break;
         }
+    }
+
+    private static void ConfigureSplashScreen()
+    {
+        PlayerSettings.SplashScreen.show = false;
+        PlayerSettings.SplashScreen.showUnityLogo = false;
     }
 
     private static void BuildSingle(BuildTarget target, string defaultOutput, string label)
@@ -188,6 +196,8 @@ public sealed class NativePlayerBuildScript : IPreprocessBuildWithReport
     private static void ConfigureWindows()
     {
         ConfigureHdrOutput();
+        PlayerSettings.fullScreenMode = FullScreenMode.FullScreenWindow;
+        PlayerSettings.defaultIsNativeResolution = true;
         PlayerSettings.useFlipModelSwapchain = true;
         PlayerSettings.SetUseDefaultGraphicsAPIs(BuildTarget.StandaloneWindows64, false);
         PlayerSettings.SetGraphicsAPIs(

@@ -4,6 +4,26 @@ using UnityEngine.Rendering;
 
 namespace BudgetGameDev.Shared
 {
+    internal readonly struct NativeDisplayMode
+    {
+        internal readonly int Width;
+        internal readonly int Height;
+        internal readonly RefreshRate RefreshRate;
+
+        internal NativeDisplayMode(int width, int height, RefreshRate refreshRate)
+        {
+            Width = width;
+            Height = height;
+            RefreshRate = refreshRate;
+        }
+
+        internal bool IsValid =>
+            Width > 0 && Height > 0 && RefreshRate.numerator > 0 && RefreshRate.denominator > 0;
+
+        public override string ToString() =>
+            $"{Width}x{Height} @ {RefreshRate.numerator}/{RefreshRate.denominator} Hz";
+    }
+
     /// <summary>
     /// Persistent native-display settings. On Windows and macOS this drives Unity's HDR output
     /// and a high-priority URP override configured by the in-game calibration screen.
@@ -128,6 +148,47 @@ namespace BudgetGameDev.Shared
                     PeakBrightnessNits,
                     systemHdrState
                 );
+        }
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSplashScreen)]
+        internal static void ConfigureNativeWindowsDisplay()
+        {
+            if (!IsWindowsPlayer)
+                return;
+
+            NativeDisplayMode mode = DetectNativeWindowsDisplayMode();
+            if (!mode.IsValid)
+            {
+                Debug.LogWarning(
+                    "[GameDisplaySettings] Could not detect a valid native Windows display mode."
+                );
+                return;
+            }
+
+            // Unity persists the previous player's fullscreen mode and refresh rate. Override
+            // those values before the first splash-screen present so upgrades from an exclusive
+            // D3D12 build cannot recreate a stale swapchain and fail with DXGI_ERROR_INVALID_CALL.
+            Screen.SetResolution(
+                mode.Width,
+                mode.Height,
+                FullScreenMode.FullScreenWindow,
+                mode.RefreshRate
+            );
+            Debug.Log($"[GameDisplaySettings] Native borderless display mode: {mode}");
+        }
+
+        internal static NativeDisplayMode DetectNativeWindowsDisplayMode()
+        {
+            if (WindowsDisplayHdrState.TryQueryActiveDisplayMode(out NativeDisplayMode mode))
+                return mode;
+
+            Resolution current = Screen.currentResolution;
+            Display display = Display.main;
+            int width =
+                display != null && display.systemWidth > 0 ? display.systemWidth : current.width;
+            int height =
+                display != null && display.systemHeight > 0 ? display.systemHeight : current.height;
+            return new NativeDisplayMode(width, height, current.refreshRateRatio);
         }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]

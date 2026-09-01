@@ -88,6 +88,43 @@ namespace BudgetGameDev.Shared.Tests
         }
 
         [Test]
+        public void NativeDisplayModePreservesFractionalRefreshRates()
+        {
+            NativeDisplayMode mode = new(
+                2560,
+                1440,
+                new RefreshRate { numerator = 240083, denominator = 1000 }
+            );
+
+            Assert.That(mode.IsValid, Is.True);
+            Assert.That(mode.Width, Is.EqualTo(2560));
+            Assert.That(mode.Height, Is.EqualTo(1440));
+            Assert.That(mode.RefreshRate.numerator, Is.EqualTo(240083));
+            Assert.That(mode.RefreshRate.denominator, Is.EqualTo(1000));
+            Assert.That(mode.ToString(), Is.EqualTo("2560x1440 @ 240083/1000 Hz"));
+        }
+
+        [TestCase(0, 1440, 240083u, 1000u)]
+        [TestCase(2560, 0, 240083u, 1000u)]
+        [TestCase(2560, 1440, 0u, 1000u)]
+        [TestCase(2560, 1440, 240083u, 0u)]
+        public void NativeDisplayModeRejectsIncompleteMonitorData(
+            int width,
+            int height,
+            uint numerator,
+            uint denominator
+        )
+        {
+            NativeDisplayMode mode = new(
+                width,
+                height,
+                new RefreshRate { numerator = numerator, denominator = denominator }
+            );
+
+            Assert.That(mode.IsValid, Is.False);
+        }
+
+        [Test]
         public void HdrGradeNeedsBothTheSwitchAndADetectedHdrDisplay()
         {
             GameObject root = new("HDR Display Driver Policy Test");

@@ -14,10 +14,7 @@ namespace BudgetGameDev.Shared
         public static SystemHdrState Query()
         {
 #if UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN
-            if (
-                Application.platform != RuntimePlatform.WindowsPlayer
-                && Application.platform != RuntimePlatform.WindowsEditor
-            )
+            if (Application.platform != RuntimePlatform.WindowsPlayer)
                 return SystemHdrState.Unknown;
             try
             {
@@ -31,6 +28,25 @@ namespace BudgetGameDev.Shared
             }
 #else
             return SystemHdrState.Unknown;
+#endif
+        }
+
+        internal static bool TryQueryActiveDisplayMode(out NativeDisplayMode mode)
+        {
+            mode = default;
+#if UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN
+            if (Application.platform != RuntimePlatform.WindowsPlayer)
+                return false;
+            try
+            {
+                return TryQueryWindowsActiveDisplayMode(out mode);
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+#else
+            return false;
 #endif
         }
 
@@ -61,9 +77,41 @@ namespace BudgetGameDev.Shared
 
         private static SystemHdrState QueryWindows()
         {
-            if (!TryGetGameMonitorDeviceName(out string deviceName))
+            if (
+                !TryGetGameMonitor(out _, out string deviceName)
+                || !TryGetActiveTarget(deviceName, out DisplayConfigPathTargetInfo target)
+            )
                 return SystemHdrState.Unknown;
 
+            return QueryTargetHdrState(target);
+        }
+
+        private static bool TryQueryWindowsActiveDisplayMode(out NativeDisplayMode mode)
+        {
+            mode = default;
+            if (
+                !TryGetGameMonitor(out MonitorInfoEx monitor, out string deviceName)
+                || !TryGetActiveTarget(deviceName, out DisplayConfigPathTargetInfo target)
+            )
+                return false;
+
+            int width = monitor.Monitor.Right - monitor.Monitor.Left;
+            int height = monitor.Monitor.Bottom - monitor.Monitor.Top;
+            RefreshRate refreshRate = new()
+            {
+                numerator = target.RefreshRateNumerator,
+                denominator = target.RefreshRateDenominator,
+            };
+            mode = new NativeDisplayMode(width, height, refreshRate);
+            return mode.IsValid;
+        }
+
+        private static bool TryGetActiveTarget(
+            string deviceName,
+            out DisplayConfigPathTargetInfo target
+        )
+        {
+            target = default;
             for (int attempt = 0; attempt < QueryAttempts; attempt++)
             {
                 if (
@@ -73,7 +121,7 @@ namespace BudgetGameDev.Shared
                         out uint modeCount
                     ) != ErrorSuccess
                 )
-                    return SystemHdrState.Unknown;
+                    return false;
 
                 var paths = new DisplayConfigPathInfo[pathCount];
                 var modes = new DisplayConfigModeInfo[modeCount];
@@ -88,21 +136,23 @@ namespace BudgetGameDev.Shared
                 if (result == ErrorInsufficientBuffer)
                     continue;
                 if (result != ErrorSuccess)
-                    return SystemHdrState.Unknown;
+                    return false;
 
                 for (int index = 0; index < pathCount; index++)
                 {
                     if (!MatchesSource(paths[index].SourceInfo, deviceName))
                         continue;
-                    return QueryTargetHdrState(paths[index].TargetInfo);
+                    target = paths[index].TargetInfo;
+                    return true;
                 }
-                return SystemHdrState.Unknown;
+                return false;
             }
-            return SystemHdrState.Unknown;
+            return false;
         }
 
-        private static bool TryGetGameMonitorDeviceName(out string deviceName)
+        private static bool TryGetGameMonitor(out MonitorInfoEx info, out string deviceName)
         {
+            info = default;
             deviceName = string.Empty;
             IntPtr window = GetActiveWindow();
             if (window != IntPtr.Zero)
@@ -111,7 +161,7 @@ namespace BudgetGameDev.Shared
             if (monitor == IntPtr.Zero)
                 return false;
 
-            MonitorInfoEx info = new() { Size = Marshal.SizeOf<MonitorInfoEx>() };
+            info = new MonitorInfoEx { Size = Marshal.SizeOf<MonitorInfoEx>() };
             if (!GetMonitorInfoW(monitor, ref info) || string.IsNullOrEmpty(info.Device))
                 return false;
             deviceName = info.Device;
