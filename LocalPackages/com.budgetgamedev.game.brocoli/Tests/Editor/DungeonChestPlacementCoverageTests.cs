@@ -112,7 +112,7 @@ namespace BudgetGameDev.Games.Brocoli.Tests
         }
 
         [Test]
-        public void PropPlacementCoversClearBlockedDividerPoolAndRotationPolicies()
+        public void PropPlacementCoversClearBlockedDividerAndRotationPolicies()
         {
             var open = new DungeonLayout.RoomArchetype(
                 DungeonLayout.RoomShape.OpenHall,
@@ -210,19 +210,6 @@ namespace BudgetGameDev.Games.Brocoli.Tests
                 "enemy and prop placement ignored an east-west railing"
             );
             Assert.That(DungeonPropPlacer.IsOnDivider(Vector2.zero, eastWestRoute), Is.False);
-
-            for (int variant = 0; variant < 4; variant++)
-            {
-                var poolRoom = new DungeonLayout.RoomArchetype(
-                    DungeonLayout.RoomShape.OpenHall,
-                    DungeonLayout.RoomTheme.Flooded,
-                    10f,
-                    8f,
-                    variant
-                );
-                Vector2 pool = DungeonPropPlacer.PoolSpot(poolRoom, new System.Random(variant));
-                Assert.That(pool.sqrMagnitude, Is.GreaterThan(0f));
-            }
 
             Vector2 point = new(2f, 1f);
             Assert.That(DungeonPropPlacer.RotateQuarterTurns(point, 0), Is.EqualTo(point));

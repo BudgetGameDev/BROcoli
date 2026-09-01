@@ -1,5 +1,4 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
 using NUnit.Framework;
@@ -14,48 +13,8 @@ namespace BudgetGameDev.Games.Brocoli.Tests
             BindingFlags.Instance | BindingFlags.Static | BindingFlags.NonPublic;
 
         [Test]
-        public void PoolPlacementCoversImpossibleDividerAndExhaustedSearches()
+        public void ReservedChestLookupIgnoresDistantSpots()
         {
-            Type placementType = typeof(DungeonPropPlacer).GetNestedType("PoolPlacement", Hidden);
-            Type listType = typeof(List<>).MakeGenericType(placementType);
-            object empty = Activator.CreateInstance(listType);
-            var impossible = new DungeonLayout.RoomArchetype(
-                DungeonLayout.RoomShape.Tiny,
-                DungeonLayout.RoomTheme.Flooded,
-                1f,
-                1f,
-                0
-            );
-            Assert.That(TryPoolSpot(impossible, empty, Vector2.zero, 1f), Is.False);
-
-            var divided = new DungeonLayout.RoomArchetype(
-                DungeonLayout.RoomShape.Divided,
-                DungeonLayout.RoomTheme.Flooded,
-                10f,
-                8f,
-                0
-            );
-            TryPoolSpot(divided, empty, new Vector2(0f, 4f), 0.25f);
-
-            IList blocked = (IList)Activator.CreateInstance(listType);
-            blocked.Add(
-                Activator.CreateInstance(
-                    placementType,
-                    Hidden | BindingFlags.Public,
-                    null,
-                    new object[] { Vector2.zero, 100f, 0f },
-                    null
-                )
-            );
-            var open = new DungeonLayout.RoomArchetype(
-                DungeonLayout.RoomShape.OpenHall,
-                DungeonLayout.RoomTheme.Flooded,
-                10f,
-                8f,
-                0
-            );
-            Assert.That(TryPoolSpot(open, blocked, Vector2.zero, 0.25f), Is.False);
-
             var reserved = new List<DungeonPropPlacer.OccupiedSpot>
             {
                 new(Vector2.zero, 1f, false, true),
@@ -88,7 +47,6 @@ namespace BudgetGameDev.Games.Brocoli.Tests
                 Set(placer, "goldenChestChance", 1f);
                 Set(placer, "propPrefabs", new[] { prefab });
                 Set(placer, "torchPrefab", prefab);
-                Set(placer, "waterPrefab", prefab);
 
                 DungeonLayout.RoomArchetype treasure = Room(
                     DungeonLayout.RoomShape.Tiny,
@@ -193,17 +151,6 @@ namespace BudgetGameDev.Games.Brocoli.Tests
                 UnityEngine.Object.DestroyImmediate(parent);
                 UnityEngine.Object.DestroyImmediate(host);
             }
-        }
-
-        private static bool TryPoolSpot(
-            DungeonLayout.RoomArchetype room,
-            object placed,
-            Vector2 preferred,
-            float scale
-        )
-        {
-            object[] arguments = { room, new System.Random(1), placed, preferred, scale, 0f, null };
-            return (bool)InvokeStatic(typeof(DungeonPropPlacer), "TryPoolSpot", arguments);
         }
 
         private static DungeonLayout.RoomArchetype Room(

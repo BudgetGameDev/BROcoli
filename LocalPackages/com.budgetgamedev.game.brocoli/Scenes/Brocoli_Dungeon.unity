@@ -32,11 +32,11 @@ RenderSettings:
   m_FlareFadeSpeed: 3
   m_HaloTexture: {fileID: 0}
   m_SpotCookie: {fileID: 10001, guid: 0000000000000000e000000000000000, type: 0}
-  m_DefaultReflectionMode: 0
+  m_DefaultReflectionMode: 1
   m_DefaultReflectionResolution: 128
   m_ReflectionBounces: 1
   m_ReflectionIntensity: 1
-  m_CustomReflection: {fileID: 0}
+  m_CustomReflection: {fileID: 8900000, guid: 645109b5b1fa1458c9ddf145947e3804, type: 3}
   m_Sun: {fileID: 0}
   m_UseRadianceAmbientProbe: 0
 --- !u!157 &3
@@ -4624,8 +4624,6 @@ MonoBehaviour:
   - {fileID: 6909869828844226268, guid: 9cc414f0ca3a042e992c85078edcf117, type: 3}
   maxPropsPerRoom: 18
   torchPrefab: {fileID: 803803779544073394, guid: 0a0dbfc4806e54ae1884d916d23fd1dd, type: 3}
-  waterPrefab: {fileID: 3017435811261841411, guid: 6a3ed5f722dca43db9cabb8b0db25ab7, type: 3}
-  waterChance: 0.45
 --- !u!1 &1933989425
 GameObject:
   m_ObjectHideFlags: 0

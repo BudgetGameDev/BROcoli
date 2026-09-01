@@ -101,9 +101,10 @@ https://sketchfab.com/3d-models/dungeon-wall-torch-1439096bf4414ff9bbd615a4c727f
 License: https://creativecommons.org/licenses/by/4.0/
 
 "Texture Pack: Stylized 01" by Julio Sillet (JulioVII / Sillet 3D Art),
-licensed under CC-BY. BROcoli uses the Stylized 01 Bricks and Stylized 02 Stone
-Ground PBR materials; the Stone Ground base color is desaturated for a moss-free
-dungeon-floor variation.
+licensed under CC-BY. BROcoli uses the Stylized 01 Bricks, Stylized 02 Stone
+Ground, Stylized 03 Wood Planks and Stylized 04 Rocks PBR materials; the Stone
+Ground base color is desaturated for a moss-free dungeon-floor variation and the
+Rocks base color is desaturated for grey dungeon stone.
 https://juliovii.itch.io/stylizedpk01
 
 "Spray bottle" by naincube, licensed under Creative Commons Attribution 4.0.
@@ -117,6 +118,18 @@ https://kenney.nl/assets/mini-dungeon
 
 Modular Dungeon Kit 2.1 by Kenney
 https://kenney.nl/assets/modular-dungeon-kit
+
+Metal063 from ambientCG.com, used for the steel bands, blades, spikes and
+fittings on dungeon props and for the surface detail under the gold tint. Its
+metalness map is scaled back so torchlit iron does not read as black.
+https://ambientcg.com/view?id=Metal063
+
+GlazedTerracotta001 from ambientCG.com, used for the glazed clay of dungeon pots.
+https://ambientcg.com/view?id=GlazedTerracotta001
+
+"Drachenfels Cellar" HDRI by Andreas Mischok from Poly Haven, tone mapped into
+the cubemap the dungeon reflects in its steel and gold.
+https://polyhaven.com/a/drachenfels_cellar
 
 "splat.ogg" by gprosser, used as EnemyDeathSplat.mp3
 https://freesound.org/people/gprosser/sounds/360942/

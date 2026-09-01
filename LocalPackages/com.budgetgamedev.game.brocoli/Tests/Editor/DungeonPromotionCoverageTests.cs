@@ -247,7 +247,6 @@ namespace BudgetGameDev.Games.Brocoli.Tests
             {
                 DungeonPropPlacer placer = host.AddComponent<DungeonPropPlacer>();
                 Set(placer, "torchPrefab", torch);
-                Set(placer, "waterPrefab", null);
                 foreach (
                     DungeonLayout.RoomTheme theme in new[]
                     {
@@ -265,12 +264,10 @@ namespace BudgetGameDev.Games.Brocoli.Tests
                     );
                 }
 
-                Set(placer, "waterPrefab", torch);
-                Set(placer, "waterChance", 0f);
                 placer.BuildAtmosphere(
                     parent.transform,
                     Vector2Int.right,
-                    Room(DungeonLayout.RoomShape.OpenHall, DungeonLayout.RoomTheme.Sparse, 0),
+                    Room(DungeonLayout.RoomShape.Causeway, DungeonLayout.RoomTheme.Sparse, 0),
                     default,
                     new System.Random(5)
                 );

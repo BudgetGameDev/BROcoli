@@ -81,6 +81,12 @@ namespace BudgetGameDev.Games.Brocoli.Tests
         [TestCase("splat.ogg")]
         [TestCase("gprosser")]
         [TestCase("Liberation Sans")]
+        [TestCase("Texture Pack: Stylized 01")]
+        [TestCase("Metal063")]
+        [TestCase("GlazedTerracotta001")]
+        [TestCase("Drachenfels Cellar")]
+        [TestCase("Poly Haven")]
+        [TestCase("Julio Sillet")]
         public void CreditsResourceContainsPublicAssetAttribution(string requiredText)
         {
             Assert.That(LoadCredits().text, Does.Contain(requiredText));

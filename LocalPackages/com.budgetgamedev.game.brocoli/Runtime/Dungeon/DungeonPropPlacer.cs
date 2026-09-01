@@ -5,7 +5,7 @@ namespace BudgetGameDev.Games.Brocoli
 {
     /// <summary>
     /// Dresses deterministic dungeon archetypes with themed prop patterns, loot,
-    /// wall lighting, and water. Layouts range from empty rooms to dense storage,
+    /// and wall lighting. Layouts range from empty rooms to dense storage,
     /// banquet, armoury, shrine, collapsed, flooded, and treasure rooms.
     /// </summary>
     public partial class DungeonPropPlacer : MonoBehaviour
@@ -84,12 +84,6 @@ namespace BudgetGameDev.Games.Brocoli
         [SerializeField]
         private GameObject torchPrefab;
 
-        [SerializeField]
-        private GameObject waterPrefab;
-
-        [SerializeField, Range(0f, 1f)]
-        private float waterChance = 0.45f;
-
         /// <summary>
         /// Places deterministic chest slots and the room's prop pattern. Opened
         /// slots still reserve their positions so rebuilt rooms never rearrange.
@@ -152,7 +146,7 @@ namespace BudgetGameDev.Games.Brocoli
         }
 
         /// <summary>
-        /// Places lighting and pools appropriate to the room theme. The shell
+        /// Places lighting appropriate to the room theme. The shell
         /// wall mask says which outer sides still carry full-height walls after
         /// the platform boundary is applied; fittings never hang on the others.
         /// </summary>
@@ -203,96 +197,6 @@ namespace BudgetGameDev.Games.Brocoli
                         )
                     );
                 }
-            }
-
-            if (waterPrefab == null)
-                return;
-
-            // A causeway is a bridge, whatever its theme: broad water sheets on
-            // both flanks, outside the parapets, sell the crossing.
-            if (archetype.Shape == DungeonLayout.RoomShape.Causeway)
-            {
-                Vector2[] flanks =
-                {
-                    new Vector2(-4.6f, 4.1f),
-                    new Vector2(4.8f, 4.3f),
-                    new Vector2(0.4f, -4.2f),
-                    new Vector2(-6.2f, -4.4f),
-                };
-                for (int i = 0; i < flanks.Length; i++)
-                {
-                    // Staggered lifts, like the themed pools below: overlapping
-                    // sheets must never share a plane to fight on.
-                    GameObject sheet = Instantiate(
-                        waterPrefab,
-                        (center + flanks[i]).ToWorld(0.02f + i * 0.007f),
-                        GroundPlane.YawRotation(random.Next(0, 360)),
-                        parent
-                    );
-                    sheet.transform.localScale *= Mathf.Lerp(
-                        1.5f,
-                        2.1f,
-                        (float)random.NextDouble()
-                    );
-                }
-            }
-
-            bool flooded = archetype.Theme == DungeonLayout.RoomTheme.Flooded;
-            bool dampClutter =
-                archetype.Theme == DungeonLayout.RoomTheme.Sparse
-                || archetype.Theme == DungeonLayout.RoomTheme.Collapsed;
-            if (!flooded && !dampClutter)
-                return;
-
-            float adjustedChance =
-                archetype.Theme == DungeonLayout.RoomTheme.Collapsed
-                    ? Mathf.Min(1f, waterChance + 0.2f)
-                    : waterChance;
-            if (!flooded && random.NextDouble() >= adjustedChance)
-                return;
-
-            int poolCount = flooded ? 2 + random.Next(0, 3) : 1 + random.Next(0, 2);
-            Vector2 poolingPoint = PoolSpot(archetype, random);
-            var placedPools = new List<PoolPlacement>(poolCount);
-            for (int i = 0; i < poolCount; i++)
-            {
-                Vector2 preferred =
-                    i == 0
-                        ? poolingPoint
-                        : poolingPoint
-                            + new Vector2(
-                                Mathf.Lerp(-3.2f, 3.2f, (float)random.NextDouble()),
-                                Mathf.Lerp(-2.4f, 2.4f, (float)random.NextDouble())
-                            );
-                float maxScale = archetype.Shape switch
-                {
-                    DungeonLayout.RoomShape.Tiny => 0.65f,
-                    DungeonLayout.RoomShape.Compact => 0.84f,
-                    _ => 1.5f,
-                };
-                float scale = Mathf.Lerp(0.62f, maxScale, (float)random.NextDouble());
-                float yaw = random.Next(0, 360);
-                if (
-                    !TryPoolSpot(
-                        archetype,
-                        random,
-                        placedPools,
-                        preferred,
-                        scale,
-                        yaw,
-                        out PoolPlacement placement
-                    )
-                )
-                    continue;
-
-                GameObject pool = Instantiate(
-                    waterPrefab,
-                    (center + placement.Center).ToWorld(0.02f + placedPools.Count * 0.007f),
-                    GroundPlane.YawRotation(yaw),
-                    parent
-                );
-                pool.transform.localScale *= scale;
-                placedPools.Add(placement);
             }
         }
     }

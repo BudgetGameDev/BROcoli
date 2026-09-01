@@ -112,28 +112,6 @@ namespace BudgetGameDev.Games.Brocoli
                 && Mathf.Abs(local.y) + safeRadius <= HalfRoomDepth - edgeInset;
         }
 
-        internal static Vector2 PoolSpot(
-            DungeonLayout.RoomArchetype archetype,
-            System.Random random
-        )
-        {
-            Vector2 corner = new Vector2(
-                (archetype.Variant & 1) == 0 ? -1f : 1f,
-                (archetype.Variant & 2) == 0 ? -1f : 1f
-            );
-            float x = Mathf.Lerp(
-                archetype.HalfWidth * 0.2f,
-                archetype.HalfWidth * 0.62f,
-                (float)random.NextDouble()
-            );
-            float z = Mathf.Lerp(
-                archetype.HalfDepth * 0.2f,
-                archetype.HalfDepth * 0.58f,
-                (float)random.NextDouble()
-            );
-            return new Vector2(x * corner.x, z * corner.y);
-        }
-
         internal static Vector2 RotateQuarterTurns(Vector2 point, int turns)
         {
             return ((turns % 4 + 4) % 4) switch

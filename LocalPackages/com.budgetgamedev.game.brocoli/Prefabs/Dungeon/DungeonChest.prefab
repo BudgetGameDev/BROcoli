@@ -90,6 +90,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LootChest
   expDropCount: 5
+  experiencePerPickup: 10
+  experienceGrowthPerRing: 0.5
   boostDropCount: 1
   scatterRadius: 1.8
   model: {fileID: 7188605659375575346}
@@ -134,7 +136,7 @@ MeshFilter:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2699489099523023652}
-  m_Mesh: {fileID: 6093789492850456457, guid: 6e33288f577cd41fb9acf5ec867a8e41, type: 3}
+  m_Mesh: {fileID: 4300000, guid: f224d5111ca584f68ac9b542622d7d1f, type: 2}
 --- !u!23 &326927712266035863
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -160,7 +162,8 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 49403878f2431438cbdd8f99258b29fc, type: 2}
+  - {fileID: 2100000, guid: 833646cfff20a48f2a75acedd759d0c9, type: 2}
+  - {fileID: 2100000, guid: fd1f02d4f795e43d5bee3c25696fe6ea, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -224,7 +227,7 @@ MeshFilter:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 7552919186510327703}
-  m_Mesh: {fileID: -7699666271181864620, guid: 6e33288f577cd41fb9acf5ec867a8e41, type: 3}
+  m_Mesh: {fileID: 4300000, guid: 41ba5db44d6794407b057425e6eb181c, type: 2}
 --- !u!23 &6840510201421881008
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -250,7 +253,8 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 49403878f2431438cbdd8f99258b29fc, type: 2}
+  - {fileID: 2100000, guid: fd1f02d4f795e43d5bee3c25696fe6ea, type: 2}
+  - {fileID: 2100000, guid: 833646cfff20a48f2a75acedd759d0c9, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
