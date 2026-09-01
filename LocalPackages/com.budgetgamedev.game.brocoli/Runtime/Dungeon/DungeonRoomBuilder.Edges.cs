@@ -9,10 +9,10 @@ namespace BudgetGameDev.Games.Brocoli
         private readonly List<DungeonArchway> edgeArchways = new();
 
         /// <summary>
-        /// Builds one shared wall run between two rooms from its planned geometry.
-        /// An open run drops one to three wall pieces to form doorways, at most one
-        /// of which is framed by an archway; a closed run is an unbroken wall. Both
-        /// neighbouring rooms share this geometry.
+        /// Builds one shared half-height railing run between two rooms from its
+        /// planned geometry. An open run drops one to three pieces to form
+        /// doorways, at most one of which is framed by an archway; a closed run is
+        /// unbroken. Both neighbouring rooms share this geometry.
         /// </summary>
         public GameObject BuildEdge(
             Transform parent,
@@ -27,13 +27,17 @@ namespace BudgetGameDev.Games.Brocoli
             );
             root.transform.SetParent(parent, false);
 
-            if (style == DungeonEdgeStyle.SouthCliff || style == DungeonEdgeStyle.SolidBoundary)
+            if (
+                style == DungeonEdgeStyle.SouthCliff
+                || style == DungeonEdgeStyle.SideCliff
+                || style == DungeonEdgeStyle.SolidBoundary
+            )
             {
                 BuildEnvironmentBoundary(
                     root.transform,
                     edge,
                     environment,
-                    style == DungeonEdgeStyle.SouthCliff
+                    style != DungeonEdgeStyle.SolidBoundary
                 );
                 return root;
             }
@@ -161,11 +165,12 @@ namespace BudgetGameDev.Games.Brocoli
         /// <summary>Instantiates one planned wall piece on its slab centre line.</summary>
         private void InstantiateWall(Transform parent, DungeonWallPiece piece)
         {
-            Instantiate(
-                wallPrefab,
-                piece.PrefabPosition.ToWorld(piece.BaseLift),
-                piece.AlongX ? Quaternion.identity : Quaternion.Euler(0f, 90f, 0f),
-                parent
+            InstantiateScaledWall(
+                parent,
+                piece,
+                SharedEdgeRailingHeightScale,
+                piece.BaseLift,
+                name: "DungeonWall - Shared Half-Height Railing"
             );
         }
 
@@ -174,13 +179,16 @@ namespace BudgetGameDev.Games.Brocoli
             DungeonWallPiece piece,
             float verticalScale,
             float lift,
-            float southOffset = 0f,
+            float outwardOffset = 0f,
             string name = null
         )
         {
+            // Cliff courses step outward away from the playable floor: south
+            // for the camera-facing cliff, west for the side cliffs the yawed
+            // camera sees at the platform's stair-steps.
             GameObject wall = Instantiate(
                 wallPrefab,
-                (piece.PrefabPosition + Vector2.down * southOffset).ToWorld(lift),
+                (piece.PrefabPosition - piece.Normal * outwardOffset).ToWorld(lift),
                 piece.AlongX ? Quaternion.identity : Quaternion.Euler(0f, 90f, 0f),
                 parent
             );

@@ -5,6 +5,8 @@ namespace BudgetGameDev.Games.Brocoli
 {
     /// <summary>
     /// Diablo 3: Reaper of Souls style camera.
+    /// - Fixed 45-degree yaw over the grid-aligned world, so rooms, bridges,
+    ///   and the platform's cliff edges all read diagonally on screen
     /// - Smooth follow without centering/reset
     /// - Subtle drift in movement direction that stays
     /// - Responsive zoom for portrait/landscape
@@ -12,6 +14,15 @@ namespace BudgetGameDev.Games.Brocoli
     /// </summary>
     public class CameraController : MonoBehaviour
     {
+        /// <summary>
+        /// How far the view is yawed against the world grid. The dungeon's
+        /// layout maths stays axis-aligned; only the camera (and the input
+        /// mapping, see <see cref="PlayerInputHandler"/>) turns, which is
+        /// exactly how Diablo gets its diagonal look out of square tiles.
+        /// Screen "up" is world north-east.
+        /// </summary>
+        public const float WorldYawDegrees = 45f;
+
 #if UNITY_WEBGL && !UNITY_EDITOR
         [DllImport("__Internal")]
         private static extern int IsMobileBrowser();
@@ -59,6 +70,11 @@ namespace BudgetGameDev.Games.Brocoli
         {
             cam = GetComponent<Camera>();
 
+            // The scene authors the rig looking due north; the diagonal view is
+            // applied here so the one yaw constant also governs input mapping.
+            transform.rotation =
+                Quaternion.Euler(0f, WorldYawDegrees, 0f) * transform.rotation;
+
             // Check if we're on mobile
             isMobile = CheckIsMobile();
 
@@ -70,8 +86,7 @@ namespace BudgetGameDev.Games.Brocoli
 
             if (target != null)
             {
-                // Preserve the offset set in the scene
-                offset = transform.position - target.position;
+                CaptureYawedOffset();
                 initialized = true;
             }
 
@@ -81,6 +96,19 @@ namespace BudgetGameDev.Games.Brocoli
             {
                 cam.fieldOfView = targetFOV;
             }
+        }
+
+        /// <summary>
+        /// Preserves the follow distance authored in the scene, swung around
+        /// the target by the world yaw so the camera sits south-west of the
+        /// player looking north-east.
+        /// </summary>
+        private void CaptureYawedOffset()
+        {
+            offset =
+                Quaternion.Euler(0f, WorldYawDegrees, 0f)
+                * (transform.position - target.position);
+            transform.position = target.position + offset;
         }
 
         private bool CheckIsMobile()
@@ -118,7 +146,7 @@ namespace BudgetGameDev.Games.Brocoli
 
             if (!initialized)
             {
-                offset = transform.position - target.position;
+                CaptureYawedOffset();
                 initialized = true;
             }
 

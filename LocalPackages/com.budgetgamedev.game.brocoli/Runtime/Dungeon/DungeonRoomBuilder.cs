@@ -16,12 +16,15 @@ namespace BudgetGameDev.Games.Brocoli
         private const float HalfRoomDepth = DungeonLayout.RoomDepth / 2f;
 
         /// <summary>
-        /// Interior dividers are low masonry, never room-height walls. Keeping
+        /// Interior dividers are low masonry, not room-height walls. Keeping
         /// this as a construction invariant means a new room shape cannot
         /// accidentally put an opaque shell wall through playable floor. Tall
         /// enough to carry a lowered torch fitting convincingly, yet still under
         /// <see cref="DungeonOccluder.MinimumAutomaticFadeHeight"/> so characters
-        /// stay readable over it and nothing lowers it for an enemy.
+        /// stay readable over it and nothing lowers it for an enemy. The one
+        /// exception is <see cref="DungeonWallKind.InteriorFeature"/>: a rare
+        /// full-height landmark whose hidden band is physically sealed, so it
+        /// can never actually stand between the camera and the player.
         /// </summary>
         public const float InteriorWallHeightScale = 0.56f;
 
@@ -30,6 +33,13 @@ namespace BudgetGameDev.Games.Brocoli
         /// railings and remain even shorter than the other interior half walls.
         /// </summary>
         public const float InteriorRailingHeightScale = 0.44f;
+
+        /// <summary>
+        /// Shared boundaries between ordinary rooms are half-height railings by
+        /// default. They still divide navigation and retain doorway gaps, but
+        /// stay below the automatic fade threshold so the route remains readable.
+        /// </summary>
+        public const float SharedEdgeRailingHeightScale = 0.5f;
 
         [Header("Modular Dungeon Kit pieces")]
         [SerializeField]
@@ -80,8 +90,10 @@ namespace BudgetGameDev.Games.Brocoli
         }
 
         /// <summary>
-        /// Adds the interior wall runs that reshape the fixed grid shell, exactly
-        /// where <see cref="DungeonRoomGeometry"/> planned them.
+        /// Adds the interior geometry that reshapes the fixed grid shell: the
+        /// axis-aligned wall runs, the curved and diagonal railing chains, and
+        /// the sealed band behind any feature wall, exactly where
+        /// <see cref="DungeonRoomGeometry"/> planned them.
         /// </summary>
         public void BuildInterior(
             Transform parent,
@@ -91,6 +103,9 @@ namespace BudgetGameDev.Games.Brocoli
         {
             if (wallPrefab == null)
                 return;
+
+            BuildRailings(parent, room, archetype);
+            BuildFeatureKeepOuts(parent, room, archetype);
 
             interiorWalls.Clear();
             DungeonRoomGeometry.AppendInteriorWalls(interiorWalls, room, archetype);

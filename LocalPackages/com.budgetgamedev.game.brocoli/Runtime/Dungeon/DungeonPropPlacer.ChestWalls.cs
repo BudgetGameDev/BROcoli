@@ -25,6 +25,33 @@ namespace BudgetGameDev.Games.Brocoli
                 )
                     return true;
             }
+
+            // Curved and diagonal railings occupy floor just like axis runs do,
+            // and the sealed band behind a feature wall must never receive a
+            // chest or prop the player could not reach.
+            var railings = new List<DungeonRailingSegment>();
+            DungeonRoomGeometry.AppendInteriorRailings(railings, Vector2Int.zero, archetype);
+            foreach (DungeonRailingSegment railing in railings)
+            {
+                if (
+                    railing.DistanceTo(point)
+                    <= clearance + DungeonRailingSegment.SlabHalfThickness
+                )
+                    return true;
+            }
+
+            var keepOuts = new List<Rect>();
+            DungeonRoomGeometry.AppendFeatureKeepOuts(keepOuts, Vector2Int.zero, archetype);
+            foreach (Rect keepOut in keepOuts)
+            {
+                if (
+                    point.x >= keepOut.xMin - clearance
+                    && point.x <= keepOut.xMax + clearance
+                    && point.y >= keepOut.yMin - clearance
+                    && point.y <= keepOut.yMax + clearance
+                )
+                    return true;
+            }
             return false;
         }
     }

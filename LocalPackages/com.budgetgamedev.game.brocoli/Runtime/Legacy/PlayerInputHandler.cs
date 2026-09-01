@@ -93,6 +93,14 @@ namespace BudgetGameDev.Games.Brocoli
 
             Vector2 targetInput = ResolveMovementInput(keyboardInput, gamepadInput, virtualInput);
 
+            // Keyboard, gamepad, and virtual sticks are screen-relative: pressing
+            // up must walk toward the top of the screen. The camera is yawed 45
+            // degrees over the world grid, so screen input turns by the same yaw
+            // to become the world-space direction everything downstream expects.
+            // The bot branch above stays unrotated - it already steers in world
+            // space toward world targets.
+            targetInput = targetInput.RotatedByYaw(CameraController.WorldYawDegrees);
+
             ApplyResolvedInput(targetInput, InputEpsilonSquared);
         }
 

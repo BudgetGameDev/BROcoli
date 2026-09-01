@@ -82,9 +82,10 @@ namespace BudgetGameDev.Games.Brocoli
         }
 
         /// <summary>
-        /// Gives diagonal galleries a broken, low rubble line instead of the
-        /// axial masonry railings used by the other shaped rooms. Its angle keeps
-        /// this archetype's route loose and visibly distinct.
+        /// Rock-themed environments scatter broken rubble on the outer
+        /// shoulders of a diagonal gallery's railing lane, so the masonry
+        /// diagonal reads grown-through rather than freshly built. Spots that
+        /// would land on the railings themselves are skipped.
         /// </summary>
         private void BuildVisibilityFriendlyBarriers(
             Transform parent,
@@ -103,10 +104,11 @@ namespace BudgetGameDev.Games.Brocoli
             )
                 return;
 
-            foreach (float x in new[] { -8f, -4f, 4f, 8f })
+            bool mirrored = (archetype.Variant & 1) != 0;
+            foreach (Vector2 spot in new[] { new Vector2(-7f, 3.2f), new Vector2(7f, -3.2f) })
             {
-                float z = -4.5f + x * 0.25f;
-                PlaceLowBarrier(parent, center, new Vector2(x, z), random, occupied, profile);
+                Vector2 local = mirrored ? new Vector2(-spot.x, spot.y) : spot;
+                PlaceLowBarrier(parent, center, local, archetype, random, occupied, profile);
             }
         }
 
@@ -114,6 +116,7 @@ namespace BudgetGameDev.Games.Brocoli
             Transform parent,
             Vector2 center,
             Vector2 local,
+            DungeonLayout.RoomArchetype archetype,
             System.Random random,
             List<OccupiedSpot> occupied,
             DungeonEnvironmentProfile profile
@@ -127,6 +130,9 @@ namespace BudgetGameDev.Games.Brocoli
                 return;
 
             DungeonPropMeasurement measurement = Measure(prefab);
+            if (OverlapsInteriorWall(local, measurement.Radius * LowBarrierScale.x, archetype))
+                return;
+
             SpawnScaledProp(
                 parent,
                 prefab,

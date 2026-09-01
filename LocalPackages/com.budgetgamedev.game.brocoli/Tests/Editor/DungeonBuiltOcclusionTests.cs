@@ -38,11 +38,11 @@ namespace BudgetGameDev.Games.Brocoli.Tests
         }
 
         /// <summary>
-        /// Whether a wall hides anyone depends on how tall it is, so the constant
-        /// the occlusion maths uses has to be the height the prefab builds.
+        /// Shared room edges keep their wall collision and doorway gaps, but use
+        /// half-height railings by default so they do not hide characters.
         /// </summary>
         [Test]
-        public void BuiltWallSlabsStandAtThePlannedHeight()
+        public void BuiltSharedEdgesAreHalfHeightRailings()
         {
             DungeonRoomBuilder builder = Builder();
             builder.BuildEdge(
@@ -50,6 +50,7 @@ namespace BudgetGameDev.Games.Brocoli.Tests
                 new DungeonEdge(0, 0, true),
                 new DungeonPassage(false, 0, 0)
             );
+            Physics.SyncTransforms();
 
             // Whatever the run built is what gets measured. Matching on a prefab
             // name here would stop covering the wall the moment the art was
@@ -66,9 +67,17 @@ namespace BudgetGameDev.Games.Brocoli.Tests
             {
                 Assert.That(
                     height,
-                    Is.EqualTo(DungeonWallPiece.SlabHeight).Within(0.02f),
-                    $"a built wall slab stands {height:0.00} tall, but the occlusion maths "
-                        + $"assumes {DungeonWallPiece.SlabHeight:0.00}"
+                    Is.EqualTo(
+                            DungeonWallPiece.SlabHeight
+                                * DungeonRoomBuilder.SharedEdgeRailingHeightScale
+                        )
+                        .Within(0.02f),
+                    $"a shared edge stands {height:0.00} tall instead of half wall height"
+                );
+                Assert.That(
+                    height,
+                    Is.LessThan(DungeonOccluder.MinimumAutomaticFadeHeight),
+                    $"a shared edge stands {height:0.00} tall enough to hide a character"
                 );
             }
         }

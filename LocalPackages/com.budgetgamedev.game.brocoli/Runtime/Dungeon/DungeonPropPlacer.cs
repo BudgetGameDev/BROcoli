@@ -107,6 +107,7 @@ namespace BudgetGameDev.Games.Brocoli
             var occupied = new List<OccupiedSpot>();
 
             BuildVisibilityFriendlyBarriers(parent, center, archetype, random, occupied);
+            BuildFeatureWallScreens(parent, center, archetype, random, occupied);
 
             int chestCount = ChestCount(room, archetype, random);
             for (int slot = 0; slot < chestCount; slot++)
@@ -207,6 +208,35 @@ namespace BudgetGameDev.Games.Brocoli
 
             if (waterPrefab == null)
                 return;
+
+            // A causeway is a bridge, whatever its theme: broad water sheets on
+            // both flanks, outside the parapets, sell the crossing.
+            if (archetype.Shape == DungeonLayout.RoomShape.Causeway)
+            {
+                Vector2[] flanks =
+                {
+                    new Vector2(-4.6f, 4.1f),
+                    new Vector2(4.8f, 4.3f),
+                    new Vector2(0.4f, -4.2f),
+                    new Vector2(-6.2f, -4.4f),
+                };
+                for (int i = 0; i < flanks.Length; i++)
+                {
+                    // Staggered lifts, like the themed pools below: overlapping
+                    // sheets must never share a plane to fight on.
+                    GameObject sheet = Instantiate(
+                        waterPrefab,
+                        (center + flanks[i]).ToWorld(0.02f + i * 0.007f),
+                        GroundPlane.YawRotation(random.Next(0, 360)),
+                        parent
+                    );
+                    sheet.transform.localScale *= Mathf.Lerp(
+                        1.5f,
+                        2.1f,
+                        (float)random.NextDouble()
+                    );
+                }
+            }
 
             bool flooded = archetype.Theme == DungeonLayout.RoomTheme.Flooded;
             bool dampClutter =

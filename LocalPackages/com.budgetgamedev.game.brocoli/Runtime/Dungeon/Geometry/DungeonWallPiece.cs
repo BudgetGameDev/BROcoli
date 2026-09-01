@@ -10,6 +10,14 @@ namespace BudgetGameDev.Games.Brocoli
 
         /// <summary>An interior run that reshapes a room without sealing it.</summary>
         Interior,
+
+        /// <summary>
+        /// A rare full-height interior wall used as a landmark. The band its
+        /// occlusion shadow falls on is sealed by collision and props (see
+        /// DungeonRoomGeometry.AppendFeatureKeepOuts), so the player can never
+        /// stand where this wall would hide them.
+        /// </summary>
+        InteriorFeature,
     }
 
     /// <summary>

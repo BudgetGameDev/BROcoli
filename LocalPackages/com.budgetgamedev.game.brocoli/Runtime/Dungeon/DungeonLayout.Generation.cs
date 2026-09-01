@@ -36,6 +36,9 @@ namespace BudgetGameDev.Games.Brocoli
                 );
             }
 
+            if (IsPinchColumn(room.x))
+                return PinchArchetype(room, environment);
+
             System.Random themeRandom = RoomRandom(room, 808);
             double themeRoll = themeRandom.NextDouble();
             RoomTheme theme = themeRoll switch
@@ -62,10 +65,11 @@ namespace BudgetGameDev.Games.Brocoli
                     break;
                 case RoomTheme.Banquet:
                     shape =
-                        shapeRoll < 0.30 ? RoomShape.LongHorizontal
-                        : shapeRoll < 0.45 ? RoomShape.NarrowHorizontal
-                        : shapeRoll < 0.75 ? RoomShape.DiagonalGallery
-                        : shapeRoll < 0.87 ? RoomShape.LongVertical
+                        shapeRoll < 0.25 ? RoomShape.LongHorizontal
+                        : shapeRoll < 0.40 ? RoomShape.NarrowHorizontal
+                        : shapeRoll < 0.58 ? RoomShape.SerpentineHall
+                        : shapeRoll < 0.78 ? RoomShape.DiagonalGallery
+                        : shapeRoll < 0.88 ? RoomShape.LongVertical
                         : RoomShape.LargeSquare;
                     break;
                 case RoomTheme.Shrine:
@@ -74,22 +78,25 @@ namespace BudgetGameDev.Games.Brocoli
                         shapeRoll < 0.15 ? RoomShape.Tiny
                         : shapeRoll < 0.30 ? RoomShape.Compact
                         : shapeRoll < 0.45 ? RoomShape.LargeSquare
-                        : shapeRoll < 0.75 ? RoomShape.DiagonalGallery
-                        : shapeRoll < 0.88 ? RoomShape.NarrowVertical
+                        : shapeRoll < 0.68 ? RoomShape.DiagonalGallery
+                        : shapeRoll < 0.80 ? RoomShape.SerpentineHall
+                        : shapeRoll < 0.90 ? RoomShape.NarrowVertical
                         : RoomShape.OpenHall;
                     break;
                 case RoomTheme.Flooded:
                     shape =
-                        shapeRoll < 0.18 ? RoomShape.OpenHall
-                        : shapeRoll < 0.58 ? RoomShape.DiagonalGallery
-                        : shapeRoll < 0.68 ? RoomShape.LongHorizontal
-                        : shapeRoll < 0.82 ? RoomShape.LargeSquare
-                        : shapeRoll < 0.92 ? RoomShape.NarrowVertical
+                        shapeRoll < 0.12 ? RoomShape.OpenHall
+                        : shapeRoll < 0.38 ? RoomShape.Causeway
+                        : shapeRoll < 0.62 ? RoomShape.DiagonalGallery
+                        : shapeRoll < 0.72 ? RoomShape.SerpentineHall
+                        : shapeRoll < 0.84 ? RoomShape.LargeSquare
+                        : shapeRoll < 0.93 ? RoomShape.NarrowVertical
                         : RoomShape.Divided;
                     break;
                 case RoomTheme.Collapsed:
                     shape =
-                        shapeRoll < 0.58 ? RoomShape.DiagonalGallery
+                        shapeRoll < 0.42 ? RoomShape.DiagonalGallery
+                        : shapeRoll < 0.60 ? RoomShape.Causeway
                         : shapeRoll < 0.72 ? RoomShape.Divided
                         : shapeRoll < 0.82 ? RoomShape.NarrowVertical
                         : shapeRoll < 0.90 ? RoomShape.Tiny
@@ -98,7 +105,8 @@ namespace BudgetGameDev.Games.Brocoli
                     break;
                 case RoomTheme.Empty:
                     shape =
-                        shapeRoll < 0.55 ? RoomShape.DiagonalGallery
+                        shapeRoll < 0.40 ? RoomShape.DiagonalGallery
+                        : shapeRoll < 0.58 ? RoomShape.SerpentineHall
                         : shapeRoll < 0.70 ? RoomShape.NarrowVertical
                         : shapeRoll < 0.82 ? RoomShape.Tiny
                         : shapeRoll < 0.92 ? RoomShape.Divided
@@ -107,12 +115,13 @@ namespace BudgetGameDev.Games.Brocoli
                 default:
                     shape = shapeRoll switch
                     {
-                        < 0.40 => RoomShape.DiagonalGallery,
-                        < 0.48 => RoomShape.Tiny,
-                        < 0.56 => RoomShape.Compact,
-                        < 0.62 => RoomShape.NarrowHorizontal,
-                        < 0.68 => RoomShape.LongHorizontal,
-                        < 0.78 => RoomShape.LargeSquare,
+                        < 0.30 => RoomShape.DiagonalGallery,
+                        < 0.44 => RoomShape.SerpentineHall,
+                        < 0.52 => RoomShape.Tiny,
+                        < 0.60 => RoomShape.Compact,
+                        < 0.66 => RoomShape.NarrowHorizontal,
+                        < 0.72 => RoomShape.LongHorizontal,
+                        < 0.80 => RoomShape.LargeSquare,
                         < 0.86 => RoomShape.NarrowVertical,
                         < 0.92 => RoomShape.LongVertical,
                         < 0.97 => RoomShape.Divided,
@@ -203,6 +212,44 @@ namespace BudgetGameDev.Games.Brocoli
             return new RoomPopulation(capacity - cellRandom.Next(0, 3), false);
         }
 
+        private const int PinchColumnPeriod = 6;
+        private const int PinchPhaseSalt = 811;
+        private const int PinchRoomSalt = 812;
+
+        /// <summary>
+        /// Whether a column is one of the level's recurring constrictions. The
+        /// strip breathes: every few columns both rooms narrow into causeways,
+        /// tight lanes, or winding halls, then the level opens out again. The
+        /// phase is seeded so runs do not all pinch at the same coordinates.
+        /// </summary>
+        public bool IsPinchColumn(int x)
+        {
+            int phase = (int)(Hash(0, 0, PinchPhaseSalt) % PinchColumnPeriod);
+            return PositiveModulo(x + phase, PinchColumnPeriod) == 0;
+        }
+
+        /// <summary>
+        /// The narrow archetype used across a pinch column. Themes stay quiet -
+        /// the pinch is a passage, not a set piece - and every shape here is a
+        /// horizontal lane, so the constriction lies across the direction of
+        /// travel.
+        /// </summary>
+        private RoomArchetype PinchArchetype(Vector2Int room, EnvironmentTheme environment)
+        {
+            System.Random random = RoomRandom(room, PinchRoomSalt);
+            double shapeRoll = random.NextDouble();
+            RoomShape shape =
+                shapeRoll < 0.40 ? RoomShape.Causeway
+                : shapeRoll < 0.72 ? RoomShape.NarrowHorizontal
+                : RoomShape.SerpentineHall;
+            double themeRoll = random.NextDouble();
+            RoomTheme theme =
+                themeRoll < 0.40 ? RoomTheme.Collapsed
+                : themeRoll < 0.72 ? RoomTheme.Sparse
+                : RoomTheme.Flooded;
+            return CreateArchetype(shape, theme, environment, random.Next(0, 4));
+        }
+
         private static RoomArchetype CreateArchetype(
             RoomShape shape,
             RoomTheme theme,
@@ -220,6 +267,7 @@ namespace BudgetGameDev.Games.Brocoli
                 RoomShape.LargeSquare => (8.2f, 6.4f),
                 RoomShape.LongHorizontal => (10.2f, 4.5f),
                 RoomShape.LongVertical => (4.5f, 6.4f),
+                RoomShape.Causeway => (10.2f, 2.4f),
                 _ => (10.2f, 6.4f),
             };
             return new RoomArchetype(shape, theme, environment, halfWidth, halfDepth, variant);

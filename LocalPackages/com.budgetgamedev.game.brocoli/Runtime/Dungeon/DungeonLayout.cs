@@ -144,6 +144,18 @@ namespace BudgetGameDev.Games.Brocoli
             Divided,
 
             /// <summary>
+            /// A winding hall: two low railing curves snake across the room so
+            /// the route swells and constricts instead of reading as a box.
+            /// </summary>
+            SerpentineHall,
+
+            /// <summary>
+            /// A narrow causeway with broken parapets and water or rubble on
+            /// both flanks - the room is crossed on a bridge, not a floor.
+            /// </summary>
+            Causeway,
+
+            /// <summary>
             /// One cell of a merged mega room: a full open shell whose
             /// cluster-internal edges build no wall at all, so several cells read
             /// as one long, deep, or huge chamber.
@@ -234,6 +246,8 @@ namespace BudgetGameDev.Games.Brocoli
                     RoomShape.LongHorizontal => 8,
                     RoomShape.LongVertical => 8,
                     RoomShape.DiagonalGallery => 10,
+                    RoomShape.SerpentineHall => 10,
+                    RoomShape.Causeway => 6,
                     RoomShape.Divided => 10,
                     RoomShape.GrandArena => 20,
                     RoomShape.OpenHall => 14,

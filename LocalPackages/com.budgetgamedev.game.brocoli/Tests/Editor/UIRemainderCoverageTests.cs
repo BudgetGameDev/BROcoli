@@ -207,6 +207,17 @@ namespace BudgetGameDev.Games.Brocoli.Tests
                 Set(first, "enemyTargetLockedUntil", float.MaxValue);
                 Invoke(first, "ShowEnemy", enemy);
 
+                // This covers the no-canvas fallback, so establish that
+                // precondition explicitly: reflective probe tests earlier in the
+                // run can leave a locator-visible overlay canvas behind, and the
+                // fallback never fires while one exists.
+                for (
+                    Canvas stray = BudgetGameDev.Shared.ScreenCanvasLocator.Find();
+                    stray != null;
+                    stray = BudgetGameDev.Shared.ScreenCanvasLocator.Find()
+                )
+                    UnityEngine.Object.DestroyImmediate(stray.gameObject);
+
                 GameObject vignetteHost = new("Coverage vignette remainder");
                 DamageVignette vignette = vignetteHost.AddComponent<DamageVignette>();
                 Set(vignette, "_vignetteImage", null);

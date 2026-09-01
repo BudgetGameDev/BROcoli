@@ -50,6 +50,23 @@ namespace BudgetGameDev.Games.Brocoli
             return -transform.localEulerAngles.y;
         }
 
+        /// <summary>
+        /// Turns a ground vector by a Unity yaw: the direction ground "up"
+        /// (+Z north) is carried to when the world is viewed through a camera
+        /// yawed by <paramref name="yawDegrees"/>. Unity's positive yaw turns
+        /// clockwise seen from above, so this is a clockwise ground rotation.
+        /// </summary>
+        public static Vector2 RotatedByYaw(this Vector2 ground, float yawDegrees)
+        {
+            float radians = -yawDegrees * Mathf.Deg2Rad;
+            float cos = Mathf.Cos(radians);
+            float sin = Mathf.Sin(radians);
+            return new Vector2(
+                ground.x * cos - ground.y * sin,
+                ground.x * sin + ground.y * cos
+            );
+        }
+
         // ==================== Rigidbody ground helpers ====================
 
         public static Vector2 GroundPosition(this Rigidbody body)

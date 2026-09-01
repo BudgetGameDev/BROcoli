@@ -32,8 +32,12 @@ namespace BudgetGameDev.Games.Brocoli
                 case DungeonLayout.RoomShape.LongVertical:
                     DressVerticalPath(parent, center, archetype, random, occupied);
                     break;
+                case DungeonLayout.RoomShape.Causeway:
+                    DressHorizontalPath(parent, center, archetype, random, occupied);
+                    break;
                 case DungeonLayout.RoomShape.Compact:
                 case DungeonLayout.RoomShape.LargeSquare:
+                case DungeonLayout.RoomShape.SerpentineHall:
                     DressCourtyard(parent, center, archetype, random, occupied);
                     break;
                 case DungeonLayout.RoomShape.Divided:

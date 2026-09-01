@@ -90,6 +90,31 @@ namespace BudgetGameDev.Games.Brocoli.Tests
                         );
                     }
 
+                    // Curved railings are freely rotated, so their colliders are
+                    // matched by centre rather than by axis-aligned rectangle.
+                    var plannedRailings = new List<DungeonRailingSegment>();
+                    DungeonRoomGeometry.AppendInteriorRailings(
+                        plannedRailings,
+                        room,
+                        model.Layout.Archetype(room)
+                    );
+                    List<Vector2> builtRailings = BuiltRailingCenters(root.transform);
+                    Assert.That(
+                        builtRailings.Count,
+                        Is.EqualTo(plannedRailings.Count),
+                        $"seed {seed}: room {room} built {builtRailings.Count} railing pieces "
+                            + $"for {plannedRailings.Count} planned segments"
+                    );
+                    foreach (DungeonRailingSegment segment in plannedRailings)
+                    {
+                        Assert.That(
+                            builtRailings.Exists(
+                                actual => segment.DistanceTo(actual) < Tolerance + 0.35f
+                            ),
+                            $"seed {seed}: room {room} planned {segment} but built nothing on it"
+                        );
+                    }
+
                     // Collect first: destroying while enumerating a Transform skips
                     // siblings and would leave the next room's count wrong.
                     var spent = new List<GameObject>();
@@ -101,7 +126,9 @@ namespace BudgetGameDev.Games.Brocoli.Tests
             }
         }
 
-        /// <summary>The ground-plane rectangle of every wall collider built so far.</summary>
+        /// <summary>The ground-plane rectangle of every axis-aligned wall collider
+        /// built so far. Curved railings are excluded: rotated boxes have no
+        /// meaningful axis-aligned footprint and are checked by centre instead.</summary>
         private static List<Rect> BuiltWallFootprints(Transform parent)
         {
             var footprints = new List<Rect>();
@@ -109,12 +136,28 @@ namespace BudgetGameDev.Games.Brocoli.Tests
             {
                 if (!collider.name.StartsWith("DungeonWall"))
                     continue;
+                if (collider.name.Contains("Curved Railing"))
+                    continue;
                 Bounds bounds = collider.bounds;
                 footprints.Add(
                     Rect.MinMaxRect(bounds.min.x, bounds.min.z, bounds.max.x, bounds.max.z)
                 );
             }
             return footprints;
+        }
+
+        /// <summary>The ground-plane centre of every curved railing collider.</summary>
+        private static List<Vector2> BuiltRailingCenters(Transform parent)
+        {
+            var centers = new List<Vector2>();
+            foreach (BoxCollider collider in parent.GetComponentsInChildren<BoxCollider>())
+            {
+                if (!collider.name.Contains("Curved Railing"))
+                    continue;
+                Bounds bounds = collider.bounds;
+                centers.Add(new Vector2(bounds.center.x, bounds.center.z));
+            }
+            return centers;
         }
 
         private static bool Matches(Rect actual, Rect plan)

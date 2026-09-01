@@ -22,7 +22,11 @@ namespace BudgetGameDev.Games.Brocoli
                     environment
                 );
                 loadedEdges[edge] = builtEdge;
-                if (style != DungeonEdgeStyle.SouthCliff && style != DungeonEdgeStyle.SolidBoundary)
+                if (
+                    style != DungeonEdgeStyle.SouthCliff
+                    && style != DungeonEdgeStyle.SideCliff
+                    && style != DungeonEdgeStyle.SolidBoundary
+                )
                     continue;
 
                 decor.BuildBoundaryDressing(

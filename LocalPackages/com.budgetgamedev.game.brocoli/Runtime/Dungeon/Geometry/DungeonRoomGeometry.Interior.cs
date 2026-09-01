@@ -12,10 +12,69 @@ namespace BudgetGameDev.Games.Brocoli
         private const int InteriorRunHalfTilesX = DungeonLayout.RoomTilesX / 2 - 1;
         private const int InteriorRunHalfTilesZ = DungeonLayout.RoomTilesZ / 2 - 1;
 
+        // Where a room's full-height feature wall stands and how far its hidden
+        // band reaches. The wall is scenery: through the 45-degree gameplay
+        // camera its occlusion shadow falls north-east of it, and the keep-out
+        // covers that whole sheared band so nothing walkable is ever hidden.
+        private const float FeatureWallZ = 3.5f;
+        private const float FeatureWallHalfSpan = 4f;
+        private static readonly Rect FeatureKeepOutLocal = Rect.MinMaxRect(
+            -FeatureWallHalfSpan - 0.2f,
+            FeatureWallZ + DungeonWallPiece.SlabHalfThickness,
+            FeatureWallHalfSpan + 2f,
+            FeatureWallZ + 2.3f
+        );
+
+        /// <summary>
+        /// Whether this archetype carries a full-height interior feature wall.
+        /// Deliberately rare - one variant of two broad shapes in three themes -
+        /// so tall interior masonry stays a landmark, not a habit.
+        /// </summary>
+        public static bool HasFeatureWall(DungeonLayout.RoomArchetype archetype)
+        {
+            bool shapeCarries =
+                archetype.Shape == DungeonLayout.RoomShape.OpenHall
+                || archetype.Shape == DungeonLayout.RoomShape.LargeSquare;
+            bool themeCarries =
+                archetype.Theme == DungeonLayout.RoomTheme.Storage
+                || archetype.Theme == DungeonLayout.RoomTheme.Armory
+                || archetype.Theme == DungeonLayout.RoomTheme.Shrine;
+            return shapeCarries && themeCarries && archetype.Variant == 1;
+        }
+
+        /// <summary>
+        /// The ground rectangles the player must be kept out of because a
+        /// feature wall would hide anyone standing there. The builder seals
+        /// them with collision and the prop placer dresses them shut, so the
+        /// tall wall can exist without ever obscuring the player.
+        /// </summary>
+        public static void AppendFeatureKeepOuts(
+            List<Rect> keepOuts,
+            Vector2Int room,
+            DungeonLayout.RoomArchetype archetype
+        )
+        {
+            if (!HasFeatureWall(archetype))
+                return;
+
+            Vector2 center = DungeonLayout.RoomCenter(room);
+            Rect local = FeatureKeepOutLocal;
+            keepOuts.Add(
+                Rect.MinMaxRect(
+                    center.x + local.xMin,
+                    center.y + local.yMin,
+                    center.x + local.xMax,
+                    center.y + local.yMax
+                )
+            );
+        }
+
         /// <summary>
         /// The interior runs that reshape a room's fixed grid shell. These are
-        /// collision plans, not full-height wall instructions: the room builder
-        /// always realizes them as half walls. Runs leave a central circulation
+        /// collision plans: the room builder realizes them as half walls and
+        /// railings, except for the rare <see cref="DungeonWallKind.InteriorFeature"/>
+        /// pieces, which stand at full height and are sealed off behind by
+        /// <see cref="AppendFeatureKeepOuts"/>. Runs leave a central circulation
         /// gap, so all outer-edge opening patterns stay connected regardless of
         /// the chosen shape.
         /// </summary>
@@ -26,6 +85,21 @@ namespace BudgetGameDev.Games.Brocoli
         )
         {
             Vector2 center = DungeonLayout.RoomCenter(room);
+            if (HasFeatureWall(archetype))
+            {
+                foreach (float x in new[] { -2f, 2f })
+                {
+                    walls.Add(
+                        new DungeonWallPiece(
+                            new Vector2(center.x + x, center.y + FeatureWallZ),
+                            true,
+                            DungeonWallKind.InteriorFeature,
+                            "Feature Wall"
+                        )
+                    );
+                }
+            }
+
             switch (archetype.Shape)
             {
                 case DungeonLayout.RoomShape.Tiny:

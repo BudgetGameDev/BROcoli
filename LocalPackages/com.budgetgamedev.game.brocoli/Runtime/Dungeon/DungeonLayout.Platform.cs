@@ -10,6 +10,14 @@ namespace BudgetGameDev.Games.Brocoli
         SouthCliff,
 
         /// <summary>
+        /// A vertical boundary whose void side faces the yawed gameplay camera:
+        /// the platform's west-facing step edges. Dressed exactly like the
+        /// south cliff, so the strip's stair-steps read as one continuous
+        /// diagonal cliff line instead of railing above and raw void below.
+        /// </summary>
+        SideCliff,
+
+        /// <summary>
         /// A completely open crossing between the platform's two playable rows.
         /// It builds no wall pieces, including at grid corners, because playable
         /// floor exists on both sides of the east-west edge.
@@ -93,6 +101,8 @@ namespace BudgetGameDev.Games.Brocoli
                 return edge.Horizontal ? DungeonEdgeStyle.OpenCrossing : DungeonEdgeStyle.Interior;
             if (edge.Horizontal && !first && second)
                 return DungeonEdgeStyle.SouthCliff;
+            if (!edge.Horizontal && !first && second)
+                return DungeonEdgeStyle.SideCliff;
             return DungeonEdgeStyle.SolidBoundary;
         }
 

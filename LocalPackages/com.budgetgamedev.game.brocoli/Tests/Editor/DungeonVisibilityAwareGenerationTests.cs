@@ -149,7 +149,19 @@ namespace BudgetGameDev.Games.Brocoli.Tests
                         DungeonRoomGeometry.AppendInteriorWalls(walls, room, archetype);
                         foreach (DungeonWallPiece wall in walls)
                         {
-                            Assert.That(wall.Kind, Is.EqualTo(DungeonWallKind.Interior));
+                            // Interior pieces are low route-shaping runs, except
+                            // for the rare sealed-off feature wall landmark.
+                            Assert.That(
+                                wall.Kind,
+                                Is.EqualTo(DungeonWallKind.Interior)
+                                    .Or.EqualTo(DungeonWallKind.InteriorFeature)
+                            );
+                            if (wall.Kind == DungeonWallKind.InteriorFeature)
+                                Assert.That(
+                                    DungeonRoomGeometry.HasFeatureWall(archetype),
+                                    $"seed {seed}: room {room} built a feature wall "
+                                        + "its archetype does not sanction"
+                                );
                             if (wall.AlongX)
                                 eastWestPieces++;
                             else
