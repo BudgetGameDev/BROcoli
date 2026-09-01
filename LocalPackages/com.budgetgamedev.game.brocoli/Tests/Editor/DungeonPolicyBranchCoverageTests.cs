@@ -27,6 +27,12 @@ namespace BudgetGameDev.Games.Brocoli.Tests
                 .Invoke(null, new object[] { reverse, "z", "a" });
             Assert.That(reverse["z"], Is.EqualTo("a"));
 
+            var forward = new Dictionary<string, string> { ["a"] = "a", ["z"] = "z" };
+            typeof(DungeonWallGrouping)
+                .GetMethod("Union", HiddenStatic)
+                .Invoke(null, new object[] { forward, "a", "z" });
+            Assert.That(forward["z"], Is.EqualTo("a"));
+
             Assert.That(DungeonLayout.PickNthDirectionBit(0, 0), Is.Zero);
             Assert.That(DungeonLayout.PickNthDirectionBit(1, 2), Is.Zero);
             var layout = new DungeonLayout(17);

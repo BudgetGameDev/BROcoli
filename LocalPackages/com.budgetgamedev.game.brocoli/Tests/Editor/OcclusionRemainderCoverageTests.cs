@@ -189,6 +189,31 @@ namespace BudgetGameDev.Games.Brocoli.Tests
             }
         }
 
+        [Test]
+        public void ShortEnemyOccludersAreSkippedForEnclosingAndRayCandidates()
+        {
+            OcclusionCameraModel camera = OcclusionCameraModel.Perspective(
+                new Vector3(0f, 10f, -10f),
+                Quaternion.LookRotation(new Vector3(0f, -10f, 10f)),
+                60f,
+                1f,
+                0.1f,
+                100f
+            );
+            var target = new OcclusionTarget(
+                OcclusionTargetKind.Enemy,
+                Vector3.zero,
+                new Bounds(Vector3.up * 0.5f, Vector3.one),
+                new Rect(0.4f, 0.4f, 0.2f, 0.2f),
+                0f
+            );
+            var activations = new Dictionary<int, OcclusionActivation>();
+
+            new WallOcclusionSelector().Select(camera, target, new ShortWorld(), activations);
+
+            Assert.That(activations, Is.Empty);
+        }
+
         private sealed class EmptyWorld : IOcclusionCandidateSource
         {
             public void Collect(
@@ -201,6 +226,22 @@ namespace BudgetGameDev.Games.Brocoli.Tests
                 Vector3 targetPosition,
                 List<OcclusionCandidate> results
             ) { }
+        }
+
+        private sealed class ShortWorld : IOcclusionCandidateSource
+        {
+            private static readonly OcclusionCandidate Short = new(
+                17,
+                new Bounds(Vector3.zero, new Vector3(10f, 0.1f, 10f))
+            );
+
+            public void Collect(Ray ray, float maximumDistance, List<OcclusionCandidate> results) =>
+                results.Add(Short);
+
+            public void CollectEnclosing(
+                Vector3 targetPosition,
+                List<OcclusionCandidate> results
+            ) => results.Add(Short);
         }
 
         private static object Invoke(object target, string name, params object[] arguments)

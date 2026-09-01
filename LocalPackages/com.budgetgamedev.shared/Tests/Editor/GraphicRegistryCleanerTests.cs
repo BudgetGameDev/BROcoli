@@ -208,9 +208,9 @@ namespace BudgetGameDev.Shared.Tests
 
         private sealed class MissingSetRegistry
         {
-            private static readonly IDictionary m_Graphics = new Hashtable();
-            public static object instance { get; } = new MissingSetRegistry();
-            internal static IDictionary Graphics => m_Graphics;
+            private readonly IDictionary m_Graphics = new Hashtable();
+            public static MissingSetRegistry instance { get; } = new();
+            internal static IDictionary Graphics => instance.m_Graphics;
         }
 
         private GraphicRegistryCleaner NewCleaner()

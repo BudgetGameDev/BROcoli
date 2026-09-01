@@ -160,6 +160,14 @@ namespace BudgetGameDev.Games.Brocoli.Tests
                 layout,
                 "settingsSelectables"
             );
+            Button hdrToggle = GetHierarchyField<Button>(layout, "hdrToggleButton");
+            int hdrToggleIndex = System.Array.IndexOf(selectables, hdrToggle);
+            if (hdrToggleIndex >= 0)
+            {
+                SetHierarchyField(layout, "selectedSetting", hdrToggleIndex);
+                SetHierarchyField(layout, "lastSettingsNavTime", -10f);
+                layout.ProcessSettingsInput(false, 0f, 1f, false, now + 2.5f);
+            }
             int buttonIndex = System.Array.FindIndex(selectables, item => item is Button);
             if (buttonIndex >= 0)
             {

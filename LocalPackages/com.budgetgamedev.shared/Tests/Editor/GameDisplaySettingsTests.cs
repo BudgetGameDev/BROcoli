@@ -6,7 +6,7 @@ using UnityEngine.Rendering.Universal;
 
 namespace BudgetGameDev.Shared.Tests
 {
-    public sealed class GameDisplaySettingsTests
+    public sealed partial class GameDisplaySettingsTests
     {
         private static readonly string[] PreferenceKeys =
         {

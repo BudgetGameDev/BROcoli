@@ -62,6 +62,24 @@ namespace BudgetGameDev.Games.Brocoli.Tests
                     ),
                     new System.Random(1)
                 );
+                foreach (
+                    DungeonLayout.RoomTheme theme in new[]
+                    {
+                        DungeonLayout.RoomTheme.Shrine,
+                        DungeonLayout.RoomTheme.Collapsed,
+                        DungeonLayout.RoomTheme.Arena,
+                    }
+                )
+                {
+                    Invoke(
+                        builder,
+                        "UsesDetailedFloor",
+                        1,
+                        1,
+                        Room(DungeonLayout.RoomShape.OpenHall, theme, 1),
+                        new System.Random(1)
+                    );
+                }
                 Assert.That(
                     LootChest.PickWeightedBoost(new[] { invalid, boost }, total => total + 1f),
                     Is.SameAs(boost)

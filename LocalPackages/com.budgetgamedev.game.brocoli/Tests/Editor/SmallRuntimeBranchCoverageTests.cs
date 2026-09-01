@@ -49,6 +49,19 @@ namespace BudgetGameDev.Games.Brocoli.Tests
                 1f,
                 -1
             );
+            for (int direction = 0; direction < 4; direction++)
+            {
+                if (!closedLayout.IsPlayableDoorOpen(Vector2Int.zero, direction))
+                    continue;
+                BotDecisionPolicy.ChooseExplorationDirection(
+                    closedLayout,
+                    Vector2Int.zero,
+                    new(),
+                    1f,
+                    (direction + 2) % 4
+                );
+                break;
+            }
 
             var resolver = new WallVisibilityResolver();
             resolver.BeginFrame();

@@ -181,14 +181,20 @@ namespace BudgetGameDev.Games.Brocoli
                     break;
             }
             suppressHdrCalibrationCallback = true;
-            hdrCalibrationSlider.SetValueWithoutNotify(
-                hdrCalibrationStep switch
-                {
-                    HdrCalibrationStep.PeakBrightness => GameDisplaySettings.PeakBrightnessNits,
-                    HdrCalibrationStep.PaperWhite => GameDisplaySettings.PaperWhiteNits,
-                    _ => BlackLevelToSlider(GameDisplaySettings.BlackLevelNits),
-                }
-            );
+            float sliderValue;
+            switch (hdrCalibrationStep)
+            {
+                case HdrCalibrationStep.PeakBrightness:
+                    sliderValue = GameDisplaySettings.PeakBrightnessNits;
+                    break;
+                case HdrCalibrationStep.PaperWhite:
+                    sliderValue = GameDisplaySettings.PaperWhiteNits;
+                    break;
+                default:
+                    sliderValue = BlackLevelToSlider(GameDisplaySettings.BlackLevelNits);
+                    break;
+            }
+            hdrCalibrationSlider.SetValueWithoutNotify(sliderValue);
             suppressHdrCalibrationCallback = false;
             SyncHdrCalibrationPreview();
         }

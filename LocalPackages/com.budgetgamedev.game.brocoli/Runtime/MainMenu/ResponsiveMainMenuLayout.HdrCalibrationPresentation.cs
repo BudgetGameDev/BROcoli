@@ -106,7 +106,11 @@ namespace BudgetGameDev.Games.Brocoli
 
         private void CreateHdrPreviewMaterials()
         {
-            Shader shader = Shader.Find("UI/Default");
+            CreateHdrPreviewMaterials(Shader.Find("UI/Default"));
+        }
+
+        private void CreateHdrPreviewMaterials(Shader shader)
+        {
             if (shader == null)
                 return;
 

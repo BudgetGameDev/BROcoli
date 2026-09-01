@@ -106,32 +106,20 @@ namespace BudgetGameDev.Shared
 
         public static string HdrStatus
         {
-            get
-            {
-                if (!IsNativeHdrPlayer)
-                    return "NATIVE HDR • WINDOWS / MACOS BUILDS ONLY";
-                if (!HdrEnabled)
-                {
-                    if (!IsHdrActive)
-                        return "NATIVE HDR OUTPUT DISABLED";
-                    return CanSwitchHdrAtRuntime
-                        ? "SWITCHING TO SDR…"
-                        : "HDR ACTIVE • PLATFORM DOES NOT SUPPORT LIVE SWITCHING";
-                }
-                if (!IsHdrAvailable && !IsHdrActive)
-                    return "ENABLE HDR IN SYSTEM DISPLAY SETTINGS";
-                if (!IsHdrActive)
-                    return "SWITCHING TO NATIVE HDR…";
-                string output =
-                    IsWindowsPlayer && IsTenBitHdrActive ? "10-BIT HDR10 ACTIVE"
-                    : IsMacOSPlayer && IsTenBitHdrActive ? "10-BIT METAL HDR ACTIVE"
-                    : IsMacOSPlayer ? "NATIVE METAL HDR ACTIVE"
-                    : $"HDR ACTIVE • {HDROutputSettings.main.graphicsFormat}";
-                string source = UsingSystemCalibrationDefaults
-                    ? "SYSTEM DISPLAY PROFILE"
-                    : "IN-GAME CALIBRATION";
-                return $"{output} • {Mathf.RoundToInt(PeakBrightnessNits)} NITS • {source}";
-            }
+            get =>
+                ResolveHdrStatus(
+                    IsNativeHdrPlayer,
+                    HdrEnabled,
+                    IsHdrActive,
+                    CanSwitchHdrAtRuntime,
+                    IsHdrAvailable,
+                    IsWindowsPlayer,
+                    IsMacOSPlayer,
+                    IsTenBitHdrActive,
+                    IsHdrActive ? HDROutputSettings.main.graphicsFormat.ToString() : string.Empty,
+                    UsingSystemCalibrationDefaults,
+                    PeakBrightnessNits
+                );
         }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
@@ -145,14 +133,27 @@ namespace BudgetGameDev.Shared
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         internal static void Bootstrap()
         {
+            Bootstrap(
+                IsNativeHdrPlayer,
+                Application.isPlaying,
+                UnityEngine.Object.DontDestroyOnLoad
+            );
+        }
+
+        internal static void Bootstrap(
+            bool nativeHdrPlayer,
+            bool isPlaying,
+            Action<UnityEngine.Object> keepAlive
+        )
+        {
             LoadValues();
-            if (!IsNativeHdrPlayer || instance != null)
+            if (!nativeHdrPlayer || instance != null)
                 return;
 
             GameObject root = new("Game Display Settings");
             instance = root.AddComponent<HdrDisplayDriver>();
-            if (Application.isPlaying)
-                UnityEngine.Object.DontDestroyOnLoad(root);
+            if (isPlaying)
+                keepAlive(root);
         }
 
         public static void SetHdrEnabled(bool enabled)
@@ -211,9 +212,8 @@ namespace BudgetGameDev.Shared
             PlayerPrefs.DeleteKey(BlackLevelKey);
             PlayerPrefs.DeleteKey(SystemCalibrationKey);
             PlayerPrefs.DeleteKey(LegacyWindowsCalibrationKey);
-            if (TryUseNativeDisplayCalibration())
-                return;
-            SaveAndApply();
+            if (!TryUseNativeDisplayCalibration())
+                SaveAndApply();
         }
 
         internal static bool TryApplyDetectedCalibrationDefaults(

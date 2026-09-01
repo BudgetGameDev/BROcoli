@@ -96,6 +96,7 @@ namespace BudgetGameDev.Games.Brocoli.Tests
             Assert.That(layout, Is.Not.Null);
             ExerciseMainMenuInput(layout);
             ExerciseSettingsInput(layout);
+            ExerciseHdrCalibration(layout);
             Invoke(layout, "OnRectTransformDimensionsChange");
             Invoke(layout, "OpenSettings");
             Invoke(layout, "SyncVolumeControls");
@@ -293,8 +294,5 @@ namespace BudgetGameDev.Games.Brocoli.Tests
 
             return enemies;
         }
-
-        private static object Invoke(object target, string method, params object[] arguments) =>
-            target.GetType().GetMethod(method, PrivateInstance).Invoke(target, arguments);
     }
 }

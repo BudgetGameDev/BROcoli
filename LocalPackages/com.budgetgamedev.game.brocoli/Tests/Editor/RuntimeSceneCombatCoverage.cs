@@ -87,6 +87,14 @@ namespace BudgetGameDev.Games.Brocoli.Tests
             ExerciseLegacyProjectileHit(target);
             target.transform.position = stats.transform.position + Vector3.right * 2f;
             Collider targetCollider = target.GetComponent<Collider>();
+            Physics.SyncTransforms();
+            InvokeHierarchy(
+                combat,
+                "FindBestSprayTarget",
+                new[] { targetCollider },
+                playerPosition,
+                50f
+            );
             InvokeHierarchy(combat, "CanShootTarget", targetCollider, playerPosition);
             InvokeHierarchy(combat, "GetPredictedEnemyPosition", target, Vector2.right, 0.1f, 10f);
             Rigidbody body = target.rb;

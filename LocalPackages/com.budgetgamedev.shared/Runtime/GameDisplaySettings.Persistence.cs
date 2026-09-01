@@ -73,19 +73,30 @@ namespace BudgetGameDev.Shared
 
         private static bool TryUseNativeDisplayCalibration()
         {
-            LoadValues();
-            if (
-                hasSavedCalibration
-                || !IsNativeHdrPlayer
-                || (!HDROutputSettings.main.available && !HDROutputSettings.main.active)
-            )
-                return false;
-
-            return TryApplyDetectedCalibrationDefaults(
+            return TryUseNativeDisplayCalibration(
+                IsNativeHdrPlayer,
+                HDROutputSettings.main.available,
+                HDROutputSettings.main.active,
                 HDROutputSettings.main.maxToneMapLuminance,
                 HDROutputSettings.main.paperWhiteNits,
                 HDROutputSettings.main.minToneMapLuminance
             );
+        }
+
+        internal static bool TryUseNativeDisplayCalibration(
+            bool nativeHdrPlayer,
+            bool available,
+            bool active,
+            float peakNits,
+            float paperWhite,
+            float blackLevel
+        )
+        {
+            LoadValues();
+            if (hasSavedCalibration || !nativeHdrPlayer || (!available && !active))
+                return false;
+
+            return TryApplyDetectedCalibrationDefaults(peakNits, paperWhite, blackLevel);
         }
     }
 }

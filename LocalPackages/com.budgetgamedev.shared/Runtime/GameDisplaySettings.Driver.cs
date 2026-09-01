@@ -60,28 +60,42 @@ namespace BudgetGameDev.Shared
 
             internal void OnDestroy()
             {
+                OnDestroy(Application.isPlaying, Destroy, DestroyImmediate);
+            }
+
+            internal void OnDestroy(
+                bool isPlaying,
+                Action<UnityEngine.Object> destroyDeferred,
+                Action<UnityEngine.Object> destroyImmediate
+            )
+            {
                 if (instance == this)
                     instance = null;
                 if (profile != null)
                 {
-                    if (Application.isPlaying)
-                        Destroy(profile);
+                    if (isPlaying)
+                        destroyDeferred(profile);
                     else
-                        DestroyImmediate(profile);
+                        destroyImmediate(profile);
                 }
             }
 
             internal void Apply()
             {
-                ConfigureTonemapping(HdrEnabled);
-
                 HDRDisplaySupportFlags flags = SystemInfo.hdrDisplaySupportFlags;
                 bool switchable = flags.HasFlag(HDRDisplaySupportFlags.RuntimeSwitchable);
-                if (
-                    switchable
-                    && (HDROutputSettings.main.available || HDROutputSettings.main.active)
-                )
-                    HDROutputSettings.main.RequestHDRModeChange(HdrEnabled);
+                Apply(
+                    switchable,
+                    HDROutputSettings.main.available || HDROutputSettings.main.active,
+                    HDROutputSettings.main.RequestHDRModeChange
+                );
+            }
+
+            internal void Apply(bool switchable, bool displayDetected, Action<bool> requestHdrMode)
+            {
+                ConfigureTonemapping(HdrEnabled);
+                if (switchable && displayDetected)
+                    requestHdrMode(HdrEnabled);
             }
 
             private void CreateTonemappingOverride()
