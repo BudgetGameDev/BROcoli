@@ -1,0 +1,33 @@
+* text=auto eol=lf
+
+# Unity text assets use Smart Merge. The Editor startup bootstrap configures the
+# local driver from the running Unity installation on each machine.
+*.unity text eol=lf merge=unityyamlmerge -whitespace
+*.prefab text eol=lf merge=unityyamlmerge -whitespace
+*.asset text eol=lf merge=unityyamlmerge -whitespace
+*.mat text eol=lf merge=unityyamlmerge -whitespace
+*.anim text eol=lf merge=unityyamlmerge -whitespace
+*.controller text eol=lf merge=unityyamlmerge -whitespace
+*.overrideController text eol=lf merge=unityyamlmerge -whitespace
+*.playable text eol=lf merge=unityyamlmerge -whitespace
+*.meta text eol=lf -whitespace
+
+# Keep opaque assets out of text conversion and textual merge drivers.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.tga binary
+*.psd binary
+*.exr binary
+*.fbx binary
+*.blend binary
+*.wav binary
+*.mp3 binary
+*.ogg binary
+*.dll binary
+*.so binary
+*.dylib binary
+*.a binary
+*.zip binary
+*.enc binary
