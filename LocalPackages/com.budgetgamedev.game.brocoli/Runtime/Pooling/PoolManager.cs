@@ -28,9 +28,12 @@ namespace BudgetGameDev.Games.Brocoli
         }
 
         // Pool configuration
-        private const int EnemiesPerType = 20;
-        private const int ProjectileCount = 50;
-        private const int ExpGainCount = 100;
+        private const int EnemyPrewarmCount = 8;
+        private const int EnemyPoolCapacity = 60;
+        private const int ProjectilePrewarmCount = 12;
+        private const int ProjectilePoolCapacity = 100;
+        private const int ExpGainPrewarmCount = 32;
+        private const int ExpGainPoolCapacity = 200;
 
         // Enemy pools keyed by stable prefab type ID so split children reuse their root's pool.
         private Dictionary<int, ObjectPool<EnemyBase>> _enemyPools =
@@ -97,7 +100,7 @@ namespace BudgetGameDev.Games.Brocoli
                     var enemy = prefab.GetComponent<EnemyBase>();
                     if (enemy != null)
                     {
-                        GetOrCreateEnemyPool(enemy).PreWarm(EnemiesPerType);
+                        GetOrCreateEnemyPool(enemy).PreWarm(EnemyPrewarmCount);
                     }
                 }
             }
@@ -108,8 +111,8 @@ namespace BudgetGameDev.Games.Brocoli
                 _expGainPrefab = expGainPrefab;
                 _expGainPool = new ObjectPool<ExpGain>(
                     expGainPrefab,
-                    ExpGainCount,
-                    ExpGainCount * 2,
+                    ExpGainPrewarmCount,
+                    ExpGainPoolCapacity,
                     _poolContainer,
                     OnExpGainGet,
                     OnExpGainReturn
@@ -126,7 +129,7 @@ namespace BudgetGameDev.Games.Brocoli
                     var proj = prefab.GetComponent<EnemyProjectile>();
                     if (proj != null)
                     {
-                        GetOrCreateProjectilePool(proj).PreWarm(ProjectileCount);
+                        GetOrCreateProjectilePool(proj).PreWarm(ProjectilePrewarmCount);
                     }
                 }
             }
@@ -180,7 +183,7 @@ namespace BudgetGameDev.Games.Brocoli
                 pool = new ObjectPool<EnemyBase>(
                     prefab,
                     0, // Don't pre-warm here, do it in PreWarmAll
-                    EnemiesPerType * 3, // Allow growth but cap it
+                    EnemyPoolCapacity,
                     _poolContainer,
                     OnEnemyGet,
                     OnEnemyReturn

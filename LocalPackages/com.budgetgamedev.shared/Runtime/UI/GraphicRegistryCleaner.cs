@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
 using UnityEngine;
@@ -6,7 +7,7 @@ using UnityEngine.UI;
 namespace BudgetGameDev.Shared
 {
     /// <summary>
-    /// Fixes MissingReferenceException in GraphicRaycaster by cleaning up destroyed Graphics from Unity's registry.
+    /// Removes destroyed Graphics from Unity's registry without cycling live UI components.
     /// Attach this to a GameObject that persists (like a manager object) or the Canvas.
     /// </summary>
     public class GraphicRegistryCleaner : MonoBehaviour
@@ -25,13 +26,13 @@ namespace BudgetGameDev.Shared
             // Singleton pattern
             if (instance != null && instance != this)
             {
-                // Destroy only works while the game is playing, and this component
-                // is also placed by editor tooling, so fall back to the immediate
-                // form rather than leaving a second cleaner running.
+                // A cleaner is hosted on the pause controller in BROcoli. Removing
+                // that whole GameObject here can strand the dimmer and make the UI
+                // appear black when two cleaners overlap during a scene transition.
                 if (Application.isPlaying)
-                    Destroy(gameObject);
+                    Destroy(this);
                 else
-                    DestroyImmediate(gameObject);
+                    DestroyImmediate(this);
                 return;
             }
             instance = this;
@@ -53,30 +54,6 @@ namespace BudgetGameDev.Shared
         /// </summary>
         public static void CleanupDestroyedGraphics()
         {
-            // Find all canvases
-            Canvas[] canvases = FindObjectsByType<Canvas>(
-                FindObjectsInactive.Include,
-                FindObjectsSortMode.None
-            );
-
-            foreach (Canvas canvas in canvases)
-            {
-                // Get all graphics registered to this canvas using reflection
-                // GraphicRegistry is internal, so we need to access it via GraphicRaycaster
-                GraphicRaycaster raycaster = canvas.GetComponent<GraphicRaycaster>();
-                if (raycaster == null)
-                    continue;
-
-                // Force the raycaster to rebuild by toggling it
-                // This clears destroyed references
-                if (raycaster.enabled)
-                {
-                    raycaster.enabled = false;
-                    raycaster.enabled = true;
-                }
-            }
-
-            // Also clean up via the Graphic registry directly
             CleanupGraphicRegistry(RegistryTypeName);
         }
 
@@ -113,69 +90,8 @@ namespace BudgetGameDev.Shared
                 if (registryInstance == null)
                     return;
 
-                // The dictionary is Dictionary<Canvas, IndexedSet<Graphic>>
-                FieldInfo graphicsField = registryType.GetField(
-                    "m_Graphics",
-                    BindingFlags.Instance | BindingFlags.NonPublic
-                );
-                if (graphicsField == null)
-                    return;
-
-                var dict =
-                    graphicsField.GetValue(registryInstance) as System.Collections.IDictionary;
-                if (dict == null)
-                    return;
-
-                // Collect canvases with null graphics to clean
-                List<Canvas> canvasesToClean = new List<Canvas>();
-
-                foreach (System.Collections.DictionaryEntry entry in dict)
-                {
-                    Canvas canvas = entry.Key as Canvas;
-                    if (canvas == null)
-                    {
-                        continue; // Canvas itself is destroyed
-                    }
-
-                    // Check if any graphics in this canvas's list are destroyed
-                    var indexedSet = entry.Value;
-                    // Get the list inside IndexedSet
-                    FieldInfo listField = indexedSet
-                        ?.GetType()
-                        .GetField("m_List", BindingFlags.Instance | BindingFlags.NonPublic);
-                    if (listField == null)
-                        continue;
-
-                    var list = listField.GetValue(indexedSet) as System.Collections.IList;
-                    if (list == null)
-                        continue;
-
-                    foreach (var item in list)
-                    {
-                        Graphic graphic = item as Graphic;
-                        // Check if graphic is destroyed (Unity overloads == for null check on destroyed objects)
-                        if (graphic == null)
-                        {
-                            canvasesToClean.Add(canvas);
-                            break;
-                        }
-                    }
-                }
-
-                // For each canvas with destroyed graphics, force re-registration
-                foreach (Canvas canvas in canvasesToClean)
-                {
-                    // Disable and re-enable all graphics on this canvas to force re-registration
-                    Graphic[] graphics = canvas.GetComponentsInChildren<Graphic>(true);
-                    foreach (Graphic g in graphics)
-                    {
-                        if (g != null && g.enabled)
-                        {
-                            g.enabled = false;
-                            g.enabled = true;
-                        }
-                    }
-                }
+                PruneDictionary(registryType, registryInstance, "m_Graphics");
+                PruneDictionary(registryType, registryInstance, "m_RaycastableGraphics");
             }
             catch (System.Exception e)
             {
@@ -183,6 +99,54 @@ namespace BudgetGameDev.Shared
                     $"[GraphicRegistryCleaner] Reflection cleanup failed: {e.Message}"
                 );
             }
+        }
+
+        private static void PruneDictionary(
+            System.Type registryType,
+            object registryInstance,
+            string fieldName
+        )
+        {
+            FieldInfo graphicsField = registryType.GetField(
+                fieldName,
+                BindingFlags.Instance | BindingFlags.NonPublic
+            );
+            if (graphicsField?.GetValue(registryInstance) is not IDictionary dictionary)
+                return;
+
+            var emptyCanvases = new List<object>();
+            foreach (DictionaryEntry entry in dictionary)
+            {
+                if (entry.Value == null)
+                    continue;
+
+                FieldInfo listField = entry.Value
+                    .GetType()
+                    .GetField("m_List", BindingFlags.Instance | BindingFlags.NonPublic);
+                if (listField?.GetValue(entry.Value) is not IList list)
+                    continue;
+
+                MethodInfo remove = entry.Value.GetType().GetMethod(
+                    "Remove",
+                    BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic
+                );
+                if (remove == null)
+                    continue;
+
+                var destroyed = new List<object>();
+                foreach (object item in list)
+                {
+                    if (item is Graphic graphic && graphic == null)
+                        destroyed.Add(item);
+                }
+                foreach (object item in destroyed)
+                    remove.Invoke(entry.Value, new[] { item });
+
+                if (list.Count == 0 || entry.Key is Canvas canvas && canvas == null)
+                    emptyCanvases.Add(entry.Key);
+            }
+            foreach (object canvas in emptyCanvases)
+                dictionary.Remove(canvas);
         }
 
         internal void OnDestroy()

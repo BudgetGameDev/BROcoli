@@ -113,7 +113,7 @@ namespace BudgetGameDev.Games.Brocoli
                 pool = new ObjectPool<EnemyProjectile>(
                     prefab,
                     0,
-                    ProjectileCount * 2,
+                    ProjectilePoolCapacity,
                     _poolContainer,
                     OnProjectileGet,
                     OnProjectileReturn

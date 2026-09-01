@@ -50,10 +50,16 @@ namespace BudgetGameDev.Shared.Tests
             Assert.That(GraphicRegistryCleaner.instance, Is.SameAs(owner));
 
             GraphicRegistryCleaner duplicate = NewCleaner();
+            GameObject duplicateHost = duplicate.gameObject;
             duplicate.Awake();
 
             Assert.That(GraphicRegistryCleaner.instance, Is.SameAs(owner));
             Assert.That(duplicate == null, Is.True, "The second cleaner tears itself down.");
+            Assert.That(
+                duplicateHost != null,
+                Is.True,
+                "A duplicate cleaner must not destroy the UI controller hosting it."
+            );
 
             owner.Awake();
             Assert.That(
@@ -120,7 +126,7 @@ namespace BudgetGameDev.Shared.Tests
         }
 
         [Test]
-        public void ACanvasHoldingADestroyedGraphicHasItsLiveGraphicsReRegistered()
+        public void ACanvasHoldingADestroyedGraphicPrunesOnlyTheDestroyedEntry()
         {
             Canvas host = NewCanvas("Host", withRaycaster: true);
             Image live = NewImage("Live", host.transform);
@@ -148,7 +154,13 @@ namespace BudgetGameDev.Shared.Tests
             Assert.That(
                 registered.Contains(live),
                 Is.True,
-                "The live graphic must come back registered against its canvas."
+                "The live graphic must remain registered against its canvas."
+            );
+            Assert.That(registered.Count, Is.EqualTo(1), "The destroyed graphic must be removed.");
+            Assert.That(
+                GraphicRegistry.GetRaycastableGraphicsForCanvas(host).Count,
+                Is.EqualTo(1),
+                "The destroyed graphic must also leave the raycast registry."
             );
         }
 
