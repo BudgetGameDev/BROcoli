@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using BudgetGameDev.Games.Brocoli.Rendering;
 using BudgetGameDev.Shared;
 using UnityEngine;
 
@@ -184,16 +185,15 @@ namespace BudgetGameDev.Games.Brocoli
             // "State comes from an incompatible keyword space" errors when mixing
             // custom shaders with URP shaders. Using targeted shader loading instead.
 
-            string[] shaders =
-            {
-                "Universal Render Pipeline/Particles/Lit",
-                "Universal Render Pipeline/Particles/Unlit",
-                "Universal Render Pipeline/2D/Sprite-Lit-Default",
-                "Particles/Standard Unlit",
-                "Sprites/Default",
-            };
-            foreach (string name in shaders)
-                Shader.Find(name);
+            // The game's own graphs, which are what gameplay builds materials from. Warming
+            // them by catalog rather than by name means this list cannot drift away from the
+            // shaders that are actually used, and it names no pipeline.
+            foreach (string name in BrocoliShaders.All)
+                BrocoliShaders.Resolve(name);
+
+            // The engine builtin the catalog falls back to, warmed so that fallback is not
+            // itself a hitch.
+            Shader.Find("Sprites/Default");
         }
 
         private void WarmupAudio()

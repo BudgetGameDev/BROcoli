@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Reflection;
 using System.Text.RegularExpressions;
+using BudgetGameDev.Games.Brocoli.Rendering;
 using BudgetGameDev.Hub;
 using BudgetGameDev.Shared;
 using NUnit.Framework;
@@ -83,23 +84,23 @@ namespace BudgetGameDev.Games.Brocoli.Tests
                 Is.EqualTo(-1f)
             );
             Shader fallbackShader = Shader.Find("Sprites/Default");
-            int shaderCalls = 0;
             Assert.That(
                 SprayMaterialCreator.ResolveShader(
-                    "primary",
-                    "secondary",
-                    _ => ++shaderCalls == 2 ? fallbackShader : null
+                    BrocoliShaders.ParticleUnlit,
+                    _ => fallbackShader,
+                    _ => null
                 ),
-                Is.SameAs(fallbackShader)
+                Is.SameAs(fallbackShader),
+                "The catalog's graph is used when it resolves."
             );
-            shaderCalls = 0;
             Assert.That(
                 SprayMaterialCreator.ResolveShader(
-                    "primary",
-                    "secondary",
-                    _ => ++shaderCalls == 3 ? fallbackShader : null
+                    BrocoliShaders.ParticleUnlit,
+                    _ => null,
+                    name => name == "Sprites/Default" ? fallbackShader : null
                 ),
-                Is.SameAs(fallbackShader)
+                Is.SameAs(fallbackShader),
+                "A missing graph still leaves the spray something to draw with."
             );
             Assert.That(
                 ResponsiveMainMenuLayout.ResolveCreditsScrollAxis(

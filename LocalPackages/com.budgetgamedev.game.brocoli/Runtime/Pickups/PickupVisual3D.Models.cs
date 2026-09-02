@@ -152,7 +152,7 @@ namespace BudgetGameDev.Games.Brocoli
             if (Materials.TryGetValue(key, out Material material) && material != null)
                 return material;
 
-            Shader shader = FindPickupShader(Shader.Find);
+            Shader shader = FindPickupShader(Resources.Load<Shader>, Shader.Find);
             material = new Material(shader)
             {
                 name = $"Pickup3D {ColorUtility.ToHtmlStringRGB(color)}",

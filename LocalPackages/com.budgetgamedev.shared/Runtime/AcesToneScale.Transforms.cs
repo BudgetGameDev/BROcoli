@@ -1,5 +1,5 @@
 using UnityEngine;
-using UnityEngine.Rendering.Universal;
+using UnityEngine.Rendering;
 
 namespace BudgetGameDev.Shared
 {
@@ -204,7 +204,7 @@ namespace BudgetGameDev.Shared
         /// to display nits. All three presets share their dark and mid tones and differ only in
         /// how far the shoulder reaches.
         /// </summary>
-        private static float OutputDeviceTransform(float oces, HDRACESPreset preset)
+        private static float OutputDeviceTransform(float oces, HDRRangeReduction preset)
         {
             float[] high;
             float maxX;
@@ -212,13 +212,13 @@ namespace BudgetGameDev.Shared
             float slopeHigh;
             switch (preset)
             {
-                case HDRACESPreset.ACES2000Nits:
+                case HDRRangeReduction.ACES2000Nits:
                     high = OutputHighCoefficients2000;
                     maxX = OutputMaxOces2000;
                     maxNits = 2000f;
                     slopeHigh = 0.12f;
                     break;
-                case HDRACESPreset.ACES4000Nits:
+                case HDRRangeReduction.ACES4000Nits:
                     high = OutputHighCoefficients4000;
                     maxX = OutputMaxOces4000;
                     maxNits = 4000f;

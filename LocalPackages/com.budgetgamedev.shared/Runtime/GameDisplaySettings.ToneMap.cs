@@ -1,5 +1,5 @@
 using UnityEngine;
-using UnityEngine.Rendering.Universal;
+using UnityEngine.Rendering;
 
 namespace BudgetGameDev.Shared
 {
@@ -9,7 +9,7 @@ namespace BudgetGameDev.Shared
         /// The output device transform native HDR output tone maps with. It follows the
         /// calibrated peak so the display's whole range stays reachable.
         /// </summary>
-        public static HDRACESPreset HdrToneMapPreset =>
+        public static HDRRangeReduction HdrToneMapPreset =>
             AcesToneScale.SelectPreset(PeakBrightnessNits);
 
         /// <summary>

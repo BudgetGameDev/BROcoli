@@ -44,19 +44,40 @@ namespace BudgetGameDev.Games.Brocoli.Tests
         }
 
         [Test]
-        public void ShaderFallbackChecksSimpleLitAndSpriteShaders()
+        public void ShaderResolvesTheSurfaceGraphByResourcePathFirst()
         {
             Shader sprite = Shader.Find("Sprites/Default");
             Assert.That(sprite, Is.Not.Null);
             Assert.That(
-                PickupVisual3D.FindPickupShader(name =>
-                    name == "Universal Render Pipeline/Simple Lit" ? sprite : null
+                PickupVisual3D.FindPickupShader(
+                    path => path == "Brocoli/Shaders/Surface" ? sprite : null,
+                    _ => null
                 ),
-                Is.SameAs(sprite)
+                Is.SameAs(sprite),
+                "The surface graph is a game resource, so its path must win over any name."
+            );
+        }
+
+        [Test]
+        public void ShaderFallsBackToTheGraphNameThenToSprites()
+        {
+            Shader sprite = Shader.Find("Sprites/Default");
+            Assert.That(sprite, Is.Not.Null);
+            Assert.That(
+                PickupVisual3D.FindPickupShader(
+                    _ => null,
+                    name => name == "BROcoli/Surface" ? sprite : null
+                ),
+                Is.SameAs(sprite),
+                "Before the resource is imported the graph is still reachable by name."
             );
             Assert.That(
-                PickupVisual3D.FindPickupShader(name => name == "Sprites/Default" ? sprite : null),
-                Is.SameAs(sprite)
+                PickupVisual3D.FindPickupShader(
+                    _ => null,
+                    name => name == "Sprites/Default" ? sprite : null
+                ),
+                Is.SameAs(sprite),
+                "With the graph missing entirely a pickup still renders, rather than magenta."
             );
         }
     }

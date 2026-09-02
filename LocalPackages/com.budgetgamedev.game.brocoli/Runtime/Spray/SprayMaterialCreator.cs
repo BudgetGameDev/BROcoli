@@ -1,4 +1,5 @@
 using System;
+using BudgetGameDev.Games.Brocoli.Rendering;
 using UnityEngine;
 
 namespace BudgetGameDev.Games.Brocoli
@@ -66,11 +67,7 @@ namespace BudgetGameDev.Games.Brocoli
             // The spray needs a conventional particle shader that multiplies the
             // procedural soft-circle alpha. The licensed water Shader Graph is designed
             // for its own flipbook and renders these runtime billboards as hard squares.
-            Shader shader = ResolveShader(
-                "Universal Render Pipeline/Particles/Unlit",
-                "Particles/Standard Unlit",
-                Shader.Find
-            );
+            Shader shader = ResolveShader(BrocoliShaders.ParticleUnlit);
 
             _sprayCoreMaterial = new Material(shader);
             _sprayCoreMaterial.name = "SprayCoreMaterial";
@@ -95,11 +92,7 @@ namespace BudgetGameDev.Games.Brocoli
             if (_sprayMistMaterial != null)
                 return _sprayMistMaterial;
 
-            Shader shader = ResolveShader(
-                "Universal Render Pipeline/Particles/Unlit",
-                "Particles/Standard Unlit",
-                Shader.Find
-            );
+            Shader shader = ResolveShader(BrocoliShaders.ParticleUnlit);
 
             _sprayMistMaterial = new Material(shader);
             _sprayMistMaterial.name = "SprayMistMaterial";
@@ -125,11 +118,7 @@ namespace BudgetGameDev.Games.Brocoli
                 return _sprayDropletMaterial;
 
             // Try to get Lit shader for PBR reflections
-            Shader shader = ResolveShader(
-                "Universal Render Pipeline/Particles/Lit",
-                "Particles/Standard Surface",
-                Shader.Find
-            );
+            Shader shader = ResolveShader(BrocoliShaders.ParticleLit);
 
             _sprayDropletMaterial = new Material(shader);
             _sprayDropletMaterial.name = "SprayDropletMaterial";
@@ -162,11 +151,7 @@ namespace BudgetGameDev.Games.Brocoli
             if (_sprayGlowMaterial != null)
                 return _sprayGlowMaterial;
 
-            Shader shader = ResolveShader(
-                "Universal Render Pipeline/Particles/Unlit",
-                "Particles/Standard Unlit",
-                Shader.Find
-            );
+            Shader shader = ResolveShader(BrocoliShaders.ParticleUnlit);
 
             _sprayGlowMaterial = new Material(shader);
             _sprayGlowMaterial.name = "SprayGlowMaterial";
@@ -190,10 +175,20 @@ namespace BudgetGameDev.Games.Brocoli
             return _sprayGlowMaterial;
         }
 
+        /// <summary>
+        /// One of BROcoli's own particle graphs, which compile for both pipelines.
+        /// <c>Sprites/Default</c> is the last resort: an engine builtin that resolves under
+        /// either pipeline, so a missing graph costs the spray its look rather than replacing
+        /// it with magenta mid-fight.
+        /// </summary>
+        internal static Shader ResolveShader(string shaderName) =>
+            ResolveShader(shaderName, BrocoliShaders.Resolve, Shader.Find);
+
+        /// <summary><see cref="ResolveShader(string)"/> with both lookups injected, for tests.</summary>
         internal static Shader ResolveShader(
-            string primary,
-            string secondary,
+            string shaderName,
+            Func<string, Shader> resolve,
             Func<string, Shader> find
-        ) => find(primary) ?? find(secondary) ?? find("Sprites/Default");
+        ) => resolve(shaderName) ?? find("Sprites/Default");
     }
 }

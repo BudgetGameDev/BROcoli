@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using BudgetGameDev.Games.Brocoli.Rendering;
 using UnityEngine;
 using UnityEngine.Rendering;
 
@@ -228,12 +229,10 @@ namespace BudgetGameDev.Games.Brocoli
             if (Materials.TryGetValue(key, out Material material) && material != null)
                 return material;
 
+            // BROcoli's own surface graph, which compiles for both pipelines, then the
+            // engine builtin that resolves under either one so the bottle is never magenta.
             Shader shader =
-                Shader.Find("Universal Render Pipeline/Lit")
-                ?? Shader.Find("Universal Render Pipeline/Simple Lit")
-                ?? Shader.Find("Standard")
-                ?? Shader.Find("Universal Render Pipeline/Unlit")
-                ?? Shader.Find("Sprites/Default");
+                BrocoliShaders.Resolve(BrocoliShaders.Surface) ?? Shader.Find("Sprites/Default");
             material = new Material(shader)
             {
                 name = name,

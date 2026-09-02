@@ -1,5 +1,5 @@
 using UnityEngine;
-using UnityEngine.Rendering.Universal;
+using UnityEngine.Rendering;
 
 namespace BudgetGameDev.Shared
 {
@@ -29,11 +29,11 @@ namespace BudgetGameDev.Shared
 
         private const int SolverIterations = 40;
 
-        public static float PresetPeakNits(HDRACESPreset preset) =>
+        public static float PresetPeakNits(HDRRangeReduction preset) =>
             preset switch
             {
-                HDRACESPreset.ACES2000Nits => 2000f,
-                HDRACESPreset.ACES4000Nits => 4000f,
+                HDRRangeReduction.ACES2000Nits => 2000f,
+                HDRRangeReduction.ACES4000Nits => 4000f,
                 _ => 1000f,
             };
 
@@ -42,22 +42,22 @@ namespace BudgetGameDev.Shared
         /// display's calibrated peak. All three share a tone scale below diffuse white, so the
         /// choice changes how far highlights reach, never how the dark scene is rendered.
         /// </summary>
-        public static HDRACESPreset SelectPreset(float peakNits)
+        public static HDRRangeReduction SelectPreset(float peakNits)
         {
             if (!float.IsFinite(peakNits) || peakNits <= 0f)
-                return HDRACESPreset.ACES1000Nits;
+                return HDRRangeReduction.ACES1000Nits;
             if (peakNits * PresetHeadroom <= 1000f)
-                return HDRACESPreset.ACES1000Nits;
+                return HDRRangeReduction.ACES1000Nits;
             return peakNits * PresetHeadroom <= 2000f
-                ? HDRACESPreset.ACES2000Nits
-                : HDRACESPreset.ACES4000Nits;
+                ? HDRRangeReduction.ACES2000Nits
+                : HDRRangeReduction.ACES4000Nits;
         }
 
         /// <summary>The display luminance a neutral scene value is tone mapped to.</summary>
         public static float DisplayNits(
             float sceneValue,
             float paperWhiteNits,
-            HDRACESPreset preset
+            HDRRangeReduction preset
         )
         {
             Vector3 nits = DisplayNits(
@@ -76,7 +76,7 @@ namespace BudgetGameDev.Shared
         public static Vector3 DisplayNits(
             Vector3 sceneColor,
             float paperWhiteNits,
-            HDRACESPreset preset
+            HDRRangeReduction preset
         )
         {
             Vector3 aces =
@@ -98,7 +98,7 @@ namespace BudgetGameDev.Shared
         public static float SceneValueForNits(
             float nits,
             float paperWhiteNits,
-            HDRACESPreset preset
+            HDRRangeReduction preset
         )
         {
             if (!float.IsFinite(nits) || nits <= 0f)
@@ -116,7 +116,7 @@ namespace BudgetGameDev.Shared
             Color hue,
             float peakNits,
             float paperWhiteNits,
-            HDRACESPreset preset
+            HDRRangeReduction preset
         )
         {
             Vector3 direction = new(hue.r, hue.g, hue.b);
@@ -137,7 +137,7 @@ namespace BudgetGameDev.Shared
         public static Vector3 SceneColorForDisplayNits(
             Vector3 targetNits,
             float paperWhiteNits,
-            HDRACESPreset preset
+            HDRRangeReduction preset
         )
         {
             // The transform is monotonic per primary but mixes them, so it is inverted by fixed
@@ -175,7 +175,7 @@ namespace BudgetGameDev.Shared
             Vector3 direction,
             float nits,
             float paperWhiteNits,
-            HDRACESPreset preset
+            HDRRangeReduction preset
         )
         {
             if (BrightestPrimaryNits(direction * MaximumSceneValue, paperWhiteNits, preset) <= nits)
@@ -197,7 +197,7 @@ namespace BudgetGameDev.Shared
         private static float BrightestPrimaryNits(
             Vector3 sceneColor,
             float paperWhiteNits,
-            HDRACESPreset preset
+            HDRRangeReduction preset
         )
         {
             Vector3 nits = DisplayNits(sceneColor, paperWhiteNits, preset);

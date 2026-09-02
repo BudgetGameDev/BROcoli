@@ -1,7 +1,7 @@
 using System;
+using BudgetGameDev.Shared.Rendering;
 using UnityEngine;
 using UnityEngine.Rendering;
-using UnityEngine.Rendering.Universal;
 
 namespace BudgetGameDev.Shared
 {
@@ -12,11 +12,7 @@ namespace BudgetGameDev.Shared
         {
             private const float StatusPollInterval = 0.5f;
 
-            private Volume volume;
-            private VolumeProfile profile;
-            private Tonemapping tonemapping;
-            private ColorAdjustments colorAdjustments;
-            private LiftGammaGain liftGammaGain;
+            private IHdrGradeFrontEnd grade;
             private string lastStatus;
             private float nextStatusPoll;
 
@@ -30,7 +26,7 @@ namespace BudgetGameDev.Shared
 
                 instance = this;
                 InitializeCanvasComposition();
-                CreateTonemappingOverride();
+                AttachGrade();
                 RefreshSystemHdrState();
                 TryUseNativeDisplayCalibration();
                 Apply();
@@ -80,13 +76,7 @@ namespace BudgetGameDev.Shared
                 ShutdownCanvasComposition();
                 if (instance == this)
                     instance = null;
-                if (profile != null)
-                {
-                    if (isPlaying)
-                        destroyDeferred(profile);
-                    else
-                        destroyImmediate(profile);
-                }
+                grade?.Detach(isPlaying, destroyDeferred, destroyImmediate);
             }
 
             internal void Apply()
@@ -105,73 +95,40 @@ namespace BudgetGameDev.Shared
                 // The HDR grade re-exposes the scene for a wide-luminance swapchain. On an SDR
                 // desktop it only flattens the picture, so it needs a detected HDR display too.
                 bool enabled = HdrEnabled && displayDetected;
-                ConfigureTonemapping(enabled);
+                grade?.Apply(BuildGradeRequest(enabled));
                 ConfigureCanvasComposition(enabled);
                 if (switchable && displayDetected)
                     requestHdrMode(HdrEnabled);
             }
 
             /// <summary>
-            /// Only the tone map is overridden for HDR. In particular the scene's bloom is left
-            /// alone: it is deliberately blown out, admitting everything above 0.85 and adding it
-            /// back at 135%, and that glow around the torches is most of the dungeon's
-            /// atmosphere rather than an artefact of SDR clipping. Inheriting it makes the HDR
-            /// picture the SDR one with its highlights carried past display white instead of
-            /// pinned to it.
+            /// States the grade the calibration is asking for, in display terms. Which volume
+            /// components carry it is the active pipeline's business, not this driver's: the
+            /// same request produces the same luminance whether Universal or High Definition
+            /// renders the frame.
             /// </summary>
-            private void CreateTonemappingOverride()
-            {
-                volume = gameObject.AddComponent<Volume>();
-                volume.isGlobal = true;
-                volume.priority = float.MaxValue;
-                profile = ScriptableObject.CreateInstance<VolumeProfile>();
-                profile.hideFlags = HideFlags.HideAndDontSave;
-                tonemapping = profile.Add<Tonemapping>();
-                colorAdjustments = profile.Add<ColorAdjustments>();
-                liftGammaGain = profile.Add<LiftGammaGain>();
-                volume.profile = profile;
-            }
-
-            private void ConfigureTonemapping(bool enabled)
-            {
-                if (tonemapping == null)
-                    return;
-
-                volume.enabled = enabled;
-                tonemapping.active = enabled;
-
-                // The scene is graded for ACES in SDR. Neutral tone mapping has no filmic curve
-                // at all on an HDR swapchain: it scales the scene straight into nits, which lifts
-                // the dungeon's shadows several times above what SDR shows and leaves the picture
-                // milky. ACES keeps the SDR tone curve below diffuse white and spends the
-                // display's extra range on the highlights instead.
-                tonemapping.mode.Override(TonemappingMode.ACES);
-                tonemapping.acesPreset.Override(HdrToneMapPreset);
-                tonemapping.hueShiftAmount.Override(0f);
-
-                // Paper white decides where diffuse white lands, and therefore how bright the
-                // whole picture is. The calibration seeds itself from the operating system, so
-                // this is the system's value until the player overrides it; reading it from the
-                // saved calibration keeps it in step with the luminance the torches solve for.
-                tonemapping.detectPaperWhite.Override(false);
-                tonemapping.paperWhite.Override(PaperWhiteNits);
-                tonemapping.detectBrightnessLimits.Override(
-                    calibrationPreviewActive || UsingSystemCalibrationDefaults
+            private static HdrGradeRequest BuildGradeRequest(bool enabled) =>
+                new HdrGradeRequest(
+                    enabled,
+                    HdrToneMapPreset,
+                    PaperWhiteNits,
+                    BlackLevelNits,
+                    PeakBrightnessNits,
+                    calibrationPreviewActive || UsingSystemCalibrationDefaults,
+                    HdrSaturationLift,
+                    HdrContrastLift,
+                    HdrBlackFloor
                 );
-                tonemapping.minNits.Override(BlackLevelNits);
-                tonemapping.maxNits.Override(PeakBrightnessNits);
 
-                // Chroma and the toe. Exposure stays where the scene sets it, so the HDR picture
-                // is the SDR one re-seated on the HDR transform rather than a second grade.
-                colorAdjustments.active = enabled;
-                colorAdjustments.saturation.Override(HdrSaturationLift);
-                colorAdjustments.contrast.Override(HdrContrastLift);
-
-                // URP folds lift's fourth channel straight into a scene-linear offset, and the
-                // grade clamps at zero afterwards, which is the black floor the SDR transform has
-                // and the HDR one does not.
-                liftGammaGain.active = enabled;
-                liftGammaGain.lift.Override(new Vector4(0f, 0f, 0f, HdrBlackFloor));
+            /// <summary>
+            /// Builds the active pipeline's grade volume on this object. A build whose pipeline
+            /// registers no front end -- the web build, which has no native HDR swapchain to
+            /// grade for -- simply runs without one.
+            /// </summary>
+            private void AttachGrade()
+            {
+                grade = RenderPipelineFrontEnd.HdrGrade;
+                grade?.Attach(gameObject);
             }
         }
     }
