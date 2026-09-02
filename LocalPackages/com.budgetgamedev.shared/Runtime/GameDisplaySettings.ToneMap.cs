@@ -32,7 +32,9 @@ namespace BudgetGameDev.Shared
         /// HDR lights the scene harder than SDR does -- the light on the player alone is scaled
         /// 2.2x -- so the same surface sits further up that shoulder and renders paler: measured
         /// against the SDR grade, greens lose 7 to 11 percent of their saturation. This is the
-        /// lift that puts them back, in URP's units where zero is no change.
+        /// lift that puts them back, in URP's units where zero is no change. It rides with the
+        /// contrast lift, since the two shape the same picture and the shoulder takes chroma
+        /// wherever it steepens; the scene itself is graded flat, so SDR keeps both at zero.
         /// </summary>
         public const float HdrSaturationLift = 12f;
 
@@ -102,7 +104,7 @@ namespace BudgetGameDev.Shared
         /// </summary>
         public static Color HdrUiColor(Color color)
         {
-            if (!IsNativeHdrPlayer || !HdrEnabled || !IsHdrActive)
+            if (!SupportsNativeHdr || !HdrEnabled || !IsHdrActive)
                 return color;
 
             Vector3 scene = AcesToneScale.SceneColorForDisplayNits(

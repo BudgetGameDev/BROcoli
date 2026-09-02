@@ -96,17 +96,25 @@ namespace BudgetGameDev.Shared
 
         public static bool IsMacOSPlayer => Application.platform == RuntimePlatform.OSXPlayer;
 
-        public static bool IsNativeHdrPlayer => IsNativeHdrPlatform(Application.platform);
+        /// <summary>Windows, whether the game is a player or the Editor playing it.</summary>
+        public static bool IsWindows =>
+            IsWindowsPlayer || Application.platform == RuntimePlatform.WindowsEditor;
+
+        /// <summary>The same, for macOS.</summary>
+        public static bool IsMacOS =>
+            IsMacOSPlayer || Application.platform == RuntimePlatform.OSXEditor;
+
+        public static bool SupportsNativeHdr => IsNativeHdrPlatform(Application.platform);
 
         public static bool IsHdrAvailable =>
-            IsNativeHdrPlayer
+            SupportsNativeHdr
             && SystemInfo.hdrDisplaySupportFlags.HasFlag(HDRDisplaySupportFlags.Supported)
             && HDROutputSettings.main.available;
 
-        public static bool IsHdrActive => IsNativeHdrPlayer && HDROutputSettings.main.active;
+        public static bool IsHdrActive => SupportsNativeHdr && HDROutputSettings.main.active;
 
         public static bool CanSwitchHdrAtRuntime =>
-            IsNativeHdrPlayer
+            SupportsNativeHdr
             && SystemInfo.hdrDisplaySupportFlags.HasFlag(HDRDisplaySupportFlags.RuntimeSwitchable);
 
         public static bool IsTenBitHdrActive =>
@@ -135,13 +143,13 @@ namespace BudgetGameDev.Shared
         {
             get =>
                 ResolveHdrStatus(
-                    IsNativeHdrPlayer,
+                    SupportsNativeHdr,
                     HdrEnabled,
                     IsHdrActive,
                     CanSwitchHdrAtRuntime,
                     IsHdrAvailable,
-                    IsWindowsPlayer,
-                    IsMacOSPlayer,
+                    IsWindows,
+                    IsMacOS,
                     IsTenBitHdrActive,
                     IsHdrActive ? HDROutputSettings.main.graphicsFormat.ToString() : string.Empty,
                     UsingSystemCalibrationDefaults,
@@ -211,7 +219,7 @@ namespace BudgetGameDev.Shared
         internal static void Bootstrap()
         {
             Bootstrap(
-                IsNativeHdrPlayer,
+                SupportsNativeHdr,
                 Application.isPlaying,
                 UnityEngine.Object.DontDestroyOnLoad
             );

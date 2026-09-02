@@ -14,7 +14,12 @@ namespace BudgetGameDev.Shared
         public static SystemHdrState Query()
         {
 #if UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN
-            if (Application.platform != RuntimePlatform.WindowsPlayer)
+            // The Editor asks too. It renders the same HDR swapchain the player does on
+            // DirectX 12, and the switch it has to follow is the same one.
+            if (
+                Application.platform != RuntimePlatform.WindowsPlayer
+                && Application.platform != RuntimePlatform.WindowsEditor
+            )
                 return SystemHdrState.Unknown;
             try
             {

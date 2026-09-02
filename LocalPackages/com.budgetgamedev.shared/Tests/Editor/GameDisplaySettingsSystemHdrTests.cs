@@ -62,13 +62,29 @@ namespace BudgetGameDev.Shared.Tests
         }
 
         [Test]
-        public void NativeSystemSwitchQueryIsUnavailableOutsideWindowsPlayers()
+        public void NativeSystemSwitchQueryAnswersOnWindowsAndIsSilentElsewhere()
         {
+            // The query reads the operating system, so what it answers on Windows -- Editor
+            // included -- belongs to whoever is running the tests. Everywhere else it has no
+            // switch to read and says so.
+            SystemHdrState queried = WindowsDisplayHdrState.Query();
+            Assert.That(System.Enum.IsDefined(typeof(SystemHdrState), queried), Is.True);
+            if (!GameDisplaySettings.IsWindows)
+            {
+                Assert.That(queried, Is.EqualTo(SystemHdrState.Unknown));
+                Assert.That(
+                    GameDisplaySettings.QuerySystemHdrState(),
+                    Is.EqualTo(SystemHdrState.Unknown)
+                );
+            }
+
+            GameDisplaySettings.systemHdrStateProvider = () => SystemHdrState.Enabled;
             Assert.That(
                 GameDisplaySettings.QuerySystemHdrState(),
-                Is.EqualTo(SystemHdrState.Unknown)
+                Is.EqualTo(SystemHdrState.Enabled),
+                "the provider seam stands in for the operating system"
             );
-            Assert.That(WindowsDisplayHdrState.Query(), Is.EqualTo(SystemHdrState.Unknown));
+            GameDisplaySettings.systemHdrStateProvider = null;
             Assert.That(
                 WindowsDisplayHdrState.ResolveAdvancedColorMode(2),
                 Is.EqualTo(SystemHdrState.Enabled)

@@ -74,7 +74,7 @@ namespace BudgetGameDev.Shared
         {
             if (systemHdrStateProvider != null)
                 return systemHdrStateProvider();
-            return IsWindowsPlayer ? WindowsDisplayHdrState.Query() : SystemHdrState.Unknown;
+            return IsWindows ? WindowsDisplayHdrState.Query() : SystemHdrState.Unknown;
         }
 
         /// <summary>Re-reads the operating-system switch. Returns true when it changed.</summary>

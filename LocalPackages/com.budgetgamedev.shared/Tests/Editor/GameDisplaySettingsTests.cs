@@ -30,6 +30,11 @@ namespace BudgetGameDev.Shared.Tests
                 PlayerPrefs.DeleteKey(key);
             }
             GameDisplaySettings.ResetStatics();
+
+            // The Editor counts as a native HDR platform, so an unstubbed run would read this
+            // machine's Windows HDR switch and answer differently from one desk to the next.
+            // Tests that are about following the system set their own state.
+            GameDisplaySettings.systemHdrStateProvider = () => SystemHdrState.Unknown;
         }
 
         [TearDown]
@@ -184,7 +189,7 @@ namespace BudgetGameDev.Shared.Tests
         }
 
         [Test]
-        public void NativeHdrPlatformsIncludeWindowsAndMacOSPlayersOnly()
+        public void NativeHdrPlatformsAreWindowsAndMacOSPlayersAndTheirEditors()
         {
             Assert.That(
                 GameDisplaySettings.IsNativeHdrPlatform(RuntimePlatform.WindowsPlayer),
@@ -195,11 +200,21 @@ namespace BudgetGameDev.Shared.Tests
                 Is.True
             );
             Assert.That(
+                GameDisplaySettings.IsNativeHdrPlatform(RuntimePlatform.WindowsEditor),
+                Is.True,
+                "the Game view outputs HDR the same way the player does, and that is where the "
+                    + "grade is tuned"
+            );
+            Assert.That(
                 GameDisplaySettings.IsNativeHdrPlatform(RuntimePlatform.OSXEditor),
-                Is.False
+                Is.True
             );
             Assert.That(
                 GameDisplaySettings.IsNativeHdrPlatform(RuntimePlatform.WebGLPlayer),
+                Is.False
+            );
+            Assert.That(
+                GameDisplaySettings.IsNativeHdrPlatform(RuntimePlatform.LinuxPlayer),
                 Is.False
             );
         }
@@ -301,6 +316,32 @@ namespace BudgetGameDev.Shared.Tests
                 );
                 GameDisplaySettings.SetHdrEnabled(false);
                 Assert.That(volume.enabled, Is.False);
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
+        public void SdrLeavesTheSceneAtItsOwnContrastAndSaturation()
+        {
+            GameObject root = new("SDR Display Driver Test");
+            try
+            {
+                var driver = root.AddComponent<GameDisplaySettings.HdrDisplayDriver>();
+                driver.Awake();
+                GameDisplaySettings.SetHdrEnabled(false);
+                driver.Apply(false, true, _ => { });
+
+                Volume volume = root.GetComponent<Volume>();
+                Assert.That(volume.enabled, Is.False);
+                Assert.That(volume.profile.TryGet(out ColorAdjustments colorAdjustments), Is.True);
+                Assert.That(
+                    colorAdjustments.active,
+                    Is.False,
+                    "SDR renders the scene's own grade, which is flat: no contrast, no saturation"
+                );
             }
             finally
             {

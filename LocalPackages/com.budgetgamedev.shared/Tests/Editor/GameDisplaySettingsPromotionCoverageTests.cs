@@ -44,11 +44,24 @@ namespace BudgetGameDev.Shared.Tests
         {
             Assert.That(GameDisplaySettings.IsWindowsPlayer, Is.False);
             Assert.That(GameDisplaySettings.IsMacOSPlayer, Is.False);
-            Assert.That(GameDisplaySettings.IsHdrAvailable, Is.False);
-            Assert.That(GameDisplaySettings.IsHdrActive, Is.False);
-            Assert.That(GameDisplaySettings.CanSwitchHdrAtRuntime, Is.False);
-            Assert.That(GameDisplaySettings.IsTenBitHdrActive, Is.False);
-            Assert.That(GameDisplaySettings.HdrStatus, Does.Contain("WINDOWS / MACOS"));
+
+            // Whether this desk's Game view is actually on an HDR swapchain is the machine's
+            // business, so these say how the answers hang together rather than what they are.
+            // Only the deepest one can be true on its own terms; each implies the one above it.
+            Assert.That(
+                GameDisplaySettings.SupportsNativeHdr,
+                Is.EqualTo(GameDisplaySettings.IsWindows || GameDisplaySettings.IsMacOS)
+            );
+            if (GameDisplaySettings.IsHdrAvailable || GameDisplaySettings.IsHdrActive)
+                Assert.That(GameDisplaySettings.SupportsNativeHdr, Is.True);
+            if (GameDisplaySettings.IsTenBitHdrActive)
+                Assert.That(GameDisplaySettings.IsHdrActive, Is.True);
+            if (!GameDisplaySettings.SupportsNativeHdr)
+            {
+                Assert.That(GameDisplaySettings.CanSwitchHdrAtRuntime, Is.False);
+                Assert.That(GameDisplaySettings.HdrStatus, Does.Contain("WINDOWS / MACOS"));
+            }
+            Assert.That(GameDisplaySettings.HdrStatus, Is.Not.Empty);
 
             int notifications = 0;
             GameDisplaySettings.ValuesChanged += () => notifications++;

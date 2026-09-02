@@ -10,8 +10,19 @@ namespace BudgetGameDev.Shared
             && formatName.IndexOf("10", StringComparison.OrdinalIgnoreCase) >= 0
             && formatName.IndexOf("2", StringComparison.OrdinalIgnoreCase) >= 0;
 
+        /// <summary>
+        /// Whether <paramref name="platform"/> can put a native HDR swapchain on screen. Both
+        /// Editors are in: the Game view outputs HDR the same way a player does on DirectX 12,
+        /// Vulkan and Metal, and being able to see the HDR grade without building is most of how
+        /// it gets tuned. This promises nothing about HDR being on -- that is
+        /// <c>HDROutputSettings</c>' answer, and on DirectX 11 the Editor's answer is always no,
+        /// which the status line then says out loud.
+        /// </summary>
         internal static bool IsNativeHdrPlatform(RuntimePlatform platform) =>
-            platform == RuntimePlatform.WindowsPlayer || platform == RuntimePlatform.OSXPlayer;
+            platform == RuntimePlatform.WindowsPlayer
+            || platform == RuntimePlatform.OSXPlayer
+            || platform == RuntimePlatform.WindowsEditor
+            || platform == RuntimePlatform.OSXEditor;
 
         internal static void NotifyStatusChanged() => ValuesChanged?.Invoke();
 
@@ -74,7 +85,7 @@ namespace BudgetGameDev.Shared
         private static bool TryUseNativeDisplayCalibration()
         {
             if (
-                !IsNativeHdrPlayer
+                !SupportsNativeHdr
                 || (!HDROutputSettings.main.available && !HDROutputSettings.main.active)
             )
             {
