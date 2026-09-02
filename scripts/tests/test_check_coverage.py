@@ -12,6 +12,11 @@ if str(SCRIPTS_ROOT) not in sys.path:
 
 SCRIPT_PATH = SCRIPTS_ROOT / "check_coverage.py"
 SPEC = importlib.util.spec_from_file_location("check_coverage", SCRIPT_PATH)
+# These scripts are CLI entry points rather than an installed package, so a test
+# reaches them by path. spec_from_file_location returns None for a file it cannot
+# load, which would otherwise surface as an AttributeError two lines later.
+if SPEC is None or SPEC.loader is None:
+    raise ImportError(f"cannot load {SCRIPT_PATH}")
 check_coverage = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(check_coverage)
 

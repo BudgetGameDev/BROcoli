@@ -44,6 +44,12 @@ while [ "$#" -gt 0 ]; do
                 --targets) TARGETS="$2" ;;
                 --tag) TAG="$2" ;;
                 --title) TITLE="$2" ;;
+                # Unreachable while this list matches the outer case, and a loud
+                # failure if the two ever drift apart.
+                *)
+                    echo "dev-release: unhandled option '$1'" >&2
+                    exit 2
+                    ;;
             esac
             shift
             ;;

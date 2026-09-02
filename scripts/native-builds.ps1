@@ -18,7 +18,7 @@ $ExecutablePath = Join-Path $WindowsPlayerRoot "BROcoli.exe"
 $ArchivePath = Join-Path $ArtifactsRoot "BROcoli-windows-x86_64.zip"
 $VersionFile = Join-Path $ProjectPath "ProjectSettings\ProjectVersion.txt"
 
-function Stop-WithUsageError {
+function Write-UsageErrorAndExit {
     param([string]$Message)
     [Console]::Error.WriteLine("native-builds: $Message")
     exit 2
@@ -48,13 +48,13 @@ function Write-Utf8File {
 }
 
 if (-not (Get-Command unity -ErrorAction SilentlyContinue)) {
-    Stop-WithUsageError "Unity CLI is required"
+    Write-UsageErrorAndExit "Unity CLI is required"
 }
 if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
-    Stop-WithUsageError "Git is required"
+    Write-UsageErrorAndExit "Git is required"
 }
 if (-not (Test-Path -LiteralPath $VersionFile)) {
-    Stop-WithUsageError "could not find $VersionFile"
+    Write-UsageErrorAndExit "could not find $VersionFile"
 }
 
 . (Join-Path $ScriptDirectory "unity-editor-connection.ps1")
@@ -68,7 +68,7 @@ if ($editorPid) {
 $versionMatch = Select-String -LiteralPath $VersionFile -Pattern '^m_EditorVersion: (.+)$' |
     Select-Object -First 1
 if (-not $versionMatch) {
-    Stop-WithUsageError "could not read the Unity editor version"
+    Write-UsageErrorAndExit "could not read the Unity editor version"
 }
 $UnityVersion = $versionMatch.Matches[0].Groups[1].Value
 

@@ -4,6 +4,7 @@
 
 function Get-ConnectedUnityEditorPid {
     [CmdletBinding()]
+    [OutputType([int])]
     param(
         [Parameter(Mandatory = $true)]
         [string]$ProjectPath
@@ -37,6 +38,7 @@ function Get-ConnectedUnityEditorPid {
 
 function Get-RunningUnityEditorPid {
     [CmdletBinding()]
+    [OutputType([int])]
     param(
         [Parameter(Mandatory = $true)]
         [string]$ProjectPath
@@ -75,6 +77,7 @@ function Get-RunningUnityEditorPid {
 
 function Test-AutomatedUnityEditor {
     [CmdletBinding()]
+    [OutputType([bool])]
     param(
         [Parameter(Mandatory = $true)]
         [int]$EditorPid

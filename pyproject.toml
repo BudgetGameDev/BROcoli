@@ -5,11 +5,96 @@ line-length = 100
 respect-gitignore = true
 
 [tool.ruff.lint]
-select = ["B", "C4", "E", "F", "I", "PIE", "RUF", "S", "SIM", "UP"]
-# Repository scripts invoke fixed local tools and Git with argument arrays. Bandit's
-# broad subprocess rules cannot distinguish those calls from untrusted command input;
-# shell=True remains prohibited by Semgrep.
-ignore = ["S603", "S607"]
+select = [
+    "A",
+    "ARG",
+    "B",
+    "BLE",
+    "C4",
+    "C90",
+    "DTZ",
+    "E",
+    "EXE",
+    "F",
+    "FLY",
+    "FURB",
+    "G",
+    "I",
+    "ICN",
+    "INT",
+    "ISC",
+    "LOG",
+    "N",
+    "PERF",
+    "PGH",
+    "PIE",
+    "PL",
+    "PTH",
+    "RET",
+    "RSE",
+    "RUF",
+    "S",
+    "SIM",
+    "SLF",
+    "SLOT",
+    "T10",
+    "TID",
+    "TRY",
+    "UP",
+    "YTT",
+]
+ignore = [
+    # Repository scripts invoke fixed local tools and Git with argument arrays. Bandit's
+    # broad subprocess rules cannot distinguish those calls from untrusted command input;
+    # shell=True remains prohibited by Semgrep.
+    "S603",
+    "S607",
+    # These scripts are operator-facing tools whose diagnostics name the exact path,
+    # version, or command that failed. Hoisting those messages into named constants
+    # or exception subclasses would move the detail away from the code that raises it.
+    "TRY003",
+    "EM101",
+    "EM102",
+    # Comparisons here are against argv lengths, exit codes, and file-format
+    # constants that read more clearly inline than behind a name.
+    "PLR2004",
+]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 12
+
+[tool.ruff.lint.pylint]
+# Argument counts follow the CLI surface each script exposes, and the gate already
+# fails a file at 300 lines, which is the limit that actually keeps them small.
+max-args = 8
+# A CLI main maps each failure mode to its own exit code, so an early return per
+# failure is the structure, not a smell.
+max-returns = 8
+
+[tool.ruff.lint.flake8-builtins]
+builtins-ignorelist = ["id"]
+
+[tool.ruff.lint.flake8-import-conventions.extend-aliases]
+# The spelled-out name is what the coverage parser reads as; "ET" is not clearer.
+"xml.etree.ElementTree" = "ElementTree"
+
+[tool.ruff.lint.per-file-ignores]
+# The prepare_*.py scripts are linear, one-off asset recipes: each statement is
+# a step in a recorded procedure, and splitting them into helpers would hide the
+# order the steps have to run in.
+"scripts/prepare_*.py" = ["PLR0915"]
+
+[tool.mypy]
+files = ["scripts"]
+python_version = "3.9"
+# The scripts are standalone CLI entry points, not an installed package, so the
+# third-party modules a few of them import (Pillow) have no stubs to resolve.
+ignore_missing_imports = true
+warn_redundant_casts = true
+warn_unreachable = true
+warn_unused_ignores = true
+no_implicit_optional = true
+strict_equality = true
 
 [tool.ruff.format]
 indent-style = "space"

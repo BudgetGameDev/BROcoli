@@ -13,13 +13,13 @@ JSON_RESULTS_FILE="/tmp/unity_test_results.json"
 VERSION_FILE="$PROJECT_PATH/ProjectSettings/ProjectVersion.txt"
 
 if [ ! -f "$VERSION_FILE" ]; then
-    echo "❌ Missing Unity version file: $VERSION_FILE"
+    echo "Missing Unity version file: $VERSION_FILE"
     exit 1
 fi
 
 UNITY_VERSION="$(sed -n 's/^m_EditorVersion: //p' "$VERSION_FILE" | head -1)"
 if [ -z "$UNITY_VERSION" ]; then
-    echo "❌ Could not read m_EditorVersion from: $VERSION_FILE"
+    echo "Could not read m_EditorVersion from: $VERSION_FILE"
     exit 1
 fi
 
@@ -45,7 +45,7 @@ if failed:
     for case in result.get("Results") or []:
         if case.get("Status") != "Failed":
             continue
-        print(f"\n❌ {case.get('FullName')}")
+        print(f"\n{case.get('FullName')}")
         message = (case.get("Message") or "").strip()
         if message:
             print("   " + message.replace("\n", "\n   ")[:800])
@@ -61,7 +61,7 @@ EDITOR_PID="$(connected_editor_pid "$PROJECT_PATH" || true)"
 if [ -n "$EDITOR_PID" ]; then
     require_automated_editor "$EDITOR_PID" "$PROJECT_PATH" || exit 2
 
-    echo "🧪 Unity EditMode Tests"
+    echo "Unity EditMode Tests"
     echo "======================="
     echo "Project: $PROJECT_PATH"
     echo "Editor:  connected instance $EDITOR_PID"
@@ -77,7 +77,7 @@ if [ -n "$EDITOR_PID" ]; then
     set -e
 
     if [ "$COMMAND_STATUS" -ne 0 ] || [ -z "$RESULTS_JSON" ]; then
-        echo "❌ TEST RUN FAILED (unity command run_tests exit $COMMAND_STATUS)"
+        echo "TEST RUN FAILED (unity command run_tests exit $COMMAND_STATUS)"
         printf '%s\n' "$RESULTS_JSON"
         exit 1
     fi
@@ -88,7 +88,7 @@ if [ -n "$EDITOR_PID" ]; then
     summarize_json_results "$JSON_RESULTS_FILE"
 
     echo ""
-    echo "✅ EDITMODE TESTS PASSED"
+    echo "EDITMODE TESTS PASSED"
     exit 0
 fi
 
@@ -118,7 +118,7 @@ detect_unity_path() {
             [ -x "$candidate" ] && UNITY_EDITOR_PATH="$candidate"
             ;;
         *)
-            echo "❌ Unknown OS: $(uname -s)"
+            echo "Unknown OS: $(uname -s)"
             exit 1
             ;;
     esac
@@ -129,7 +129,7 @@ detect_unity_path() {
 detect_unity_path
 
 if [ -z "${UNITY_EDITOR_PATH:-}" ] || [ ! -x "$UNITY_EDITOR_PATH" ]; then
-    echo "❌ Unity $UNITY_VERSION was not found."
+    echo "Unity $UNITY_VERSION was not found."
     echo ""
     echo "Please either:"
     echo "  1. Install Unity $UNITY_VERSION via Unity Hub"
@@ -137,7 +137,7 @@ if [ -z "${UNITY_EDITOR_PATH:-}" ] || [ ! -x "$UNITY_EDITOR_PATH" ]; then
     exit 1
 fi
 
-echo "🧪 Unity EditMode Tests"
+echo "Unity EditMode Tests"
 echo "======================="
 echo "Project: $PROJECT_PATH"
 echo "Unity: $UNITY_EDITOR_PATH"
@@ -161,7 +161,7 @@ echo ""
 echo "======================="
 
 if [ ! -f "$RESULTS_FILE" ]; then
-    echo "❌ TEST RUN FAILED (Unity exit code $EXIT_CODE, no results written)"
+    echo "TEST RUN FAILED (Unity exit code $EXIT_CODE, no results written)"
     tail -40 "$LOG_FILE" 2>/dev/null || true
     echo ""
     echo "Full log: $LOG_FILE"
@@ -183,7 +183,7 @@ if failed:
     for case in root.iter("test-case"):
         if case.get("result") != "Failed":
             continue
-        print(f"\n❌ {case.get('fullname')}")
+        print(f"\n{case.get('fullname')}")
         message = case.find("./failure/message")
         if message is not None and message.text:
             print("   " + message.text.strip().replace("\n", "\n   ")[:800])
@@ -192,4 +192,4 @@ raise SystemExit(1 if failed else 0)
 PY
 
 echo ""
-echo "✅ EDITMODE TESTS PASSED"
+echo "EDITMODE TESTS PASSED"

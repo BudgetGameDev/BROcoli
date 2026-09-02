@@ -5,7 +5,7 @@ set -euo pipefail
 PROJECT_PATH="$(cd "$(dirname "$0")" && pwd)"
 cd "$PROJECT_PATH"
 
-for tool in dotnet npx uv shfmt; do
+for tool in dotnet npx uv shfmt pwsh; do
     if ! command -v "$tool" >/dev/null 2>&1; then
         echo "format: missing required tool '$tool'. See CONTRIBUTING.md." >&2
         exit 2
@@ -23,5 +23,6 @@ npx --yes eslint@10.9.1 --fix \
 npx --yes prettier@3.9.6 --write \
     eslint.config.mjs scripts/*.cjs Assets/WebGLTemplates/Custom/*.js
 shfmt -w -i 4 -ci ci.sh cd.sh format.sh scripts/*.sh .githooks/pre-push
+pwsh -NoProfile -File scripts/powershell-check.ps1 -Fix
 
 echo "format: complete"

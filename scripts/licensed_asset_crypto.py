@@ -119,7 +119,7 @@ def resolve_encrypted_path(value: str) -> Path:
     return PROJECT_ROOT.joinpath(*relative.parts)
 
 
-def validate_generated_path(value: str, directory: bool, encrypted: str) -> str:
+def validate_generated_path(value: str, encrypted: str) -> str:
     relative = normalized_project_path(value, "Generated path")
     owner = owner_root(normalized_project_path(encrypted, "Encrypted output path"))
     require_path_under(relative, owner, "Generated path")
@@ -132,7 +132,7 @@ def validate_generated_path(value: str, directory: bool, encrypted: str) -> str:
 
 
 def package_root_guid(title: str, source_url: str, generated_path: str) -> str:
-    identity = "\0".join((title, source_url, generated_path)).encode("utf-8")
+    identity = f"{title}\0{source_url}\0{generated_path}".encode()
     return hashlib.sha256(identity).hexdigest()[:32]
 
 
@@ -147,9 +147,7 @@ def package_metadata(args: argparse.Namespace, archive: Path) -> dict[str, objec
     if missing:
         raise RuntimeError("Directory packages require metadata options: " + ", ".join(missing))
 
-    generated_path = validate_generated_path(
-        args.generated_path, directory=True, encrypted=args.output
-    )
+    generated_path = validate_generated_path(args.generated_path, encrypted=args.output)
     file_count, uncompressed_size = create_directory_archive(Path(args.input).resolve(), archive)
     return {
         "formatVersion": PACKAGE_FORMAT_VERSION,
@@ -178,9 +176,7 @@ def package_metadata(args: argparse.Namespace, archive: Path) -> dict[str, objec
 def file_metadata(args: argparse.Namespace, source: Path) -> dict[str, object]:
     metadata = {
         "formatVersion": 1,
-        "generatedPath": validate_generated_path(
-            args.generated_path, directory=False, encrypted=args.output
-        ),
+        "generatedPath": validate_generated_path(args.generated_path, encrypted=args.output),
         "sha256": sha256(source),
         "sourceUrl": args.source_url,
         "author": args.author,
@@ -209,8 +205,8 @@ def encrypt_payload(payload: Path, output: Path, metadata: dict[str, object]) ->
     try:
         run_openssl("encrypt", payload, encrypted_temp, load_key())
         metadata_temp.write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
-        os.replace(encrypted_temp, output)
-        os.replace(metadata_temp, sidecar)
+        encrypted_temp.replace(output)
+        metadata_temp.replace(sidecar)
     finally:
         encrypted_temp.unlink(missing_ok=True)
         metadata_temp.unlink(missing_ok=True)
@@ -284,7 +280,6 @@ def main() -> int:
     try:
         args = parse_args()
         encrypt(args) if args.command == "encrypt" else decrypt(args)
-        return 0
     except (
         OSError,
         RuntimeError,
@@ -294,6 +289,8 @@ def main() -> int:
     ) as error:
         print(f"licensed asset error: {error}", file=sys.stderr)
         return 1
+    else:
+        return 0
 
 
 if __name__ == "__main__":

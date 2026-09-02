@@ -126,6 +126,12 @@ case "${TARGETS[0]}" in
     windows) INITIAL_BUILD_TARGET="StandaloneWindows64" ;;
     macos) INITIAL_BUILD_TARGET="StandaloneOSX" ;;
     linux) INITIAL_BUILD_TARGET="StandaloneLinux64" ;;
+    # --targets is validated before this point, so this only fires if that
+    # validation and this mapping stop agreeing.
+    *)
+        echo "native-builds: unsupported target '${TARGETS[0]}'" >&2
+        exit 2
+        ;;
 esac
 SELECTED_TARGETS="$(
     IFS=,

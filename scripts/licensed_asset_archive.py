@@ -87,6 +87,23 @@ def safe_archive_name(value: str) -> PurePosixPath:
     return path
 
 
+def require_supported_entry_type(entry: zipfile.ZipInfo, normalized_name: str) -> None:
+    """Reject anything but a plain file or directory, and any type/flag mismatch.
+
+    A zip can claim a mode that contradicts its name, so both are checked against
+    each other rather than trusting either one on its own.
+    """
+    unix_type = (entry.external_attr >> 16) & 0o170000
+    if unix_type == stat.S_IFLNK:
+        raise RuntimeError(f"Package archive contains a symlink: {normalized_name}")
+    if unix_type not in (0, stat.S_IFDIR, stat.S_IFREG):
+        raise RuntimeError(f"Package archive contains an unsupported entry: {normalized_name}")
+    if entry.is_dir() and unix_type == stat.S_IFREG:
+        raise RuntimeError(f"Package archive has an invalid directory: {normalized_name}")
+    if not entry.is_dir() and unix_type == stat.S_IFDIR:
+        raise RuntimeError(f"Package archive has an invalid file: {normalized_name}")
+
+
 def extract_directory_archive(
     archive_path: Path, output: Path, metadata: dict[str, object]
 ) -> None:
@@ -107,19 +124,7 @@ def extract_directory_archive(
                 if normalized_name in names:
                     raise RuntimeError(f"Duplicate package archive entry: {normalized_name}")
                 names.add(normalized_name)
-                unix_type = (entry.external_attr >> 16) & 0o170000
-                if unix_type == stat.S_IFLNK:
-                    raise RuntimeError(f"Package archive contains a symlink: {normalized_name}")
-                if unix_type not in (0, stat.S_IFDIR, stat.S_IFREG):
-                    raise RuntimeError(
-                        f"Package archive contains an unsupported entry: {normalized_name}"
-                    )
-                if entry.is_dir() and unix_type == stat.S_IFREG:
-                    raise RuntimeError(
-                        f"Package archive has an invalid directory: {normalized_name}"
-                    )
-                if not entry.is_dir() and unix_type == stat.S_IFDIR:
-                    raise RuntimeError(f"Package archive has an invalid file: {normalized_name}")
+                require_supported_entry_type(entry, normalized_name)
                 if entry.is_dir():
                     continue
                 file_count += 1
@@ -141,7 +146,7 @@ def extract_directory_archive(
                 destination.parent.mkdir(parents=True, exist_ok=True)
                 with archive.open(entry, "r") as source, destination.open("xb") as target:
                     shutil.copyfileobj(source, target, length=1024 * 1024)
-        os.replace(staging, output)
+        staging.replace(output)
     finally:
         if staging.exists():
             shutil.rmtree(staging)

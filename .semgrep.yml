@@ -45,6 +45,40 @@ rules:
       include:
         - /scripts/**
 
+  # Semgrep has no PowerShell parser, so these run in generic mode over the .ps1
+  # sources. PSScriptAnalyzer covers style and correctness; these cover the
+  # execution and transport weaknesses a linter does not model.
+  - id: powershell-invoke-expression
+    languages: [generic]
+    message: Invoke-Expression runs a string as code; run a downloaded script from a file instead.
+    severity: ERROR
+    pattern-either:
+      - pattern: Invoke-Expression
+      - pattern: iex
+    paths:
+      include:
+        - /scripts/*.ps1
+
+  - id: powershell-plaintext-secure-string
+    languages: [generic]
+    message: ConvertTo-SecureString -AsPlainText defeats the point of a SecureString.
+    severity: ERROR
+    pattern: ConvertTo-SecureString $... -AsPlainText
+    paths:
+      include:
+        - /scripts/*.ps1
+
+  - id: powershell-disabled-tls-validation
+    languages: [generic]
+    message: Skipping certificate or revocation checks removes transport authentication.
+    severity: ERROR
+    pattern-either:
+      - pattern: -SkipCertificateCheck
+      - pattern: ServerCertificateValidationCallback
+    paths:
+      include:
+        - /scripts/*.ps1
+
   - id: bash-eval
     languages: [bash]
     message: Avoid eval in shell scripts because constructed input can become executable code.

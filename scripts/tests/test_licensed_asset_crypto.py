@@ -14,6 +14,11 @@ if str(SCRIPTS_ROOT) not in sys.path:
 
 SCRIPT_PATH = SCRIPTS_ROOT / "licensed_asset_crypto.py"
 SPEC = importlib.util.spec_from_file_location("licensed_asset_crypto", SCRIPT_PATH)
+# These scripts are CLI entry points rather than an installed package, so a test
+# reaches them by path. spec_from_file_location returns None for a file it cannot
+# load, which would otherwise surface as an AttributeError two lines later.
+if SPEC is None or SPEC.loader is None:
+    raise ImportError(f"cannot load {SCRIPT_PATH}")
 licensed_asset_crypto = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(licensed_asset_crypto)
 
@@ -158,7 +163,6 @@ class LicensedAssetCryptoTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "safe project-relative path"):
             licensed_asset_crypto.validate_generated_path(
                 "Assets/Generated/Licensed/../Plaintext",
-                directory=True,
                 encrypted="Assets/Encrypted/Licensed/package.zip.enc",
             )
 
@@ -168,7 +172,6 @@ class LicensedAssetCryptoTests(unittest.TestCase):
         self.assertEqual(
             licensed_asset_crypto.validate_generated_path(
                 f"{owner}/Generated/Licensed/FogParticles",
-                directory=True,
                 encrypted=f"{owner}/Encrypted/Licensed/fog-particles.zip.enc",
             ),
             f"{owner}/Generated/Licensed/FogParticles",
@@ -179,7 +182,6 @@ class LicensedAssetCryptoTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "must stay under"):
             licensed_asset_crypto.validate_generated_path(
                 "LocalPackages/com.budgetgamedev.game.other/Generated/Licensed/Stolen",
-                directory=True,
                 encrypted=(
                     "LocalPackages/com.budgetgamedev.game.brocoli"
                     "/Encrypted/Licensed/fog-particles.zip.enc"
@@ -192,7 +194,6 @@ class LicensedAssetCryptoTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "Generated/Licensed"):
             licensed_asset_crypto.validate_generated_path(
                 f"{owner}/Runtime/Committed",
-                directory=True,
                 encrypted=f"{owner}/Encrypted/Licensed/fog-particles.zip.enc",
             )
 

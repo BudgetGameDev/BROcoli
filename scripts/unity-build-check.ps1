@@ -1,6 +1,6 @@
 # Unity batch-mode compilation verification script (PowerShell)
 # Usage: .\scripts\unity-build-check.ps1
-# 
+#
 # Windows-native Unity package resolution, asset import, and compilation check.
 # This does not produce a player build; CI performs the full WebGL build.
 # Set UNITY_EDITOR_PATH to override editor discovery.
@@ -12,13 +12,13 @@ $LogFile = "$env:TEMP\unity_build_check.log"
 $VersionFile = Join-Path $ProjectPath "ProjectSettings\ProjectVersion.txt"
 
 if (-not (Test-Path $VersionFile)) {
-    Write-Host "❌ Missing Unity version file: $VersionFile" -ForegroundColor Red
+    Write-Host "Missing Unity version file: $VersionFile" -ForegroundColor Red
     exit 1
 }
 
 $VersionLine = Select-String -Path $VersionFile -Pattern '^m_EditorVersion: (.+)$' | Select-Object -First 1
 if (-not $VersionLine) {
-    Write-Host "❌ Could not read m_EditorVersion from: $VersionFile" -ForegroundColor Red
+    Write-Host "Could not read m_EditorVersion from: $VersionFile" -ForegroundColor Red
     exit 1
 }
 
@@ -29,7 +29,7 @@ $UnityPath = if ($env:UNITY_EDITOR_PATH) {
     "C:\Program Files\Unity\Hub\Editor\$UnityVersion\Editor\Unity.exe"
 }
 
-Write-Host "🔧 Unity Compilation Check" -ForegroundColor Cyan
+Write-Host "Unity Compilation Check" -ForegroundColor Cyan
 Write-Host "==========================" -ForegroundColor Cyan
 Write-Host "Project: $ProjectPath"
 Write-Host "Version: $UnityVersion"
@@ -38,7 +38,7 @@ Write-Host ""
 
 # Check if Unity exists
 if (-not (Test-Path $UnityPath)) {
-    Write-Host "❌ Unity not found at: $UnityPath" -ForegroundColor Red
+    Write-Host "Unity not found at: $UnityPath" -ForegroundColor Red
     Write-Host ""
     Write-Host "Please either:"
     Write-Host "  1. Install Unity $UnityVersion via Unity Hub"
@@ -46,7 +46,7 @@ if (-not (Test-Path $UnityPath)) {
     exit 1
 }
 
-Write-Host "⏳ Running Unity batch mode compilation..." -ForegroundColor Yellow
+Write-Host "Running Unity batch mode compilation..." -ForegroundColor Yellow
 Write-Host "   (This may take 1-3 minutes on first run, 3-5 minutes after clean)"
 Write-Host ""
 
@@ -72,7 +72,7 @@ if ($process.ExitCode -eq 0 -and $logContent -match "Exiting batchmode successfu
     # safeguard for first-party assemblies that may override compiler arguments.
     $warnings = Select-String -Path $LogFile -Pattern "(Assets/Editor|LocalPackages)/.*warning [A-Z]+[0-9]+" -ErrorAction SilentlyContinue
     if ($warnings) {
-        Write-Host "❌ COMPILATION FAILED ($($warnings.Count) first-party warning(s))" -ForegroundColor Red
+        Write-Host "COMPILATION FAILED ($($warnings.Count) first-party warning(s))" -ForegroundColor Red
         $warnings | Select-Object -First 20 | ForEach-Object { Write-Host $_.Line }
         Write-Host ""
         Write-Host "Warnings are treated as errors by the repository CI gate."
@@ -80,32 +80,32 @@ if ($process.ExitCode -eq 0 -and $logContent -match "Exiting batchmode successfu
         exit 1
     }
 
-    Write-Host "✅ COMPILATION SUCCEEDED (zero first-party warnings)" -ForegroundColor Green
+    Write-Host "COMPILATION SUCCEEDED (zero first-party warnings)" -ForegroundColor Green
     Write-Host ""
 
     # Show compiled assemblies
     Write-Host "Compiled assemblies:"
-    Get-ChildItem "$ProjectPath\Library\ScriptAssemblies\Assembly-CSharp*" -ErrorAction SilentlyContinue | 
+    Get-ChildItem "$ProjectPath\Library\ScriptAssemblies\Assembly-CSharp*" -ErrorAction SilentlyContinue |
         Select-Object Name, Length, LastWriteTime | Format-Table
-    
+
     exit 0
 } else {
-    Write-Host "❌ COMPILATION FAILED (Unity exit code $($process.ExitCode))" -ForegroundColor Red
+    Write-Host "COMPILATION FAILED (Unity exit code $($process.ExitCode))" -ForegroundColor Red
     Write-Host ""
-    
+
     # Check if errors are in our code or package cache
     $ourErrors = Select-String -Path $LogFile -Pattern "(Assets/Editor|LocalPackages)/.*error [A-Z]+[0-9]+" -ErrorAction SilentlyContinue
     $pkgErrors = Select-String -Path $LogFile -Pattern "Library/PackageCache.*error CS" -ErrorAction SilentlyContinue
-    
+
     if ($ourErrors) {
-        Write-Host "❌ Errors in first-party code:" -ForegroundColor Red
+        Write-Host "Errors in first-party code:" -ForegroundColor Red
         $ourErrors | Select-Object -First 20 | ForEach-Object { Write-Host $_.Line }
         Write-Host ""
         Write-Host "Fix these errors and try again."
     }
-    
+
     if ($pkgErrors -and -not $ourErrors) {
-        Write-Host "❌ Errors in a resolved Unity package:" -ForegroundColor Red
+        Write-Host "Errors in a resolved Unity package:" -ForegroundColor Red
         Write-Host "   Check API compatibility against Packages\packages-lock.json first."
         Write-Host ""
         Write-Host "   If the pinned package cache is demonstrably corrupt, remove Library\"
@@ -113,7 +113,7 @@ if ($process.ExitCode -eq 0 -and $logContent -match "Exiting batchmode successfu
         Write-Host ""
         $pkgErrors | Select-Object -First 5 | ForEach-Object { Write-Host $_.Line }
     }
-    
+
     Write-Host ""
     Write-Host "Full log: $LogFile"
     exit 1

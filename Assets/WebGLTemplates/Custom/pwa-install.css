@@ -284,9 +284,26 @@
   text-align: center;
 }
 
+/* Inline SVG icons from lucide-icons.js. Sized in em rather than px so the
+   font-size already set for each context keeps controlling them, and stroked
+   with currentColor so they inherit that context's colour. */
+.pwa-svg-icon {
+  width: 1em;
+  height: 1em;
+  flex-shrink: 0;
+}
+
+/* Icons that prefix a line of running text rather than sitting in a flex row. */
+.pwa-hint-icon {
+  display: inline-flex;
+  vertical-align: -0.15em;
+  margin-right: 6px;
+}
+
 /* Platform-specific icons */
 .platform-icon {
   font-size: 24px;
+  vertical-align: -0.15em;
 }
 
 /* Responsive adjustments */

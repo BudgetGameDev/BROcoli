@@ -3,7 +3,7 @@
 | Document | Read it when |
 | --- | --- |
 | [adding-a-game.md](adding-a-game.md) | Adding, removing, or restructuring a game package |
-| [asset-acquisition.md](asset-acquisition.md) | Creating or generating any game asset |
+| [asset-acquisition.md](asset-acquisition.md) | Creating or generating a game asset that ships in a game package |
 | [licensed-assets.md](licensed-assets.md) | Importing, encrypting, or restoring a restricted third-party asset |
 | [machine-setup.md](machine-setup.md) | Setting up a new machine, the Unity CLI, or agent integration |
 | [native-releases.md](native-releases.md) | Building Windows, macOS, and Linux players or publishing a GitHub Release |

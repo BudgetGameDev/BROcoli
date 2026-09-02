@@ -3,11 +3,12 @@
 
 import json
 import sys
+from pathlib import Path
 from typing import Optional
 
 
 def build_result(path: str) -> dict:
-    with open(path, encoding="utf-8") as stream:
+    with Path(path).open(encoding="utf-8") as stream:
         document = json.load(stream)
 
     result = (document.get("data") or {}).get("result")
@@ -15,7 +16,7 @@ def build_result(path: str) -> dict:
         # build_status nests its report as a JSON string.
         result = json.loads(result)
     if not isinstance(result, dict):
-        raise ValueError("pipeline response carried no result object")
+        raise TypeError("pipeline response carried no result object")
     return result
 
 

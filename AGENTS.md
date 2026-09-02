@@ -8,9 +8,24 @@ Hub, an editor executable, or another command.
 
 That command is `scripts/unity-open.sh` in this repository, put on `PATH` once per
 clone by `./scripts/install-unity-open.sh`; run the installer if `unity-open` is
-missing. On Windows, run `.\scripts\unity-open.ps1` directly. When the Unity CLI,
-the Editor, or the agent integration is missing entirely, read
-[docs/machine-setup.md](docs/machine-setup.md) rather than improvising a setup.
+missing. On Windows the pair is `scripts\unity-open.ps1` and
+`.\scripts\install-unity-open.ps1`, and `unity-open` works the same way once
+installed. When the Unity CLI, the Editor, or the agent integration is missing
+entirely, read [docs/machine-setup.md](docs/machine-setup.md) rather than
+improvising a setup.
+
+## No emoji in source
+
+Never put emoji in source, in console output, in log lines, or in commit
+messages. This is not a style preference: the console decides the encoding, and
+Windows PowerShell 5.1 reads a UTF-8 file without a BOM as ANSI, so an emoji
+arrives as mojibake for the reader who most needs the message. Redirected logs
+and CI transcripts mangle it again. Severity already has channels that survive
+every hop -- stderr, an exit code, a colour, and the word itself.
+
+Ordinary typography is unaffected: an em dash, a middle dot, a degree sign, or a
+letter with a diacritic is text and stays allowed.
+`scripts/check_no_emoji.py` enforces this and runs in `ci.sh`.
 
 ## Project structure
 
@@ -53,6 +68,14 @@ material, particle effect, font, UI element, or environment kit. It requires
 searching for an existing free, license-compatible asset before making one, and
 it records what must be verified and written down for each asset acquired. That
 guide links to the per-category guides for 3D models, 2D art and kits, and audio.
+
+Game assets only: content that ships inside a game package and reaches the
+player -- art, audio, shaders, VFX, animation, and third-party asset packs or
+gameplay frameworks. The web layer around the build, including the WebGL
+template's markup, CSS, JavaScript, and its SVG or CSS icons, along with
+documentation images and repository tooling, is outside that guide. Write those
+directly, or vendor them from a permissively licensed library and record the
+source, version, and license where the guide describes.
 
 Read it only when a task actually needs a new asset. Most work does not, and
 these rules are long enough that loading them by default would crowd out the

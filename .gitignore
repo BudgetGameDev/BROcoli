@@ -86,3 +86,9 @@ LocalPackages/*/Generated/
 LocalPackages/*/Generated.meta
 LocalPackages/*/Resources/*/Generated/
 LocalPackages/*/Resources/*/Generated.meta
+
+# Machine-local Claude Code settings
+.claude/settings.local.json
+
+# Python bytecode from the scripts test suite
+__pycache__/

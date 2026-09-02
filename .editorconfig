@@ -20,3 +20,7 @@ indent_size = 4
 
 [*.md]
 trim_trailing_whitespace = false
+
+# Matches the eol=crlf rules in .gitattributes, so an editor does not undo them.
+[*.{bat,cmd,reg}]
+end_of_line = crlf

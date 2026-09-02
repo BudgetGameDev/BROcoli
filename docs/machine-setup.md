@@ -11,6 +11,10 @@ work. This page covers the second kind.
 ./scripts/bootstrap-macos.sh
 ```
 
+```powershell
+.\scripts\bootstrap-windows.ps1
+```
+
 It is idempotent, so re-running it on a configured machine only reports state.
 Add `--dry-run` to see every action first. It stops short of anything that needs
 a human — a Homebrew install, a Unity sign-in, replacing an unrelated
@@ -18,7 +22,8 @@ a human — a Homebrew install, a Unity sign-in, replacing an unrelated
 end. It exits non-zero only when it cannot continue at all, which in practice
 means the Unity CLI is still not on `PATH` after its install step.
 
-The script performs these steps, each of which can be run by hand:
+The steps below describe the macOS script; [Windows](#windows) records where its
+counterpart differs. Each step can also be run by hand:
 
 1. **Host tools.** Installs `node`, `shellcheck`, `shfmt`, and Google Chrome with
    Homebrew. `dotnet` and `uv` are only reported, because both ship their own
@@ -44,6 +49,10 @@ The script performs these steps, each of which can be run by hand:
 5. **Repository commands.** Runs `./scripts/install-git-hooks.sh` and
    `./scripts/install-unity-open.sh`. Both are local to the machine — a clone
    activates neither on its own, which is why each is installed once per clone.
+   The hooks installer also sets `core.autocrlf=false` and `core.safecrlf=true`,
+   per-clone git config that `.gitattributes` cannot carry. On Windows the first
+   overrides the `autocrlf=true` Git for Windows puts in its system config. See
+   `CONTRIBUTING.md` for what each protects against.
 6. **Agent integration.** Verifies the checked-in wiring described below.
 
 ## What the clone already carries
@@ -52,7 +61,17 @@ The agentic Unity setup is version-controlled, so a fresh clone inherits it and
 there is nothing to install for Claude Code:
 
 - `.mcp.json` registers the `unity mcp` stdio server as a project-scoped MCP
-  server, which is what gives an agent the `unity-editor-mcp` tools.
+  server, which is what gives an agent the `unity-editor-mcp` tools. A
+  project-scoped server stays inert until this clone approves it by name, so
+  approve it when Claude Code prompts, or record the choice in the untracked
+  `.claude/settings.local.json`:
+
+  ```json
+  { "enabledMcpjsonServers": ["unity-editor-mcp"] }
+  ```
+
+  Until then `claude mcp list` reports it as pending and the tools are absent
+  rather than broken.
 - `.claude/skills/unity-cli/` is the Unity CLI agent skill, installed with
   `unity skill install claude-code --local`. Refresh it deliberately with that
   same command plus `--yes`, and review the diff like any other change.
@@ -93,8 +112,35 @@ each other. `unity doctor` prints a broader diagnostic when one of them is not.
 
 ## Windows
 
-There is no bootstrap script for Windows. Install the CLI with the PowerShell
-one-liner from the Unity CLI skill, install the Editor the same way
-(`unity install <version> --yes --accept-eula`), and open the project with
-`.\scripts\unity-open.ps1`. `docs/native-releases.md` covers the Windows build
-path in full.
+```powershell
+.\scripts\bootstrap-windows.ps1
+```
+
+It runs the same six steps in the same order, is idempotent the same way, and
+takes `-DryRun` and `-AgentClient` where the shell script takes `--dry-run` and
+`--agent-client`. It also leaves the same kinds of leftovers for a human, and
+exits non-zero only when the Unity CLI is still missing after its install step.
+What differs is per-platform, not per-script:
+
+- **Package manager.** `winget` replaces Homebrew and installs `node`,
+  `shellcheck`, `shfmt`, and Google Chrome. It edits the persisted `PATH`, which
+  an already-open shell never re-reads, so the script says when to open a new
+  one. `dotnet` and `uv` are reported rather than installed, as on macOS.
+- **Python.** Windows ships a `python3.exe` App Execution Alias that only
+  advertises the Microsoft Store, so the script checks that `python3` actually
+  runs rather than that it is on `PATH`. `ci.sh` requires a real interpreter.
+- **Shell.** `ci.sh`, `format.sh`, and the gate wrappers are shell scripts, so
+  the Windows host runs them under the bash that ships with Git for Windows. The
+  script locates that bash, uses it for `./scripts/install-git-hooks.sh`, and
+  reports it as a missing prerequisite when it is absent.
+- **Unity CLI.** Installed from the same CDN with the PowerShell installer
+  (`install.ps1`), which writes `%LOCALAPPDATA%\Unity\bin` onto `PATH`.
+- **Editor modules.** Only `webgl`. Windows player support ships with the
+  Windows Editor, and `scripts/native-builds.ps1` builds `StandaloneWindows64`
+  and nothing else, so the two Mono players macOS installs are not needed here.
+  `docs/native-releases.md` covers the Windows build path in full.
+- **`unity-open`.** `.\scripts\install-unity-open.ps1` writes forwarding shims
+  instead of a symlink, for the reason `CONTRIBUTING.md` records.
+
+`unity upgrade` reports success without replacing the binary on Windows. Upgrade
+the CLI by re-running the installer one-liner instead.

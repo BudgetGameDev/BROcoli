@@ -13,17 +13,17 @@ LOG_FILE="/tmp/unity_build_check.log"
 VERSION_FILE="$PROJECT_PATH/ProjectSettings/ProjectVersion.txt"
 
 if [ ! -f "$VERSION_FILE" ]; then
-    echo "❌ Missing Unity version file: $VERSION_FILE"
+    echo "Missing Unity version file: $VERSION_FILE"
     exit 1
 fi
 
 UNITY_VERSION="$(sed -n 's/^m_EditorVersion: //p' "$VERSION_FILE" | head -1)"
 if [ -z "$UNITY_VERSION" ]; then
-    echo "❌ Could not read m_EditorVersion from: $VERSION_FILE"
+    echo "Could not read m_EditorVersion from: $VERSION_FILE"
     exit 1
 fi
 
-echo "🔧 Unity Compilation Check"
+echo "Unity Compilation Check"
 echo "=========================="
 echo "Project: $PROJECT_PATH"
 echo "Version: $UNITY_VERSION"
@@ -56,7 +56,7 @@ detect_unity_path() {
             [ -x "$candidate" ] && UNITY_EDITOR_PATH="$candidate"
             ;;
         *)
-            echo "❌ Unknown OS: $(uname -s)"
+            echo "Unknown OS: $(uname -s)"
             exit 1
             ;;
     esac
@@ -68,7 +68,7 @@ detect_unity_path
 
 # Check if Unity exists
 if [ -z "${UNITY_EDITOR_PATH:-}" ] || [ ! -x "$UNITY_EDITOR_PATH" ]; then
-    echo "❌ Unity $UNITY_VERSION was not found."
+    echo "Unity $UNITY_VERSION was not found."
     echo ""
     echo "Please either:"
     echo "  1. Install Unity $UNITY_VERSION via Unity Hub"
@@ -79,7 +79,7 @@ fi
 echo "OS: $(uname -s)"
 echo "Unity: $UNITY_EDITOR_PATH"
 echo ""
-echo "⏳ Running Unity batch mode compilation..."
+echo "Running Unity batch mode compilation..."
 echo "   (This may take 1-3 minutes on first run, 3-5 minutes after clean)"
 echo ""
 
@@ -104,7 +104,7 @@ if [ "$EXIT_CODE" -eq 0 ] && grep -q "Exiting batchmode successfully" "$LOG_FILE
     # safeguard for first-party assemblies that may override compiler arguments.
     WARNINGS="$(grep -Ec '(Assets/Editor|LocalPackages)/.*warning [A-Z]+[0-9]+' "$LOG_FILE" 2>/dev/null || true)"
     if [ "$WARNINGS" -gt 0 ]; then
-        echo "❌ COMPILATION FAILED ($WARNINGS first-party warning(s))"
+        echo "COMPILATION FAILED ($WARNINGS first-party warning(s))"
         grep -E '(Assets/Editor|LocalPackages)/.*warning [A-Z]+[0-9]+' "$LOG_FILE" | head -20 || true
         echo ""
         echo "Warnings are treated as errors by the repository CI gate."
@@ -112,7 +112,7 @@ if [ "$EXIT_CODE" -eq 0 ] && grep -q "Exiting batchmode successfully" "$LOG_FILE
         exit 1
     fi
 
-    echo "✅ COMPILATION SUCCEEDED (zero first-party warnings)"
+    echo "COMPILATION SUCCEEDED (zero first-party warnings)"
     echo ""
 
     # Show compiled assemblies
@@ -122,7 +122,7 @@ if [ "$EXIT_CODE" -eq 0 ] && grep -q "Exiting batchmode successfully" "$LOG_FILE
 
     exit 0
 else
-    echo "❌ COMPILATION FAILED (Unity exit code $EXIT_CODE)"
+    echo "COMPILATION FAILED (Unity exit code $EXIT_CODE)"
     echo ""
 
     # Check if errors are in our code or package cache
@@ -130,14 +130,14 @@ else
     PKG_ERRORS="$(grep -c "Library/PackageCache.*error CS" "$LOG_FILE" 2>/dev/null || true)"
 
     if [ "$OUR_ERRORS" -gt 0 ]; then
-        echo "❌ Errors in first-party code:"
+        echo "Errors in first-party code:"
         grep -E '(Assets/Editor|LocalPackages)/.*error [A-Z]+[0-9]+' "$LOG_FILE" | head -20 || true
         echo ""
         echo "Fix these errors and try again."
     fi
 
     if [ "$PKG_ERRORS" -gt 0 ] && [ "$OUR_ERRORS" -eq 0 ]; then
-        echo "❌ Errors in a resolved Unity package:"
+        echo "Errors in a resolved Unity package:"
         echo "   Check API compatibility against Packages/packages-lock.json first."
         echo ""
         echo "   If the pinned package cache is demonstrably corrupt, remove Library/"

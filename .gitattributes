@@ -1,16 +1,38 @@
 * text=auto eol=lf
 
+# The blanket rule above would hand these to Windows as LF, which is wrong for
+# them specifically: cmd.exe reads a batch file through a seeking file pointer
+# and re-seeks on goto and call, so LF-only endings can land a seek mid-line,
+# and regedit's importer expects CRLF. Both fail intermittently rather than
+# outright, which is worse to debug. The repository has no such file today; the
+# rule is here so the first one added is correct without anyone remembering.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.reg text eol=crlf
+
 # Unity text assets use Smart Merge. The Editor startup bootstrap configures the
 # local driver from the running Unity installation on each machine.
-*.unity text eol=lf merge=unityyamlmerge -whitespace
-*.prefab text eol=lf merge=unityyamlmerge -whitespace
-*.asset text eol=lf merge=unityyamlmerge -whitespace
-*.mat text eol=lf merge=unityyamlmerge -whitespace
-*.anim text eol=lf merge=unityyamlmerge -whitespace
-*.controller text eol=lf merge=unityyamlmerge -whitespace
-*.overrideController text eol=lf merge=unityyamlmerge -whitespace
-*.playable text eol=lf merge=unityyamlmerge -whitespace
-*.meta text eol=lf -whitespace
+#
+# text=auto rather than a plain text: these are YAML in practice, which git
+# detects as text and normalizes identically, but Unity also writes binary
+# payload under some of these extensions. A plain text attribute converts
+# unconditionally without inspecting content, which strips CR bytes out of such
+# a payload; core.safecrlf refuses that write, but it is per-clone config and
+# git's default is off, so the attribute has to be the thing that is safe.
+*.unity text=auto eol=lf merge=unityyamlmerge -whitespace
+*.prefab text=auto eol=lf merge=unityyamlmerge -whitespace
+*.asset text=auto eol=lf merge=unityyamlmerge -whitespace
+*.mat text=auto eol=lf merge=unityyamlmerge -whitespace
+*.anim text=auto eol=lf merge=unityyamlmerge -whitespace
+*.controller text=auto eol=lf merge=unityyamlmerge -whitespace
+*.overrideController text=auto eol=lf merge=unityyamlmerge -whitespace
+*.playable text=auto eol=lf merge=unityyamlmerge -whitespace
+*.meta text=auto eol=lf -whitespace
+
+# A baked lighting asset carries binary payload despite the .asset extension, so
+# the rule above would hand it to a textual merge driver and corrupt it. None is
+# committed today; this is here for the first lighting bake that is.
+LightingData.asset binary
 
 # Keep opaque assets out of text conversion and textual merge drivers.
 *.png binary
@@ -31,3 +53,21 @@
 *.a binary
 *.zip binary
 *.enc binary
+# These are tracked, or produced by the release scripts, and git only classifies
+# them correctly today by sniffing their contents. Declaring them removes the
+# dependency on a heuristic that only has to be wrong once.
+*.mp4 binary
+*.mov binary
+*.webm binary
+*.ttf binary
+*.otf binary
+*.ttc binary
+*.woff binary
+*.woff2 binary
+*.ico binary
+*.pdf binary
+*.7z binary
+*.gz binary
+*.tar binary
+*.tgz binary
+*.unitypackage binary

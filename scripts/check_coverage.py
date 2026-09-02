@@ -2,9 +2,9 @@
 """Enforce 100% line coverage of the game runtime, ratcheting down legacy gaps."""
 
 import sys
-import xml.etree.ElementTree as ElementTree
 from collections import defaultdict
 from pathlib import Path
+from xml.etree import ElementTree
 
 ROOT = Path(__file__).resolve().parent.parent
 BASELINE = ROOT / ".quality" / "coverage-baseline.tsv"
@@ -180,8 +180,10 @@ def report(counts: dict[str, int], baseline: dict[str, int], problems: list[str]
         else:
             debt.append(relative)
 
-    for relative in sorted(set(baseline) - set(counts)):
-        failures.append(f"{relative}: baseline entry is stale because the file is missing")
+    failures.extend(
+        f"{relative}: baseline entry is stale because the file is missing"
+        for relative in sorted(set(baseline) - set(counts))
+    )
 
     measured = sum(1 for _ in counts)
     remaining = sum(counts.values())

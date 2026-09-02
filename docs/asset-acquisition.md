@@ -4,8 +4,53 @@ Read this before creating or generating any game asset: model, texture, sprite,
 sound, music, shader, VFX, material, particle effect, font, UI element, or
 environment kit.
 
-The rules below apply to every asset category. When you know which category you
-need, read the matching guide as well:
+## What this guide covers
+
+This guide is about game content: the things that ship inside a game package
+under `LocalPackages/` and reach the player through the game itself. It is in
+scope when the thing you need is any of:
+
+- 2D or 3D art -- models, textures, sprites, tiles, environment kits, props,
+  fonts, and in-game UI art.
+- Audio -- sound effects, ambience, voice, and music.
+- Rendering and effects -- shaders, materials, VFX, and particle effects.
+- Animation -- clips, rigs, and animator controllers.
+- A third-party asset pack, Unity package, or gameplay system that would be
+  acquired rather than written: a character controller, inventory, dialogue,
+  save, or behaviour framework, and similar ready-made building blocks.
+
+## What this guide does not cover
+
+Everything outside the shipped game content is out of scope, even when the
+artifact is a picture. None of it needs an acquisition-first search, a category
+guide, or an acquisition record:
+
+- The web layer around the build -- the WebGL template's `index.html`, CSS,
+  JavaScript, service worker, and manifests, together with any SVG or CSS icon,
+  favicon, PWA icon, or install-prompt graphic that lives there. Write those by
+  hand, or take them from a permissively licensed library and vendor the parts
+  you use into the template. Vendor rather than link: the template is
+  offline-first, so a CDN dependency fails exactly when the service worker is
+  serving the game from cache. Record the source, version, and license in the
+  vendored file's header and in the template's `THIRD-PARTY-LICENSES.txt`, which
+  ships with the player.
+- Repository and documentation artifacts -- diagrams, screenshots, README
+  images, and badges.
+- Tooling and CI -- build, editor, and automation scripts, and anything they
+  generate.
+- This game's own gameplay code. Writing a C# script for a mechanic is ordinary
+  programming, not an acquisition; the rule above applies only when a ready-made
+  package would fill the need instead of writing one.
+
+Out of scope means this guide's search and recording steps do not apply. It is
+not permission to copy someone else's work: third-party code, art, or fonts
+pulled into the web layer, the docs, or the tooling still need a compatible
+license, and their attribution still belongs in the usual places.
+
+## Category guides
+
+The rules below apply to every in-scope asset category. When you know which
+category you need, read the matching guide as well:
 
 | Need | Guide |
 | --- | --- |

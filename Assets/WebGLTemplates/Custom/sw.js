@@ -75,6 +75,7 @@ const PRECACHE_ASSETS = [
   "./manifest-staging.json",
   "./platform-detection.js",
   "./version-check.js",
+  "./lucide-icons.js",
   "./icons/icon-192x192.png",
   "./icons/icon-512x512.png",
 ];

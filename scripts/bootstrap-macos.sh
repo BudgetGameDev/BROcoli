@@ -89,6 +89,15 @@ if command -v brew >/dev/null 2>&1; then
     else
         run brew install --cask google-chrome
     fi
+
+    # pwsh runs the PSScriptAnalyzer gate. It is pinned to pwsh 7 on every host
+    # so a .ps1 is judged the same way here as it is on Windows. PowerShell ships
+    # as a cask rather than a formula.
+    if command -v pwsh >/dev/null 2>&1; then
+        echo "powershell: present"
+    else
+        run brew install --cask powershell
+    fi
 else
     note "Homebrew is missing: install it from https://brew.sh, then re-run this script."
 fi

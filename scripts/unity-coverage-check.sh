@@ -54,6 +54,9 @@ holding_editor_pid() {
                 printf '%s' "$pid"
                 return 0
                 ;;
+            *)
+                # An Editor holding some other project; keep looking.
+                ;;
         esac
     done
 }
@@ -108,7 +111,7 @@ if [ -z "${UNITY_EDITOR_PATH:-}" ] || [ ! -x "${UNITY_EDITOR_PATH:-}" ]; then
     exit 1
 fi
 
-echo "📊 Unity EditMode Coverage"
+echo "Unity EditMode Coverage"
 echo "=========================="
 echo "Project: $PROJECT_PATH"
 echo "Unity:   $UNITY_EDITOR_PATH"

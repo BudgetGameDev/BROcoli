@@ -90,8 +90,10 @@ def main() -> int:
         else:
             debt.append(f"{relative}: {lines} lines (grandfathered ceiling {allowance})")
 
-    for relative in sorted(set(baseline) - seen):
-        failures.append(f"{relative}: baseline entry is stale because the file is missing")
+    failures.extend(
+        f"{relative}: baseline entry is stale because the file is missing"
+        for relative in sorted(set(baseline) - seen)
+    )
 
     if failures:
         print(f"source-size: FAIL ({LIMIT}-line source-file limit)", file=sys.stderr)

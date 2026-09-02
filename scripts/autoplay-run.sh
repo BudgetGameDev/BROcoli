@@ -122,4 +122,4 @@ if command -v python3 >/dev/null 2>&1; then
     python3 "$PROJECT_PATH/scripts/analyze-frames.py" "$OUT/frames" 2>/dev/null || true
 fi
 
-exit $RC
+exit "$RC"

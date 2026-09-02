@@ -21,10 +21,32 @@ WebGLTemplates/Custom/
 ├── sw.js              # Service worker for caching/offline support
 ├── pwa-install.css    # Install wizard styling
 ├── pwa-install.js     # Install wizard logic & platform detection
+├── lucide-icons.js    # Vendored Lucide icons used by the install wizard
+├── THIRD-PARTY-LICENSES.txt # Licenses for the vendored web-layer dependencies
 ├── generate-icons.html # Tool to generate PWA icons
 └── icons/             # PWA icon directory
     └── icon.svg       # Source icon (vector)
 ```
+
+## Install wizard icons
+
+The wizard's icons are [Lucide](https://github.com/lucide-icons/lucide) 1.39.0,
+vendored into `lucide-icons.js` under the ISC license (MIT for the icons Lucide
+inherited from Feather). `THIRD-PARTY-LICENSES.txt` carries both notices and
+ships with the player, which is what those licenses require.
+
+They are vendored rather than loaded from a CDN because this template is
+offline-first: `sw.js` precaches the file, and the dialog advertises offline
+play, so fetching icon markup over the network would fail in exactly the
+situation the icons describe. `AGENTS.md` also forbids emoji in source, which is
+what these replaced -- a console or a font-poor device draws emoji unpredictably.
+
+Each icon is a bare `<svg>` with no `width`/`height`; `pwa-install.css` sizes
+them in `em` and colours them with `currentColor`, so an icon follows the
+font-size and colour of whatever context it sits in. To add one, copy the shape
+data from the matching file in the Lucide repository at the pinned tag into
+`SHAPES`, then bump the version in `lucide-icons.js`, `THIRD-PARTY-LICENSES.txt`,
+and this file.
 
 ## Setup Instructions
 

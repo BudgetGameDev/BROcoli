@@ -11,13 +11,13 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_PATH="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-echo "🧹 Unity Clean Script"
+echo "Unity Clean Script"
 echo "====================="
 echo ""
 
 # SAFETY CHECK 1: Verify we're in a Unity project
 if [ ! -f "$PROJECT_PATH/Packages/manifest.json" ]; then
-    echo "❌ SAFETY CHECK FAILED: Not a Unity project!"
+    echo "SAFETY CHECK FAILED: Not a Unity project!"
     echo "   Expected to find: $PROJECT_PATH/Packages/manifest.json"
     echo "   Aborting to prevent accidental deletion."
     exit 1
@@ -25,7 +25,7 @@ fi
 
 # SAFETY CHECK 2: Verify Library folder exists where expected
 if [ ! -d "$PROJECT_PATH/Library" ] && [ ! -d "$PROJECT_PATH/Temp" ]; then
-    echo "⚠️  No Library/ or Temp/ folder found - project may already be clean."
+    echo "No Library/ or Temp/ folder found - project may already be clean."
     echo "   Path: $PROJECT_PATH"
     exit 0
 fi
@@ -34,7 +34,7 @@ fi
 cd "$PROJECT_PATH"
 CURRENT_DIR="$(pwd)"
 if [ "$CURRENT_DIR" != "$PROJECT_PATH" ]; then
-    echo "❌ SAFETY CHECK FAILED: Could not change to project directory!"
+    echo "SAFETY CHECK FAILED: Could not change to project directory!"
     exit 1
 fi
 
@@ -42,7 +42,7 @@ echo "Project: $PROJECT_PATH"
 echo ""
 
 # Show what will be deleted
-echo "📁 Folders to delete:"
+echo "Folders to delete:"
 [ -d "Library" ] && echo "   - Library/ ($(du -sh Library 2>/dev/null | cut -f1 || echo 'unknown size'))"
 [ -d "Temp" ] && echo "   - Temp/"
 echo ""
@@ -58,14 +58,14 @@ if [ "$1" != "--force" ] && [ "$1" != "-f" ]; then
 fi
 
 echo ""
-echo "🗑️  Cleaning..."
+echo "Cleaning..."
 
 # Delete using relative paths ONLY (safety)
-[ -d "Library" ] && rm -rf Library/ && echo "   ✓ Deleted Library/"
-[ -d "Temp" ] && rm -rf Temp/ && echo "   ✓ Deleted Temp/"
+[ -d "Library" ] && rm -rf Library/ && echo "   Deleted Library/"
+[ -d "Temp" ] && rm -rf Temp/ && echo "   Deleted Temp/"
 
 echo ""
-echo "✅ Clean complete!"
+echo "Clean complete!"
 echo ""
 echo "Next steps:"
 echo "  1. Run: ./scripts/unity-build-check.sh"

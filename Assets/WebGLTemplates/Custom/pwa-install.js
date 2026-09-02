@@ -15,6 +15,19 @@
     dismissalResetDays: 7, // Reset dismissal count after this many days
   };
 
+  // Install-prompt icons, from the vendored set in lucide-icons.js. Every icon
+  // sits beside its own label, so if that script is missing the dialog simply
+  // renders without icons rather than showing a broken glyph.
+  const Icons = {
+    svg(name, className) {
+      return window.LucideIcons ? window.LucideIcons.svg(name, className) : "";
+    },
+    hint(name) {
+      const markup = this.svg(name);
+      return markup ? `<span class="pwa-hint-icon">${markup}</span>` : "";
+    },
+  };
+
   // Platform detection
   const Platform = {
     isIOS() {
@@ -226,7 +239,7 @@
         instructionsHTML = this.getAndroidNativeInstructions();
         primaryButtonHTML = `
           <button class="pwa-btn pwa-btn-primary" onclick="PWAInstall.triggerInstall()">
-            <span>📲</span> Install App
+            ${Icons.svg("download")} Install App
           </button>
           <button class="pwa-btn pwa-btn-secondary" onclick="PWAInstall.dismiss()">
             Maybe Later
@@ -244,7 +257,7 @@
         instructionsHTML = this.getDesktopInstructions();
         primaryButtonHTML = `
           <button class="pwa-btn pwa-btn-primary" onclick="PWAInstall.triggerInstall()">
-            <span>📲</span> Install App
+            ${Icons.svg("download")} Install App
           </button>
           <button class="pwa-btn pwa-btn-secondary" onclick="PWAInstall.dismiss()">
             Continue in Browser
@@ -254,12 +267,12 @@
         // Desktop without install prompt
         instructionsHTML = `
           <div class="pwa-fullscreen-hint">
-            💡 Tip: Press <strong>F11</strong> for fullscreen mode
+            ${Icons.hint("lightbulb")} Tip: Press <strong>F11</strong> for fullscreen mode
           </div>
         `;
         primaryButtonHTML = `
           <button class="pwa-btn pwa-btn-primary" onclick="PWAInstall.requestFullscreen()">
-            <span>⛶</span> Enter Fullscreen
+            ${Icons.svg("maximize")} Enter Fullscreen
           </button>
           <button class="pwa-btn pwa-btn-secondary" onclick="PWAInstall.dismiss()">
             Continue
@@ -277,15 +290,15 @@
 
           <div class="pwa-benefits">
             <div class="pwa-benefit">
-              <div class="pwa-benefit-icon">🖥️</div>
+              <div class="pwa-benefit-icon">${Icons.svg("monitor")}</div>
               <span>Full screen gameplay without browser UI</span>
             </div>
             <div class="pwa-benefit">
-              <div class="pwa-benefit-icon">🚀</div>
+              <div class="pwa-benefit-icon">${Icons.svg("zap")}</div>
               <span>Launch instantly from your home screen</span>
             </div>
             <div class="pwa-benefit">
-              <div class="pwa-benefit-icon">📴</div>
+              <div class="pwa-benefit-icon">${Icons.svg("wifi-off")}</div>
               <span>Play offline after first load</span>
             </div>
           </div>
@@ -306,7 +319,7 @@
       return `
         <div class="pwa-instructions">
           <h3 class="pwa-instructions-title">
-            <span class="platform-icon">🍎</span> Add to Home Screen
+            ${Icons.svg("smartphone", "platform-icon")} Add to Home Screen
           </h3>
           <div class="pwa-step">
             <div class="pwa-step-number">1</div>
@@ -334,7 +347,7 @@
     getAndroidNativeInstructions() {
       return `
         <div class="pwa-fullscreen-hint">
-          ✨ Tap "Install App" to add this game to your home screen for a fullscreen experience!
+          ${Icons.hint("sparkles")} Tap "Install App" to add this game to your home screen for a fullscreen experience!
         </div>
       `;
     },
@@ -344,7 +357,7 @@
       return `
         <div class="pwa-instructions">
           <h3 class="pwa-instructions-title">
-            <span class="platform-icon">🤖</span> Add to Home Screen
+            ${Icons.svg("smartphone", "platform-icon")} Add to Home Screen
           </h3>
           <div class="pwa-step">
             <div class="pwa-step-number">1</div>
@@ -371,7 +384,7 @@
     getDesktopInstructions() {
       return `
         <div class="pwa-fullscreen-hint">
-          ✨ Install as an app for a native fullscreen gaming experience!
+          ${Icons.hint("sparkles")} Install as an app for a native fullscreen gaming experience!
         </div>
       `;
     },

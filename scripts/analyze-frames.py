@@ -9,13 +9,12 @@ gradient (top band should be darkest) and player/ground overexposure (a band nea
 Usage: python3 analyze-frames.py <frames_dir>
 """
 
-import glob
-import os
 import sys
+from pathlib import Path
 
 try:
     from PIL import Image
-except Exception:
+except ImportError:
     print(
         "[analyze] Pillow not installed; skipping luminance analysis "
         "(pip install Pillow to enable)."
@@ -23,7 +22,7 @@ except Exception:
     sys.exit(0)
 
 frames_dir = sys.argv[1] if len(sys.argv) > 1 else "."
-files = sorted(glob.glob(os.path.join(frames_dir, "*.png")))
+files = sorted(Path(frames_dir).glob("*.png"))
 if not files:
     print("[analyze] no frames found in", frames_dir)
     sys.exit(0)
@@ -46,4 +45,4 @@ for i in sample:
     top = band_luminance(img, 0.0, 0.33)
     mid = band_luminance(img, 0.33, 0.66)
     bot = band_luminance(img, 0.66, 1.0)
-    print(f"  {os.path.basename(files[i]):<18}{top:>8.3f}{mid:>8.3f}{bot:>8.3f}")
+    print(f"  {files[i].name:<18}{top:>8.3f}{mid:>8.3f}{bot:>8.3f}")

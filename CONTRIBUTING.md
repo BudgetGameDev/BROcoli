@@ -18,9 +18,9 @@ Run the complete local gate before pushing:
 ./ci.sh
 ```
 
-It runs pinned C#, Python, and JavaScript formatting checks; strict Python,
-JavaScript, and shell linting; the host Python and Node unit tests; local
-Semgrep static-analysis rules; the
+It runs pinned C#, Python, JavaScript, and PowerShell formatting checks; strict
+Python, JavaScript, shell, and PowerShell linting; a Python type check; the host
+Python and Node unit tests; local Semgrep static-analysis rules; the
 300-line source-size ratchet, Unity EditMode tests, the game-runtime coverage
 ratchet, a release WebGL player build, and desktop and iOS-profile smoke probes. `Assets/csc.rsp` promotes every
 C# compiler warning to an error at the compiler's maximum warning level. Unity
@@ -36,17 +36,44 @@ Install the prerequisites once:
 - Astral `uv`
 - ShellCheck
 - `shfmt`
+- PowerShell 7 (`pwsh`)
 - Unity CLI (`unity`)
 - Unity matching `ProjectSettings/ProjectVersion.txt`
 - Chrome or Chromium
 
 On macOS, `./scripts/bootstrap-macos.sh` installs those prerequisites together
 with the Editor and modules this project builds with, then runs the two
-per-clone installers below. See [docs/machine-setup.md](docs/machine-setup.md) for what it
-does, what a clone already carries, and how to set up another machine by hand.
+per-clone installers below; `.\scripts\bootstrap-windows.ps1` does the same on
+Windows. See [docs/machine-setup.md](docs/machine-setup.md) for what they do,
+what a clone already carries, and how to set up another machine by hand.
 
-The pinned CSharpier, Ruff, ESLint, Prettier, and Semgrep versions are restored
-on demand. Lint warnings fail the gate; do not suppress a warning unless the
+The pinned CSharpier, Ruff, mypy, ESLint, Prettier, Semgrep, and PSScriptAnalyzer
+versions are restored on demand.
+
+### Static analysis by language
+
+Each language the repository ships is linted, formatted, and statically analysed
+by a pinned tool, so a defect is caught by the gate rather than in review:
+
+| Language | Lint | Format | Also |
+|---|---|---|---|
+| C# | Unity compiler warnings-as-errors | CSharpier | Semgrep rules |
+| Python | Ruff (36 rule families, including Bandit) | Ruff | mypy, Semgrep rules |
+| Shell | ShellCheck at `style`, plus five optional checks | `shfmt` | Semgrep rules |
+| PowerShell | PSScriptAnalyzer | PSScriptAnalyzer's formatter | Semgrep generic rules |
+| JavaScript | ESLint | Prettier | — |
+
+`PSScriptAnalyzerSettings.psd1` holds the PowerShell rule set and documents each
+exclusion. It pins `PSUseCompatibleSyntax` to Windows PowerShell 5.1 *and*
+pwsh 7, because the `unity-open` shims launch these scripts with
+`powershell.exe` while the gate runs them under `pwsh`. Run the PowerShell gate
+alone with:
+
+```bash
+pwsh -NoProfile -File scripts/powershell-check.ps1
+```
+
+It installs its own pinned PSScriptAnalyzer on first run. Lint warnings fail the gate; do not suppress a warning unless the
 repository configuration documents why the rule is inapplicable. Apply all
 formatters with `./format.sh`.
 
@@ -73,6 +100,25 @@ once at promotion rather than on day-to-day work. Git hooks are local and are no
 activated merely by cloning the repository, which is why the installer is
 required once per clone.
 
+The same script installs the two line-ending settings every clone needs:
+
+```
+core.autocrlf false
+core.safecrlf true
+```
+
+`.gitattributes` normalizes text to LF and is the single source of truth for it.
+`core.autocrlf=false` keeps checkout driven by that file rather than by the
+client — Git for Windows ships `autocrlf=true` in its system config, so on
+Windows this is an override, not a restatement. `core.safecrlf=true` makes git
+refuse a conversion it could not reverse, such as a binary payload committed
+under a text extension, instead of silently dropping the CR bytes; git leaves it
+off by default.
+
+Neither can live in `.gitattributes`, which is why they are installed per clone
+alongside the hooks path. Check them with `git config --local --get core.autocrlf`
+and `--get core.safecrlf`.
+
 ### The unity-open command
 
 Repository tooling drives an Editor that was started with `-automated`, so open
@@ -90,7 +136,19 @@ the link is local to the machine, so each clone runs the installer once. The
 command opens this clone by default and accepts another project path as its
 only argument; it exits successfully when an automated Editor is already
 attached, and refuses to act when the project is open without `-automated`.
-Windows has no installer: run `.\scripts\unity-open.ps1` directly.
+
+Windows has the same pair, with the same arguments and exit codes:
+
+```powershell
+.\scripts\install-unity-open.ps1
+unity-open
+```
+
+Windows symlinks need Developer Mode or an elevated shell, so that installer
+writes forwarding shims rather than a link: `unity-open.cmd` for PowerShell and
+cmd, and an extensionless `unity-open` for Git Bash. Both name this clone's
+`scripts\unity-open.ps1` by absolute path, so re-run the installer after moving
+the clone.
 
 ### 300-line source-file limit
 
