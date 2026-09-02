@@ -47,6 +47,21 @@ dependencies. Scene names and `Resources/` paths are global across the whole
 build and have naming rules, the shared package may not name a specific game,
 and a game's Unity dependencies belong in its own `package.json`.
 
+## Render pipelines
+
+The game renders through Universal on the web and through High Definition on
+Windows. These are two front ends over one game, not a choice gameplay code
+makes: nothing outside the front-end assemblies, the per-pipeline scenes, and
+the shader graphs' second target may name a pipeline, spell a pipeline's shader
+name, or set a light in a pipeline's own units.
+
+Read [docs/render-pipelines.md](docs/render-pipelines.md) before touching a
+shader, a material, a scene's rendering data, a light's intensity, or the
+Windows quality tiers. It records what belongs in a `_Common` scene versus a
+`_URP` or `_HDRP` one, the nit ladder the dungeon is authored against, why a
+flame's brightness and a torch's light must stay separate controls, and which
+materials must be marked for ray tracing.
+
 ## Version control workflow
 
 Never create or use feature branches. Work and commit directly to `dev` by
