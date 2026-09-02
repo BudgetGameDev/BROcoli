@@ -35,6 +35,12 @@ harness portable: it understands the tiers itself.
 ./Build/BROcoli-autoplay.app/Contents/MacOS/BROcoli --autoplay --tier=medium
 ```
 
+A run plays silently and fills the display. Nobody sits and listens to a bot, so
+it mutes the audio listener rather than the saved volume settings and hands the
+sound back when the run ends; and its frames are the whole point of watching one,
+so it takes the display's own resolution instead of a thumbnail window and the
+pictures below read as ordinary screenshots.
+
 ### Tiers
 
 | Tier | Game time | What it is for |

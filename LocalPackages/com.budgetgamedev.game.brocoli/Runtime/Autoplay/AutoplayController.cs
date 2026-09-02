@@ -20,6 +20,7 @@ namespace BudgetGameDev.Games.Brocoli
 
         private AutoplayConfig _config;
         private bool _wired;
+        private float _volumeBeforeRun = 1f;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void Bootstrap()
@@ -59,8 +60,22 @@ namespace BudgetGameDev.Games.Brocoli
             Application.SetStackTraceLogType(LogType.Warning, StackTraceLogType.None);
             QualitySettings.SetQualityLevel(0, true);
 
-            // Small landscape window (keeps ForceLandscapeAspect happy; fewer pixels = faster).
-            Screen.SetResolution(640, 360, false);
+            // A run is watched through the pictures it leaves behind, so it plays at the
+            // display's own size rather than in a thumbnail window: a full-screen frame is
+            // legible as a screenshot and shows the HUD at the size a player reads it.
+            Display display = Display.main;
+            Screen.SetResolution(
+                display.systemWidth,
+                display.systemHeight,
+                FullScreenMode.FullScreenWindow
+            );
+
+            // Nobody sits and listens to a bot play, and a run often plays in the
+            // background while its watcher is doing something else. The listener's volume
+            // is not a saved preference, so silencing the run leaves the player's own
+            // audio settings untouched, and OnDestroy hands the editor its sound back.
+            _volumeBeforeRun = AudioListener.volume;
+            AudioListener.volume = 0f;
 
             if (_config.Deterministic)
                 BeginFastForward();
@@ -104,6 +119,11 @@ namespace BudgetGameDev.Games.Brocoli
                 $"[Autoplay] Fast-forward at {step:0.####}s of game time per frame "
                     + $"(physics step {Time.fixedDeltaTime:0.####}s)."
             );
+        }
+
+        private void OnDestroy()
+        {
+            AudioListener.volume = _volumeBeforeRun;
         }
 
         private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
