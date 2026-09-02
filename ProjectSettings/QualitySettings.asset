@@ -300,7 +300,7 @@ QualitySettings:
     adaptiveVsyncExtraB: 0
     lodBias: 0.5
     meshLodThreshold: 1
-    maximumLODLevel: 2
+    maximumLODLevel: 0
     enableLODCrossFade: 1
     streamingMipmapsActive: 0
     streamingMipmapsAddAllCameras: 1
@@ -353,7 +353,7 @@ QualitySettings:
     adaptiveVsyncExtraB: 0
     lodBias: 0.5
     meshLodThreshold: 1
-    maximumLODLevel: 2
+    maximumLODLevel: 0
     enableLODCrossFade: 1
     streamingMipmapsActive: 0
     streamingMipmapsAddAllCameras: 1
@@ -467,7 +467,7 @@ QualitySettings:
     adaptiveVsyncExtraB: 0
     lodBias: 0.5
     meshLodThreshold: 1
-    maximumLODLevel: 2
+    maximumLODLevel: 0
     enableLODCrossFade: 1
     streamingMipmapsActive: 0
     streamingMipmapsAddAllCameras: 1
@@ -564,7 +564,7 @@ QualitySettings:
     PS5: 5
     Server: 0
     Stadia: 5
-    Standalone: 9
+    Standalone: 5
     WebGL: 2
     Windows Store Apps: 5
     XboxOne: 5
