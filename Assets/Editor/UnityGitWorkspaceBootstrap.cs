@@ -83,7 +83,10 @@ internal static class UnityGitWorkspaceBootstrap
 
         try
         {
-            string mergeTool = FindUnityYamlMerge(EditorApplication.applicationPath);
+            string mergeTool = FindUnityYamlMerge(
+                EditorApplication.applicationPath,
+                EditorApplication.applicationContentsPath
+            );
             ConfigureClone(projectRoot, mergeTool);
             SynchronizeDevelopmentBranch(projectRoot, logSuccess);
         }
@@ -264,7 +267,10 @@ internal static class UnityGitWorkspaceBootstrap
         }
     }
 
-    private static string FindUnityYamlMerge(string editorApplicationPath)
+    private static string FindUnityYamlMerge(
+        string editorApplicationPath,
+        string editorContentsPath
+    )
     {
         string editorDirectory = Path.GetDirectoryName(editorApplicationPath);
         if (string.IsNullOrEmpty(editorDirectory))
@@ -276,6 +282,18 @@ internal static class UnityGitWorkspaceBootstrap
             Path.Combine(editorDirectory, "Data", "Tools", "UnityYAMLMerge"),
             Path.Combine(editorDirectory, "Tools", "UnityYAMLMerge"),
         };
+
+        // The contents path is the portable way in: Data on Windows and Linux, and the bundle's
+        // Contents on macOS, where applicationPath names the .app itself and the tool lives
+        // inside it. Unity 6 ships it under Helpers there rather than Tools.
+        if (!string.IsNullOrEmpty(editorContentsPath))
+        {
+            foreach (string folder in new[] { "Tools", "Helpers", "Resources" })
+            {
+                candidates.Add(Path.Combine(editorContentsPath, folder, "UnityYAMLMerge.exe"));
+                candidates.Add(Path.Combine(editorContentsPath, folder, "UnityYAMLMerge"));
+            }
+        }
 
         DirectoryInfo parent = Directory.GetParent(editorDirectory);
         if (parent != null)
