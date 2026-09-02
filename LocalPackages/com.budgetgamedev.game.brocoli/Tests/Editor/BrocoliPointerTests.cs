@@ -133,8 +133,13 @@ namespace BudgetGameDev.Games.Brocoli.Tests
             }
         }
 
+        /// <summary>
+        /// Only the guard is checked here. Registering for real brings up an object that
+        /// survives scene loads, and edit mode refuses to make one, so the case where a
+        /// BROcoli scene does take the pointer belongs to play mode.
+        /// </summary>
         [Test]
-        public void ThePointerIsOnlyBroughtUpInThisGamesScenes()
+        public void AnotherGamesSceneDoesNotTakeThePointer()
         {
             System.Reflection.FieldInfo registered = typeof(BrocoliPointer).GetField(
                 "registered",
@@ -144,16 +149,18 @@ namespace BudgetGameDev.Games.Brocoli.Tests
             try
             {
                 registered.SetValue(null, false);
-
                 BrocoliPointer.EnsureRegistered("GameLauncher");
+
                 Assert.That(
                     (bool)registered.GetValue(null),
                     Is.False,
                     "the hub's launcher keeps whatever pointer it set for itself"
                 );
-
-                BrocoliPointer.EnsureRegistered("Brocoli_Dungeon");
-                Assert.That((bool)registered.GetValue(null), Is.True);
+                Assert.That(
+                    GameObject.Find("GameCursor"),
+                    Is.Null,
+                    "and nothing was built to hold one"
+                );
             }
             finally
             {
