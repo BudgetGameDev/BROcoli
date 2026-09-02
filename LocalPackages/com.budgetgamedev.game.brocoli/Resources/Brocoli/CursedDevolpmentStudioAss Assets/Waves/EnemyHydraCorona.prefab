@@ -356,7 +356,7 @@ SpriteRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: a97c105638bdf8b4a8650670310a4cd3, type: 2}
+  - {fileID: 2100000, guid: 9d8b76e83d986a149acbdaa5dacee488, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -438,14 +438,6 @@ MonoBehaviour:
   knockbackRandomBias: 4
   enemyKnockbackDuration: 0.14
   enemyKnockbackCooldown: 0.24
-  currentGeneration: 0
-  maxGenerations: 2
-  childScaleMultiplier: 0.72
-  childHealthMultiplier: 0.5
-  childDamageMultiplier: 0.7
-  childSpeedMultiplier: 1.1
-  splitSpawnRadius: 0.75
-  splitImpulse: 2.5
   meleeRange: 0.9
   meleeAttackCooldown: 0.5
   attackWindupDuration: 0.15
@@ -455,6 +447,14 @@ MonoBehaviour:
   attackLungeDistance: 0.4
   attackFlashColor: {r: 0.75, g: 0.2, b: 1, a: 1}
   meleeAudio: {fileID: -4100401763414931332}
+  currentGeneration: 0
+  maxGenerations: 2
+  childScaleMultiplier: 0.72
+  childHealthMultiplier: 0.5
+  childDamageMultiplier: 0.7
+  childSpeedMultiplier: 1.1
+  splitSpawnRadius: 0.75
+  splitImpulse: 2.5
 --- !u!82 &468738996791934179
 AudioSource:
   m_ObjectHideFlags: 0

@@ -38,7 +38,7 @@ namespace BudgetGameDev.Games.Brocoli.Rendering
         public const string Fog = "BROcoli/Fog";
 
         /// <summary>Walls that fade out when they stand between the camera and the player.</summary>
-        public const string DungeonOcclusionFade = "BROcoli/Dungeon Occlusion Fade";
+        public const string DungeonOcclusionFade = "BROcoli/DungeonOcclusionFade";
 
         /// <summary>The experience orb's glow.</summary>
         public const string XpEnergyGlow = "BROcoli/XP Energy Glow";
