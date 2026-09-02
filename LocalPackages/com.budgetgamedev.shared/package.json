@@ -2,7 +2,7 @@
   "name": "com.budgetgamedev.shared",
   "version": "0.1.0",
   "displayName": "Budget GameDev Shared",
-  "description": "Engine-agnostic runtime services shared by every Budget GameDev title: object pooling, unified keyboard/gamepad/touch input, an on-screen virtual controller, PWA and WebGL platform helpers, audio-mixer settings, and reusable UI primitives.",
+  "description": "Engine-agnostic runtime services shared by every Budget GameDev title: object pooling, unified keyboard/gamepad/touch input, an on-screen virtual controller, PWA and WebGL platform helpers, audio-mixer settings, reusable UI primitives, and a render pipeline seam with a Universal and a High Definition front end behind it.",
   "unity": "6000.3",
   "license": "Elastic-2.0",
   "author": {
@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "com.unity.inputsystem": "1.18.0",
+    "com.unity.render-pipelines.high-definition": "17.3.0",
     "com.unity.render-pipelines.universal": "17.3.0",
     "com.unity.ugui": "2.0.0",
     "com.unity.modules.audio": "1.0.0",
