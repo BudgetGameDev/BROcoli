@@ -26,6 +26,10 @@ namespace BudgetGameDev.Games.Brocoli
         private Vector3 initialScale;
         private Vector2 travelDirection;
 
+        // Pooling support
+        private bool _isPooled = false;
+        private bool _isSpent;
+
         void Awake()
         {
             rb = GetComponent<Rigidbody>();
@@ -44,16 +48,44 @@ namespace BudgetGameDev.Games.Brocoli
             travelDirection = direction.normalized;
             rb.SetGroundVelocity(travelDirection * speed * PlayerStats.ActiveEnemyTimeScale);
             spawnTime = Time.time;
+            _isSpent = false;
 
             // Capture initial scale if not already done
             if (visualTransform != null && initialScale == Vector3.zero)
                 initialScale = visualTransform.localScale;
 
-            Destroy(gameObject, lifeTime);
+            // A recycled shot inherits the shrunken scale its fizzle left behind,
+            // so undo that before it is seen again.
+            if (visualTransform != null)
+                visualTransform.localScale = initialScale;
+
+            if (col != null)
+                col.enabled = true;
+
+            // For non-pooled objects, use Destroy with timer
+            if (!_isPooled)
+            {
+                Destroy(gameObject, lifeTime);
+            }
+        }
+
+        /// <summary>
+        /// Mark this projectile as pooled (affects lifetime handling).
+        /// </summary>
+        public void SetPooled(bool pooled)
+        {
+            _isPooled = pooled;
         }
 
         void Update()
         {
+            // Check lifetime for pooled objects
+            if (_isPooled && Time.time - spawnTime > lifeTime)
+            {
+                Despawn();
+                return;
+            }
+
             if (rb != null && travelDirection != Vector2.zero)
             {
                 rb.SetGroundVelocity(travelDirection * speed * PlayerStats.ActiveEnemyTimeScale);
@@ -93,11 +125,14 @@ namespace BudgetGameDev.Games.Brocoli
             if (!ProjectileWallCollision.Sweep(col, transform, displacement, out _))
                 return;
 
-            DestroyOnWall();
+            DespawnOnWall();
         }
 
         void OnTriggerEnter(Collider other)
         {
+            if (_isSpent)
+                return;
+
             // Check if hit player
             if (other.CompareTag("Player"))
             {
@@ -112,23 +147,40 @@ namespace BudgetGameDev.Games.Brocoli
                     0.45f
                 );
 
-                Destroy(gameObject);
+                Despawn();
             }
-            // Destroy on hitting walls/obstacles (but not other enemies)
+            // Despawn on hitting walls/obstacles (but not other enemies)
             else if (!other.CompareTag("Enemy") && !other.isTrigger)
             {
-                DestroyOnWall();
+                DespawnOnWall();
             }
         }
 
-        private void DestroyOnWall()
+        private void DespawnOnWall()
         {
             travelDirection = Vector2.zero;
             if (rb != null)
                 rb.linearVelocity = Vector3.zero;
             if (col != null)
                 col.enabled = false;
-            Destroy(gameObject);
+            Despawn();
+        }
+
+        /// <summary>
+        /// Retires a spent shot: pooled ones go back for reuse, loose ones are
+        /// destroyed. Guarded so a second trigger in the same frame cannot return
+        /// the same projectile to its pool twice.
+        /// </summary>
+        private void Despawn()
+        {
+            if (_isSpent)
+                return;
+            _isSpent = true;
+
+            if (_isPooled)
+                PoolManager.Instance?.ReturnProjectile(this);
+            else
+                Destroy(gameObject);
         }
     }
 }
