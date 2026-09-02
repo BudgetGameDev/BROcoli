@@ -8,17 +8,43 @@ using UnityEngine;
 using UnityEngine.Rendering;
 
 /// <summary>Manual Windows, macOS, and Linux desktop player builds.</summary>
-public sealed class NativePlayerBuildScript : IPreprocessBuildWithReport
+public sealed class NativePlayerBuildScript : IPreprocessBuildWithReport, IPostprocessBuildWithReport
 {
     private const string DefaultBuildRoot = "build/native/players";
 
+    /// <summary>
+    /// The pipeline the Windows player renders through: the top tier, which is also what
+    /// `Standalone` in the quality settings' per-platform defaults selects. The other three
+    /// tiers name their own asset and are reached by changing quality level.
+    /// </summary>
+    private const string HighDefinitionPipelinePath =
+        "Assets/Settings/Rendering/HDRP/BROcoli HDRP RT Ultra.asset";
+
+    /// <summary>The pipeline every other player renders through, the web build included.</summary>
+    private const string UniversalPipelinePath = "Assets/3dRenderer.asset";
+
     private static readonly string[] KnownTargets = { "windows", "macos", "linux" };
 
-    public int callbackOrder => -10000;
+    private static RenderPipelineAsset authoredDefaultPipeline;
+    private static bool defaultPipelineHeld;
+
+    /// <summary>
+    /// First, ahead of every other build callback. High Definition's own
+    /// <c>HDRPPreprocessBuild</c> sits at <c>int.MinValue + 100</c> and refuses a target whose
+    /// quality levels and Graphics Settings name different pipelines, so the pipeline this
+    /// target ships with has to be chosen before it looks.
+    /// </summary>
+    public int callbackOrder => int.MinValue;
 
     public void OnPreprocessBuild(BuildReport report)
     {
         ConfigureTarget(report.summary.platform);
+    }
+
+    /// <summary>Puts the authored pipeline back, so a build leaves the project as it found it.</summary>
+    public void OnPostprocessBuild(BuildReport report)
+    {
+        RestoreDefaultPipeline();
     }
 
     [MenuItem("Tools/Build/Native/All Desktop Players")]
@@ -117,6 +143,7 @@ public sealed class NativePlayerBuildScript : IPreprocessBuildWithReport
     internal static void ConfigureTarget(BuildTarget target)
     {
         ConfigureSplashScreen();
+        ConfigureDefaultPipeline(target);
 
         switch (target)
         {
@@ -136,6 +163,80 @@ public sealed class NativePlayerBuildScript : IPreprocessBuildWithReport
     {
         PlayerSettings.SplashScreen.show = false;
         PlayerSettings.SplashScreen.showUnityLogo = false;
+    }
+
+    /// <summary>The pipeline <paramref name="target"/> ships with: Windows renders through High
+    /// Definition, every other player through Universal.</summary>
+    internal static string PipelineAssetPathFor(BuildTarget target) =>
+        target == BuildTarget.StandaloneWindows64 ? HighDefinitionPipelinePath
+        : UniversalPipelinePath;
+
+    /// <summary>
+    /// Points Graphics Settings at the pipeline this target ships with, so a player carries one
+    /// pipeline rather than two.
+    ///
+    /// The four Windows tiers name their own pipeline asset; the six levels from Very Low to
+    /// Ultra name none, so they follow this default. High Definition refuses to build a target
+    /// whose quality levels and Graphics Settings disagree, which is why leaving the default on
+    /// Universal fails the Windows player before it compiles a shader rather than shipping a
+    /// mixed one.
+    ///
+    /// The authored value is remembered and put back once the player is written.
+    /// </summary>
+    internal static void ConfigureDefaultPipeline(BuildTarget target)
+    {
+        string path = PipelineAssetPathFor(target);
+        RenderPipelineAsset pipeline = AssetDatabase.LoadAssetAtPath<RenderPipelineAsset>(path);
+        if (pipeline == null)
+        {
+            throw new BuildFailedException(
+                $"The {target} player renders through {path}, which is missing."
+            );
+        }
+
+        if (!defaultPipelineHeld)
+        {
+            authoredDefaultPipeline = GraphicsSettings.defaultRenderPipeline;
+            defaultPipelineHeld = true;
+            // A build that fails reaches no post-process callback, and one started from the
+            // Build Settings window reaches none of this class's own entry points either, so
+            // the project would be left pointing at a pipeline it is not authored with. The
+            // Editor ticks again once the build is over, whichever way it went.
+            EditorApplication.update += RestoreWhenBuildEnds;
+        }
+
+        SetDefaultPipeline(pipeline);
+    }
+
+    private static void RestoreWhenBuildEnds()
+    {
+        if (BuildPipeline.isBuildingPlayer)
+            return;
+
+        EditorApplication.update -= RestoreWhenBuildEnds;
+        RestoreDefaultPipeline();
+    }
+
+    private static void RestoreDefaultPipeline()
+    {
+        if (!defaultPipelineHeld)
+            return;
+
+        EditorApplication.update -= RestoreWhenBuildEnds;
+        SetDefaultPipeline(authoredDefaultPipeline);
+        authoredDefaultPipeline = null;
+        defaultPipelineHeld = false;
+    }
+
+    /// <summary>
+    /// Writes the graphics default through to disk. The build reads the serialized settings, not
+    /// the object this holds, so a change left in memory is a change the player never sees: it
+    /// is what makes a Windows build fail on the pipeline mix even with this callback in place.
+    /// </summary>
+    private static void SetDefaultPipeline(RenderPipelineAsset pipeline)
+    {
+        GraphicsSettings.defaultRenderPipeline = pipeline;
+        AssetDatabase.SaveAssets();
     }
 
     private static void BuildSingle(BuildTarget target, string defaultOutput, string label)
@@ -168,15 +269,25 @@ public sealed class NativePlayerBuildScript : IPreprocessBuildWithReport
     )
     {
         ConfigureTarget(target);
-        BuildReport report = BuildPipeline.BuildPlayer(
-            new BuildPlayerOptions
-            {
-                scenes = scenes,
-                locationPathName = output,
-                target = target,
-                options = development ? BuildOptions.Development : BuildOptions.None,
-            }
-        );
+        BuildReport report;
+        try
+        {
+            report = BuildPipeline.BuildPlayer(
+                new BuildPlayerOptions
+                {
+                    scenes = scenes,
+                    locationPathName = output,
+                    target = target,
+                    options = development ? BuildOptions.Development : BuildOptions.None,
+                }
+            );
+        }
+        finally
+        {
+            // A build that fails never reaches the post-process callback, and the pipeline it
+            // was pointed at is not what the project is authored with.
+            RestoreDefaultPipeline();
+        }
 
         if (report.summary.result != BuildResult.Succeeded)
         {
@@ -250,6 +361,24 @@ public sealed class NativePlayerBuildScript : IPreprocessBuildWithReport
         }
 
         return null;
+    }
+}
+
+/// <summary>
+/// Chooses the target's pipeline before anything else in the build looks at it.
+///
+/// A build player processor runs ahead of every <c>IPreprocessBuildWithReport</c> callback, and
+/// that is the only place early enough: High Definition reads the quality levels and Graphics
+/// Settings from its own probe volume processor, which is one of these, so a callback -- at any
+/// order -- arrives after it has already decided the project mixes pipelines and refused.
+/// </summary>
+public sealed class NativePlayerPipelineSelector : BuildPlayerProcessor
+{
+    public override int callbackOrder => int.MinValue;
+
+    public override void PrepareForBuild(BuildPlayerContext context)
+    {
+        NativePlayerBuildScript.ConfigureDefaultPipeline(context.BuildPlayerOptions.target);
     }
 }
 #endif

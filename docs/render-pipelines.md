@@ -97,17 +97,52 @@ way for this to be broken by accident.
 High Definition meters the scene itself, so every tier's volume profile pins exposure to
 Fixed. An automatic exposure would chase the torches and undo the ladder.
 
-That fixed exposure is **EV100 12.5**, and it is measured against the Universal build
-rather than derived from the ladder. `SceneLuminanceBudget.Ev100For` computes what the
-ladder implies -- 9.4 -- and the two disagree by about three stops, because the dungeon's
-lights were authored in Universal's arbitrary units and then converted to preserve that
-look rather than to sit on the ladder. Both numbers are kept, and the gap is the honest
-size of the remaining tuning job: bringing the lights onto the ladder should pull the
-exposure down towards 9.4. Until then, matching the two pipelines beats matching the
+That fixed exposure is **EV100 10.9**, and it is measured against the Universal build
+rather than derived from the ladder. The measurement is worth repeating whenever the
+dungeon's lighting moves: render the same seed from the same camera on both pipelines
+with the tone map turned off, and compare the scene-linear picture the grade is handed.
+At 10.9 the two agree within 0.03 stop from the fifth percentile to the brightest flame
+core, and that core lands at four times paper white -- 800 nits against 200 -- which is
+where the ladder puts it.
+
+Measure it that way rather than by eye or by screenshot. Both pipelines resolve their
+post stack through a target the Editor clamps, so a picture of the game says nothing
+about the range above paper white, which is the whole of what HDR adds. It was exactly
+that range that a wrong exposure erased: at EV100 12.5, three times too dark, nothing in
+the dungeon reached paper white at all and the flames topped out at a quarter of the
+peak they are authored for.
+
+`SceneLuminanceBudget.Ev100For` computes what the ladder implies -- 9.4 -- and that is
+still a stop and a half below the measured number, because the dungeon's lights were
+authored in Universal's arbitrary units and then converted to preserve that look rather
+than to sit on the ladder. Both numbers are kept, and the gap is the honest size of the
+remaining tuning job: bringing the lights onto the ladder should pull the exposure the
+rest of the way down to 9.4. Until then, matching the two pipelines beats matching the
 theory.
 
 Both pipelines tone map through the ACES 1000 nit preset, which is what
 `AcesToneScale.SelectPreset` returns for the calibrated peak the game ships with.
+
+## Bloom, and why only one pipeline has it
+
+Universal's bloom is additive: it adds the thresholded, blurred image on top of the
+picture, so the torches gain a halo and the flame cores themselves get brighter.
+Measured on a torch, its authored settings put about 8% more light in the ring around
+the flames and 6% more on the flame pixels.
+
+High Definition's bloom is a veiling glare -- a mix between the picture and its blurred
+self, with intensity as the mix weight. It can only move light around, never add any,
+and around a small bright source it moves light *off* it. Measured on the same torch on
+the same frame, every intensity took light away and put almost none back: at 0.2 the
+flame cores lost 6% and the ring 3%; at 0.7 the cores lost 24%, the ring 12%, and the
+brightest pixel in the frame lost 46%. Scatter, threshold and pyramid resolution changed
+none of that.
+
+So the High Definition profiles carry no bloom override. Adding one costs exactly the
+peak the HDR grade exists to reach, and returns a halo too small to measure. If the
+dungeon's glow is to be matched on both pipelines, it has to come from something that
+adds light -- brighter flame emissive, or a bloom written for the purpose -- not from
+turning this one up.
 
 ## Windows tiers
 
@@ -140,12 +175,34 @@ The four appear as quality levels named `HDRP Medium` through `HDRP RT Ultra`, e
 carrying its pipeline asset. They are excluded from WebGL, Android, iOS and tvOS, so the
 web build cannot land on one even by accident.
 
-No platform default points at them yet. Switching Windows over is one deliberate change
--- `Standalone` in `m_PerPlatformDefaultQuality`, or a build profile that pins the
-quality level -- and it is left undone on purpose: the editor's active build target is
-Windows, so changing it switches the editor itself to High Definition, and that wants
-someone looking at the result rather than a commit doing it quietly. Until then the
-tiers exist, are selectable, and are what a graphics menu would offer.
+The player starts on `HDRP High`, which is what `m_CurrentQuality` in the quality
+settings names.
+
+### One pipeline per player
+
+A player carries one pipeline, and which one is decided per build target rather than by
+whatever the project last had selected. `NativePlayerBuildScript.ConfigureTarget` points
+Graphics Settings at the pipeline the target ships with -- High Definition for the
+Windows player, Universal for everything else, the web build included -- and puts the
+authored value back when the build is done, so building leaves the project as it found
+it.
+
+That is not a preference. High Definition refuses to build a target whose quality levels
+and Graphics Settings name different pipelines, and the six levels from `Very Low` to
+`Ultra` carry no pipeline of their own, so they follow the graphics default. With the
+default on Universal, a Windows build mixes six Universal levels with four High
+Definition ones and fails before it compiles a shader:
+
+```
+BuildFailedException: The current build target has assets in its associated Quality
+levels and Graphics Settings that belong to different render pipelines.
+```
+
+One caveat is still open. Unity's per-quality platform exclusions work on the build
+target *group*, and Windows, macOS and Linux share `Standalone`, so the Windows tiers
+cannot be hidden from the other two desktop players. A macOS or Linux build therefore
+still mixes pipelines and still fails; separating them needs per-profile quality
+overrides, not exclusions.
 
 ## The web build
 

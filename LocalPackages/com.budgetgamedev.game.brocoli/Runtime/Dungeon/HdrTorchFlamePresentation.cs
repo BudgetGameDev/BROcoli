@@ -17,6 +17,7 @@ namespace BudgetGameDev.Games.Brocoli
 
         private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
         private static readonly int ColorId = Shader.PropertyToID("_Color");
+        private static readonly int CoreColorId = Shader.PropertyToID("_CoreColor");
 
         /// <summary>
         /// The flame's colour at the peak, chosen so the tone map renders the hottest particles
@@ -30,6 +31,12 @@ namespace BudgetGameDev.Games.Brocoli
         /// alpha the flame is authored against is never taken below this.
         /// </summary>
         private const float MinimumParticleAlpha = 0.05f;
+
+        /// <summary>
+        /// A core tint channel is divided out, so a flame authored with none of a primary would
+        /// otherwise ask for an unbounded colour in it. Same guard, same reason.
+        /// </summary>
+        private const float MinimumCoreTint = 0.05f;
 
         private ParticleSystemRenderer[] flameRenderers;
         private MaterialPropertyBlock propertyBlock;
@@ -79,7 +86,10 @@ namespace BudgetGameDev.Games.Brocoli
                 }
 
                 ParticleSystem particles = flameRenderer.GetComponent<ParticleSystem>();
-                Color color = MaterialColorForPeak(peak, PeakParticleAlpha(particles));
+                Color color = MaterialColorForPeak(
+                    UndoCoreTint(peak, flameRenderer.sharedMaterial),
+                    PeakParticleAlpha(particles)
+                );
                 flameRenderer.GetPropertyBlock(propertyBlock);
                 propertyBlock.SetColor(BaseColorId, color);
                 propertyBlock.SetColor(ColorId, color);
@@ -91,6 +101,34 @@ namespace BudgetGameDev.Games.Brocoli
         internal static bool IsPrimaryFlame(Material material)
         {
             return material != null && material.name == PrimaryMaterialName;
+        }
+
+        /// <summary>
+        /// Undoes the tint the flame shader applies after <c>_BaseColor</c>, so what leaves the
+        /// shader is the colour that was solved for.
+        ///
+        /// The graph does not emit <c>_BaseColor</c>. It emits the flame map lerped between
+        /// <c>_EdgeColor</c> and <c>_CoreColor</c>, times the particle colour, times
+        /// <c>_BaseColor</c> -- and the hottest particles, the ones this is solving for, are
+        /// exactly where that lerp has arrived at <c>_CoreColor</c>. Writing the solved peak
+        /// straight into <c>_BaseColor</c> therefore lands the flame at the core tint's fraction
+        /// of it, three quarters on green and two fifths on blue, which is most of the display
+        /// range the flame exists to spend. The material the shader swap replaced had no such
+        /// term, which is why this is only needed now; a material without the property is left
+        /// alone.
+        /// </summary>
+        internal static Color UndoCoreTint(Color peak, Material material)
+        {
+            if (material == null || !material.HasProperty(CoreColorId))
+                return peak;
+
+            Color tint = material.GetColor(CoreColorId);
+            return new Color(
+                peak.r / Mathf.Max(tint.r, MinimumCoreTint),
+                peak.g / Mathf.Max(tint.g, MinimumCoreTint),
+                peak.b / Mathf.Max(tint.b, MinimumCoreTint),
+                peak.a
+            );
         }
 
         /// <summary>

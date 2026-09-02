@@ -87,8 +87,12 @@ $settingsBackup = Join-Path ([System.IO.Path]::GetTempPath()) ("brocoli-native-s
 New-Item -ItemType Directory -Path $settingsBackup | Out-Null
 $projectSettings = Join-Path $ProjectPath "ProjectSettings\ProjectSettings.asset"
 $qualitySettings = Join-Path $ProjectPath "ProjectSettings\QualitySettings.asset"
+# The build points Graphics Settings at the pipeline the target ships with, so this file
+# is restored alongside the other two even though the build puts it back itself.
+$graphicsSettings = Join-Path $ProjectPath "ProjectSettings\GraphicsSettings.asset"
 Copy-Item -LiteralPath $projectSettings -Destination $settingsBackup
 Copy-Item -LiteralPath $qualitySettings -Destination $settingsBackup
+Copy-Item -LiteralPath $graphicsSettings -Destination $settingsBackup
 
 try {
     $unityArguments = @(
@@ -115,6 +119,7 @@ try {
 } finally {
     Copy-Item -LiteralPath (Join-Path $settingsBackup "ProjectSettings.asset") -Destination $projectSettings -Force
     Copy-Item -LiteralPath (Join-Path $settingsBackup "QualitySettings.asset") -Destination $qualitySettings -Force
+    Copy-Item -LiteralPath (Join-Path $settingsBackup "GraphicsSettings.asset") -Destination $graphicsSettings -Force
     Remove-Item -LiteralPath $settingsBackup -Recurse -Force
 }
 

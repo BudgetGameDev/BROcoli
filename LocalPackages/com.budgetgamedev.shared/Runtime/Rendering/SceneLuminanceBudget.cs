@@ -87,14 +87,19 @@ namespace BudgetGameDev.Shared.Rendering
         /// which meters the scene physically and otherwise renders it many stops hot.
         ///
         /// This is measured against the Universal build rather than derived from
-        /// <see cref="DiffuseWhiteNits"/>, and the two do not currently agree.
-        /// <see cref="Ev100For"/> would say 9.4; the picture matches Universal at 12.5.
-        /// The gap is real and worth knowing about: the dungeon's lights were authored in
-        /// Universal's arbitrary units and converted to preserve that look, so they sit
-        /// roughly three stops above what the ladder describes. Whoever brings the lights
-        /// onto the ladder should expect this number to fall towards Ev100For's answer.
+        /// <see cref="DiffuseWhiteNits"/>. It was found by rendering the same dungeon seed
+        /// from the same camera on both pipelines with the tone map off, and comparing the
+        /// scene-linear picture the grade is handed: at this exposure the two agree within
+        /// three hundredths of a stop from the fifth percentile to the brightest flame core,
+        /// which lands that core at four times paper white, where the ladder's peak is.
+        ///
+        /// It still does not agree with what the ladder implies. <see cref="Ev100For"/> says
+        /// 9.4 for diffuse white, a stop and a half below this, because the dungeon's lights
+        /// were authored in Universal's arbitrary units and converted to preserve that look
+        /// rather than to sit on the ladder. Whoever brings the lights onto the ladder should
+        /// expect this number to fall the rest of the way towards Ev100For's answer.
         /// </summary>
-        public float FixedExposureEv100 => 12.5f;
+        public float FixedExposureEv100 => 10.9f;
 
         /// <summary>The exposure that renders a surface of <paramref name="nits"/> correctly.</summary>
         public static float Ev100For(float nits) =>
