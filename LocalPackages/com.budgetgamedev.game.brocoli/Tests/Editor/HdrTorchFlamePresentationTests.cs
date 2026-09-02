@@ -1,3 +1,4 @@
+using BudgetGameDev.Games.Brocoli.Rendering;
 using BudgetGameDev.Shared;
 using NUnit.Framework;
 using UnityEngine;
@@ -14,7 +15,7 @@ namespace BudgetGameDev.Games.Brocoli.Tests
             Material secondaryMaterial = null;
             try
             {
-                Shader shader = Shader.Find("Universal Render Pipeline/Particles/Unlit");
+                Shader shader = BrocoliShaders.Resolve(BrocoliShaders.Flame);
                 Assert.That(shader, Is.Not.Null);
                 primaryMaterial = new Material(shader)
                 {
@@ -67,9 +68,7 @@ namespace BudgetGameDev.Games.Brocoli.Tests
             Material primaryMaterial = null;
             try
             {
-                primaryMaterial = new Material(
-                    Shader.Find("Universal Render Pipeline/Particles/Unlit")
-                )
+                primaryMaterial = new Material(BrocoliShaders.Resolve(BrocoliShaders.Flame))
                 {
                     name = HdrTorchFlamePresentation.PrimaryMaterialName,
                 };
@@ -189,7 +188,7 @@ namespace BudgetGameDev.Games.Brocoli.Tests
         [Test]
         public void BoostIsMeasuredAgainstTheAuthoredMaterial()
         {
-            Material authored = new(Shader.Find("Universal Render Pipeline/Particles/Unlit"));
+            Material authored = new(BrocoliShaders.Resolve(BrocoliShaders.Flame));
             try
             {
                 authored.SetColor("_BaseColor", new Color(6f, 1.5f, 0.08f, 1f));

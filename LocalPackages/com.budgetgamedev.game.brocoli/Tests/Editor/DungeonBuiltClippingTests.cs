@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using BudgetGameDev.Games.Brocoli;
+using BudgetGameDev.Games.Brocoli.Rendering;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
@@ -153,7 +154,7 @@ namespace BudgetGameDev.Games.Brocoli.Tests
         {
             Assert.That(material, Is.Not.Null);
             Assert.That(material.name, Is.EqualTo(expectedName));
-            Assert.That(material.shader.name, Is.EqualTo("Universal Render Pipeline/Lit"));
+            Assert.That(material.shader.name, Is.EqualTo(BrocoliShaders.Surface));
             Assert.That(material.GetTexture("_BaseMap"), Is.Not.Null);
             Assert.That(material.GetTexture("_BumpMap"), Is.Not.Null);
             Assert.That(material.GetTexture("_OcclusionMap"), Is.Not.Null);

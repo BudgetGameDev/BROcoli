@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using BudgetGameDev.Games.Brocoli.Rendering;
 using NUnit.Framework;
 using UnityEngine;
 
@@ -95,7 +96,7 @@ namespace BudgetGameDev.Games.Brocoli.Tests
 
             var current = GetHierarchyField<HashSet<Renderer>>(fader, "currentOccluders");
             Shader originalFadeShader = GetHierarchyField<Shader>(fader, "fadeShader");
-            Shader lit = Shader.Find("Universal Render Pipeline/Lit");
+            Shader lit = BrocoliShaders.Resolve(BrocoliShaders.Surface);
             if (lit == null)
                 lit = Shader.Find("Sprites/Default");
             Assert.That(lit, Is.Not.Null);
