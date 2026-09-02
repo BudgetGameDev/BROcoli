@@ -10,7 +10,8 @@ namespace BudgetGameDev.Shared
     /// It adds letterboxing (black bars) when the screen is in portrait mode or too narrow.
     /// In portrait mode, it pauses the game and shows a "rotate phone" overlay.
     /// Also auto-pauses gameplay when the game loses focus (tab switch, app background,
-    /// etc). Menu scenes are left running - they have no pause menu to resume from.
+    /// etc). Menu scenes are left running - they have no pause menu to resume from -
+    /// and so is the editor's own player, which loses focus to the editor constantly.
     /// Works on native builds, WebGL (including iOS Safari), and all platforms.
     /// </summary>
     public static partial class ForceLandscapeAspect
@@ -178,6 +179,15 @@ namespace BudgetGameDev.Shared
         {
             if (_isFocusLost)
                 return; // Already paused for focus
+
+            // Play mode shares focus with the rest of the editor, so pausing on every
+            // click into the console or the inspector would make it unplayable.
+            if (IsEditorPlayer())
+            {
+                if (DEBUG_MODE)
+                    Debug.Log("[ForceLandscapeAspect] Focus LOST in the editor - not pausing");
+                return;
+            }
 
             // Only gameplay auto-pauses. Menu scenes expose no IPauseController, so pausing
             // there would freeze the menu with no way to resume it.

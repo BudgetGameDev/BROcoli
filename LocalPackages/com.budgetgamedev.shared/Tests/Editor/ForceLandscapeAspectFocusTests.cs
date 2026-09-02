@@ -6,7 +6,8 @@ namespace BudgetGameDev.Shared.Tests
     /// <summary>
     /// Losing focus, and the hidden component that watches for it. Only gameplay
     /// auto-pauses: a menu has no pause screen to resume from, so freezing it
-    /// would strand the player.
+    /// would strand the player, and the editor's own player gives focus away to
+    /// the editor far too often to pause for it.
     /// </summary>
     public sealed class ForceLandscapeAspectFocusTests : ForceLandscapeAspectTestBase
     {
@@ -34,6 +35,34 @@ namespace BudgetGameDev.Shared.Tests
             ForceLandscapeAspect.OnFocusLost();
 
             Assert.That(ForceLandscapeAspect._isFocusLost, Is.False);
+        }
+
+        [Test]
+        public void LosingFocusInTheEditorsOwnPlayerLeavesGameplayRunning()
+        {
+            TestPauseController pause = NewPauseMenu();
+            ForceLandscapeAspect.IsEditorPlayer = () => true;
+
+            ForceLandscapeAspect.OnFocusLost();
+
+            Assert.That(
+                pause.PauseCalls,
+                Is.EqualTo(0),
+                "play mode loses focus to the console and the inspector constantly"
+            );
+            Assert.That(ForceLandscapeAspect._isFocusLost, Is.False);
+        }
+
+        [Test]
+        public void TheFocusPauseIsOnByDefaultOutsideTheEditor()
+        {
+            ForceLandscapeAspect.ResetStatics();
+
+            Assert.That(
+                ForceLandscapeAspect.IsEditorPlayer(),
+                Is.EqualTo(Application.isEditor),
+                "only the editor's own player opts out of the focus pause"
+            );
         }
 
         [Test]

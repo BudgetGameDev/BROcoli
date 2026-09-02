@@ -18,7 +18,6 @@ namespace BudgetGameDev.Games.Brocoli
         private const float ChestDropDuration = 0.72f;
         private const float LandingSettleDuration = 0.08f;
 
-        public float lifeTime = 30f;
         public int expAmountGain;
         private Rigidbody rb;
         private Collider col;
@@ -35,9 +34,9 @@ namespace BudgetGameDev.Games.Brocoli
         private float _dropElapsed;
         private float _landingSettleRemaining;
 
-        // Pooling support
+        // Pooling support. Orbs never expire: dropped experience waits on the floor
+        // until the player walks over it, however long that run takes.
         private bool _isPooled = false;
-        private float _spawnTime;
 
         void Awake()
         {
@@ -58,7 +57,6 @@ namespace BudgetGameDev.Games.Brocoli
             _isDropping = false;
             _isCollectible = true;
             _landingSettleRemaining = 0f;
-            _spawnTime = Time.time;
             PickupAttraction.Reset(
                 rb,
                 ref _currentSpeed,
@@ -70,7 +68,6 @@ namespace BudgetGameDev.Games.Brocoli
         public void Init(int expAmount)
         {
             expAmountGain = expAmount;
-            _spawnTime = Time.time;
             RestoreGroundedPhysics();
             _isDropping = false;
             _isCollectible = true;
@@ -81,12 +78,6 @@ namespace BudgetGameDev.Games.Brocoli
                 ref _localAttractionLocked,
                 _pickupVisual
             );
-
-            // For non-pooled objects, use Destroy with timer
-            if (!_isPooled)
-            {
-                Destroy(gameObject, lifeTime);
-            }
         }
 
         /// <summary>
@@ -118,21 +109,11 @@ namespace BudgetGameDev.Games.Brocoli
         }
 
         /// <summary>
-        /// Mark this ExpGain as pooled (affects lifetime handling).
+        /// Mark this ExpGain as pooled (affects how collection recycles it).
         /// </summary>
         public void SetPooled(bool pooled)
         {
             _isPooled = pooled;
-        }
-
-        void Update()
-        {
-            // Check lifetime for pooled objects
-            if (_isPooled && Time.time - _spawnTime > lifeTime)
-            {
-                ReturnToPool();
-                return;
-            }
         }
 
         void FixedUpdate()

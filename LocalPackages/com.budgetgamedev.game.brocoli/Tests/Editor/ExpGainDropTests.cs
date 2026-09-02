@@ -64,5 +64,43 @@ namespace BudgetGameDev.Games.Brocoli.Tests
 
             Assert.That(midpoint, Is.EqualTo(new Vector3(1f, 2.7f, 0f)));
         }
+
+        [Test]
+        public void AnUncollectedOrbIsNeverTakenBackFromTheFloor()
+        {
+            var pickup = new GameObject("Idle XP test");
+            try
+            {
+                pickup.AddComponent<Rigidbody>();
+                pickup.AddComponent<SphereCollider>();
+                ExpGain gain = pickup.AddComponent<ExpGain>();
+                typeof(ExpGain)
+                    .GetMethod("Awake", BindingFlags.Instance | BindingFlags.NonPublic)
+                    ?.Invoke(gain, null);
+                gain.SetPooled(true);
+                gain.Init(10);
+
+                MethodInfo fixedUpdate = typeof(ExpGain).GetMethod(
+                    "FixedUpdate",
+                    BindingFlags.Instance | BindingFlags.NonPublic
+                );
+                for (int frame = 0; frame < 120; frame++)
+                    fixedUpdate?.Invoke(gain, null);
+
+                Assert.That(pickup.activeSelf, Is.True);
+                Assert.That(
+                    typeof(ExpGain).GetMethod(
+                        "Update",
+                        BindingFlags.Instance | BindingFlags.NonPublic
+                    ),
+                    Is.Null,
+                    "experience waits for the player to walk over it, never for a timer"
+                );
+            }
+            finally
+            {
+                Object.DestroyImmediate(pickup);
+            }
+        }
     }
 }

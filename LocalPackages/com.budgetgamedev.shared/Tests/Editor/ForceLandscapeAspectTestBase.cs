@@ -61,6 +61,10 @@ namespace BudgetGameDev.Shared.Tests
 
             // No scene is loaded, so the enforcer must be told there is no pause menu.
             ForceLandscapeAspect.FindPauseController = () => null;
+
+            // Every test runs inside the editor, where the focus pause is deliberately
+            // off. A shipped player is the case worth covering, so that is the default.
+            ForceLandscapeAspect.IsEditorPlayer = () => false;
         }
 
         [TearDown]

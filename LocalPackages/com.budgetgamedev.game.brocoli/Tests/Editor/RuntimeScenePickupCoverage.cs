@@ -11,24 +11,9 @@ namespace BudgetGameDev.Games.Brocoli.Tests
             if (pooled != null)
             {
                 pooled.SetPooled(true);
-                pooled.lifeTime = -1f;
-                SetHierarchyField(pooled, "_spawnTime", 0f);
-                InvokeHierarchy(pooled, "Update");
-
-                pooled = pool.GetExpGain(stats.transform.position + Vector3.right);
-                if (pooled != null)
-                {
-                    pooled.Init(1);
-                    InvokeHierarchy(pooled, "TryCollect", stats.GetComponent<Collider>());
-                }
+                pooled.Init(1);
+                InvokeHierarchy(pooled, "TryCollect", stats.GetComponent<Collider>());
             }
-
-            GameObject timedPooledObject = NewExperience("Coverage timed pooled experience");
-            ExpGain timedPooled = timedPooledObject.GetComponent<ExpGain>();
-            timedPooled.SetPooled(true);
-            timedPooled.lifeTime = -1f;
-            SetHierarchyField(timedPooled, "_spawnTime", 0f);
-            InvokeHierarchy(timedPooled, "Update");
 
             GameObject collectedPooledObject = NewExperience(
                 "Coverage collected pooled experience"

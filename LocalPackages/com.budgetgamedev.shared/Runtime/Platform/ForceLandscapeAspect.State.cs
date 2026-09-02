@@ -29,6 +29,15 @@ namespace BudgetGameDev.Shared
         internal static Func<IPauseController> FindPauseController = PauseControllerLocator.Find;
 
         /// <summary>
+        /// Whether the running player is the editor's own. Play mode hands focus to
+        /// the console, the inspector and the scene view constantly, so auto-pausing
+        /// on focus loss would stop the game every time the developer clicks off it.
+        /// A built player keeps the pause. Substitutable because an editor test is
+        /// always running in the editor and still has to drive both answers.
+        /// </summary>
+        internal static Func<bool> IsEditorPlayer = () => Application.isEditor;
+
+        /// <summary>
         /// Clears every static this type owns. Statics survive a play session when
         /// domain reloading is off, so the next run - and each test - has to start
         /// from the same state the very first run sees.
@@ -39,6 +48,7 @@ namespace BudgetGameDev.Shared
             SceneManager.sceneLoaded -= OnSceneLoaded;
             KeepAcrossScenes = UnityEngine.Object.DontDestroyOnLoad;
             FindPauseController = PauseControllerLocator.Find;
+            IsEditorPlayer = () => Application.isEditor;
             _initialized = false;
             _isPortrait = false;
             _isFocusLost = false;
