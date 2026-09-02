@@ -9,17 +9,20 @@ using UnityEngine;
 using Debug = UnityEngine.Debug;
 
 /// <summary>
-/// Keeps each clone's Git configuration compatible with Unity and safely synchronizes dev once
-/// per interactive Editor launch. Machine-specific Git settings stay out of the repository.
+/// Points each clone's Git configuration at the Unity installation running it: the Smart Merge
+/// driver for Unity's YAML assets, and the line ending and fetch settings a shared checkout needs.
+/// These are machine specific, so they are configured here rather than committed.
+///
+/// It deliberately does not move the branch. Churn between machines comes from files whose
+/// committed contents differ from what the Editor writes, and the fix for that is to commit what
+/// the Editor writes; fetching or rebasing on launch does not address it, and relocating the
+/// checkout as a side effect of opening the Editor is a poor trade for work in progress.
 /// </summary>
 [InitializeOnLoad]
 internal static class UnityGitWorkspaceBootstrap
 {
     private const string SessionKey = "BudgetGameDev.UnityGitWorkspaceBootstrap.Ran.v1";
-    private const string DevelopmentBranch = "dev";
-    private const string Remote = "origin";
     private const int LocalCommandTimeoutMilliseconds = 10000;
-    private const int NetworkCommandTimeoutMilliseconds = 15000;
 
     private readonly struct GitResult
     {
@@ -57,10 +60,10 @@ internal static class UnityGitWorkspaceBootstrap
             EditorApplication.delayCall += RunOncePerEditorLaunch;
     }
 
-    [MenuItem("Tools/Project/Run Startup Git Sync")]
+    [MenuItem("Tools/Project/Configure Git Workspace")]
     private static void RunFromMenu()
     {
-        Run(logSuccess: true);
+        Run();
     }
 
     private static void RunOncePerEditorLaunch()
@@ -71,10 +74,10 @@ internal static class UnityGitWorkspaceBootstrap
         // Set this before invoking Git. An incoming script change can trigger a domain reload,
         // and the operation must not start again in the same Editor process.
         SessionState.SetBool(SessionKey, true);
-        Run(logSuccess: false);
+        Run();
     }
 
-    private static void Run(bool logSuccess)
+    private static void Run()
     {
         string projectRoot = Path.GetFullPath(Path.Combine(Application.dataPath, ".."));
         string gitEntry = Path.Combine(projectRoot, ".git");
@@ -88,7 +91,6 @@ internal static class UnityGitWorkspaceBootstrap
                 EditorApplication.applicationContentsPath
             );
             ConfigureClone(projectRoot, mergeTool);
-            SynchronizeDevelopmentBranch(projectRoot, logSuccess);
         }
         catch (Exception exception)
         {
@@ -137,133 +139,6 @@ internal static class UnityGitWorkspaceBootstrap
                 setting.Key,
                 setting.Value
             );
-        }
-    }
-
-    private static void SynchronizeDevelopmentBranch(string projectRoot, bool logSuccess)
-    {
-        GitResult branch = RunGit(
-            projectRoot,
-            LocalCommandTimeoutMilliseconds,
-            "branch",
-            "--show-current"
-        );
-        if (!branch.Succeeded || branch.StandardOutput.Trim() != DevelopmentBranch)
-            return;
-
-        GitResult status = RequireGit(
-            projectRoot,
-            LocalCommandTimeoutMilliseconds,
-            "status",
-            "--porcelain",
-            "--untracked-files=all"
-        );
-        if (!string.IsNullOrWhiteSpace(status.StandardOutput))
-        {
-            Debug.Log(
-                "[Unity Git] Automatic dev sync skipped because the working tree has local changes."
-            );
-            return;
-        }
-
-        GitResult fetch = RunGit(
-            projectRoot,
-            NetworkCommandTimeoutMilliseconds,
-            "fetch",
-            "--prune",
-            Remote,
-            DevelopmentBranch
-        );
-        if (!fetch.Succeeded)
-        {
-            Debug.LogWarning($"[Unity Git] Could not fetch origin/dev: {DescribeFailure(fetch)}");
-            return;
-        }
-
-        GitResult comparison = RequireGit(
-            projectRoot,
-            LocalCommandTimeoutMilliseconds,
-            "rev-list",
-            "--left-right",
-            "--count",
-            $"HEAD...{Remote}/{DevelopmentBranch}"
-        );
-        int[] counts = comparison
-            .StandardOutput.Split((char[])null, StringSplitOptions.RemoveEmptyEntries)
-            .Select(int.Parse)
-            .ToArray();
-        if (counts.Length != 2)
-            throw new InvalidOperationException("Git returned an invalid ahead/behind count.");
-
-        int ahead = counts[0];
-        int behind = counts[1];
-        if (behind == 0)
-        {
-            if (logSuccess)
-                Debug.Log($"[Unity Git] {DevelopmentBranch} is current.");
-            return;
-        }
-
-        bool refreshAssets = false;
-        AssetDatabase.DisallowAutoRefresh();
-        try
-        {
-            if (ahead == 0)
-            {
-                RequireGit(
-                    projectRoot,
-                    LocalCommandTimeoutMilliseconds,
-                    "merge",
-                    "--ff-only",
-                    $"{Remote}/{DevelopmentBranch}"
-                );
-                refreshAssets = true;
-                Debug.Log($"[Unity Git] Fast-forwarded {DevelopmentBranch} by {behind} commit(s).");
-                return;
-            }
-
-            GitResult rebase = RunGit(
-                projectRoot,
-                NetworkCommandTimeoutMilliseconds,
-                "rebase",
-                $"{Remote}/{DevelopmentBranch}"
-            );
-            if (rebase.Succeeded)
-            {
-                refreshAssets = true;
-                Debug.Log(
-                    $"[Unity Git] Rebased {ahead} local {DevelopmentBranch} commit(s) over "
-                        + $"{behind} incoming commit(s)."
-                );
-                return;
-            }
-
-            GitResult abort = RunGit(
-                projectRoot,
-                LocalCommandTimeoutMilliseconds,
-                "rebase",
-                "--abort"
-            );
-            if (!abort.Succeeded)
-            {
-                throw new InvalidOperationException(
-                    "Automatic rebase conflicted and Git could not restore the original checkout: "
-                        + DescribeFailure(abort)
-                );
-            }
-
-            refreshAssets = true;
-            Debug.LogWarning(
-                "[Unity Git] Incoming dev changes overlap local commits. The automatic rebase was "
-                    + "aborted and the original checkout was restored; resolve this Git conflict "
-                    + "before switching machines."
-            );
-        }
-        finally
-        {
-            AssetDatabase.AllowAutoRefresh();
-            if (refreshAssets)
-                AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
         }
     }
 
