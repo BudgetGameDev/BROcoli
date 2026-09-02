@@ -14,7 +14,7 @@ namespace BudgetGameDev.Games.Brocoli.Tests
         private const BindingFlags PrivateInstance = BindingFlags.Instance | BindingFlags.NonPublic;
 
         private const string MenuScene =
-            "Packages/com.budgetgamedev.game.brocoli/Scenes/Brocoli_MainMenu.unity";
+            "Packages/com.budgetgamedev.game.brocoli/Scenes/Brocoli_MainMenu_Common.unity";
 
         [UnityTest]
         [TestMustExpectAllLogs(false)]

@@ -26,7 +26,7 @@ namespace BudgetGameDev.Games.Brocoli.Tests
     public sealed class DungeonPropCatalogTests
     {
         private const string ScenePath =
-            "Packages/com.budgetgamedev.game.brocoli/Scenes/Brocoli_Dungeon.unity";
+            "Packages/com.budgetgamedev.game.brocoli/Scenes/Brocoli_Dungeon_Common.unity";
         private const string NamePrefix = "Dungeon";
 
         /// <summary>

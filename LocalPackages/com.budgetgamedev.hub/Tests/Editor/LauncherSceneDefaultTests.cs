@@ -23,7 +23,7 @@ namespace BudgetGameDev.Hub.Tests
             Assert.That(
                 LauncherSceneDefault.ShouldOpenLauncher(
                     1,
-                    "Packages/com.budgetgamedev.game.brocoli/Scenes/Brocoli_Dungeon.unity",
+                    "Packages/com.budgetgamedev.game.brocoli/Scenes/Brocoli_Dungeon_Common.unity",
                     false
                 ),
                 Is.False,
