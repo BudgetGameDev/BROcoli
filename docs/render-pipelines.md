@@ -97,6 +97,18 @@ way for this to be broken by accident.
 High Definition meters the scene itself, so every tier's volume profile pins exposure to
 Fixed. An automatic exposure would chase the torches and undo the ladder.
 
+That fixed exposure is **EV100 12.5**, and it is measured against the Universal build
+rather than derived from the ladder. `SceneLuminanceBudget.Ev100For` computes what the
+ladder implies -- 9.4 -- and the two disagree by about three stops, because the dungeon's
+lights were authored in Universal's arbitrary units and then converted to preserve that
+look rather than to sit on the ladder. Both numbers are kept, and the gap is the honest
+size of the remaining tuning job: bringing the lights onto the ladder should pull the
+exposure down towards 9.4. Until then, matching the two pipelines beats matching the
+theory.
+
+Both pipelines tone map through the ACES 1000 nit preset, which is what
+`AcesToneScale.SelectPreset` returns for the calibrated peak the game ships with.
+
 ## Windows tiers
 
 Four quality tiers, in `Assets/Settings/Rendering/HDRP/`. Each is an HDRP asset paired

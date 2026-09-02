@@ -141,7 +141,7 @@ Material:
     - _GlossyReflections: 0
     - _MaterialID: 1
     - _MaterialTypeMask: 2
-    - _Metallic: 1
+    - _Metallic: 0
     - _OcclusionCeiling: 1
     - _OcclusionStrength: 0.85
     - _OpaqueCullMode: 2
@@ -156,7 +156,7 @@ Material:
     - _RefractionModel: 0
     - _RenderQueueType: 1
     - _RequireSplitLighting: 0
-    - _Smoothness: 1
+    - _Smoothness: 0
     - _SmoothnessTextureChannel: 0
     - _SpecularHighlights: 1
     - _SrcBlend: 1

@@ -83,16 +83,18 @@ namespace BudgetGameDev.Shared.Rendering
             Mathf.Max(0f, sceneLinear) * Mathf.Max(0f, paperWhiteNits);
 
         /// <summary>
-        /// The fixed exposure, in EV100, that puts <see cref="DiffuseWhiteNits"/> where the
-        /// display expects it. High Definition meters the scene physically, so a pipeline
-        /// told the dungeon's lights in lumens still needs to be told what counts as a
-        /// correct exposure for them; left at zero it renders the whole dungeon nine stops
-        /// hot and pure white.
+        /// The fixed exposure, in EV100, the dungeon is rendered at on High Definition,
+        /// which meters the scene physically and otherwise renders it many stops hot.
         ///
-        /// This is the standard photometric relation, EV100 = log2(L * S / K), with the
-        /// film speed S at 100 and the reflected-light meter constant K at 12.5.
+        /// This is measured against the Universal build rather than derived from
+        /// <see cref="DiffuseWhiteNits"/>, and the two do not currently agree.
+        /// <see cref="Ev100For"/> would say 9.4; the picture matches Universal at 12.5.
+        /// The gap is real and worth knowing about: the dungeon's lights were authored in
+        /// Universal's arbitrary units and converted to preserve that look, so they sit
+        /// roughly three stops above what the ladder describes. Whoever brings the lights
+        /// onto the ladder should expect this number to fall towards Ev100For's answer.
         /// </summary>
-        public float FixedExposureEv100 => Ev100For(DiffuseWhiteNits);
+        public float FixedExposureEv100 => 12.5f;
 
         /// <summary>The exposure that renders a surface of <paramref name="nits"/> correctly.</summary>
         public static float Ev100For(float nits) =>
