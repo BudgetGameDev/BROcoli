@@ -35,6 +35,7 @@ namespace BudgetGameDev.Games.Brocoli
         {
             IsActive = true;
             AutoplayFeatureLog.Reset();
+            AutoplayScalingLog.Reset();
 
             var go = new GameObject("[AutoplayController]");
             DontDestroyOnLoad(go);

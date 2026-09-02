@@ -51,6 +51,7 @@ pictures below read as ordinary screenshots.
 | `long` | 5m | Five minutes at the ordinary update step |
 | `marathon` | 3h | Does a long session stay stable and playable |
 | `coverage` | 20m | From the main menu, asserting every system was used |
+| `balance` | 15m | Uninterrupted play, graded on progression and difficulty |
 | `tune` | 10m | Real-time lighting tuning; no fast-forward |
 
 ### Options
@@ -71,17 +72,18 @@ The scenarios are:
 
 - `smoke`: the session completed without warnings, errors, or exceptions;
 - `survive`: the player stayed alive for the configured duration;
-- `progress`: the player reached `-minlevel` before the run ended; and
-- `coverage`: every required feature was exercised.
+- `progress`: the player reached `-minlevel` before the run ended;
+- `coverage`: every required feature was exercised; and
+- `balance`: the run's progression and difficulty stayed in band.
 
 Any scenario also fails on a Unity warning, error, assertion, or exception, and
 any scenario fails if the run stalls -- two game-minutes without a level, an
 experience pickup, or a new room. An agent pinned on something it cannot reach
 survives happily and reaches its features, so nothing else here would catch it.
 
-A `coverage` run starts a fresh life when the player dies rather than stopping
-there. A roguelite run ends in death, and a sweep that stopped at the first one
-would only test whatever that life happened to stumble into.
+A `coverage` or `balance` run starts a fresh life when the player dies rather
+than stopping there. A roguelite run ends in death, and a sweep that stopped at
+the first one would only test whatever that life happened to stumble into.
 
 ## Inspecting a live run
 
@@ -188,6 +190,61 @@ The goals are `explore`, `engage`, `retreat`, `loot`, `collect`, `dodge`, and
 - scores level-up choices from their real bonus, penalty, current health, nearby
   threat count, and stat caps.
 
+## Progression and difficulty
+
+Coverage says a system was reached. It says nothing about whether reaching it was
+worth anything, and a run can pass every other check while the game behind it has
+become trivial or unplayable: a bot that never drops below full health and a bot
+that dies every ninety seconds both survive their runs, and every other number
+the harness records reads the same for the two of them.
+
+So a run also measures its own pacing and the pressure it played under, and the
+`balance` scenario grades both against the band a session is meant to sit in.
+The bands live in `ProgressionBalance` (`Runtime/Autoplay/ProgressionBalance.cs`)
+and are the game's difficulty target written down:
+
+| Measurement | Band | Outside it means |
+| --- | --- | --- |
+| Seconds per level | 25 to 150 | levels are confetti / levelling is a grind |
+| Late vs early seconds per level | 0.9x to 4x | the curve never steepens / it walls |
+| Mean health | 45% to 90% | fought at the edge of death / nothing is a threat |
+| Share of the run under 35% health | 2% to 35% | never in trouble / only ever in trouble |
+| Deaths per hour | 0.4 to 8 | the run cannot be lost / it cannot be learned |
+
+Alongside those, the run records what the dungeon actually set each room to --
+the ring, the player's power score at that moment, and the health, damage, and
+count multipliers the room was built with -- because scaling fails quietly. A
+build whose depth multiplier stopped applying still levels the player on schedule
+and still kills them occasionally; what it stops doing is making the tenth room
+different from the first, and nothing else here would notice.
+
+```bash
+unity run . -- -executeMethod \
+    BudgetGameDev.Games.Brocoli.Editor.AutoplayRunner.Run -tier balance
+```
+
+The verdict is a list of findings rather than a bare pass, so a failing run says
+which band it left and in which direction. `summary.json` carries the numbers
+behind them under `progression` and `scaling`, and the runner prints the same as
+`pacing`, `pressure`, `scaling`, and `balance` lines.
+
+A balance run plays uninterrupted: the feature sweep pauses the game to poke
+menus, which is right when the question is coverage and wrong when it is pacing,
+because the seconds a level took would then include the seconds spent in the
+inventory. It also runs at the ordinary update step rather than a coarse one, so
+the bot gets a real player's number of decisions per game-second.
+
+Two things a verdict cannot do. It cannot be drawn from a short run -- under four
+game-minutes or six levels it reports that it is too short to judge rather than
+guessing -- and one seed is one dungeon, so a tuning change is worth confirming
+across a few (`-seed`).
+
+The experience curve itself is `PlayerProgression`
+(`Runtime/Player/PlayerProgression.cs`), and the enemy ladder that gates which
+archetypes a ring may spawn is `DungeonEnemyPlacer.MinRingFor`. Those two and the
+power exponents at the top of `DungeonEnemyPlacer` are the knobs a balance
+finding points at.
+
 ## Feature coverage
 
 Combat alone never opens the map. Alongside the agent, a director sweeps the
@@ -231,8 +288,9 @@ below is for. Triggered captures land in `events/` with `events.jsonl` beside
 them. Telemetry includes position, health, level, enemy pressure, current
 intent, visited rooms, route replans, and stuck recoveries. The summary adds the
 tier, the achieved speedup, distance travelled, final navigation counters, the
-feature ledger, the list of required features the run never reached, and the
-captures it took.
+feature ledger, the list of required features the run never reached, the
+progression and scaling measurements with the balance findings drawn from them,
+and the captures it took.
 
 The runner also reads the captured frames back and prints mean luminance in top,
 middle, and bottom screen bands. A run that has gone completely black, or blown

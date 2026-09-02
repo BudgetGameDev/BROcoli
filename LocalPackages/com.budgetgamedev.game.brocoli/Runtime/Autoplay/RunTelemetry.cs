@@ -43,6 +43,8 @@ namespace BudgetGameDev.Games.Brocoli
         /// <summary>The one thing this does to the world, named so a test can watch it.</summary>
         internal Action<GameOverOverlay> PressRestart = overlay => overlay.RestartGame();
 
+        private readonly RunProgression _progression = new();
+
         private int _warnings,
             _errors,
             _exceptions;
@@ -164,6 +166,17 @@ namespace BudgetGameDev.Games.Brocoli
                 _maxEnemies = enemies;
             float fps = Time.unscaledDeltaTime > 0f ? 1f / Time.unscaledDeltaTime : 0f;
 
+            float health = _stats != null ? _stats.CurrentHealth : 0f;
+            float maxHealth = _stats != null ? _stats.CurrentMaxHealth : 0f;
+            float level = _stats != null ? _stats.CurrentLevel : 0f;
+            _progression.Sample(
+                _elapsed,
+                level,
+                health,
+                maxHealth,
+                AutoplayFeatureLog.Count(AutoplayFeatures.EnemyKilled)
+            );
+
             var sb = new StringBuilder(220);
             sb.Append('{');
             Num(sb, "t", _elapsed);
@@ -172,11 +185,11 @@ namespace BudgetGameDev.Games.Brocoli
             sb.Append(',');
             Num(sb, "z", pos.y);
             sb.Append(',');
-            Num(sb, "hp", _stats != null ? _stats.CurrentHealth : 0f);
+            Num(sb, "hp", health);
             sb.Append(',');
-            Num(sb, "maxHp", _stats != null ? _stats.CurrentMaxHealth : 0f);
+            Num(sb, "maxHp", maxHealth);
             sb.Append(',');
-            Num(sb, "level", _stats != null ? _stats.CurrentLevel : 0f);
+            Num(sb, "level", level);
             sb.Append(',');
             Num(sb, "xp", _stats != null ? _stats.CurrentExperience : 0f);
             sb.Append(',');
@@ -219,14 +232,22 @@ namespace BudgetGameDev.Games.Brocoli
         }
 
         /// <summary>
-        /// A roguelite run ends in death. A coverage sweep that stopped there would
-        /// only ever test whatever the first life happened to stumble into, so it
-        /// starts another one -- which is also the only thing that ever presses the
-        /// game-over screen's own restart button.
+        /// Scenarios that read a whole session rather than one life. A coverage sweep
+        /// that stopped at the first death would only ever test whatever that life
+        /// stumbled into, and a difficulty verdict drawn from a single life is a
+        /// verdict on that life's luck.
+        /// </summary>
+        private bool PlaysAnotherLife => _cfg.Scenario == "coverage" || _cfg.Scenario == "balance";
+
+        /// <summary>
+        /// A roguelite run ends in death. The scenarios above start another one
+        /// instead -- which is also the only thing that ever presses the game-over
+        /// screen's own restart button.
         /// </summary>
         private void OnGameOver()
         {
-            if (_cfg.Scenario == "coverage" && _elapsed < _cfg.Duration)
+            _progression.NoteDeath();
+            if (PlaysAnotherLife && _elapsed < _cfg.Duration)
             {
                 _awaitingRestart = true;
                 return;

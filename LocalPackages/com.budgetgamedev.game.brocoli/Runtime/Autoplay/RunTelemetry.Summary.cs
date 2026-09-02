@@ -18,8 +18,9 @@ namespace BudgetGameDev.Games.Brocoli
 
             WriteSample();
             List<string> missing = AutoplayFeatureLog.Missing();
-            bool passed = EvaluateScenario(reason, missing);
-            WriteSummary(reason, passed, missing);
+            List<string> findings = ProgressionBalance.Evaluate(Progression, Scaling);
+            bool passed = EvaluateScenario(reason, missing, findings);
+            WriteSummary(reason, passed, missing, findings);
 
             if (_logBuffer.Length > 0)
                 File.WriteAllText(Path.Combine(_cfg.OutDir, "logs.txt"), _logBuffer.ToString());
@@ -27,6 +28,7 @@ namespace BudgetGameDev.Games.Brocoli
             Debug.Log(
                 $"[Autoplay] Run ended ({reason}). scenario={_cfg.Scenario} passed={passed}. "
                     + $"Unused features: {(missing.Count == 0 ? "none" : string.Join(", ", missing))}. "
+                    + $"Balance: {(findings.Count == 0 ? "in band" : string.Join("; ", findings))}. "
                     + $"{DescribeCaptures()}Out: {_cfg.OutDir}"
             );
             Quit(passed ? 0 : 1);
@@ -46,7 +48,7 @@ namespace BudgetGameDev.Games.Brocoli
                 : $"Captures that never fired: {string.Join(", ", unfired)}. ";
         }
 
-        private bool EvaluateScenario(string reason, List<string> missing)
+        private bool EvaluateScenario(string reason, List<string> missing, List<string> findings)
         {
             if (!LogsAreClean(_warnings, _errors, _exceptions))
                 return false;
@@ -62,6 +64,9 @@ namespace BudgetGameDev.Games.Brocoli
                 case "coverage":
                     // Surviving is not the point here: reaching every system is.
                     return missing.Count == 0;
+                case "balance":
+                    // Nor is surviving the point here: staying in the difficulty band is.
+                    return findings.Count == 0;
                 case "smoke":
                 default:
                     return true; // ran without exceptions
@@ -73,7 +78,12 @@ namespace BudgetGameDev.Games.Brocoli
             return warnings == 0 && errors == 0 && exceptions == 0;
         }
 
-        private void WriteSummary(string reason, bool passed, List<string> missing)
+        private void WriteSummary(
+            string reason,
+            bool passed,
+            List<string> missing,
+            List<string> findings
+        )
         {
             float real = Time.realtimeSinceStartup - _startedRealtime;
             var sb = new StringBuilder();
@@ -98,6 +108,8 @@ namespace BudgetGameDev.Games.Brocoli
             Num(sb, "speedup", AutoplayTimeControl.Speedup(_elapsed, real));
             sb.Append(',');
             AppendRunCounters(sb);
+            sb.Append(',');
+            AppendProgression(sb, findings);
             sb.Append(',');
             sb.Append("\"features\":").Append(AutoplayFeatureLog.ToJson()).Append(',');
             AppendStrings(sb, "missingFeatures", missing);

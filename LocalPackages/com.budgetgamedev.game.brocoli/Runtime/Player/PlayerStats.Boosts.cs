@@ -194,14 +194,21 @@ namespace BudgetGameDev.Games.Brocoli
         {
             _currentLevel += 1f;
 
-            // Base stat gains on level up (smaller now since player chooses upgrades)
-            float healthGain = 10f;
-            _currentHealth += healthGain;
-            _currentMaxHealth += healthGain;
+            // A level raises the ceiling and nothing else. Healing here as well made
+            // levelling a free heal on a timer, and a run that levels every half
+            // minute cannot be worn down however hard its enemies hit: a balance run
+            // took thirty-one hits in a quarter of an hour and undid twenty-seven of
+            // them by levelling, finishing at ninety-seven per cent mean health while
+            // still dying three times to the hits it could not out-heal.
+            //
+            // Healing is still available, but has to be earned: the health boost
+            // chests and elites drop, the regeneration and life-steal upgrades, and
+            // the max-health upgrade, which does still heal by what it adds.
+            _currentMaxHealth += 5f;
 
             // The paid requirement was removed before entering this method, so
             // overflow remains available for the next level instead of being lost.
-            _currentMaxExperience *= 2f; // Double XP needed each level (30 -> 60 -> 120 -> 240...)
+            _currentMaxExperience = PlayerProgression.ExperienceForLevel((int)_currentLevel);
 
             _healthBar?.UpdateBar(_currentHealth, _currentMaxHealth);
             _experienceBar?.UpdateBar(_currentExperience, _currentMaxExperience);

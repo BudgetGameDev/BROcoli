@@ -273,10 +273,18 @@ namespace BudgetGameDev.Games.Brocoli
             return new RoomArchetype(shape, theme, environment, halfWidth, halfDepth, variant);
         }
 
-        /// <summary>Health multiplier applied to enemies the deeper the player goes.</summary>
+        /// <summary>
+        /// Health multiplier applied to enemies the deeper the player goes. The slope
+        /// is gentle because depth already changes the fight twice over: the ring
+        /// ladder unlocks archetypes with many times the health of the first ring's,
+        /// and the player's own power feeds back through
+        /// <see cref="DungeonEnemyPlacer"/> on top. Stacking a steep third multiplier
+        /// on those made a wandering run walk into rooms it could not damage, which
+        /// measures as a stalled run rather than a hard one.
+        /// </summary>
         public float EnemyHealthScale(Vector2Int room)
         {
-            return 1f + 0.15f * Mathf.Max(0, Ring(room) - 1);
+            return 1f + 0.09f * Mathf.Max(0, Ring(room) - 1);
         }
     }
 }
