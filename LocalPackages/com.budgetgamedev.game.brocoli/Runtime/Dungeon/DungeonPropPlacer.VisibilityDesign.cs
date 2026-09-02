@@ -9,11 +9,12 @@ namespace BudgetGameDev.Games.Brocoli
         private static readonly Vector3 BoundaryRockScale = new(1.1f, 0.9f, 1.1f);
 
         /// <summary>
-        /// Adds the visual boundary owned by a broad environment theme.
-        /// Masonry railings are structural and are built by DungeonRoomBuilder;
-        /// rock-line themes use their profile's boundary props. Undressed
-        /// themes are intentionally no-ops until their own assets are assigned
-        /// in <see cref="DungeonEnvironmentProfile"/>.
+        /// Adds the dressing a broad environment theme puts on the platform
+        /// boundary. The structural facade below it is built by
+        /// DungeonRoomBuilder on every boundary edge; rock-line themes stand
+        /// their profile's boundary props along it, and the other themes are
+        /// intentionally no-ops until their own assets are assigned in
+        /// <see cref="DungeonEnvironmentProfile"/>.
         /// </summary>
         public void BuildBoundaryDressing(
             Transform parent,

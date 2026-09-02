@@ -104,6 +104,8 @@ namespace BudgetGameDev.Games.Brocoli
                 EndRun("stalled");
             else if (_elapsed >= _cfg.Duration)
                 EndRun("duration");
+            else if (JourneyIsOver)
+                EndRun("journey");
         }
 
         private void ResolvePlayer()
@@ -232,12 +234,25 @@ namespace BudgetGameDev.Games.Brocoli
         }
 
         /// <summary>
+        /// Whether a journey run has been everywhere it set out to go. It is graded
+        /// on its steps rather than on its length, so the minutes after the last one
+        /// would be nothing but the bot playing on -- and the run's own subject, a
+        /// death, has already happened by then.
+        /// </summary>
+        private bool JourneyIsOver =>
+            _cfg.Scenario == AutoplayFeatures.JourneyScenario
+            && AutoplayFeatureLog.Missing(AutoplayFeatures.SaveJourney).Count == 0;
+
+        /// <summary>
         /// Scenarios that read a whole session rather than one life. A coverage sweep
         /// that stopped at the first death would only ever test whatever that life
         /// stumbled into, and a difficulty verdict drawn from a single life is a
         /// verdict on that life's luck.
         /// </summary>
-        private bool PlaysAnotherLife => _cfg.Scenario == "coverage" || _cfg.Scenario == "balance";
+        private bool PlaysAnotherLife =>
+            _cfg.Scenario == "coverage"
+            || _cfg.Scenario == "balance"
+            || _cfg.Scenario == AutoplayFeatures.JourneyScenario;
 
         /// <summary>
         /// A roguelite run ends in death. The scenarios above start another one

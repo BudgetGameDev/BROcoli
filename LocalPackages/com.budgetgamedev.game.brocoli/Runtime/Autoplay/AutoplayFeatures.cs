@@ -1,3 +1,5 @@
+using System;
+
 namespace BudgetGameDev.Games.Brocoli
 {
     /// <summary>
@@ -31,6 +33,11 @@ namespace BudgetGameDev.Games.Brocoli
         internal const string MapOpened = "ui.map-opened";
         internal const string MapPanned = "ui.map-panned";
         internal const string SaveRoundTrip = "save.round-trip";
+        internal const string SaveCheckpointed = "save.checkpointed";
+        internal const string SaveResumed = "save.resumed";
+        internal const string SaveSlotsIndependent = "save.slots-independent";
+        internal const string SaveDropped = "save.dropped";
+        internal const string SaveSurvivedAnotherRunsDeath = "save.survived-another-runs-death";
         internal const string GameOverShown = "gameover.shown";
         internal const string GameOverRestart = "gameover.restart";
 
@@ -60,9 +67,11 @@ namespace BudgetGameDev.Games.Brocoli
         };
 
         /// <summary>
-        /// Systems that depend on the run's luck -- an elite spawning, a hydra
-        /// surviving long enough to split, the player actually dying. They are
-        /// reported so a run can be read, but never fail it.
+        /// Systems no ordinary run is failed for. Some depend on its luck -- an elite
+        /// spawning, a hydra surviving long enough to split -- and the rest belong to
+        /// a journey a combat run never takes: leaving to the menu, resuming, dying.
+        /// They are reported so a run can be read, and required where they are
+        /// deliberately driven.
         /// </summary>
         internal static readonly string[] Optional =
         {
@@ -71,6 +80,11 @@ namespace BudgetGameDev.Games.Brocoli
             HydraSplit,
             ProjectileDodged,
             InventoryEquipped,
+            SaveCheckpointed,
+            SaveResumed,
+            SaveSlotsIndependent,
+            SaveDropped,
+            SaveSurvivedAnotherRunsDeath,
             GameOverShown,
             GameOverRestart,
         };
@@ -81,5 +95,42 @@ namespace BudgetGameDev.Games.Brocoli
         /// at, and a count in the ledger.
         /// </summary>
         internal static readonly string[] Observed = { ExperienceDropped };
+
+        /// <summary>
+        /// The player's own journey, which the <c>journey</c> scenario drives from
+        /// end to end: two runs made from the menu, walked somewhere, quit to the
+        /// menu and resumed, and then a death that has to cost the run being played
+        /// and only that one. Every entry here is something the journey deliberately
+        /// does, so a miss is the harness reporting that the journey broke rather
+        /// than that the run was unlucky.
+        /// </summary>
+        internal static readonly string[] SaveJourney =
+        {
+            MainMenuShown,
+            MainMenuNewGame,
+            RoomEntered,
+            SaveCheckpointed,
+            MainMenuContinue,
+            SaveResumed,
+            SaveSlotsIndependent,
+            GameOverShown,
+            SaveDropped,
+            SaveSurvivedAnotherRunsDeath,
+            GameOverRestart,
+        };
+
+        /// <summary>
+        /// What a scenario has to have reached to pass. Only the two sweeps grade
+        /// themselves on the ledger; the rest are graded on surviving, levelling, or
+        /// staying in band, and are handed the coverage list purely so their reports
+        /// read the same way.
+        /// </summary>
+        internal static string[] RequiredFor(string scenario) =>
+            string.Equals(scenario, JourneyScenario, StringComparison.Ordinal)
+                ? SaveJourney
+                : Required;
+
+        /// <summary>The scenario name graded on the journey rather than on coverage.</summary>
+        internal const string JourneyScenario = "journey";
     }
 }

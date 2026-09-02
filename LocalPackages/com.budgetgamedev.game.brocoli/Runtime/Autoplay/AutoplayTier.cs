@@ -18,6 +18,7 @@ namespace BudgetGameDev.Games.Brocoli
         internal readonly bool Deterministic;
         internal readonly bool DriveMenus;
         internal readonly bool ExerciseFeatures;
+        internal readonly bool ExerciseSaveJourney;
 
         internal AutoplayTier(
             string name,
@@ -28,7 +29,8 @@ namespace BudgetGameDev.Games.Brocoli
             string scenario,
             bool deterministic,
             bool driveMenus,
-            bool exerciseFeatures
+            bool exerciseFeatures,
+            bool exerciseSaveJourney = false
         )
         {
             Name = name;
@@ -40,6 +42,7 @@ namespace BudgetGameDev.Games.Brocoli
             Deterministic = deterministic;
             DriveMenus = driveMenus;
             ExerciseFeatures = exerciseFeatures;
+            ExerciseSaveJourney = exerciseSaveJourney;
         }
     }
 
@@ -139,6 +142,22 @@ namespace BudgetGameDev.Games.Brocoli
                 false
             ),
             new(
+                "journey",
+                "4 game-minutes of the player's own journey: two runs made, resumed, and died in",
+                240f,
+                1f,
+                Frame,
+                AutoplayFeatures.JourneyScenario,
+                true,
+                true,
+                // The coverage sweep and the journey both drive the pause menu, and
+                // two of them taking turns at it is how a run ends up resumed into
+                // an inventory. The journey owns the menus for the length of this
+                // tier; `coverage` is where the overlays are graded.
+                false,
+                true
+            ),
+            new(
                 "tune",
                 "10 real-time minutes for live lighting tuning; no fast-forward",
                 600f,
@@ -180,6 +199,7 @@ namespace BudgetGameDev.Games.Brocoli
             config.Deterministic = tier.Deterministic;
             config.DriveMenus = tier.DriveMenus;
             config.ExerciseFeatures = tier.ExerciseFeatures;
+            config.ExerciseSaveJourney = tier.ExerciseSaveJourney;
         }
 
         internal static string Names()

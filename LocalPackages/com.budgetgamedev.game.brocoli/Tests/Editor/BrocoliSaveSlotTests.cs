@@ -113,6 +113,13 @@ namespace BudgetGameDev.Games.Brocoli.Tests
                 Is.EqualTo(new[] { 0 })
             );
             Assert.That(BrocoliSaveSystem.ActiveSlot, Is.EqualTo(-1));
+
+            // Dying again with nothing being played costs nobody their run.
+            BrocoliSaveSystem.DeleteActiveSave();
+            Assert.That(
+                BrocoliSaveSystem.LoadAll().ConvertAll(save => save.slot),
+                Is.EqualTo(new[] { 0 })
+            );
         }
 
         [Test]

@@ -21,6 +21,12 @@ namespace BudgetGameDev.Games.Brocoli.Editor
         internal int Seed = 12345;
         internal string Sha = "";
         internal bool Build;
+
+        /// <summary>
+        /// Keeps the run's interval frames on disk instead of discarding them once
+        /// the run has been read back and reported.
+        /// </summary>
+        internal bool KeepFrames;
         internal int TimeoutSeconds = DefaultTimeoutSeconds;
         internal readonly List<string> Overrides = new();
 
@@ -70,6 +76,9 @@ namespace BudgetGameDev.Games.Brocoli.Editor
                 case "-build":
                     Build = true;
                     return 0;
+                case "-keep-frames":
+                    KeepFrames = true;
+                    return 0;
                 case "-menus":
                     Overrides.Add("--menus");
                     return 0;
@@ -81,6 +90,12 @@ namespace BudgetGameDev.Games.Brocoli.Editor
                     return 0;
                 case "-noFeatures":
                     Overrides.Add("--no-features");
+                    return 0;
+                case "-journey":
+                    Overrides.Add("--journey");
+                    return 0;
+                case "-noJourney":
+                    Overrides.Add("--no-journey");
                     return 0;
                 default:
                     return ApplyValueArgument(argument, value);
@@ -109,6 +124,7 @@ namespace BudgetGameDev.Games.Brocoli.Editor
                 case "-duration":
                 case "-interval":
                 case "-timestep":
+                case "-max-frames":
                 case "-scenario":
                 case "-minlevel":
                 case "-tuning":

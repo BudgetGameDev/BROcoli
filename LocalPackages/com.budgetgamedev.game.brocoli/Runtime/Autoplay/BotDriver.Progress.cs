@@ -51,7 +51,9 @@ namespace BudgetGameDev.Games.Brocoli
             {
                 lastPosition = position;
                 lastProgressPosition = position;
+                loiterOrigin = position;
                 nextProgressCheck = Time.time + progressCheckInterval;
+                nextLoiterCheck = Time.time + loiterWindow;
                 hasPosition = true;
                 return;
             }
@@ -59,6 +61,7 @@ namespace BudgetGameDev.Games.Brocoli
             float travelled = Vector2.Distance(position, lastPosition);
             DistanceTravelled += travelled;
             lastPosition = position;
+            TrackLoitering(position, travelled);
             if (Time.time < nextProgressCheck)
                 return;
 
@@ -74,6 +77,64 @@ namespace BudgetGameDev.Games.Brocoli
                 BeginStuckRecovery();
             lastProgressPosition = position;
         }
+
+        /// <summary>
+        /// Notices walking that goes nowhere. An agent pacing a wall or circling
+        /// the middle of a room is moving the whole time, so the stationary check
+        /// never fires and the only backstop is half a game-minute of reaching no
+        /// new room -- which is most of a short run spent shuffling. Comparing how
+        /// far it walked with how far it actually got catches both in seconds.
+        ///
+        /// Only the goals that are meant to take the agent somewhere are judged.
+        /// Fighting is circling on purpose: an agent kiting at the edge of its
+        /// weapon's range covers ground without meaning to leave, and reading that
+        /// as being stuck would make it abandon every fight it was winning.
+        /// </summary>
+        private void TrackLoitering(Vector2 position, float travelled)
+        {
+            if (!IsJourney(currentIntent) || Time.time < recoveryUntil)
+            {
+                loiterTravelled = 0f;
+                loiterOrigin = position;
+                nextLoiterCheck = Time.time + loiterWindow;
+                return;
+            }
+
+            loiterTravelled += travelled;
+            if (Time.time < nextLoiterCheck)
+                return;
+
+            bool loitering = IsLoitering(
+                loiterTravelled,
+                Vector2.Distance(position, loiterOrigin),
+                loiterEfficiency
+            );
+            loiterTravelled = 0f;
+            loiterOrigin = position;
+            nextLoiterCheck = Time.time + loiterWindow;
+            if (!loitering)
+                return;
+
+            // Walking a long way to end up where it started is not one bad step to
+            // shuffle out of, it is a destination the agent cannot reach from here.
+            // Write it off at once rather than after four more manoeuvres.
+            BeginStuckRecovery();
+            AbandonCurrentTarget();
+        }
+
+        /// <summary>Goals whose whole point is arriving somewhere else.</summary>
+        internal static bool IsJourney(BotIntent intent) =>
+            intent is BotIntent.Explore or BotIntent.Loot or BotIntent.Collect;
+
+        /// <summary>
+        /// Whether a stretch of walking went anywhere: the net displacement has to
+        /// be at least <paramref name="efficiency"/> of the distance covered. Too
+        /// short a stretch is not judged at all -- barely moving is the stationary
+        /// check's question, and answering it here would fire on a single tick
+        /// spent turning around.
+        /// </summary>
+        internal static bool IsLoitering(float travelled, float displacement, float efficiency) =>
+            travelled >= MinimumJudgeableTravel && displacement < travelled * efficiency;
 
         private void BeginStuckRecovery()
         {

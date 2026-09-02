@@ -119,6 +119,16 @@ namespace BudgetGameDev.Games.Brocoli
             return cornerCount > 1 ? corners[corner].ToGround() - position : target - position;
         }
 
+        /// <summary>
+        /// Turns a direction the agent wants to go into one it can actually walk,
+        /// by probing a fan of alternatives and taking the best compromise between
+        /// pointing the right way and having room to move.
+        ///
+        /// The score carries a bias toward whichever way it went last tick. Without
+        /// one, two comparable ways around a wall are settled by a tie-break, and
+        /// the agent alternates between them on the spot -- pacing the wall rather
+        /// than getting round it, which is the shape most of a wasted run takes.
+        /// </summary>
         private Vector2 NavigateLocal(Vector2 position, Vector2 desired)
         {
             if (desired.sqrMagnitude < 0.0001f)
@@ -129,13 +139,12 @@ namespace BudgetGameDev.Games.Brocoli
             float bestScore = float.NegativeInfinity;
             for (int i = 0; i < AvoidanceAngles.Length; i++)
             {
-                float signedAngle = AvoidanceAngles[i] * recoverySide;
-                Vector2 candidate = Quaternion.Euler(0f, 0f, signedAngle) * normalized;
+                Vector2 candidate = Quaternion.Euler(0f, 0f, AvoidanceAngles[i]) * normalized;
                 if (!TryMeasureClearance(position, candidate, out float clearance))
                     continue;
 
-                float alignment = Vector2.Dot(candidate, normalized);
-                float score = alignment * 2f + clearance - i * 0.01f;
+                float score =
+                    ScoreHeading(candidate, normalized, committedHeading, clearance) - i * 0.01f;
                 if (score > bestScore)
                 {
                     bestScore = score;
@@ -143,7 +152,29 @@ namespace BudgetGameDev.Games.Brocoli
                 }
             }
 
-            return bestScore > float.NegativeInfinity ? best : -normalized;
+            // Nothing in the fan is walkable, so back out the way it came in and let
+            // the stuck manoeuvre take over rather than pressing on into geometry.
+            Vector2 chosen = bestScore > float.NegativeInfinity ? best : -normalized;
+            committedHeading = chosen;
+            return chosen;
+        }
+
+        /// <summary>
+        /// What one candidate direction is worth: mostly how close it is to where
+        /// the agent wants to go and how much room it has, plus a nudge for
+        /// continuing the way it was already going.
+        /// </summary>
+        internal static float ScoreHeading(
+            Vector2 candidate,
+            Vector2 desired,
+            Vector2 committed,
+            float clearance
+        )
+        {
+            float score = Vector2.Dot(candidate, desired) * 2f + clearance;
+            if (committed.sqrMagnitude < 0.0001f)
+                return score;
+            return score + Vector2.Dot(candidate, committed) * HeadingCommitment;
         }
 
         private bool TryMeasureClearance(Vector2 position, Vector2 direction, out float clearance)

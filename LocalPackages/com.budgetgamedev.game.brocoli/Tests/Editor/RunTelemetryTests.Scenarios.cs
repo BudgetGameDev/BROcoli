@@ -1,4 +1,9 @@
+using System.IO;
+using System.Reflection;
+using System.Text.RegularExpressions;
 using NUnit.Framework;
+using UnityEngine;
+using UnityEngine.TestTools;
 
 namespace BudgetGameDev.Games.Brocoli.Tests
 {
@@ -60,6 +65,65 @@ namespace BudgetGameDev.Games.Brocoli.Tests
                 Is.False,
                 "a run outside the difficulty band is the whole point of the scenario"
             );
+
+            SetConfigScenario(AutoplayFeatures.JourneyScenario);
+            Assert.That(
+                (bool)Invoke("EvaluateScenario", "journey", NothingMissing, OutOfBand),
+                Is.True,
+                "a journey is graded on its steps, not on the difficulty it met on the way"
+            );
+            Assert.That(
+                (bool)Invoke("EvaluateScenario", "duration", SomethingMissing, NoFindings),
+                Is.False,
+                "lasting the whole run is not the same as having been through the journey"
+            );
         }
+
+        /// <summary>
+        /// A journey is a fixed list of things to do rather than a length of time, so
+        /// the run ends on the last one. Playing on afterwards would only be the bot
+        /// filling the remaining minutes -- the death the tier exists for has already
+        /// happened by then.
+        /// </summary>
+        [Test]
+        public void AJourneyRunEndsWhenItHasBeenEverywhereItSetOutToGo()
+        {
+            SetConfigScenario(AutoplayFeatures.JourneyScenario);
+            SetConfigValue("Duration", 1000f);
+            SetAutoplayActive(true);
+            try
+            {
+                Invoke("Update");
+                Assert.That(
+                    File.Exists(Path.Combine(output, "summary.json")),
+                    Is.False,
+                    "the journey has not been anywhere yet"
+                );
+
+                foreach (string reached in AutoplayFeatures.SaveJourney)
+                    AutoplayFeatureLog.Record(reached);
+
+                LogAssert.Expect(
+                    LogType.Log,
+                    new Regex("^\\[Autoplay\\] Run ended \\(journey\\).+passed=True")
+                );
+                Invoke("Update");
+            }
+            finally
+            {
+                SetAutoplayActive(false);
+                AutoplayFeatureLog.Reset();
+            }
+
+            Assert.That(
+                File.ReadAllText(Path.Combine(output, "summary.json")),
+                Does.Contain("\"reason\":\"journey\"")
+            );
+        }
+
+        private static void SetAutoplayActive(bool active) =>
+            typeof(AutoplayController)
+                .GetField("<IsActive>k__BackingField", BindingFlags.Static | BindingFlags.NonPublic)
+                .SetValue(null, active);
     }
 }

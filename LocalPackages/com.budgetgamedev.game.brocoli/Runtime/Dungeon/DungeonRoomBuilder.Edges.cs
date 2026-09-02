@@ -7,6 +7,7 @@ namespace BudgetGameDev.Games.Brocoli
     {
         private readonly List<DungeonWallPiece> edgeWalls = new();
         private readonly List<DungeonArchway> edgeArchways = new();
+        private readonly List<DungeonBoundaryCourse> boundaryCourses = new();
 
         /// <summary>
         /// Builds one shared half-height railing run between two rooms from its
@@ -16,6 +17,11 @@ namespace BudgetGameDev.Games.Brocoli
         /// <paramref name="parapetJoinMask"/> names the ends of the run that land
         /// on a corner where the platform's boundary parapet turns, so those
         /// pieces can be built to the parapet's height instead.
+        ///
+        /// An outer boundary is built from the structural masonry in every
+        /// <paramref name="environment"/>; the theme decides only what
+        /// <see cref="DungeonPropPlacer.BuildBoundaryDressing"/> stands on top of
+        /// it, and is carried here for the boundary kit a theme may yet get.
         /// </summary>
         public GameObject BuildEdge(
             Transform parent,
@@ -31,18 +37,9 @@ namespace BudgetGameDev.Games.Brocoli
             );
             root.transform.SetParent(parent, false);
 
-            if (
-                style == DungeonEdgeStyle.SouthCliff
-                || style == DungeonEdgeStyle.SideCliff
-                || style == DungeonEdgeStyle.SolidBoundary
-            )
+            if (DungeonRoomGeometry.IsPlatformBoundary(style))
             {
-                BuildEnvironmentBoundary(
-                    root.transform,
-                    edge,
-                    environment,
-                    style != DungeonEdgeStyle.SolidBoundary
-                );
+                BuildBoundaryFacade(root.transform, edge);
                 return root;
             }
 
@@ -65,111 +62,58 @@ namespace BudgetGameDev.Games.Brocoli
         }
 
         /// <summary>
-        /// Builds a safe outer edge in the style the environment's profile asks
-        /// for. Masonry-railing themes use the available masonry as a low
-        /// railing. The other styles get a renderer-free collision line here;
-        /// rock-line themes have their visual dressing supplied by
-        /// DungeonPropPlacer, and undressed themes gain theirs once their
-        /// profile points at real boundary assets.
+        /// Builds the platform's outer edge: a knee-high parapet at floor level
+        /// standing on the cliff courses that carry it down past the floor, one
+        /// stack per slot of the run.
+        ///
+        /// Every boundary is built this way, whatever environment it stands in and
+        /// whichever way it faces. A theme without its own boundary kit used to get
+        /// an invisible collision line and a boundary facing away from the camera
+        /// used to get a parapet with nothing under it; both left stretches of the
+        /// platform ending in raw void, which is the one thing an outer edge exists
+        /// to stop. Themes still dress this masonry with their own rock lines
+        /// through <see cref="DungeonPropPlacer.BuildBoundaryDressing"/>, so a cave
+        /// reads as a cave -- standing on the same structural cliff as everything
+        /// else rather than in place of one.
         /// </summary>
-        private void BuildEnvironmentBoundary(
-            Transform parent,
-            DungeonEdge edge,
-            DungeonLayout.EnvironmentTheme environment,
-            bool buildCliffFace
-        )
+        private void BuildBoundaryFacade(Transform parent, DungeonEdge edge)
         {
-            DungeonEnvironmentProfile profile = DungeonEnvironmentProfile.Of(environment);
-            if (profile.BoundaryStyle == DungeonBoundaryStyle.MasonryRailing)
-            {
-                BuildDungeonRailing(parent, edge, buildCliffFace);
-                return;
-            }
-
-            GameObject collision = new GameObject($"{environment} Boundary Collision");
-            collision.transform.SetParent(parent, false);
-            Vector2 center = edge.Horizontal
-                ? new Vector2(
-                    edge.X * DungeonLayout.RoomWidth,
-                    (edge.Y + 0.5f) * DungeonLayout.RoomDepth
-                )
-                : new Vector2(
-                    (edge.X + 0.5f) * DungeonLayout.RoomWidth,
-                    edge.Y * DungeonLayout.RoomDepth
-                );
-            collision.transform.position = center.ToWorld(0.7f);
-            var collider = collision.AddComponent<BoxCollider>();
-            collider.size = edge.Horizontal
-                ? new Vector3(DungeonLayout.RoomWidth, 1.4f, DungeonWallPiece.SlabThickness)
-                : new Vector3(DungeonWallPiece.SlabThickness, 1.4f, DungeonLayout.RoomDepth);
-            int wallLayer = LayerMask.NameToLayer("Wall");
-            if (wallLayer >= 0)
-                collision.layer = wallLayer;
-        }
-
-        /// <summary>
-        /// A knee-high dungeon railing. On the camera-facing side, one flat-backed
-        /// variant of the same masonry forms the parapet and continues below floor
-        /// level as a two-course cliff. All three courses share one face, without
-        /// the source wall's apron ledge or a step between the stacked pieces.
-        /// </summary>
-        private void BuildDungeonRailing(Transform parent, DungeonEdge edge, bool buildCliffFace)
-        {
-            const float cliffFaceScale = 1.5f;
-
-            Transform parapet = new GameObject("Low Dungeon Railing").transform;
-            parapet.SetParent(parent, false);
-            parapet.gameObject.AddComponent<DungeonContentRoot>();
-
-            Transform cliffFace = null;
-            if (buildCliffFace)
-            {
-                cliffFace = new GameObject("Cliff Face Below Floor").transform;
-                cliffFace.SetParent(parent, false);
-                cliffFace.gameObject.AddComponent<DungeonContentRoot>();
-            }
+            Transform parapet = BoundaryRoot(parent, "Low Dungeon Railing");
+            Transform cliffFace = BoundaryRoot(parent, "Cliff Face Below Floor");
 
             edgeWalls.Clear();
             DungeonRoomGeometry.AppendEdgeWalls(edgeWalls, edge, new DungeonPassage(false, 0, 0));
+            boundaryCourses.Clear();
             foreach (DungeonWallPiece piece in edgeWalls)
-            {
-                GameObject lip = InstantiateScaledWall(
-                    parapet,
-                    piece,
-                    BoundaryParapetHeightScale,
-                    piece.BaseLift,
-                    name: buildCliffFace ? "DungeonWall - Cliff Parapet" : null,
-                    prefabOverride: buildCliffFace ? boundaryShellPrefab : null
-                );
-                if (!buildCliffFace)
-                    continue;
+                DungeonRoomGeometry.AppendBoundaryCourses(boundaryCourses, piece);
 
-                if (boundaryShellPrefab == null)
-                    DungeonWallBaseTrim.RemoveLooseBase(lip);
-                float upperCourseLift =
-                    piece.BaseLift - DungeonWallPiece.SlabHeight * cliffFaceScale;
-                GameObject upperCourse = InstantiateScaledWall(
-                    cliffFace,
-                    piece,
-                    cliffFaceScale,
-                    upperCourseLift,
-                    name: "DungeonWall - Cliff Shell",
+            foreach (DungeonBoundaryCourse course in boundaryCourses)
+            {
+                GameObject built = InstantiateScaledWall(
+                    course.Parapet ? parapet : cliffFace,
+                    course.Piece,
+                    course.HeightScale,
+                    course.Lift,
+                    name: course.Parapet
+                        ? "DungeonWall - Cliff Parapet"
+                        : "DungeonWall - Cliff Shell",
                     prefabOverride: boundaryShellPrefab
                 );
-                GameObject lowerCourse = InstantiateScaledWall(
-                    cliffFace,
-                    piece,
-                    cliffFaceScale,
-                    upperCourseLift - DungeonWallPiece.SlabHeight * cliffFaceScale,
-                    name: "DungeonWall - Cliff Shell",
-                    prefabOverride: boundaryShellPrefab
-                );
+
+                // The flat-backed shell mesh has no apron to trim. Without it the
+                // ordinary wall stands in, and its base ledge would step out of the
+                // cliff face at every seam.
                 if (boundaryShellPrefab == null)
-                {
-                    DungeonWallBaseTrim.RemoveLooseBase(upperCourse);
-                    DungeonWallBaseTrim.RemoveLooseBase(lowerCourse);
-                }
+                    DungeonWallBaseTrim.RemoveLooseBase(built);
             }
+        }
+
+        private static Transform BoundaryRoot(Transform parent, string name)
+        {
+            Transform root = new GameObject(name).transform;
+            root.SetParent(parent, false);
+            root.gameObject.AddComponent<DungeonContentRoot>();
+            return root;
         }
 
         private void BuildArchways(Transform wallRun, DungeonEdge edge, DungeonPassage passage)

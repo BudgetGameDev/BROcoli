@@ -18,10 +18,20 @@ namespace BudgetGameDev.Games.Brocoli
     /// </summary>
     public class FrameCapture : MonoBehaviour
     {
+        /// <summary>
+        /// Interval frames one run may write. The pictures are a flipbook, not a
+        /// film: a twenty-minute coverage sweep at one frame a game-second is 1200
+        /// full-screen PNGs, which is most of a gigabyte per run and far more
+        /// pictures than anybody pages through. The budget buys the same coverage
+        /// of the session with a number of frames a person can actually read.
+        /// </summary>
+        public const int DefaultMaxFrames = 120;
+
         private string _framesDir;
         private string _eventsDir;
         private string _eventsPath;
         private float _interval = 0.5f;
+        private int _budget = DefaultMaxFrames;
         private int _index;
 
         public void Configure(AutoplayConfig cfg)
@@ -29,7 +39,8 @@ namespace BudgetGameDev.Games.Brocoli
             _framesDir = Path.Combine(cfg.OutDir, "frames");
             _eventsDir = Path.Combine(cfg.OutDir, "events");
             _eventsPath = Path.Combine(cfg.OutDir, "events.jsonl");
-            _interval = Mathf.Max(0.02f, cfg.Interval);
+            _budget = Mathf.Max(1, cfg.MaxFrames);
+            _interval = SpacedInterval(cfg.Interval, cfg.Duration, _budget);
 
             // Telemetry truncates its file per run, and the manifest has to agree:
             // two runs sharing one output directory should read as the later one
@@ -39,6 +50,21 @@ namespace BudgetGameDev.Games.Brocoli
                 Directory.CreateDirectory(cfg.OutDir);
                 File.WriteAllText(_eventsPath, string.Empty);
             }
+        }
+
+        /// <summary>
+        /// The interval that spreads <paramref name="budget"/> pictures over a run
+        /// of <paramref name="duration"/> game-seconds, never finer than the tier
+        /// asked for. Coarsening rather than truncating is the point: a run held to
+        /// its budget still photographs its own ending, which is where a session
+        /// that went wrong shows it.
+        /// </summary>
+        internal static float SpacedInterval(float interval, float duration, int budget)
+        {
+            float requested = Mathf.Max(0.02f, interval);
+            if (duration <= 0f || budget <= 1)
+                return requested;
+            return Mathf.Max(requested, duration / (budget - 1));
         }
 
         private void Start()
@@ -75,13 +101,20 @@ namespace BudgetGameDev.Games.Brocoli
                 }
 
                 acc += delta;
-                if (first || acc >= _interval)
-                {
-                    first = false;
-                    acc = 0f;
-                    capture(Path.Combine(_framesDir, $"frame_{_index:D5}.png"));
-                    _index++;
-                }
+                if (!first && acc < _interval)
+                    continue;
+
+                first = false;
+                acc = 0f;
+
+                // A run that outlives the duration the spacing was computed for --
+                // a marathon that keeps going, a tier driven past its preset --
+                // would otherwise walk straight past its budget.
+                if (_index >= _budget)
+                    continue;
+
+                capture(Path.Combine(_framesDir, $"frame_{_index:D5}.png"));
+                _index++;
             }
         }
 

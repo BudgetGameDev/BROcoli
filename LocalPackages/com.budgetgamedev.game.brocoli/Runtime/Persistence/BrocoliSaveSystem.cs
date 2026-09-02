@@ -135,6 +135,7 @@ namespace BudgetGameDev.Games.Brocoli
             }
 
             Write(save);
+            AutoplayFeatureLog.Record(AutoplayFeatures.SaveCheckpointed);
         }
 
         internal static bool TryLoad(int slot, out BrocoliRunSave save)
@@ -184,8 +185,11 @@ namespace BudgetGameDev.Games.Brocoli
         internal static void DeleteActiveSave()
         {
             int slot = ActiveSlot;
-            if (slot >= 0)
-                DeleteSave(slot);
+            if (slot < 0)
+                return;
+
+            DeleteSave(slot);
+            AutoplayFeatureLog.Record(AutoplayFeatures.SaveDropped);
         }
 
         internal static string Serialize(BrocoliRunSave save) => JsonUtility.ToJson(save);

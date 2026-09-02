@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace BudgetGameDev.Games.Brocoli
@@ -38,6 +39,27 @@ namespace BudgetGameDev.Games.Brocoli
                 HasPickup ? Vector2.Distance(from, Pickup) : float.PositiveInfinity;
         }
 
+        private static int pickupMask;
+
+        /// <summary>
+        /// Every layer but the one the level stands on. Walls, props, cliff
+        /// courses, and floor trim all share the wall layer, and including it
+        /// makes an overlap query at the objective radius return far more
+        /// colliders than any buffer holds -- in no particular order, so the orb
+        /// underfoot is dropped as readily as a slab at the far end of the sweep,
+        /// and the agent walks past loot it is standing next to. Nothing on that
+        /// layer is worth walking to; chests are found through their own register.
+        /// </summary>
+        private static int PickupMask
+        {
+            get
+            {
+                if (pickupMask == 0)
+                    pickupMask = ~LayerMask.GetMask("Wall");
+                return pickupMask;
+            }
+        }
+
         /// <summary>
         /// Sweeps for chests and loose pickups. A chest is the one reward the game
         /// never brings to the player, so an agent that does not deliberately walk
@@ -45,14 +67,19 @@ namespace BudgetGameDev.Games.Brocoli
         /// </summary>
         private ObjectiveObservation ObserveObjectives(Vector2 position)
         {
-            int count = GroundPlane.OverlapCircle(position, objectiveRadius, objectiveBuffer);
-            var chest = new NearestTarget(position);
+            int count = GroundPlane.OverlapCircle(
+                position,
+                objectiveRadius,
+                objectiveBuffer,
+                PickupMask
+            );
             var boost = new NearestTarget(position);
             var experience = new NearestTarget(position);
 
             for (int index = 0; index < count; index++)
-                Classify(objectiveBuffer[index], ref chest, ref boost, ref experience);
+                Classify(objectiveBuffer[index], ref boost, ref experience);
 
+            NearestTarget chest = NearestChest(position, objectiveRadius);
             NearestTarget pickup = PreferredPickup(boost, experience);
             return new ObjectiveObservation(
                 chest.Found,
@@ -65,7 +92,6 @@ namespace BudgetGameDev.Games.Brocoli
         /// <summary>Sorts one overlapping collider into the target it belongs to.</summary>
         internal static void Classify(
             Collider candidate,
-            ref NearestTarget chest,
             ref NearestTarget boost,
             ref NearestTarget experience
         )
@@ -74,12 +100,36 @@ namespace BudgetGameDev.Games.Brocoli
                 return;
 
             Vector2 spot = candidate.transform.position.ToGround();
-            if (candidate.GetComponentInParent<LootChest>() != null)
-                chest.Offer(spot);
-            else if (candidate.GetComponentInParent<BoostBase>() != null)
+            if (candidate.GetComponentInParent<BoostBase>() != null)
                 boost.Offer(spot);
             else if (candidate.GetComponentInParent<ExpGain>() != null)
                 experience.Offer(spot);
+        }
+
+        /// <summary>
+        /// The nearest chest still standing, read from the register rather than
+        /// swept for. See <see cref="LootChest.Unopened"/> for why a sweep cannot
+        /// find one reliably.
+        /// </summary>
+        internal static NearestTarget NearestChest(Vector2 position, float radius)
+        {
+            var chest = new NearestTarget(position);
+            IReadOnlyList<LootChest> standing = LootChest.Unopened;
+            for (int index = 0; index < standing.Count; index++)
+            {
+                // A chest torn down without its disable hook running never happens
+                // in a player, but the register is static and outlives an editor
+                // scene, so a destroyed entry must not take the sweep with it.
+                LootChest candidate = standing[index];
+                if (candidate == null)
+                    continue;
+
+                Vector2 spot = candidate.transform.position.ToGround();
+                if (Vector2.Distance(position, spot) <= radius)
+                    chest.Offer(spot);
+            }
+
+            return chest;
         }
 
         /// <summary>
