@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.IO;
 using UnityEditor;
 using UnityEngine;
 
@@ -118,6 +119,11 @@ namespace BudgetGameDev.Games.Brocoli.Editor
 
         private static Mesh WriteMesh(Mesh mesh, string path)
         {
+            // BuildMesh names the mesh after the kit mesh it grew from, which is
+            // the wrong name once it is written to its own asset: Unity warns on
+            // every import when a main object's name differs from its file name.
+            mesh.name = Path.GetFileNameWithoutExtension(path);
+
             var existing = AssetDatabase.LoadAssetAtPath<Mesh>(path);
             if (existing == null)
             {
@@ -129,6 +135,9 @@ namespace BudgetGameDev.Games.Brocoli.Editor
             // already reference the mesh survive a re-bake.
             existing.Clear();
             EditorUtility.CopySerialized(mesh, existing);
+            // CopySerialized carries the name across too, so it is restored here
+            // rather than relying on what the existing asset happened to hold.
+            existing.name = mesh.name;
             EditorUtility.SetDirty(existing);
             Object.DestroyImmediate(mesh);
             return existing;
