@@ -84,20 +84,47 @@ namespace BudgetGameDev.Games.Brocoli.Tests
         }
 
         [Test]
-        public void WasdSocdUsesTheLastPressedDirectionOnEachAxis()
+        public void WasdSocdKeepsWalkingWhenTheOpposingKeyIsTheOnlyOtherInput()
         {
             GameObject host = new("SOCD input test");
             try
             {
                 PlayerInputHandler input = host.AddComponent<PlayerInputHandler>();
 
+                // A held with a D tap has no other axis to turn against, so the
+                // walk continues left until A itself is released.
                 Assert.That(input.ResolveWasd(true, false, false, false), Is.EqualTo(Vector2.left));
-                Assert.That(input.ResolveWasd(true, true, false, false), Is.EqualTo(Vector2.right));
+                Assert.That(input.ResolveWasd(true, true, false, false), Is.EqualTo(Vector2.left));
                 Assert.That(input.ResolveWasd(true, false, false, false), Is.EqualTo(Vector2.left));
+                Assert.That(input.ResolveWasd(true, true, false, false), Is.EqualTo(Vector2.left));
+                Assert.That(input.ResolveWasd(false, true, false, false), Is.EqualTo(Vector2.right));
 
                 Assert.That(input.ResolveWasd(false, false, false, true), Is.EqualTo(Vector2.up));
-                Assert.That(input.ResolveWasd(false, false, true, true), Is.EqualTo(Vector2.down));
-                Assert.That(input.ResolveWasd(false, false, false, true), Is.EqualTo(Vector2.up));
+                Assert.That(input.ResolveWasd(false, false, true, true), Is.EqualTo(Vector2.up));
+                Assert.That(input.ResolveWasd(false, false, true, false), Is.EqualTo(Vector2.down));
+            }
+            finally
+            {
+                Object.DestroyImmediate(host);
+            }
+        }
+
+        [Test]
+        public void WasdSocdTurnsAroundWhileTheOtherAxisKeepsItsDirection()
+        {
+            GameObject host = new("SOCD diagonal input test");
+            try
+            {
+                PlayerInputHandler input = host.AddComponent<PlayerInputHandler>();
+
+                // Hold W and A, then tap D: the turn applies to the horizontal
+                // axis alone and releasing D falls back to the still-held A.
+                Vector2 upLeft = new Vector2(-1f, 1f).normalized;
+                Vector2 upRight = new Vector2(1f, 1f).normalized;
+
+                Assert.That(input.ResolveWasd(true, false, false, true), Is.EqualTo(upLeft));
+                Assert.That(input.ResolveWasd(true, true, false, true), Is.EqualTo(upRight));
+                Assert.That(input.ResolveWasd(true, false, false, true), Is.EqualTo(upLeft));
             }
             finally
             {
@@ -110,17 +137,25 @@ namespace BudgetGameDev.Games.Brocoli.Tests
         {
             var axis = new PlayerInputHandler.LastInputPriorityAxis();
 
-            Assert.That(axis.Resolve(true, true), Is.Zero);
-            Assert.That(axis.Resolve(false, true), Is.EqualTo(1f));
-            Assert.That(axis.Resolve(false, false), Is.Zero);
-            Assert.That(axis.Resolve(true, true), Is.EqualTo(1f));
+            // Both from neutral has no direction to fall back on and defaults
+            // to the negative key.
+            Assert.That(axis.Resolve(true, true, true), Is.EqualTo(-1f));
+            Assert.That(axis.Resolve(false, false, true), Is.Zero);
 
-            Assert.That(axis.Resolve(true, false), Is.EqualTo(-1f));
-            Assert.That(axis.Resolve(false, false), Is.Zero);
-            Assert.That(axis.Resolve(true, true), Is.EqualTo(-1f));
+            // The direction last moved outlives the release that follows it.
+            Assert.That(axis.Resolve(false, true, true), Is.EqualTo(1f));
+            Assert.That(axis.Resolve(false, false, true), Is.Zero);
+            Assert.That(axis.Resolve(true, true, true), Is.EqualTo(1f));
+
+            // A fresh press turns the axis around only while the other axis
+            // steers; without it the held direction stays.
+            Assert.That(axis.Resolve(false, true, true), Is.EqualTo(1f));
+            Assert.That(axis.Resolve(true, true, false), Is.EqualTo(1f));
+            Assert.That(axis.Resolve(false, true, false), Is.EqualTo(1f));
+            Assert.That(axis.Resolve(true, true, true), Is.EqualTo(-1f));
 
             axis.ResetHeldState();
-            Assert.That(axis.Resolve(true, true), Is.EqualTo(-1f));
+            Assert.That(axis.Resolve(true, true, true), Is.EqualTo(-1f));
         }
 
         [Test]

@@ -132,8 +132,14 @@ namespace BudgetGameDev.Games.Brocoli
 
         internal Vector2 ResolveWasd(bool left, bool right, bool down, bool up)
         {
+            // Tapping the opposing key only turns the player while the other
+            // axis is steering: A held with a D tap keeps walking left, but W
+            // and A held with a D tap swings the diagonal over to W and D.
             return ClampMovementInput(
-                new Vector2(_horizontalWasd.Resolve(left, right), _verticalWasd.Resolve(down, up))
+                new Vector2(
+                    _horizontalWasd.Resolve(left, right, down || up),
+                    _verticalWasd.Resolve(down, up, left || right)
+                )
             );
         }
 
@@ -160,29 +166,46 @@ namespace BudgetGameDev.Games.Brocoli
         private static Vector2 ClampMovementInput(Vector2 input) =>
             input.sqrMagnitude > 1f ? input.normalized : input;
 
+        /// <summary>
+        /// Resolves an opposing key pair (SOCD) to the direction used last.
+        /// While both are held the axis keeps the direction it last moved, so
+        /// tapping the opposite key never reverses the axis on its own. A tap
+        /// only takes over when <paramref name="turnaroundAllowed"/> says the
+        /// other axis is steering, which turns a diagonal 90 degrees instead of
+        /// spinning it around. An axis that has never moved defaults to its
+        /// negative key: A beats D, S beats W.
+        /// </summary>
         internal struct LastInputPriorityAxis
         {
             private bool _negativeWasHeld;
             private bool _positiveWasHeld;
             private float _lastDirection;
 
-            internal float Resolve(bool negativeHeld, bool positiveHeld)
+            internal float Resolve(bool negativeHeld, bool positiveHeld, bool turnaroundAllowed)
             {
                 bool negativePressed = negativeHeld && !_negativeWasHeld;
                 bool positivePressed = positiveHeld && !_positiveWasHeld;
-
-                if (negativePressed != positivePressed)
-                    _lastDirection = positivePressed ? 1f : -1f;
-                else if (negativeHeld != positiveHeld)
-                    _lastDirection = positiveHeld ? 1f : -1f;
-
                 _negativeWasHeld = negativeHeld;
                 _positiveWasHeld = positiveHeld;
+
                 if (negativeHeld && positiveHeld)
+                {
+                    if (turnaroundAllowed && negativePressed != positivePressed)
+                        _lastDirection = positivePressed ? 1f : -1f;
+                    else if (_lastDirection == 0f)
+                        _lastDirection = -1f;
+
                     return _lastDirection;
+                }
+
                 if (positiveHeld)
-                    return 1f;
-                return negativeHeld ? -1f : 0f;
+                    return _lastDirection = 1f;
+                if (negativeHeld)
+                    return _lastDirection = -1f;
+
+                // Release leaves _lastDirection alone: it is what a later press
+                // of both keys at once falls back to.
+                return 0f;
             }
 
             internal void ResetHeldState()
