@@ -18,6 +18,14 @@ namespace BudgetGameDev.Games.Brocoli
     {
         public static bool IsActive { get; private set; }
 
+        /// <summary>
+        /// Whether the run may checkpoint itself into a real save slot. Off for an
+        /// ordinary bot run, which must not claim one of the player's ten; on for
+        /// the save journey, whose whole subject is checkpointing and which hands
+        /// back every slot it claimed when the run ends.
+        /// </summary>
+        internal static bool CheckpointsEnabled { get; private set; }
+
         private AutoplayConfig _config;
         private bool _wired;
         private float _volumeBeforeRun = 1f;
@@ -34,6 +42,7 @@ namespace BudgetGameDev.Games.Brocoli
         internal static AutoplayController StartAutoplay(AutoplayConfig config)
         {
             IsActive = true;
+            CheckpointsEnabled = config.ExerciseSaveJourney;
             AutoplayFeatureLog.Reset();
             AutoplayScalingLog.Reset();
 
@@ -99,6 +108,13 @@ namespace BudgetGameDev.Games.Brocoli
         {
             if (_config.DriveMenus)
                 gameObject.AddComponent<AutoplaySessionDirector>();
+
+            // Created with the run rather than with the dungeon, and ahead of the
+            // telemetry: the journey has to count the free save slots while they are
+            // still the player's, and it reads what a deliberate death cost on the
+            // frame it happens rather than after the telemetry has restarted the run.
+            if (_config.ExerciseSaveJourney)
+                gameObject.AddComponent<AutoplaySaveJourneyDirector>();
 
             loadScene(
                 _config.DriveMenus

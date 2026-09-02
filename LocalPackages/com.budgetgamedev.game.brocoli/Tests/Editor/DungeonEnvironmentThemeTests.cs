@@ -81,37 +81,134 @@ namespace BudgetGameDev.Games.Brocoli.Tests
                         layout.EnvironmentAt(DungeonLayout.EdgeBetween(upper, DungeonLayout.North)),
                         Is.EqualTo(layout.EnvironmentAt(upper))
                     );
+
+                    // An edge with playable floor on neither side is off the map
+                    // rather than on its rim. Nothing the generator builds asks
+                    // about one, but the answer still has to be an environment
+                    // rather than whichever theme the enum happens to start on.
+                    var offMap = new Vector2Int(x, south + 4);
+                    Assert.That(layout.IsPlayableRoom(offMap), Is.False);
+                    Assert.That(
+                        layout.EnvironmentAt(
+                            DungeonLayout.EdgeBetween(offMap, DungeonLayout.North)
+                        ),
+                        Is.EqualTo(layout.EnvironmentAt(offMap))
+                    );
                 }
             }
         }
 
+        /// <summary>
+        /// Every environment answers for itself. A theme with no profile of its own
+        /// would silently borrow the dungeon's carpentry, which is exactly the bug
+        /// the profile table exists to prevent.
+        /// </summary>
         [Test]
-        public void DungeonBoundariesAreRailingsAndCavesUseGroundedRocks()
+        public void EveryEnvironmentHasAProfileOfItsOwn()
+        {
+            foreach (
+                DungeonLayout.EnvironmentTheme theme in System.Enum.GetValues(
+                    typeof(DungeonLayout.EnvironmentTheme)
+                )
+            )
+            {
+                DungeonEnvironmentProfile profile = DungeonEnvironmentProfile.Of(theme);
+                Assert.That(
+                    profile.RubbleTokens,
+                    Is.Not.Empty,
+                    $"{theme} has no terrain debris of its own"
+                );
+                Assert.That(
+                    profile.ClutterTokens,
+                    Is.Not.Empty,
+                    $"{theme} has no clutter of its own"
+                );
+                Assert.That(
+                    profile.PathwayTokens,
+                    Is.Not.Empty,
+                    $"{theme} has nothing to dress a route with"
+                );
+                Assert.That(
+                    profile.BoundaryTokens,
+                    profile.BoundaryStyle == DungeonBoundaryStyle.RockLine
+                        ? Is.Not.Empty
+                        : Is.Empty,
+                    $"{theme} names boundary props it will never place, or none it needs"
+                );
+            }
+        }
+
+        /// <summary>
+        /// Every environment builds the same structural shell, and every boundary
+        /// style builds it: the theme decides what stands on the masonry, never
+        /// whether there is masonry. A theme whose own boundary kit is still
+        /// missing used to get an invisible collision line, which is a stretch of
+        /// level that simply ends.
+        /// </summary>
+        [Test]
+        public void EveryEnvironmentAndEdgeStyleBuildsTheSameOuterShell()
+        {
+            var host = new GameObject("Outer shell host");
+            var root = new GameObject("Outer shell root");
+            try
+            {
+                DungeonRoomBuilder builder = DungeonPropFixtures.Builder(host);
+                foreach (
+                    DungeonLayout.EnvironmentTheme theme in System.Enum.GetValues(
+                        typeof(DungeonLayout.EnvironmentTheme)
+                    )
+                )
+                foreach (
+                    DungeonEdgeStyle style in new[]
+                    {
+                        DungeonEdgeStyle.SolidBoundary,
+                        DungeonEdgeStyle.SouthCliff,
+                        DungeonEdgeStyle.SideCliff,
+                    }
+                )
+                {
+                    bool horizontal = style != DungeonEdgeStyle.SideCliff;
+                    GameObject built = builder.BuildEdge(
+                        root.transform,
+                        new DungeonEdge(0, -1, horizontal),
+                        new DungeonPassage(false, 0, 0),
+                        style,
+                        theme
+                    );
+
+                    Transform parapet = built.transform.Find("Low Dungeon Railing");
+                    Transform cliff = built.transform.Find("Cliff Face Below Floor");
+                    Assert.That(parapet, Is.Not.Null, $"{theme} {style} has no parapet");
+                    Assert.That(cliff, Is.Not.Null, $"{theme} {style} has no cliff face");
+
+                    int slots = horizontal ? DungeonLayout.RoomTilesX : DungeonLayout.RoomTilesZ;
+                    Assert.That(parapet.childCount, Is.EqualTo(slots), $"{theme} {style} lip");
+                    Assert.That(
+                        cliff.childCount,
+                        Is.EqualTo(slots * DungeonRoomGeometry.CliffCourses),
+                        $"{theme} {style} cliff courses"
+                    );
+                    Assert.That(
+                        built.GetComponentsInChildren<Renderer>(),
+                        Is.Not.Empty,
+                        $"{theme} {style} builds nothing anyone can see"
+                    );
+                }
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+                Object.DestroyImmediate(host);
+            }
+        }
+
+        [Test]
+        public void CavesDressTheirBoundaryWithGroundedRocksAndDungeonsDoNot()
         {
             var host = new GameObject("Environment boundary host");
             var root = new GameObject("Environment boundary root");
             try
             {
-                DungeonRoomBuilder builder = DungeonPropFixtures.Builder(host);
-                GameObject dungeon = builder.BuildEdge(
-                    root.transform,
-                    new DungeonEdge(0, -1, true),
-                    new DungeonPassage(false, 0, 0),
-                    DungeonEdgeStyle.SouthCliff,
-                    DungeonLayout.EnvironmentTheme.Dungeon
-                );
-                Assert.That(dungeon.transform.Find("Low Dungeon Railing"), Is.Not.Null);
-
-                GameObject cave = builder.BuildEdge(
-                    root.transform,
-                    new DungeonEdge(0, 0, true),
-                    new DungeonPassage(false, 0, 0),
-                    DungeonEdgeStyle.SolidBoundary,
-                    DungeonLayout.EnvironmentTheme.Cave
-                );
-                Assert.That(cave.GetComponentsInChildren<Renderer>(), Is.Empty);
-                Assert.That(cave.GetComponentsInChildren<BoxCollider>().Length, Is.EqualTo(1));
-
                 DungeonPropPlacer placer = DungeonPropFixtures.Placer(
                     host,
                     DungeonPropFixtures.AllPrefabs()

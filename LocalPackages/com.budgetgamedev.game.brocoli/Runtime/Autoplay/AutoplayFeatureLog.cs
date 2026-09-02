@@ -49,10 +49,17 @@ namespace BudgetGameDev.Games.Brocoli
         internal static bool Reached(string feature) => Count(feature) > 0;
 
         /// <summary>Required features this run never reached, in catalogue order.</summary>
-        internal static List<string> Missing()
+        internal static List<string> Missing() => Missing(AutoplayFeatures.Required);
+
+        /// <summary>
+        /// The same question asked of one scenario's own list, because what a run
+        /// had to reach depends on what it was asked to drive: a coverage sweep owes
+        /// every system, and a journey owes the steps of the journey.
+        /// </summary>
+        internal static List<string> Missing(string[] required)
         {
             var missing = new List<string>();
-            foreach (string feature in AutoplayFeatures.Required)
+            foreach (string feature in required)
                 if (!Reached(feature))
                     missing.Add(feature);
             return missing;

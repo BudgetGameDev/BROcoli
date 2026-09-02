@@ -116,9 +116,9 @@ namespace BudgetGameDev.Games.Brocoli
         /// <see cref="RunEndHigh"/>. A run reaches exactly to its grid corner,
         /// where up to three other runs meet it: its own collinear continuation
         /// and the two perpendicular runs on either side. Where one of those is
-        /// a boundary built from masonry, the parapet is shorter than an
-        /// ordinary shared railing, and the corner reads as a broken join
-        /// unless the piece landing on it is built to match.
+        /// an outer boundary, its parapet is shorter than an ordinary shared
+        /// railing, and the corner reads as a broken join unless the piece
+        /// landing on it is built to match.
         /// </summary>
         public int BoundaryParapetJoinMask(DungeonEdge edge)
         {
@@ -152,18 +152,13 @@ namespace BudgetGameDev.Games.Brocoli
         }
 
         /// <summary>
-        /// Whether this edge is an outer boundary that an environment dresses
-        /// with structural masonry. Rock-line and undressed boundaries put no
-        /// wall piece on the corner at all, so nothing joins them.
+        /// Whether this edge is an outer boundary, and so turns a parapet at the
+        /// corners it reaches. Every boundary is built from the same structural
+        /// masonry whatever environment it stands in, so every one of them is a
+        /// corner a shared run has to meet at the parapet's height.
         /// </summary>
-        private bool BuildsBoundaryParapet(DungeonEdge edge)
-        {
-            DungeonEdgeStyle style = PlayableEdgeStyle(edge);
-            if (style == DungeonEdgeStyle.Interior || style == DungeonEdgeStyle.OpenCrossing)
-                return false;
-            return DungeonEnvironmentProfile.Of(EnvironmentAt(edge)).BoundaryStyle
-                == DungeonBoundaryStyle.MasonryRailing;
-        }
+        private bool BuildsBoundaryParapet(DungeonEdge edge) =>
+            DungeonRoomGeometry.IsPlatformBoundary(PlayableEdgeStyle(edge));
 
         /// <summary>
         /// A broad crossing between playable neighbours. East-west wall runs can

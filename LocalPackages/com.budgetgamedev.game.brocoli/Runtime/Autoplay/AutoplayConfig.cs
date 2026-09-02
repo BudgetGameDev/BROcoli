@@ -28,6 +28,21 @@ namespace BudgetGameDev.Games.Brocoli
         public bool ExerciseFeatures = true; // drive the optional systems, not just combat
 
         /// <summary>
+        /// Drive the player's own journey: make a run from the menu, quit to the
+        /// menu and resume it, do it again with a second character, and then die.
+        /// Off by default because it is the one thing a run does that writes real
+        /// save slots, which only the journey knows how to hand back.
+        /// </summary>
+        public bool ExerciseSaveJourney;
+
+        /// <summary>
+        /// Interval frames the run may write. The tier's interval is coarsened to
+        /// spread this many pictures over the whole session rather than the run
+        /// being truncated, so a budget never costs a run its later frames.
+        /// </summary>
+        public int MaxFrames = FrameCapture.DefaultMaxFrames;
+
+        /// <summary>
         /// Event triggers to photograph, as <c>event[#occurrence|*][+delay]</c>. This
         /// is what lets an agent ask a batch run a specific question -- show me the
         /// first experience orb that drops -- instead of reading every frame.
@@ -96,6 +111,12 @@ namespace BudgetGameDev.Games.Brocoli
                 case "--no-features":
                     ExerciseFeatures = false;
                     return false;
+                case "--journey":
+                    ExerciseSaveJourney = true;
+                    return false;
+                case "--no-journey":
+                    ExerciseSaveJourney = false;
+                    return false;
                 default:
                     ApplyValueArgument(argument);
                     return false;
@@ -112,6 +133,8 @@ namespace BudgetGameDev.Games.Brocoli
                 TryFloat(argument.Substring(11), ref Interval);
             else if (argument.StartsWith("--timestep=", StringComparison.Ordinal))
                 TryFloat(argument.Substring(11), ref Timestep);
+            else if (argument.StartsWith("--max-frames=", StringComparison.Ordinal))
+                TryInt(argument.Substring(13), ref MaxFrames);
             else if (argument.StartsWith("--minlevel=", StringComparison.Ordinal))
                 TryInt(argument.Substring(11), ref MinLevel);
             else if (argument.StartsWith("--out=", StringComparison.Ordinal))
@@ -130,6 +153,7 @@ namespace BudgetGameDev.Games.Brocoli
             TryFloat(environment("BROCOLI_DURATION"), ref Duration);
             TryFloat(environment("BROCOLI_INTERVAL"), ref Interval);
             TryFloat(environment("BROCOLI_TIMESTEP"), ref Timestep);
+            TryInt(environment("BROCOLI_MAX_FRAMES"), ref MaxFrames);
             TryText(environment("BROCOLI_OUT"), ref OutDir);
             TryText(environment("BROCOLI_SCENARIO"), ref Scenario);
 
@@ -160,8 +184,10 @@ namespace BudgetGameDev.Games.Brocoli
 
         public override string ToString() =>
             $"tier={(Tier.Length > 0 ? Tier : "custom")} seed={Seed} duration={Duration}s "
-            + $"interval={Interval}s timestep={Timestep:0.####} deterministic={Deterministic} "
+            + $"interval={Interval}s maxFrames={MaxFrames} timestep={Timestep:0.####} "
+            + $"deterministic={Deterministic} "
             + $"scenario={Scenario} menus={DriveMenus} features={ExerciseFeatures} "
+            + $"journey={ExerciseSaveJourney} "
             + $"captureOn={(CaptureOn.Count > 0 ? string.Join(";", CaptureOn) : "none")} "
             + $"sha={Sha} out={OutDir}";
 

@@ -131,6 +131,53 @@ namespace BudgetGameDev.Games.Brocoli
             FocusSave(savesFocus, false);
         }
 
+        /// <summary>
+        /// Presses New Run, opening the panel first because that is where the
+        /// button lives. Autoplay drives the journey through here rather than
+        /// calling <see cref="MainMenu.playGame"/>: a panel that has stopped
+        /// offering a new run when a slot is free is exactly the defect worth
+        /// finding, and calling past it would hide that.
+        /// </summary>
+        /// <returns>False when the panel is not offering a new run.</returns>
+        internal bool PressNewRun()
+        {
+            if (!SavesOpen)
+                OpenSaves();
+
+            if (newRunButton == null || !newRunButton.interactable)
+                return false;
+
+            newRunButton.onClick.Invoke();
+            return true;
+        }
+
+        /// <summary>
+        /// Picks the row holding a run and presses Play -- the two presses a player
+        /// makes to resume one. Going through the rows is the point: a panel that
+        /// lists the wrong runs, or a Play button that came unwired, fails here
+        /// rather than being skipped past.
+        /// </summary>
+        /// <returns>False when no row is showing that slot.</returns>
+        internal bool PressPlayOnRun(int slot)
+        {
+            if (!SavesOpen)
+                OpenSaves();
+
+            for (int row = 0; row < visibleSaveCount; row++)
+            {
+                if (saveRows[row].Slot != slot)
+                    continue;
+
+                // Picking the row is what offers Play, so the two go together here the
+                // same way they do under a player's hands.
+                FocusRow(row);
+                playSaveButton.onClick.Invoke();
+                return true;
+            }
+
+            return false;
+        }
+
         private void DeleteSelectedRun()
         {
             if (selectedRow < 0 || selectedRow >= visibleSaveCount)

@@ -1,3 +1,4 @@
+using System.Reflection;
 using NUnit.Framework;
 using UnityEngine;
 
@@ -64,6 +65,51 @@ namespace BudgetGameDev.Games.Brocoli.Tests
                 Is.False
             );
         }
+
+        /// <summary>
+        /// The probe exists because autoplay switches checkpointing off. The one run
+        /// that needs it back is the save journey, whose whole subject is the slots --
+        /// and which hands back every slot it claimed on its way out.
+        /// </summary>
+        [Test]
+        public void CheckpointingIsOffForAnOrdinaryBotRunAndOnForTheSaveJourney()
+        {
+            try
+            {
+                SetAutoplayFlag("IsActive", true);
+                SetAutoplayFlag("CheckpointsEnabled", false);
+                BrocoliAutosaveController.EnsurePresent();
+                Assert.That(
+                    Object.FindAnyObjectByType<BrocoliAutosaveController>(),
+                    Is.Null,
+                    "a throwaway run must not claim one of the player's ten slots"
+                );
+
+                SetAutoplayFlag("CheckpointsEnabled", true);
+                BrocoliAutosaveController.EnsurePresent();
+                BrocoliAutosaveController checkpointing =
+                    Object.FindAnyObjectByType<BrocoliAutosaveController>();
+                Assert.That(
+                    checkpointing,
+                    Is.Not.Null,
+                    "the journey is the one run that has to write real checkpoints"
+                );
+                Object.DestroyImmediate(checkpointing.gameObject);
+            }
+            finally
+            {
+                SetAutoplayFlag("IsActive", false);
+                SetAutoplayFlag("CheckpointsEnabled", false);
+            }
+        }
+
+        private static void SetAutoplayFlag(string property, bool value) =>
+            typeof(AutoplayController)
+                .GetField(
+                    $"<{property}>k__BackingField",
+                    BindingFlags.Static | BindingFlags.NonPublic
+                )
+                .SetValue(null, value);
 
         /// <summary>Runs the probe against a fixed capture result.</summary>
         private static bool BrocoliSaveProbeCapture(BrocoliRunSave captured) =>

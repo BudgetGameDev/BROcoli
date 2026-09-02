@@ -17,7 +17,9 @@ namespace BudgetGameDev.Games.Brocoli
                 _damage.OnGameOver -= OnGameOver;
 
             WriteSample();
-            List<string> missing = AutoplayFeatureLog.Missing();
+            List<string> missing = AutoplayFeatureLog.Missing(
+                AutoplayFeatures.RequiredFor(_cfg.Scenario)
+            );
             List<string> findings = ProgressionBalance.Evaluate(Progression, Scaling);
             bool passed = EvaluateScenario(reason, missing, findings);
             WriteSummary(reason, passed, missing, findings);
@@ -63,6 +65,10 @@ namespace BudgetGameDev.Games.Brocoli
                     return level >= _cfg.MinLevel; // leveled up enough
                 case "coverage":
                     // Surviving is not the point here: reaching every system is.
+                    return missing.Count == 0;
+                case AutoplayFeatures.JourneyScenario:
+                    // Nor here: the run is graded on having been all the way through
+                    // making, resuming, and losing a character.
                     return missing.Count == 0;
                 case "balance":
                     // Nor is surviving the point here: staying in the difficulty band is.

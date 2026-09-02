@@ -64,20 +64,27 @@ namespace BudgetGameDev.Games.Brocoli.Tests
             Assert.That(totalSouth, Is.GreaterThan(0), "the corpus has no south-row join");
         }
 
+        /// <summary>
+        /// A cave dresses its boundary with loose rock, but it stands that rock on
+        /// the same structural parapet every other environment gets, so the shared
+        /// run reaching that corner still has a parapet to meet.
+        /// </summary>
         [Test]
-        public void ARockLineBoundaryLeavesTheSharedRunAtItsOwnHeight()
+        public void ARockLineBoundaryStillTurnsAParapetAtItsCorner()
         {
             var layout = new DungeonLayout(1);
 
-            // Caves dress their boundary with loose rock rather than masonry, so
-            // there is no parapet at the corner for a run to match.
             int caveColumn = ColumnOfTheme(layout, DungeonLayout.EnvironmentTheme.Cave);
             Assert.That(
                 TryEastEdge(layout, caveColumn, north: true, out DungeonEdge caveEdge),
                 Is.True,
                 "no cave run to test"
             );
-            Assert.That(layout.BoundaryParapetJoinMask(caveEdge), Is.Zero);
+            Assert.That(
+                layout.BoundaryParapetJoinMask(caveEdge) & DungeonLayout.RunEndHigh,
+                Is.Not.Zero,
+                "the cave run ignores the boundary above it"
+            );
         }
 
         [Test]

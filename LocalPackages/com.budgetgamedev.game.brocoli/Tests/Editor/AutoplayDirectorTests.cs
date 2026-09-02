@@ -202,6 +202,27 @@ namespace BudgetGameDev.Games.Brocoli.Tests
 
             Assert.That(loaded, Is.EqualTo(new[] { AutoplaySessionDirector.MenuScene }));
             Assert.That(throughMenus.GetComponent<AutoplaySessionDirector>(), Is.Not.Null);
+            Assert.That(
+                throughMenus.GetComponent<AutoplaySaveJourneyDirector>(),
+                Is.Null,
+                "walking the menus is not the same as making and losing a character"
+            );
+
+            loaded.Clear();
+            AutoplayController journey = Create<AutoplayController>("Coverage journey entry");
+            Set(
+                journey,
+                "_config",
+                new AutoplayConfig { DriveMenus = true, ExerciseSaveJourney = true }
+            );
+
+            journey.EnterGame(loaded.Add);
+
+            Assert.That(
+                journey.GetComponent<AutoplaySaveJourneyDirector>(),
+                Is.Not.Null,
+                "the journey is stood up with the run, before the menu claims a save slot"
+            );
         }
 
         private static readonly string[] ProbeNames =

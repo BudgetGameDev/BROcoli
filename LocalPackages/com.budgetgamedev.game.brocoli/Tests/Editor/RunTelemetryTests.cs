@@ -235,7 +235,7 @@ namespace BudgetGameDev.Games.Brocoli.Tests
 
         [Test]
         public void DeathDuringASweepStartsAnotherLifeInsteadOfEndingTheRun(
-            [Values("coverage", "balance")] string scenario
+            [Values("coverage", "balance", "journey")] string scenario
         )
         {
             SetConfigScenario(scenario);

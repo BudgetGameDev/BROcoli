@@ -52,14 +52,16 @@ pictures below read as ordinary screenshots.
 | `marathon` | 3h | Does a long session stay stable and playable |
 | `coverage` | 20m | From the main menu, asserting every system was used |
 | `balance` | 15m | Uninterrupted play, graded on progression and difficulty |
+| `journey` | 4m | Two characters made, resumed from the menu, and died in |
 | `tune` | 10m | Real-time lighting tuning; no fast-forward |
 
 ### Options
 
-Runner options are `-tier`, `-seed`, `-out`, `-build`, and `-timeout`. Anything
-else is handed to the player untouched: `-duration`, `-interval`, `-timestep`,
-`-scenario`, `-minlevel`, `-tuning`, `-capture-on`, `-menus`/`-noMenus`, and
-`-features`/`-noFeatures`. An explicit option always beats the tier preset it
+Runner options are `-tier`, `-seed`, `-out`, `-build`, `-timeout`, and
+`-keep-frames`. Anything else is handed to the player untouched: `-duration`,
+`-interval`, `-timestep`, `-max-frames`, `-scenario`, `-minlevel`, `-tuning`,
+`-capture-on`, `-menus`/`-noMenus`, `-features`/`-noFeatures`, and
+`-journey`/`-noJourney`. An explicit option always beats the tier preset it
 appears alongside.
 
 ```bash
@@ -73,17 +75,24 @@ The scenarios are:
 - `smoke`: the session completed without warnings, errors, or exceptions;
 - `survive`: the player stayed alive for the configured duration;
 - `progress`: the player reached `-minlevel` before the run ended;
-- `coverage`: every required feature was exercised; and
-- `balance`: the run's progression and difficulty stayed in band.
+- `coverage`: every required feature was exercised;
+- `balance`: the run's progression and difficulty stayed in band; and
+- `journey`: the run went through every step of making, resuming, and losing a
+  character.
 
 Any scenario also fails on a Unity warning, error, assertion, or exception, and
 any scenario fails if the run stalls -- two game-minutes without a level, an
 experience pickup, or a new room. An agent pinned on something it cannot reach
 survives happily and reaches its features, so nothing else here would catch it.
 
-A `coverage` or `balance` run starts a fresh life when the player dies rather
-than stopping there. A roguelite run ends in death, and a sweep that stopped at
-the first one would only test whatever that life happened to stumble into.
+A `coverage`, `balance`, or `journey` run starts a fresh life when the player
+dies rather than stopping there. A roguelite run ends in death, and a sweep that
+stopped at the first one would only test whatever that life happened to stumble
+into.
+
+A `journey` run ends on its last step rather than on the clock. Its subject is a
+fixed list of things to do, and the minutes after the last of them would be
+nothing but the bot playing on.
 
 ## Inspecting a live run
 
@@ -256,12 +265,56 @@ intentions.
 
 The `coverage` scenario fails the run if a required feature was never reached.
 Features that depend on the run's luck -- an elite spawning, a hydra surviving
-long enough to split, the player dying -- are reported but never fail it.
+long enough to split -- are reported but never fail it.
 
 The save probe writes only into a slot that was already empty, deletes it again,
 and restores the two preferences it had to move. When all ten slots are taken it
 falls back to a serialize/parse round trip rather than evicting a real run, so
 the harness can never cost you a save.
+
+## The player's own journey
+
+Everything above plays one life in one dungeon. A player does not: they make a
+character, quit to the menu, come back to it tomorrow, start a second one
+alongside it, and eventually die. The `journey` tier is the run that does that,
+and it is the only run that ever leaves the dungeon.
+
+It walks the run the menu started it in, quits through the pause menu's Main
+Menu button, picks the run out of the save list and presses Play, and then checks
+that what came back is what left: the same level, the same experience, the same
+dungeon seed, the same rooms seen, and the player standing where they stopped. It
+parks that character back in the menu, starts a second one from the saves panel,
+and does the whole thing again -- and then reads the first character's slot to
+confirm the second one never landed on top of it.
+
+Then it dies on purpose. The bot is built to survive, so the screen every real
+run ends on is the one nothing in the harness ever reaches; here the run takes a
+hit through the entry point an enemy's strike lands on, and the harness reads
+what the death cost. Dying drops the run being played, so the check is that the
+slot it was in is empty, that the other character's slot is untouched, and that
+the game-over screen came up and its Restart button started a fresh life.
+
+Each of those is a ledger entry, and they are what the `journey` scenario is
+graded on:
+
+| Entry | What it means |
+| --- | --- |
+| `menu.shown` | the run started at the main menu |
+| `menu.new-game` | a character was made |
+| `dungeon.room-entered` | and walked somewhere worth saving |
+| `save.checkpointed` | the run wrote a checkpoint of itself |
+| `menu.continue` | the save list resumed a run |
+| `save.resumed` | the resumed run came back as the run that left |
+| `save.slots-independent` | two characters held their own slots |
+| `gameover.shown` | the player died and the game said so |
+| `save.dropped` | the death cost the run being played |
+| `save.survived-another-runs-death` | and cost the other character nothing |
+| `gameover.restart` | Restart started a fresh life |
+
+This is the one tier that writes real save slots -- ordinary autoplay keeps
+checkpointing switched off so a throwaway bot run cannot claim one of your ten.
+It counts which slots were yours before it started, needs two of them free, and
+frees every slot it claimed when the run ends, so it costs you nothing either.
 
 ## Accelerated time
 
@@ -285,7 +338,17 @@ beneath `AutoplayRuns/` unless `-out` selects another directory. Interval
 captures land in `frames/` and cover the whole session, menus included, because
 a run that never renders its first screen is exactly what the picture check
 below is for. Triggered captures land in `events/` with `events.jsonl` beside
-them. Telemetry includes position, health, level, enemy pressure, current
+them.
+
+A run's pictures are a flipbook, not a film. Its interval is capped at
+`-max-frames` pictures (120 by default) by coarsening the cadence rather than
+stopping early, so the frames still span the whole session: a twenty-minute
+coverage sweep photographs itself every ten game-seconds instead of writing
+1200 full-screen PNGs. The runner then removes `frames/` once it has read them
+back and reported, because a directory of them per run is gigabytes nobody
+returns to. `-keep-frames` keeps the flipbook when the run was taken in order to
+watch it; the triggered captures, the telemetry, the summary, and the player log
+are never removed. Telemetry includes position, health, level, enemy pressure, current
 intent, visited rooms, route replans, and stuck recoveries. The summary adds the
 tier, the achieved speedup, distance travelled, final navigation counters, the
 feature ledger, the list of required features the run never reached, the

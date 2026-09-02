@@ -40,6 +40,9 @@ namespace BudgetGameDev.Games.Brocoli.Editor
         [MenuItem("Tools/Autoplay/Run Feature Coverage Tier")]
         public static void RunCoverage() => LaunchDetached("coverage");
 
+        [MenuItem("Tools/Autoplay/Run Save Journey Tier")]
+        public static void RunJourney() => LaunchDetached("journey");
+
         [MenuItem("Tools/Autoplay/Run Balance Tier")]
         public static void RunBalance() => LaunchDetached("balance");
 
@@ -85,7 +88,36 @@ namespace BudgetGameDev.Games.Brocoli.Editor
             }
 
             ReportRun(request, player.ExitCode);
+            DiscardFrames(request);
             return player.ExitCode;
+        }
+
+        /// <summary>
+        /// Drops the run's interval frames once the report has read them back. They
+        /// are there to be measured and watched while the run is fresh; a directory
+        /// of full-screen PNGs per run adds up to gigabytes nobody returns to. The
+        /// triggered captures, the telemetry, the summary, and the player log all
+        /// stay, so nothing a run concluded goes with them. <c>-keep-frames</c>
+        /// keeps the flipbook when the run was taken in order to watch it.
+        /// </summary>
+        internal static void DiscardFrames(AutoplayRunRequest request)
+        {
+            string frames = Path.Combine(request.OutDir, "frames");
+            if (request.KeepFrames || !Directory.Exists(frames))
+                return;
+
+            try
+            {
+                Directory.Delete(frames, true);
+            }
+            catch (IOException error)
+            {
+                // A file still held open is not worth failing a finished run over.
+                Debug.LogWarning($"[Autoplay] Could not remove {frames}: {error.Message}");
+                return;
+            }
+
+            Debug.Log("[Autoplay] Removed the interval frames; -keep-frames retains them.");
         }
 
         /// <summary>Builds when asked or when no player is there yet.</summary>

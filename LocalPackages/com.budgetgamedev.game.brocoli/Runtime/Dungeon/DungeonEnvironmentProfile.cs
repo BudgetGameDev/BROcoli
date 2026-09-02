@@ -1,16 +1,21 @@
 namespace BudgetGameDev.Games.Brocoli
 {
-    /// <summary>How an environment theme presents the platform boundary.</summary>
+    /// <summary>
+    /// How an environment theme dresses the platform boundary. The structural
+    /// facade underneath -- the parapet and the cliff courses that carry it below
+    /// the floor -- is built by DungeonRoomBuilder on every boundary edge in every
+    /// theme, so a style here only says what stands on top of that masonry.
+    /// </summary>
     public enum DungeonBoundaryStyle
     {
-        /// <summary>Structural masonry railing, built by DungeonRoomBuilder.</summary>
+        /// <summary>The structural masonry is the whole edge; nothing is added.</summary>
         MasonryRailing,
 
         /// <summary>A broken line of boundary props placed by DungeonPropPlacer.</summary>
         RockLine,
 
         /// <summary>
-        /// Collision only. The theme has no boundary assets yet; assigning some
+        /// The bare facade. The theme has no boundary props yet; assigning some
         /// means giving it a style and tokens here, not touching the generator.
         /// </summary>
         Undressed,
@@ -134,7 +139,8 @@ namespace BudgetGameDev.Games.Brocoli
         );
 
         // Plains, forest, and desert are placeholders until their environment
-        // kits are acquired: collision-only edges and neutral interior props.
+        // kits are acquired: the structural boundary facade undressed, and
+        // neutral interior props.
         private static readonly DungeonEnvironmentProfile Plains = new(
             DungeonBoundaryStyle.Undressed,
             System.Array.Empty<string>(),

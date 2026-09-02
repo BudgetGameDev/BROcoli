@@ -36,8 +36,25 @@ namespace BudgetGameDev.Games.Brocoli
         /// <summary>Raised once when the chest is opened, before it vanishes.</summary>
         public event Action Opened;
 
+        private static readonly List<LootChest> Standing = new();
+
         private bool opened;
         private int dungeonRing = 1;
+
+        /// <summary>
+        /// Every chest currently loaded and still shut. A chest is the one reward
+        /// the game never brings to the player, so anything looking for one has to
+        /// be able to find it -- and a physics sweep cannot. Chests share the wall
+        /// layer with every slab, prop, and cliff course in the dungeon, so a query
+        /// wide enough to reach one comes back holding a bounded, unordered slice
+        /// of hundreds of colliders, and drops the chest three metres away as
+        /// readily as a wall fifteen metres away.
+        /// </summary>
+        public static IReadOnlyList<LootChest> Unopened => Standing;
+
+        private void OnEnable() => Standing.Add(this);
+
+        private void OnDisable() => Standing.Remove(this);
 
         /// <summary>Configures this chest for the same room-depth progression as its enemies.</summary>
         public void ConfigureForRoom(int ring)
@@ -65,6 +82,7 @@ namespace BudgetGameDev.Games.Brocoli
                 return;
 
             opened = true;
+            Standing.Remove(this);
             AutoplayFeatureLog.Record(AutoplayFeatures.ChestOpened);
             Opened?.Invoke();
 

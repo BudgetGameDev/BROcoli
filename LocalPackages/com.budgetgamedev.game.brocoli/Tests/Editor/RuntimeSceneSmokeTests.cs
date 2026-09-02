@@ -57,6 +57,7 @@ namespace BudgetGameDev.Games.Brocoli.Tests
             ReturnEnemyCatalog(enemies);
             ExercisePreloaderAndPools();
             ExerciseExpGain(stats);
+            yield return ExerciseSaveJourneyRunPresses(stats);
             for (int hit = 0; hit < 10 && stats.IsAlive; hit++)
                 stats.ApplyDamage(10000f);
             Assert.That(stats.IsAlive, Is.False);
@@ -108,6 +109,7 @@ namespace BudgetGameDev.Games.Brocoli.Tests
             Invoke(layout, "OpenCredits");
             Invoke(layout, "UpdateCreditsInput");
             Invoke(layout, "CloseCredits");
+            ExerciseSaveJourneyMenuPresses(layout);
             Invoke(layout, "OpenSaves");
             ExerciseSavesEdges(layout);
             Invoke(layout, "FocusAction", 0);

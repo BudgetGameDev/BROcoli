@@ -66,6 +66,14 @@ namespace BudgetGameDev.Games.Brocoli
         [SerializeField]
         private float stuckRecoveryDelay = 1f;
 
+        [Tooltip("Game-seconds of travelling judged together for whether it went anywhere.")]
+        [SerializeField]
+        private float loiterWindow = 4f;
+
+        [Tooltip("Share of a window's walking that has to end up as net displacement.")]
+        [SerializeField]
+        private float loiterEfficiency = 0.3f;
+
         [Header("Giving up")]
         [Tooltip("Game-seconds of fruitless fighting before the current threat is written off.")]
         [SerializeField]
@@ -87,6 +95,23 @@ namespace BudgetGameDev.Games.Brocoli
         [SerializeField]
         private float abandonedObjectiveDelay = 6f;
 
+        /// <summary>
+        /// Ground a window has to cover before its efficiency means anything. Under
+        /// this the agent has barely moved, which is the stationary check's
+        /// question rather than this one's.
+        /// </summary>
+        private const float MinimumJudgeableTravel = 2f;
+
+        /// <summary>
+        /// How much continuing the way it was already going is worth when the agent
+        /// picks its way around an obstacle. Two roughly equal ways past a wall used
+        /// to be settled by a tie-break that flipped every time the agent unstuck
+        /// itself, so it chose left, then right, then left, and paced the wall
+        /// instead of getting round it. Small enough to stay a preference: a
+        /// genuinely clearer way still wins on the same tick it opens up.
+        /// </summary>
+        private const float HeadingCommitment = 0.8f;
+
         private static BotIntent currentIntent;
 
         private readonly Collider[] projectileBuffer = new Collider[64];
@@ -106,6 +131,8 @@ namespace BudgetGameDev.Games.Brocoli
         private Vector2 recoveryDirection;
         private Vector2 cachedPathDirection;
         private Vector2 cachedPathTarget;
+        private Vector2 committedHeading;
+        private Vector2 loiterOrigin;
         private Vector2Int explorationRoom;
         private Vector2Int occupiedRoom;
         private float nextPathRefresh;
@@ -115,6 +142,8 @@ namespace BudgetGameDev.Games.Brocoli
         private float recoveryUntil;
         private float lastProgress;
         private float unwedgeUntil;
+        private float loiterTravelled;
+        private float nextLoiterCheck;
         private int recoveriesSinceProgress;
         private float lastExperience;
         private float lastHealth;
@@ -153,6 +182,10 @@ namespace BudgetGameDev.Games.Brocoli
             nextObjectiveScan = 0f;
             lastProgress = 0f;
             unwedgeUntil = 0f;
+            committedHeading = Vector2.zero;
+            loiterOrigin = Vector2.zero;
+            loiterTravelled = 0f;
+            nextLoiterCheck = 0f;
             recoveriesSinceProgress = 0;
             lastExperience = -1f;
             lastHealth = float.MaxValue;
@@ -248,7 +281,9 @@ namespace BudgetGameDev.Games.Brocoli
                 stats = playerObject.GetComponent<PlayerStats>();
                 lastPosition = player.position.ToGround();
                 lastProgressPosition = lastPosition;
+                loiterOrigin = lastPosition;
                 nextProgressCheck = Time.time + progressCheckInterval;
+                nextLoiterCheck = Time.time + loiterWindow;
                 hasPosition = true;
             }
 

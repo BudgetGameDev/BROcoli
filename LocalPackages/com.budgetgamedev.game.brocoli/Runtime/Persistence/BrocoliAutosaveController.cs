@@ -25,8 +25,12 @@ namespace BudgetGameDev.Games.Brocoli
         internal static void EnsurePresent()
         {
             // A bot run is a throwaway: checkpointing it would claim one of the ten
-            // save slots and leave the player a run they never played.
-            if (active != null || AutoplayController.IsActive)
+            // save slots and leave the player a run they never played. The save
+            // journey is the exception, because checkpointing is the thing it is
+            // there to test; it frees every slot it claimed when the run ends.
+            if (active != null)
+                return;
+            if (AutoplayController.IsActive && !AutoplayController.CheckpointsEnabled)
                 return;
 
             new GameObject("[Brocoli Autosave]").AddComponent<BrocoliAutosaveController>();

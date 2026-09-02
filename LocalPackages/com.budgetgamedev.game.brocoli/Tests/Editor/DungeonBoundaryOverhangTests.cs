@@ -111,8 +111,9 @@ namespace BudgetGameDev.Games.Brocoli.Tests
         }
 
         /// <summary>
-        /// A solid boundary uses the same apron-free masonry as every other
-        /// regular dungeon wall.
+        /// A solid boundary is the same facade as the camera-facing cliff, so it
+        /// exposes the same flat structural face rather than a source floor apron.
+        /// The platform ends there too, whichever way the edge happens to look.
         /// </summary>
         [Test]
         public void ASolidBoundaryHasNoSourceFloorApron()
@@ -121,9 +122,10 @@ namespace BudgetGameDev.Games.Brocoli.Tests
 
             Assert.That(
                 DeepestPiece(built, Vector3.back),
-                Is.EqualTo(ApronFreeDepth).Within(Tolerance),
+                Is.EqualTo(DungeonWallPiece.SlabThickness).Within(Tolerance),
                 "the boundary still carries the source floor apron"
             );
+            AssertThatAllPiecesShareOneFace(built, Vector3.back);
         }
 
         /// <summary>
