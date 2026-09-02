@@ -6,6 +6,12 @@ Always open the Unity Editor in automated mode by using the `unity-open` command
 available on the shell `PATH`. Do not launch the Unity Editor directly through Unity
 Hub, an editor executable, or another command.
 
+That command is `scripts/unity-open.sh` in this repository, put on `PATH` once per
+clone by `./scripts/install-unity-open.sh`; run the installer if `unity-open` is
+missing. On Windows, run `.\scripts\unity-open.ps1` directly. When the Unity CLI,
+the Editor, or the agent integration is missing entirely, read
+[docs/machine-setup.md](docs/machine-setup.md) rather than improvising a setup.
+
 ## Project structure
 
 Games are local Unity packages under `LocalPackages/`, mounted by `file:`

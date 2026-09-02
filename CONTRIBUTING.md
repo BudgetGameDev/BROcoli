@@ -40,6 +40,11 @@ Install the prerequisites once:
 - Unity matching `ProjectSettings/ProjectVersion.txt`
 - Chrome or Chromium
 
+On macOS, `./scripts/bootstrap-macos.sh` installs those prerequisites together
+with the Editor and modules this project builds with, then runs the two
+per-clone installers below. See [docs/machine-setup.md](docs/machine-setup.md) for what it
+does, what a clone already carries, and how to set up another machine by hand.
+
 The pinned CSharpier, Ruff, ESLint, Prettier, and Semgrep versions are restored
 on demand. Lint warnings fail the gate; do not suppress a warning unless the
 repository configuration documents why the rule is inapplicable. Apply all
@@ -67,6 +72,25 @@ to other branches or tags skip both; `dev` is deliberately ungated, so this runs
 once at promotion rather than on day-to-day work. Git hooks are local and are not
 activated merely by cloning the repository, which is why the installer is
 required once per clone.
+
+### The unity-open command
+
+Repository tooling drives an Editor that was started with `-automated`, so open
+the project with:
+
+```bash
+./scripts/install-unity-open.sh
+unity-open
+```
+
+The installer symlinks `scripts/unity-open.sh` into `~/.local/bin` — override the
+directory with an argument or `UNITY_OPEN_BIN_DIR` — and refuses to replace an
+unrelated `unity-open` already there unless given `--force`. Like the git hooks,
+the link is local to the machine, so each clone runs the installer once. The
+command opens this clone by default and accepts another project path as its
+only argument; it exits successfully when an automated Editor is already
+attached, and refuses to act when the project is open without `-automated`.
+Windows has no installer: run `.\scripts\unity-open.ps1` directly.
 
 ### 300-line source-file limit
 
