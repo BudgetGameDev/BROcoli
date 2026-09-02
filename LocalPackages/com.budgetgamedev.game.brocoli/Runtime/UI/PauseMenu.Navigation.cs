@@ -21,8 +21,26 @@ namespace BudgetGameDev.Games.Brocoli
             || simulatedDeviceType == DeviceType.Handheld
             || simulatedMobile;
 
+        /// <summary>
+        /// The frame after which a toggle press is believed again. Regaining focus makes
+        /// the input system deliver whatever was held while the window was away, and in the
+        /// editor that means alt-tabbing back lands on the pause menu every time. One frame
+        /// of deafness is enough, because a real press arrives while the window has focus.
+        /// </summary>
+        private int toggleDeafUntilFrame;
+
+        internal void OnApplicationFocus(bool focused)
+        {
+            // The editor keeps running while unfocused, so alt-tabbing away is not a pause;
+            // only the input that arrives with the focus change has to be dropped.
+            if (focused)
+                toggleDeafUntilFrame = Time.frameCount + 1;
+        }
+
         internal void ProcessToggleInput(bool escapePressed, bool startPressed)
         {
+            if (Time.frameCount <= toggleDeafUntilFrame)
+                return;
             if (escapePressed || startPressed)
                 TogglePause();
         }

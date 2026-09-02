@@ -1406,6 +1406,7 @@ GameObject:
   - component: {fileID: 681564222}
   - component: {fileID: 681564223}
   - component: {fileID: 8100000002}
+  - component: {fileID: 8100000003}
   m_Layer: 0
   m_Name: PlayerProximityLight
   m_TagString: Untagged
@@ -2539,6 +2540,7 @@ GameObject:
   - component: {fileID: 1037325168}
   - component: {fileID: 1037325167}
   - component: {fileID: 8100000001}
+  - component: {fileID: 8100000004}
   m_Layer: 0
   m_Name: Light
   m_TagString: Untagged
@@ -5617,6 +5619,38 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   hdrIntensityScale: 2.2
+--- !u!114 &8100000003
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 681564221}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1531bacbb9ec0c44e81e41cea2b7dc40, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: BudgetGameDev.Shared::BudgetGameDev.Shared.Rendering.PhysicalPunctualLight
+  targetLuminanceNits: 54.000004
+  referenceDistanceMeters: 2
+  rangeMeters: 8
+  lightColor: {r: 1, g: 0.9, b: 0.75, a: 1}
+--- !u!114 &8100000004
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1037325166}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1531bacbb9ec0c44e81e41cea2b7dc40, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: BudgetGameDev.Shared::BudgetGameDev.Shared.Rendering.PhysicalPunctualLight
+  targetLuminanceNits: 47.8125
+  referenceDistanceMeters: 8
+  rangeMeters: 60
+  lightColor: {r: 1, g: 0.9, b: 0.78, a: 1}
 --- !u!1 &8888880000
 GameObject:
   m_ObjectHideFlags: 0

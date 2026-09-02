@@ -81,5 +81,24 @@ namespace BudgetGameDev.Shared.Rendering
         /// <summary>The inverse of <see cref="NitsToSceneLinear"/>.</summary>
         public static float SceneLinearToNits(float sceneLinear, float paperWhiteNits) =>
             Mathf.Max(0f, sceneLinear) * Mathf.Max(0f, paperWhiteNits);
+
+        /// <summary>
+        /// The fixed exposure, in EV100, that puts <see cref="DiffuseWhiteNits"/> where the
+        /// display expects it. High Definition meters the scene physically, so a pipeline
+        /// told the dungeon's lights in lumens still needs to be told what counts as a
+        /// correct exposure for them; left at zero it renders the whole dungeon nine stops
+        /// hot and pure white.
+        ///
+        /// This is the standard photometric relation, EV100 = log2(L * S / K), with the
+        /// film speed S at 100 and the reflected-light meter constant K at 12.5.
+        /// </summary>
+        public float FixedExposureEv100 => Ev100For(DiffuseWhiteNits);
+
+        /// <summary>The exposure that renders a surface of <paramref name="nits"/> correctly.</summary>
+        public static float Ev100For(float nits) =>
+            Mathf.Log(Mathf.Max(nits, 1e-4f) * ReflectedLightMeterSpeed, 2f);
+
+        /// <summary>Film speed over meter constant, 100 / 12.5, folded into one number.</summary>
+        private const float ReflectedLightMeterSpeed = 8f;
     }
 }
