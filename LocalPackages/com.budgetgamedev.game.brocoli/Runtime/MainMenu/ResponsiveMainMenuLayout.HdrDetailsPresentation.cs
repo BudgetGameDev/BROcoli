@@ -62,11 +62,7 @@ namespace BudgetGameDev.Games.Brocoli
                 "CALIBRATE"
             );
             hdrDetailsCalibrateButton.onClick.AddListener(OpenHdrCalibration);
-            hdrDetailsBackButton = CreateButton(
-                "HdrDetailsBackButton",
-                hdrDetailsPanel,
-                "BACK"
-            );
+            hdrDetailsBackButton = CreateButton("HdrDetailsBackButton", hdrDetailsPanel, "BACK");
             hdrDetailsBackButton.onClick.AddListener(CloseHdrDetails);
             hdrDetailsActionButtons = new[]
             {

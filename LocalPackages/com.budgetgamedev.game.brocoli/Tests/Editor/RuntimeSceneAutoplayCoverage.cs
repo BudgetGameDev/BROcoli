@@ -58,8 +58,40 @@ namespace BudgetGameDev.Games.Brocoli.Tests
             SetHierarchyField(bot, "stationaryTime", 10f);
             InvokeHierarchy(bot, "TrackProgress", position);
             InvokeHierarchy(bot, "BeginStuckRecovery");
+            // Enough unsticking in one room to write the destination off, once with a
+            // room picked and once without.
+            for (int attempt = 0; attempt < 10; attempt++)
+                InvokeHierarchy(bot, "BeginStuckRecovery");
+            InvokeHierarchy(bot, "PickExplorationRoom", DungeonLayout.RoomAt(position));
+            for (int attempt = 0; attempt < 10; attempt++)
+                InvokeHierarchy(bot, "BeginStuckRecovery");
+
+            // Reaching a room already known is not progress, so the give-up clocks
+            // keep running; and a target written off with nothing left to write off
+            // sends the agent to the middle of the room to unwedge itself.
+            InvokeHierarchy(bot, "TrackRoom", position);
+            SetHierarchyField(bot, "lastProgress", -10000f);
+            InvokeHierarchy(bot, "GetExplorationTarget", position);
+            SetHierarchyField(bot, "unwedgeUntil", float.MaxValue);
+            InvokeHierarchy(bot, "GetExplorationTarget", position);
+            SetHierarchyField(bot, "unwedgeUntil", 0f);
             InvokeHierarchy(bot, "FixedUpdate");
+            // A tick with a projectile already inbound, which is the one case that
+            // records a dodge. The frame counter is parked so the cached dodge
+            // survives into the decision instead of being recomputed away.
+            SetHierarchyField(bot, "lastDodge", Vector2.right);
+            SetHierarchyField(bot, "frame", 0);
+            // Stuck recovery outranks everything, and the sweep above started one.
+            SetHierarchyField(bot, "recoveryUntil", 0f);
+            // Combat progress: once with something new to record, once with nothing.
+            InvokeHierarchy(bot, "TrackCombatProgress");
+            InvokeHierarchy(bot, "TrackCombatProgress");
+            InvokeHierarchy(bot, "FixedUpdate");
+            ExerciseAutoplayObjectives(bot, stats, position);
             bot.enabled = false;
+            ExerciseAutoplaySessionDirector();
+            ExerciseAutoplayFeatureSweep();
+            ExerciseGameOverEventSystemFallback();
 
             GameObject frameObject = new("Coverage Frame Capture");
             FrameCapture unconfigured = frameObject.AddComponent<FrameCapture>();
@@ -110,11 +142,13 @@ namespace BudgetGameDev.Games.Brocoli.Tests
                     observationType,
                     BindingFlags.Instance | BindingFlags.NonPublic,
                     null,
-                    new object[] { 1, 1, distance, nearest, centroid, repulsion },
+                    new object[] { 1, 1, distance, nearest, nearest, centroid, repulsion },
                     null
                 );
 
-            float engage = GetHierarchyField<float>(bot, "engageRadius");
+            // The kiting band now follows the live weapon, so read what the agent
+            // would actually use rather than the serialized fallback.
+            float engage = (float)InvokeHierarchy(bot, "get_EngageRange");
             InvokeHierarchy(
                 bot,
                 "NavigateCombat",

@@ -163,6 +163,7 @@ namespace BudgetGameDev.Games.Brocoli
         )
         {
             hasSpawnedChildren = true;
+            AutoplayFeatureLog.Record(AutoplayFeatures.HydraSplit);
             const int childrenToSpawn = 2;
             for (int i = 0; i < childrenToSpawn; i++)
             {

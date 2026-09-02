@@ -82,8 +82,8 @@ formatters with `./format.sh`.
 `ci.sh` runs the `scripts/tests` Python suite, the Node WebGL template and
 service-worker suites, and the Unity EditMode test assemblies, then launches the
 built WebGL player in headless Chrome with desktop and iOS browser profiles. The
-`scripts/autoplay-*.sh` desktop-player harness remains opt-in because it requires a
-separate desktop player build. See [Autonomous autoplay](docs/autoplay.md) for its agent
+autoplay desktop-player harness remains opt-in because it requires a separate
+desktop player build. See [Autonomous autoplay](docs/autoplay.md) for its agent
 behaviour, scenarios, telemetry, and run commands.
 
 Enable the repository-managed pre-push hook with:

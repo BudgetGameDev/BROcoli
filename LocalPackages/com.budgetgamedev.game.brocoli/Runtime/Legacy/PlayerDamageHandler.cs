@@ -105,6 +105,7 @@ namespace BudgetGameDev.Games.Brocoli
         /// </summary>
         private void TriggerDamageFeedback(float damage, Vector2 knockbackDirection)
         {
+            AutoplayFeatureLog.Record(AutoplayFeatures.DamageTaken);
             float intensity = CalculateDamageIntensity(damage);
 
             // Scaled knockback - additive impulse, player keeps control

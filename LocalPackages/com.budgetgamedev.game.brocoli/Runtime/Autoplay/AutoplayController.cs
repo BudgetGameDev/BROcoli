@@ -1,8 +1,4 @@
 using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.IO;
-using BudgetGameDev.Shared;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -10,14 +6,13 @@ namespace BudgetGameDev.Games.Brocoli
 {
     /// <summary>
     /// Entry point for automated playtest ("autoplay") runs. Activated only when the
-    /// build/editor is launched with <c>--autoplay</c> (or env <c>BROCOLI_AUTOPLAY=1</c>).
-    /// When not requested this class does nothing, so normal play is unaffected.
+    /// build or editor is launched with <c>--autoplay</c> (or env
+    /// <c>BROCOLI_AUTOPLAY=1</c>). When not requested this class does nothing, so
+    /// normal play is unaffected.
     ///
-    /// Deterministic mode advances a fixed amount of GAME time per rendered frame
-    /// (<see cref="Time.captureDeltaTime"/>) with rendering uncapped — i.e. "fake time"
-    /// fast-forward. Physics still runs at the fixed <c>Time.fixedDeltaTime</c> step
-    /// (sub-stepped per frame), so simulation stays accurate while wall-clock time is
-    /// compressed. A bigger <c>--timestep</c> compresses harder (coarser Update step).
+    /// A run is configured entirely by <see cref="AutoplayConfig"/>, which understands
+    /// named tiers, so the same player binary runs every tier on macOS, Linux, and
+    /// Windows without a launcher script in between.
     /// </summary>
     public class AutoplayController : MonoBehaviour
     {
@@ -29,8 +24,7 @@ namespace BudgetGameDev.Games.Brocoli
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void Bootstrap()
         {
-            var config = AutoplayConfig.FromCommandLine();
-            Bootstrap(config);
+            Bootstrap(AutoplayConfig.FromCommandLine());
         }
 
         internal static AutoplayController Bootstrap(AutoplayConfig config) =>
@@ -39,6 +33,7 @@ namespace BudgetGameDev.Games.Brocoli
         internal static AutoplayController StartAutoplay(AutoplayConfig config)
         {
             IsActive = true;
+            AutoplayFeatureLog.Reset();
 
             var go = new GameObject("[AutoplayController]");
             DontDestroyOnLoad(go);
@@ -67,23 +62,46 @@ namespace BudgetGameDev.Games.Brocoli
             Screen.SetResolution(640, 360, false);
 
             if (_config.Deterministic)
-            {
-                QualitySettings.vSyncCount = 0;
-                Application.targetFrameRate = -1;
-                // Game-seconds advanced per rendered frame. Physics keeps its own fixed
-                // step, so larger values compress wall-clock time without breaking the sim.
-                Time.captureDeltaTime = Mathf.Clamp(_config.Timestep, 1f / 240f, 0.1f);
-            }
+                BeginFastForward();
 
             SceneManager.sceneLoaded += OnSceneLoaded;
+            EnterGame(SceneManager.LoadScene);
+        }
 
-            // Skip the main menu and go straight to gameplay.
-            SceneManager.LoadScene("Brocoli_Dungeon");
+        /// <summary>
+        /// Starts the session at the main menu when the tier asks for the full
+        /// player journey, and at the dungeon when it only wants gameplay.
+        /// </summary>
+        internal void EnterGame(Action<string> loadScene)
+        {
+            if (_config.DriveMenus)
+                gameObject.AddComponent<AutoplaySessionDirector>();
+
+            loadScene(
+                _config.DriveMenus
+                    ? AutoplaySessionDirector.MenuScene
+                    : AutoplaySessionDirector.DungeonScene
+            );
+        }
+
+        private void BeginFastForward()
+        {
+            QualitySettings.vSyncCount = 0;
+            Application.targetFrameRate = -1;
+            float step = AutoplayTimeControl.ResolveCaptureStep(
+                _config.Timestep,
+                Time.fixedDeltaTime
+            );
+            Time.captureDeltaTime = step;
+            Debug.Log(
+                $"[Autoplay] Fast-forward at {step:0.####}s of game time per frame "
+                    + $"(physics step {Time.fixedDeltaTime:0.####}s)."
+            );
         }
 
         private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
         {
-            if (scene.name != "Brocoli_Dungeon" || _wired)
+            if (scene.name != AutoplaySessionDirector.DungeonScene || _wired)
                 return;
 
             _wired = true;
@@ -93,6 +111,8 @@ namespace BudgetGameDev.Games.Brocoli
 
             gameObject.AddComponent<BotDriver>();
             gameObject.AddComponent<LevelUpAutoResolver>();
+            if (_config.ExerciseFeatures)
+                gameObject.AddComponent<AutoplayFeatureDirector>();
 
             var capture = gameObject.AddComponent<FrameCapture>();
             capture.Configure(_config);
@@ -104,112 +124,6 @@ namespace BudgetGameDev.Games.Brocoli
                 "[Autoplay] Dungeon scene wired (autonomous navigation + combat policy + "
                     + "capture + telemetry + adaptive upgrades)."
             );
-        }
-    }
-
-    /// <summary>
-    /// Autoplay configuration parsed from command-line args and/or environment vars.
-    /// </summary>
-    public sealed class AutoplayConfig
-    {
-        public bool Enabled;
-        public int Seed = 12345;
-        public float Duration = 60f; // game-seconds to simulate
-        public float Interval = 0.5f; // game-seconds between samples/captures
-        public string OutDir;
-        public bool Deterministic = true;
-        public float Timestep = 1f / 60f; // captureDeltaTime: game-seconds advanced per rendered frame
-        public string Scenario = "survive"; // smoke | survive | progress
-        public int MinLevel = 2; // pass threshold for the "progress" scenario
-        public string Sha = ""; // git SHA, for the run manifest
-
-        public static AutoplayConfig FromCommandLine() =>
-            FromArguments(Environment.GetCommandLineArgs(), Environment.GetEnvironmentVariable);
-
-        internal static AutoplayConfig FromArguments(
-            IEnumerable<string> arguments,
-            Func<string, string> environment
-        )
-        {
-            var cfg = new AutoplayConfig();
-
-            bool enabled = EnvFlag(environment("BROCOLI_AUTOPLAY"));
-            foreach (string arg in arguments)
-            {
-                if (arg == "--autoplay")
-                    enabled = true;
-                else if (arg == "--deterministic")
-                    cfg.Deterministic = true;
-                else if (arg == "--no-deterministic")
-                    cfg.Deterministic = false;
-                else if (arg.StartsWith("--seed="))
-                    TryInt(arg.Substring(7), ref cfg.Seed);
-                else if (arg.StartsWith("--duration="))
-                    TryFloat(arg.Substring(11), ref cfg.Duration);
-                else if (arg.StartsWith("--interval="))
-                    TryFloat(arg.Substring(11), ref cfg.Interval);
-                else if (arg.StartsWith("--timestep="))
-                    TryFloat(arg.Substring(11), ref cfg.Timestep);
-                else if (arg.StartsWith("--minlevel="))
-                    TryInt(arg.Substring(11), ref cfg.MinLevel);
-                else if (arg.StartsWith("--out="))
-                    cfg.OutDir = arg.Substring(6);
-                else if (arg.StartsWith("--scenario="))
-                    cfg.Scenario = arg.Substring(11);
-                else if (arg.StartsWith("--sha="))
-                    cfg.Sha = arg.Substring(6);
-            }
-            cfg.Enabled = enabled;
-
-            // Environment variables act as fallbacks/overrides (convenient from a shell).
-            var s = environment("BROCOLI_SEED");
-            if (!string.IsNullOrEmpty(s))
-                TryInt(s, ref cfg.Seed);
-            var d = environment("BROCOLI_DURATION");
-            if (!string.IsNullOrEmpty(d))
-                TryFloat(d, ref cfg.Duration);
-            var i = environment("BROCOLI_INTERVAL");
-            if (!string.IsNullOrEmpty(i))
-                TryFloat(i, ref cfg.Interval);
-            var ts = environment("BROCOLI_TIMESTEP");
-            if (!string.IsNullOrEmpty(ts))
-                TryFloat(ts, ref cfg.Timestep);
-            var o = environment("BROCOLI_OUT");
-            if (!string.IsNullOrEmpty(o))
-                cfg.OutDir = o;
-            var sc = environment("BROCOLI_SCENARIO");
-            if (!string.IsNullOrEmpty(sc))
-                cfg.Scenario = sc;
-
-            if (string.IsNullOrEmpty(cfg.OutDir))
-            {
-                cfg.OutDir = Path.Combine(
-                    Directory.GetCurrentDirectory(),
-                    "AutoplayRuns",
-                    DateTime.Now.ToString("yyyyMMdd-HHmmss")
-                );
-            }
-
-            return cfg;
-        }
-
-        public override string ToString() =>
-            $"seed={Seed} duration={Duration}s interval={Interval}s timestep={Timestep:0.####} "
-            + $"deterministic={Deterministic} scenario={Scenario} sha={Sha} out={OutDir}";
-
-        private static bool EnvFlag(string value) =>
-            value == "1" || string.Equals(value, "true", StringComparison.OrdinalIgnoreCase);
-
-        private static void TryInt(string raw, ref int target)
-        {
-            if (int.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out var v))
-                target = v;
-        }
-
-        private static void TryFloat(string raw, ref float target)
-        {
-            if (float.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out var v))
-                target = v;
         }
     }
 }

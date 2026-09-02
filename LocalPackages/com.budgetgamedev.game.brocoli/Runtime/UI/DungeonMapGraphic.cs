@@ -30,6 +30,12 @@ namespace BudgetGameDev.Games.Brocoli
 
         public DungeonManager Dungeon => dungeon;
 
+        /// <summary>Room-space centre of the view, so a pan can be observed.</summary>
+        internal Vector2 ViewCenter => viewCenter;
+
+        /// <summary>Pixels per room, so a zoom can be observed.</summary>
+        internal float Zoom => zoom;
+
         protected override void Awake()
         {
             base.Awake();

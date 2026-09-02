@@ -143,6 +143,7 @@ namespace BudgetGameDev.Games.Brocoli
 
             UpgradeOption selected = _screen.GetOption(best);
             _screen.AutoSelectUpgrade(best);
+            AutoplayFeatureLog.Record(AutoplayFeatures.UpgradeChosen);
             Debug.Log(
                 $"[Autoplay] Picked {selected?.DisplayName ?? "upgrade"} in slot {best}/{n} "
                     + $"(utility {bestScore:0.0}, hp {context.HealthFraction:P0})."

@@ -74,6 +74,7 @@ namespace BudgetGameDev.Games.Brocoli
             gameObject.SetActive(true);
             transform.SetAsLastSibling();
             IsVisible = true;
+            AutoplayFeatureLog.Record(AutoplayFeatures.GameOverShown);
             Time.timeScale = 0f;
             selectedIndex = 0;
             SelectButton(0);
@@ -142,6 +143,7 @@ namespace BudgetGameDev.Games.Brocoli
 
         public void RestartGame()
         {
+            AutoplayFeatureLog.Record(AutoplayFeatures.GameOverRestart);
             ProceduralUIAudio.PlaySelect();
             // Reload the active scene so a run restarts on a fresh dungeon.
             TransitionToScene(SceneManager.GetActiveScene().name);

@@ -84,11 +84,11 @@ namespace BudgetGameDev.Games.Brocoli
             float paperWhite = GameDisplaySettings.HasDetectedHdrProfile
                 ? GameDisplaySettings.DetectedPaperWhiteNits
                 : GameDisplaySettings.PaperWhiteNits;
-            float minimum = hdrEdidMetadata.HasMinimumLuminance
-                ? hdrEdidMetadata.MinimumLuminanceNits
+            float minimum =
+                hdrEdidMetadata.HasMinimumLuminance ? hdrEdidMetadata.MinimumLuminanceNits
                 : GameDisplaySettings.HasDetectedHdrProfile
                     ? GameDisplaySettings.DetectedBlackLevelNits
-                    : GameDisplaySettings.BlackLevelNits;
+                : GameDisplaySettings.BlackLevelNits;
             GameDisplaySettings.SetCalibration(
                 hdrEdidMetadata.MaximumLuminanceNits,
                 paperWhite,
@@ -115,12 +115,14 @@ namespace BudgetGameDev.Games.Brocoli
                 + $"FULL FRAME  {FormatOptionalNits(hdrEdidMetadata.HasMaximumFullFrameLuminance, hdrEdidMetadata.MaximumFullFrameLuminanceNits, false)}"
                 + "     PAPER WHITE  NOT PROVIDED\n\n"
                 + "<b><color=#9AE6B4>OS HDR PROFILE</color></b>\n"
-                + (GameDisplaySettings.HasDetectedHdrProfile
-                    ? $"MINIMUM  {FormatNits(GameDisplaySettings.DetectedBlackLevelNits, true)}"
-                        + $"     PEAK  {FormatNits(GameDisplaySettings.DetectedPeakBrightnessNits, false)}\n"
-                        + $"FULL FRAME  {FormatNits(GameDisplaySettings.DetectedFullFrameBrightnessNits, false)}"
-                        + $"     PAPER WHITE  {FormatNits(GameDisplaySettings.DetectedPaperWhiteNits, false)}"
-                    : "NO ACTIVE HDR PROFILE REPORTED BY THE OS")
+                + (
+                    GameDisplaySettings.HasDetectedHdrProfile
+                        ? $"MINIMUM  {FormatNits(GameDisplaySettings.DetectedBlackLevelNits, true)}"
+                            + $"     PEAK  {FormatNits(GameDisplaySettings.DetectedPeakBrightnessNits, false)}\n"
+                            + $"FULL FRAME  {FormatNits(GameDisplaySettings.DetectedFullFrameBrightnessNits, false)}"
+                            + $"     PAPER WHITE  {FormatNits(GameDisplaySettings.DetectedPaperWhiteNits, false)}"
+                        : "NO ACTIVE HDR PROFILE REPORTED BY THE OS"
+                )
                 + "\n\n"
                 + $"<b><color=#9AE6B4>CURRENT GAME OUTPUT  ·  {source}</color></b>\n"
                 + $"MINIMUM  {FormatNits(GameDisplaySettings.BlackLevelNits, true)}"

@@ -44,6 +44,20 @@ namespace BudgetGameDev.Games.Brocoli.Tests
                 _ = visuals.IsTargetInRange;
                 _ = visuals.GetNozzleWorldPosition();
                 visuals.SetVisible(false);
+
+                // The hand angle wraps at both ends. Leaving this to whichever way a
+                // playtest bot happened to walk makes the coverage of two real lines
+                // depend on the weather, so drive them here.
+                Set(visuals, "currentHandAngle", 200f);
+                visuals.Update();
+                Assert.That(Get<float>(visuals, "currentHandAngle"), Is.LessThanOrEqualTo(180f));
+                Set(visuals, "currentHandAngle", -200f);
+                visuals.Update();
+                Assert.That(
+                    Get<float>(visuals, "currentHandAngle"),
+                    Is.GreaterThanOrEqualTo(-180f)
+                );
+
                 UnityEngine.Object.DestroyImmediate(target);
             }
             finally
@@ -163,5 +177,8 @@ namespace BudgetGameDev.Games.Brocoli.Tests
 
         private static void Set(object target, string name, object value) =>
             target.GetType().GetField(name, Hidden).SetValue(target, value);
+
+        private static T Get<T>(object target, string name) =>
+            (T)target.GetType().GetField(name, Hidden).GetValue(target);
     }
 }

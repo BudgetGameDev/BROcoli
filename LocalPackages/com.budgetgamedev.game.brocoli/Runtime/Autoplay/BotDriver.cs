@@ -5,9 +5,10 @@ using UnityEngine.AI;
 namespace BudgetGameDev.Games.Brocoli
 {
     /// <summary>
-    /// Autonomous playtest agent. It observes combat and dungeon state, chooses an
-    /// intent, plans paths on the runtime NavMesh, and feeds ordinary player input.
-    /// Normal play is unaffected unless autoplay creates and enables this component.
+    /// Autonomous playtest agent. It observes combat, loot, and dungeon state, scores
+    /// its competing goals, plans paths on the runtime NavMesh, and feeds ordinary
+    /// player input. Normal play is unaffected unless autoplay creates and enables
+    /// this component.
     /// </summary>
     public partial class BotDriver : MonoBehaviour
     {
@@ -45,6 +46,13 @@ namespace BudgetGameDev.Games.Brocoli
         [SerializeField]
         private float dodgeRadius = 1.4f;
 
+        [Header("Loot and pickups")]
+        [SerializeField]
+        private float objectiveRadius = 16f;
+
+        [SerializeField]
+        private float objectiveScanInterval = 0.4f;
+
         [Header("Navigation")]
         [SerializeField]
         private float navigationLookAhead = 3f;
@@ -58,9 +66,31 @@ namespace BudgetGameDev.Games.Brocoli
         [SerializeField]
         private float stuckRecoveryDelay = 1f;
 
+        [Header("Giving up")]
+        [Tooltip("Game-seconds of fruitless fighting before the current threat is written off.")]
+        [SerializeField]
+        private float engagementStallDelay = 12f;
+
+        [Tooltip("Game-seconds of reaching no new room before the destination is written off.")]
+        [SerializeField]
+        private float explorationStallDelay = 30f;
+
+        [Tooltip("Unsticking manoeuvres in one room before the destination is written off.")]
+        [SerializeField]
+        private int recoveriesBeforeAbandoning = 4;
+
+        [Tooltip("Game-seconds spent heading for the room centre after getting wedged.")]
+        [SerializeField]
+        private float unwedgeSeconds = 5f;
+
+        [Tooltip("Game-seconds to ignore loot after giving up on reaching it.")]
+        [SerializeField]
+        private float abandonedObjectiveDelay = 6f;
+
         private static BotIntent currentIntent;
 
         private readonly Collider[] projectileBuffer = new Collider[64];
+        private readonly Collider[] objectiveBuffer = new Collider[96];
         private readonly RaycastHit[] obstacleHits = new RaycastHit[24];
         private readonly Vector3[] pathCorners = new Vector3[32];
         private readonly HashSet<Vector2Int> visitedRooms = new();
@@ -69,6 +99,7 @@ namespace BudgetGameDev.Games.Brocoli
         private PlayerStats stats;
         private DungeonManager dungeon;
         private NavMeshPath path;
+        private ObjectiveObservation objectives;
         private Vector2 lastDodge;
         private Vector2 lastPosition;
         private Vector2 lastProgressPosition;
@@ -76,15 +107,26 @@ namespace BudgetGameDev.Games.Brocoli
         private Vector2 cachedPathDirection;
         private Vector2 cachedPathTarget;
         private Vector2Int explorationRoom;
+        private Vector2Int occupiedRoom;
         private float nextPathRefresh;
         private float nextProgressCheck;
+        private float nextObjectiveScan;
         private float stationaryTime;
         private float recoveryUntil;
+        private float lastProgress;
+        private float unwedgeUntil;
+        private int recoveriesSinceProgress;
+        private float lastExperience;
+        private float lastHealth;
         private int frame;
         private int explorationDirection = -1;
         private int recoverySide;
         private bool hasPosition;
         private bool hasExplorationRoom;
+        private bool hasOccupiedRoom;
+
+        private BotTuning Tuning =>
+            new(dangerRadius, crowdCount, lowHpFraction, senseRadius, objectiveRadius);
 
         private void Awake()
         {
@@ -102,10 +144,18 @@ namespace BudgetGameDev.Games.Brocoli
             StuckRecoveryCount = 0;
             DistanceTravelled = 0f;
             visitedRooms.Clear();
+            objectives = ObjectiveObservation.None;
             hasExplorationRoom = false;
+            hasOccupiedRoom = false;
             explorationDirection = -1;
             stationaryTime = 0f;
             recoveryUntil = 0f;
+            nextObjectiveScan = 0f;
+            lastProgress = 0f;
+            unwedgeUntil = 0f;
+            recoveriesSinceProgress = 0;
+            lastExperience = -1f;
+            lastHealth = float.MaxValue;
             hasPosition = false;
         }
 
@@ -127,34 +177,47 @@ namespace BudgetGameDev.Games.Brocoli
 
             Vector2 position = player.position.ToGround();
             TrackProgress(position);
+            TrackRoom(position);
             EnemyObservation enemies = ObserveEnemies(position);
             NearbyEnemyCount = enemies.Count;
+            TrackCombatProgress();
 
             if (++frame % 3 == 0)
                 lastDodge = ComputeProjectileDodge(position);
+            if (Time.time >= nextObjectiveScan)
+            {
+                nextObjectiveScan = Time.time + objectiveScanInterval;
+                objectives = ObserveObjectives(position);
+            }
 
+            currentIntent = BotDecisionPolicy.ChooseIntent(
+                Observe(position, enemies),
+                Tuning,
+                currentIntent
+            );
+            if (currentIntent == BotIntent.Dodge)
+                AutoplayFeatureLog.Record(AutoplayFeatures.ProjectileDodged);
+
+            Move = Vector2.ClampMagnitude(NavigateIntent(currentIntent, position, enemies), 1f);
+        }
+
+        private BotSituation Observe(Vector2 position, EnemyObservation enemies)
+        {
             float hpFraction =
                 stats != null && stats.CurrentMaxHealth > 0f
                     ? stats.CurrentHealth / stats.CurrentMaxHealth
                     : 1f;
-            var situation = new BotSituation(
+            return new BotSituation(
                 enemies.Count > 0,
                 enemies.NearestDistance,
                 enemies.CloseCount,
                 hpFraction,
                 lastDodge.sqrMagnitude > 0.0001f,
-                Time.time < recoveryUntil
+                Time.time < recoveryUntil,
+                objectives.ChestDistance(position),
+                objectives.PickupDistance(position),
+                Time.time - lastProgress > engagementStallDelay
             );
-            currentIntent = BotDecisionPolicy.ChooseIntent(
-                situation,
-                dangerRadius,
-                crowdCount,
-                lowHpFraction
-            );
-
-            Vector2 desired = NavigateIntent(currentIntent, position, enemies);
-
-            Move = Vector2.ClampMagnitude(desired, 1f);
         }
 
         private Vector2 NavigateIntent(
@@ -167,6 +230,8 @@ namespace BudgetGameDev.Games.Brocoli
                 BotIntent.Explore => NavigateTo(position, GetExplorationTarget(position)),
                 BotIntent.Engage => NavigateCombat(position, enemies, false),
                 BotIntent.Retreat => NavigateCombat(position, enemies, true),
+                BotIntent.Loot => NavigateTo(position, objectives.Chest),
+                BotIntent.Collect => NavigateTo(position, objectives.Pickup),
                 BotIntent.Dodge => NavigateLocal(position, lastDodge * 3f + enemies.Repulsion),
                 BotIntent.Recover => NavigateLocal(position, recoveryDirection),
                 _ => Vector2.zero,
@@ -190,48 +255,6 @@ namespace BudgetGameDev.Games.Brocoli
             if (dungeon == null)
                 dungeon = FindAnyObjectByType<DungeonManager>();
             return true;
-        }
-
-        private void TrackProgress(Vector2 position)
-        {
-            if (!hasPosition)
-            {
-                lastPosition = position;
-                lastProgressPosition = position;
-                nextProgressCheck = Time.time + progressCheckInterval;
-                hasPosition = true;
-                return;
-            }
-
-            float travelled = Vector2.Distance(position, lastPosition);
-            DistanceTravelled += travelled;
-            lastPosition = position;
-            if (Time.time < nextProgressCheck)
-                return;
-
-            float elapsed = Mathf.Max(progressCheckInterval, Time.time - nextProgressCheck);
-            nextProgressCheck = Time.time + progressCheckInterval;
-            float progress = Vector2.Distance(position, lastProgressPosition);
-            if (Move.sqrMagnitude > 0.2f && progress < 0.12f)
-                stationaryTime += elapsed;
-            else
-                stationaryTime = 0f;
-
-            if (stationaryTime >= stuckRecoveryDelay)
-                BeginStuckRecovery();
-            lastProgressPosition = position;
-        }
-
-        private void BeginStuckRecovery()
-        {
-            Vector2 basis = Move.sqrMagnitude > 0.01f ? Move.normalized : Vector2.up;
-            recoveryDirection = Vector2.Perpendicular(basis) * recoverySide - basis * 0.25f;
-            recoveryDirection.Normalize();
-            recoverySide = -recoverySide;
-            recoveryUntil = Time.time + 0.8f;
-            stationaryTime = 0f;
-            nextPathRefresh = 0f;
-            StuckRecoveryCount++;
         }
     }
 }

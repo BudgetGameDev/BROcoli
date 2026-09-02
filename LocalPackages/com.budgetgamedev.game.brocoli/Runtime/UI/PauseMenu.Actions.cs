@@ -240,6 +240,9 @@ namespace BudgetGameDev.Games.Brocoli
 
         public bool IsPaused() => isPaused;
 
+        /// <summary>Whether the settings pane is showing over the pause menu.</summary>
+        internal bool SettingsOpen => responsiveLayout != null && responsiveLayout.SettingsOpen;
+
         /// <summary>Shared input and focus handling drive pause through this.</summary>
         bool IPauseController.IsPaused => isPaused;
 

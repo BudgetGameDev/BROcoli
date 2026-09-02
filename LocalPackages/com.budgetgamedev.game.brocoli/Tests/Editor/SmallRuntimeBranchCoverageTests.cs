@@ -25,15 +25,23 @@ namespace BudgetGameDev.Games.Brocoli.Tests
 
             Assert.That(
                 BotDecisionPolicy.ChooseIntent(
-                    new BotSituation(true, 100f, 0, 1f, false, false),
-                    1f,
-                    5,
-                    0.2f
+                    new BotSituation(
+                        true,
+                        100f,
+                        0,
+                        1f,
+                        false,
+                        false,
+                        float.PositiveInfinity,
+                        float.PositiveInfinity
+                    ),
+                    new BotTuning(1f, 5, 0.2f, 14f, 16f),
+                    BotIntent.Waiting
                 ),
                 Is.EqualTo(BotIntent.Engage)
             );
             Assert.That(
-                BotDecisionPolicy.ChooseExplorationDirection(null, default, new(), 1f, -1),
+                BotExplorationPolicy.ChooseDirection(null, default, new(), 1f, -1),
                 Is.EqualTo(-1)
             );
             Assert.That(ProjectileWallCollision.HasClearLine(Vector3.one, Vector3.one), Is.True);
@@ -42,7 +50,7 @@ namespace BudgetGameDev.Games.Brocoli.Tests
                 Is.True
             );
             var closedLayout = new DungeonLayout(123);
-            BotDecisionPolicy.ChooseExplorationDirection(
+            BotExplorationPolicy.ChooseDirection(
                 closedLayout,
                 new Vector2Int(1000, 1000),
                 new(),
@@ -53,7 +61,7 @@ namespace BudgetGameDev.Games.Brocoli.Tests
             {
                 if (!closedLayout.IsPlayableDoorOpen(Vector2Int.zero, direction))
                     continue;
-                BotDecisionPolicy.ChooseExplorationDirection(
+                BotExplorationPolicy.ChooseDirection(
                     closedLayout,
                     Vector2Int.zero,
                     new(),

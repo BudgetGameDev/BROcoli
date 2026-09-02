@@ -20,7 +20,15 @@ namespace BudgetGameDev.Games.Brocoli
         private Vector2 GetExplorationTarget(Vector2 position)
         {
             Vector2Int currentRoom = DungeonLayout.RoomAt(position);
-            visitedRooms.Add(currentRoom);
+            if (Time.time - lastProgress > explorationStallDelay)
+            {
+                AbandonCurrentTarget();
+                lastProgress = Time.time; // the next choice gets its own fair go
+            }
+
+            if (Time.time < unwedgeUntil)
+                return DungeonLayout.RoomCenter(currentRoom);
+
             if (
                 dungeon == null
                 || dungeon.Layout == null
@@ -40,7 +48,7 @@ namespace BudgetGameDev.Games.Brocoli
                 stats != null && stats.CurrentMaxHealth > 0f
                     ? stats.CurrentHealth / stats.CurrentMaxHealth
                     : 1f;
-            explorationDirection = BotDecisionPolicy.ChooseExplorationDirection(
+            explorationDirection = BotExplorationPolicy.ChooseDirection(
                 dungeon != null ? dungeon.Layout : null,
                 currentRoom,
                 visitedRooms,

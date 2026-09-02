@@ -6,12 +6,32 @@ namespace BudgetGameDev.Games.Brocoli.Tests
 {
     public sealed class AutoplayDecisionTests
     {
+        private static readonly BotTuning Tuning = new(2.5f, 5, 0.4f, 14f, 16f);
+
+        private static BotSituation Situation(
+            bool hasEnemies,
+            float nearest,
+            int close,
+            float health,
+            bool projectile
+        ) =>
+            new(
+                hasEnemies,
+                nearest,
+                close,
+                health,
+                projectile,
+                false,
+                float.PositiveInfinity,
+                float.PositiveInfinity
+            );
+
         [Test]
         public void AgentExploresWhenNoThreatIsVisible()
         {
-            var situation = new BotSituation(false, float.PositiveInfinity, 0, 1f, false, false);
+            var situation = Situation(false, float.PositiveInfinity, 0, 1f, false);
 
-            BotIntent intent = BotDecisionPolicy.ChooseIntent(situation, 2.5f, 5, 0.4f);
+            BotIntent intent = BotDecisionPolicy.ChooseIntent(situation, Tuning, BotIntent.Waiting);
 
             Assert.That(intent, Is.EqualTo(BotIntent.Explore));
         }
@@ -19,9 +39,9 @@ namespace BudgetGameDev.Games.Brocoli.Tests
         [Test]
         public void ProjectileDodgeTakesPriorityOverCombat()
         {
-            var situation = new BotSituation(true, 4f, 2, 1f, true, false);
+            var situation = Situation(true, 4f, 2, 1f, true);
 
-            BotIntent intent = BotDecisionPolicy.ChooseIntent(situation, 2.5f, 5, 0.4f);
+            BotIntent intent = BotDecisionPolicy.ChooseIntent(situation, Tuning, BotIntent.Waiting);
 
             Assert.That(intent, Is.EqualTo(BotIntent.Dodge));
         }
@@ -35,16 +55,9 @@ namespace BudgetGameDev.Games.Brocoli.Tests
             float healthFraction
         )
         {
-            var situation = new BotSituation(
-                true,
-                nearestDistance,
-                closeEnemies,
-                healthFraction,
-                false,
-                false
-            );
+            var situation = Situation(true, nearestDistance, closeEnemies, healthFraction, false);
 
-            BotIntent intent = BotDecisionPolicy.ChooseIntent(situation, 2.5f, 5, 0.4f);
+            BotIntent intent = BotDecisionPolicy.ChooseIntent(situation, Tuning, BotIntent.Waiting);
 
             Assert.That(intent, Is.EqualTo(BotIntent.Retreat));
         }
@@ -67,13 +80,7 @@ namespace BudgetGameDev.Games.Brocoli.Tests
                     visited.Add(room + DungeonLayout.DirectionOffsets[direction]);
             }
 
-            int selected = BotDecisionPolicy.ChooseExplorationDirection(
-                layout,
-                room,
-                visited,
-                1f,
-                -1
-            );
+            int selected = BotExplorationPolicy.ChooseDirection(layout, room, visited, 1f, -1);
 
             Assert.That(expected, Is.GreaterThanOrEqualTo(0));
             Assert.That(selected, Is.EqualTo(expected));

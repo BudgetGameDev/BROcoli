@@ -101,7 +101,7 @@ namespace BudgetGameDev.Games.Brocoli
             BrocoliSaveSystem.Save(save);
         }
 
-        private static bool TryCapture(out BrocoliRunSave save)
+        internal static bool TryCapture(out BrocoliRunSave save)
         {
             save = null;
             PlayerStats stats = PlayerStats.Resolve();

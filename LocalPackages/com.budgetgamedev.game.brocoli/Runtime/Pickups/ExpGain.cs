@@ -173,6 +173,7 @@ namespace BudgetGameDev.Games.Brocoli
                 return;
 
             _isCollected = true;
+            AutoplayFeatureLog.Record(AutoplayFeatures.ExperienceCollected);
             int experience = expAmountGain;
 
             // Hide/recycle before applying XP. Applying XP can pause the game for

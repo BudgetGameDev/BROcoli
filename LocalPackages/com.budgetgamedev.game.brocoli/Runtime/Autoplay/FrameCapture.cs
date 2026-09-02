@@ -47,7 +47,7 @@ namespace BudgetGameDev.Games.Brocoli
             while (true)
             {
                 yield return new WaitForEndOfFrame();
-                acc += Time.unscaledDeltaTime;
+                acc += AutoplayTimeControl.GameDelta;
                 if (first || acc >= _interval)
                 {
                     first = false;

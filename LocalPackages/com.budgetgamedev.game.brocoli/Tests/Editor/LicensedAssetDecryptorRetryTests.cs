@@ -106,10 +106,8 @@ namespace BudgetGameDev.Games.Brocoli.Tests
 
         private static void InvokeRetry(Action operation, Action<int> delay, int maximumAttempts)
         {
-            RetryMethod().Invoke(
-                null,
-                new object[] { operation, "test operation", delay, maximumAttempts }
-            );
+            RetryMethod()
+                .Invoke(null, new object[] { operation, "test operation", delay, maximumAttempts });
         }
 
         private static MethodInfo RetryMethod()

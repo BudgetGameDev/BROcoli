@@ -67,6 +67,7 @@ namespace BudgetGameDev.Games.Brocoli.Tests
                 yield return null;
             Assert.That(damage.IsGameOver, Is.True);
             GameOverOverlay gameOver = GameOverOverlay.Show(-1, -2, -3, -4f);
+            ExerciseAutoplayRestart(gameOver);
             Assert.That(gameOver.DisplayedScore, Is.Zero);
             _ = gameOver.RestartButton;
             _ = gameOver.MainMenuButton;

@@ -152,7 +152,7 @@ namespace BudgetGameDev.Games.Brocoli.Tests
                             );
                         }
 
-                        int chosen = BotDecisionPolicy.ChooseExplorationDirection(
+                        int chosen = BotExplorationPolicy.ChooseDirection(
                             layout,
                             room,
                             new HashSet<Vector2Int>(),

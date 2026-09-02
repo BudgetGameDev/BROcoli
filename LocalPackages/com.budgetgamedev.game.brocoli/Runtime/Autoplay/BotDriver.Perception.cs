@@ -10,6 +10,7 @@ namespace BudgetGameDev.Games.Brocoli
             internal readonly int CloseCount;
             internal readonly float NearestDistance;
             internal readonly Vector2 NearestPosition;
+            internal readonly Vector2 TargetPosition;
             internal readonly Vector2 Centroid;
             internal readonly Vector2 Repulsion;
 
@@ -18,6 +19,7 @@ namespace BudgetGameDev.Games.Brocoli
                 int closeCount,
                 float nearestDistance,
                 Vector2 nearestPosition,
+                Vector2 targetPosition,
                 Vector2 centroid,
                 Vector2 repulsion
             )
@@ -26,10 +28,21 @@ namespace BudgetGameDev.Games.Brocoli
                 CloseCount = closeCount;
                 NearestDistance = nearestDistance;
                 NearestPosition = nearestPosition;
+                TargetPosition = targetPosition;
                 Centroid = centroid;
                 Repulsion = repulsion;
             }
         }
+
+        /// <summary>
+        /// Kiting distance taken from the weapon the player is actually holding, so a
+        /// spray-range upgrade or boost immediately changes how the agent fights
+        /// instead of leaving it hugging enemies at a hard-coded radius.
+        /// </summary>
+        private float EngageRange =>
+            stats != null && stats.CurrentSprayRange > 0.5f
+                ? stats.CurrentSprayRange * 0.85f
+                : engageRadius;
 
         private EnemyObservation ObserveEnemies(Vector2 position)
         {
@@ -41,13 +54,17 @@ namespace BudgetGameDev.Games.Brocoli
                     float.PositiveInfinity,
                     position,
                     position,
+                    position,
                     default
                 );
 
+            float engage = EngageRange;
             Vector2 centroid = Vector2.zero;
             Vector2 repulsion = Vector2.zero;
             Vector2 nearestPosition = position;
+            Vector2 targetPosition = position;
             float nearestDistance = float.PositiveInfinity;
+            float weakestHealth = float.PositiveInfinity;
             int count = 0;
             int closeCount = 0;
 
@@ -69,23 +86,30 @@ namespace BudgetGameDev.Games.Brocoli
                     nearestDistance = distance;
                     nearestPosition = enemyPosition;
                 }
-                if (distance < engageRadius + 1f)
+                if (distance < engage + 1f)
                     closeCount++;
+
+                // Focus the weakest reachable enemy: finishing one is worth more than
+                // spreading damage, and it thins a crowd faster than picking the nearest.
+                float effort = enemy.Health + distance * 4f;
+                if (effort < weakestHealth)
+                {
+                    weakestHealth = effort;
+                    targetPosition = enemyPosition;
+                }
 
                 float repelRange = dangerRadius * 1.6f;
                 if (distance < repelRange)
                     repulsion += away / distance * ((repelRange - distance) / repelRange);
             }
 
-            if (count > 0)
-                centroid /= count;
-            else
-                centroid = position;
+            centroid = count > 0 ? centroid / count : position;
             return new EnemyObservation(
                 count,
                 closeCount,
                 nearestDistance,
                 nearestPosition,
+                targetPosition,
                 centroid,
                 repulsion
             );
@@ -108,9 +132,10 @@ namespace BudgetGameDev.Games.Brocoli
             if (forceRetreat)
                 return NavigateLocal(position, away + enemies.Repulsion * 1.5f + strafe);
 
-            if (enemies.NearestDistance > engageRadius + 0.65f)
-                return NavigateTo(position, enemies.NearestPosition);
-            if (enemies.NearestDistance < engageRadius - 0.65f)
+            float engage = EngageRange;
+            if (enemies.NearestDistance > engage + 0.65f)
+                return NavigateTo(position, enemies.TargetPosition);
+            if (enemies.NearestDistance < engage - 0.65f)
                 return NavigateLocal(position, away + enemies.Repulsion + strafe);
 
             Vector2 roomCenter = DungeonLayout.RoomCenter(DungeonLayout.RoomAt(position));

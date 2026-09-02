@@ -65,6 +65,7 @@ namespace BudgetGameDev.Games.Brocoli
                 return;
 
             opened = true;
+            AutoplayFeatureLog.Record(AutoplayFeatures.ChestOpened);
             Opened?.Invoke();
 
             foreach (Collider chestCollider in GetComponentsInChildren<Collider>())

@@ -28,6 +28,7 @@ namespace BudgetGameDev.Games.Brocoli.Tests
                     10f,
                     Vector2.right * 10f,
                     Vector2.right * 10f,
+                    Vector2.right * 10f,
                     Vector2.left
                 );
 

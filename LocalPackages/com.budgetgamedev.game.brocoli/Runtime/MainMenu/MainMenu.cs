@@ -96,6 +96,7 @@ namespace BudgetGameDev.Games.Brocoli
             if (!BrocoliSaveSystem.BeginContinue(slot))
                 return false;
 
+            AutoplayFeatureLog.Record(AutoplayFeatures.MainMenuContinue);
             ProceduralUIAudio.PlaySelect();
             loadScene();
             return true;
@@ -118,6 +119,7 @@ namespace BudgetGameDev.Games.Brocoli
                 return false;
             }
 
+            AutoplayFeatureLog.Record(AutoplayFeatures.MainMenuNewGame);
             ProceduralUIAudio.PlaySelect();
             loadScene();
             return true;

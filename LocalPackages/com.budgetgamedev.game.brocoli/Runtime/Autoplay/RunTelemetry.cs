@@ -1,4 +1,4 @@
-using System.Globalization;
+using System;
 using System.IO;
 using System.Text;
 using UnityEngine;
@@ -12,9 +12,9 @@ namespace BudgetGameDev.Games.Brocoli
     /// on player death or when the configured game-time duration elapses.
     ///
     /// Sampling is driven by accumulated <see cref="Time.unscaledDeltaTime"/>, which in
-    /// deterministic mode equals the fixed capture step — so runs are reproducible.
+    /// deterministic mode equals the fixed capture step -- so runs are reproducible.
     /// </summary>
-    public class RunTelemetry : MonoBehaviour
+    public partial class RunTelemetry : MonoBehaviour
     {
         private AutoplayConfig _cfg;
         private string _jsonlPath;
@@ -23,9 +23,25 @@ namespace BudgetGameDev.Games.Brocoli
         private PlayerDamageHandler _damage;
         private DungeonManager _dungeon;
 
+        /// <summary>
+        /// Game-seconds of no level, no experience, and no new room before a run is
+        /// called stalled. An agent pinned on something it cannot reach survives and
+        /// reaches its features, so nothing else here would ever fail it.
+        /// </summary>
+        private const float StallSeconds = 120f;
+
         private float _elapsed; // game-seconds since start
         private float _sampleAcc;
+        private float _startedRealtime;
+        private float _lastProgressTime;
+        private float _progressLevel;
+        private float _progressExperience;
+        private int _progressRooms;
         private bool _ended;
+        private bool _awaitingRestart;
+
+        /// <summary>The one thing this does to the world, named so a test can watch it.</summary>
+        internal Action<GameOverOverlay> PressRestart = overlay => overlay.RestartGame();
 
         private int _warnings,
             _errors,
@@ -56,6 +72,7 @@ namespace BudgetGameDev.Games.Brocoli
             _jsonlPath = Path.Combine(_cfg.OutDir, "telemetry.jsonl");
             File.WriteAllText(_jsonlPath, string.Empty);
             _sampleAcc = _cfg.Interval; // emit first sample immediately
+            _startedRealtime = Time.realtimeSinceStartup;
             ResolvePlayer();
         }
 
@@ -64,7 +81,7 @@ namespace BudgetGameDev.Games.Brocoli
             if (_ended)
                 return;
 
-            float dt = Time.unscaledDeltaTime;
+            float dt = AutoplayTimeControl.GameDelta;
             _elapsed += dt;
             _sampleAcc += dt;
 
@@ -77,7 +94,13 @@ namespace BudgetGameDev.Games.Brocoli
                 WriteSample();
             }
 
-            if (_elapsed >= _cfg.Duration)
+            if (_awaitingRestart && TryRestart())
+                return;
+
+            TrackProgress();
+            if (_elapsed - _lastProgressTime >= StallSeconds)
+                EndRun("stalled");
+            else if (_elapsed >= _cfg.Duration)
                 EndRun("duration");
         }
 
@@ -135,7 +158,7 @@ namespace BudgetGameDev.Games.Brocoli
 
         private void WriteSample()
         {
-            Vector3 pos = _stats != null ? _stats.transform.position : Vector3.zero;
+            Vector2 pos = _stats != null ? _stats.transform.position.ToGround() : Vector2.zero;
             float nearest = NearestEnemyDistance(pos, out int enemies);
             if (enemies > _maxEnemies)
                 _maxEnemies = enemies;
@@ -147,7 +170,7 @@ namespace BudgetGameDev.Games.Brocoli
             sb.Append(',');
             Num(sb, "x", pos.x);
             sb.Append(',');
-            Num(sb, "y", pos.y);
+            Num(sb, "z", pos.y);
             sb.Append(',');
             Num(sb, "hp", _stats != null ? _stats.CurrentHealth : 0f);
             sb.Append(',');
@@ -176,115 +199,61 @@ namespace BudgetGameDev.Games.Brocoli
             File.AppendAllText(_jsonlPath, sb.ToString());
         }
 
-        private void OnGameOver() => EndRun("gameover");
-
-        private void EndRun(string reason)
+        /// <summary>Remembers the last moment the run actually got somewhere.</summary>
+        private void TrackProgress()
         {
-            if (_ended)
+            float level = _stats != null ? _stats.CurrentLevel : 0f;
+            float experience = _stats != null ? _stats.CurrentExperience : 0f;
+            int rooms = _dungeon != null ? _dungeon.RoomsVisited : 0;
+            if (
+                Mathf.Approximately(level, _progressLevel)
+                && Mathf.Approximately(experience, _progressExperience)
+                && rooms == _progressRooms
+            )
                 return;
-            _ended = true;
+
+            _progressLevel = level;
+            _progressExperience = experience;
+            _progressRooms = rooms;
+            _lastProgressTime = _elapsed;
+        }
+
+        /// <summary>
+        /// A roguelite run ends in death. A coverage sweep that stopped there would
+        /// only ever test whatever the first life happened to stumble into, so it
+        /// starts another one -- which is also the only thing that ever presses the
+        /// game-over screen's own restart button.
+        /// </summary>
+        private void OnGameOver()
+        {
+            if (_cfg.Scenario == "coverage" && _elapsed < _cfg.Duration)
+            {
+                _awaitingRestart = true;
+                return;
+            }
+
+            EndRun("gameover");
+        }
+
+        /// <summary>
+        /// Presses restart once the overlay is actually up, which is a moment later
+        /// than the death itself: the death animation runs first.
+        /// </summary>
+        private bool TryRestart()
+        {
+            GameOverOverlay overlay = GameOverOverlay.Active;
+            if (overlay == null || !overlay.IsVisible)
+                return false;
+
+            _awaitingRestart = false;
             if (_damage != null)
                 _damage.OnGameOver -= OnGameOver;
-
-            WriteSample();
-            bool passed = EvaluateScenario(reason);
-            WriteSummary(reason, passed);
-
-            if (_logBuffer.Length > 0)
-                File.WriteAllText(Path.Combine(_cfg.OutDir, "logs.txt"), _logBuffer.ToString());
-
-            Debug.Log(
-                $"[Autoplay] Run ended ({reason}). scenario={_cfg.Scenario} passed={passed}. Out: {_cfg.OutDir}"
-            );
-            Quit(passed ? 0 : 1);
-        }
-
-        private bool EvaluateScenario(string reason)
-        {
-            if (!LogsAreClean(_warnings, _errors, _exceptions))
-                return false;
-            float level = _stats != null ? _stats.CurrentLevel : 0f;
-            switch (_cfg.Scenario)
-            {
-                case "survive":
-                    return reason == "duration"; // lived the whole run
-                case "progress":
-                    return level >= _cfg.MinLevel; // leveled up enough
-                case "smoke":
-                default:
-                    return true; // ran without exceptions
-            }
-        }
-
-        internal static bool LogsAreClean(int warnings, int errors, int exceptions)
-        {
-            return warnings == 0 && errors == 0 && exceptions == 0;
-        }
-
-        private void WriteSummary(string reason, bool passed)
-        {
-            var sb = new StringBuilder();
-            sb.Append('{');
-            Bool(sb, "passed", passed);
-            sb.Append(',');
-            Str(sb, "scenario", _cfg.Scenario);
-            sb.Append(',');
-            Str(sb, "reason", reason);
-            sb.Append(',');
-            sb.Append("\"seed\":").Append(_cfg.Seed).Append(',');
-            Bool(sb, "deterministic", _cfg.Deterministic);
-            sb.Append(',');
-            Str(sb, "sha", _cfg.Sha);
-            sb.Append(',');
-            Num(sb, "durationSeconds", _elapsed);
-            sb.Append(',');
-            Num(sb, "finalLevel", _stats != null ? _stats.CurrentLevel : 0f);
-            sb.Append(',');
-            Num(sb, "finalHp", _stats != null ? _stats.CurrentHealth : 0f);
-            sb.Append(',');
-            sb.Append("\"roomsVisited\":")
-                .Append(_dungeon != null ? _dungeon.RoomsVisited : 0)
-                .Append(',');
-            Num(sb, "distanceTravelled", BotDriver.DistanceTravelled);
-            sb.Append(',');
-            sb.Append("\"botReplans\":").Append(BotDriver.ReplanCount).Append(',');
-            sb.Append("\"stuckRecoveries\":").Append(BotDriver.StuckRecoveryCount).Append(',');
-            sb.Append("\"maxEnemies\":").Append(_maxEnemies).Append(',');
-            sb.Append("\"warnings\":").Append(_warnings).Append(',');
-            sb.Append("\"errors\":").Append(_errors).Append(',');
-            sb.Append("\"exceptions\":").Append(_exceptions).Append(',');
-            Str(sb, "firstError", _firstError);
-            sb.Append('}');
-            File.WriteAllText(Path.Combine(_cfg.OutDir, "summary.json"), sb.ToString());
-        }
-
-        private static void Num(StringBuilder sb, string key, float value) =>
-            sb.Append('"')
-                .Append(key)
-                .Append("\":")
-                .Append(value.ToString("0.###", CultureInfo.InvariantCulture));
-
-        private static void Bool(StringBuilder sb, string key, bool value) =>
-            sb.Append('"').Append(key).Append("\":").Append(value ? "true" : "false");
-
-        private static void Str(StringBuilder sb, string key, string value) =>
-            sb.Append('"').Append(key).Append("\":\"").Append(Escape(value)).Append('"');
-
-        private static string Escape(string s) =>
-            string.IsNullOrEmpty(s)
-                ? ""
-                : s.Replace("\\", "\\\\")
-                    .Replace("\"", "\\\"")
-                    .Replace('\n', ' ')
-                    .Replace('\r', ' ');
-
-        private void Quit(int code)
-        {
-#if UNITY_EDITOR
-            UnityEditor.EditorApplication.isPlaying = false;
-#else
-            Application.Quit(code);
-#endif
+            _stats = null;
+            _damage = null;
+            _dungeon = null;
+            _lastProgressTime = _elapsed;
+            PressRestart(overlay);
+            return true;
         }
     }
 }
