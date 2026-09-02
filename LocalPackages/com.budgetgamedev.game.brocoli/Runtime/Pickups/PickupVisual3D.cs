@@ -80,10 +80,12 @@ namespace BudgetGameDev.Games.Brocoli
         private static void ResetSharedResources()
         {
             Materials.Clear();
+            GlowMaterials.Clear();
             boxMesh = null;
             cylinderMesh = null;
             ringMesh = null;
             gemMesh = null;
+            glowSphereMesh = null;
         }
 
         public static PickupVisual3D AttachExperience(GameObject pickup)
@@ -161,6 +163,7 @@ namespace BudgetGameDev.Games.Brocoli
                         : Quaternion.Euler(-60f, 0f, 0f);
                 if (spinTarget != null)
                     spinTarget.localRotation = spinBaseRotation;
+                EnsureExperienceGlow();
                 return;
             }
 
@@ -178,6 +181,8 @@ namespace BudgetGameDev.Games.Brocoli
                 BuildExperienceCrystal();
             else
                 BuildBoostToken(kind);
+
+            EnsureExperienceGlow();
 
             spinTarget = kind == ModelKind.Experience ? modelRoot : modelRoot.Find("Token Face");
             spinBaseRotation = spinTarget != null ? spinTarget.localRotation : Quaternion.identity;
