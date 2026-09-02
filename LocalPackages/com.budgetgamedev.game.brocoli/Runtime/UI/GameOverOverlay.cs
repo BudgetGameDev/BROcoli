@@ -25,6 +25,10 @@ namespace BudgetGameDev.Games.Brocoli
         private int selectedIndex;
 
         public static GameOverOverlay Active => active;
+
+        /// <summary>Whether the game-over screen is up anywhere.</summary>
+        public static bool AnyVisible => active != null && active.IsVisible;
+
         public bool IsVisible { get; private set; }
         public int DisplayedScore { get; private set; }
         public int DisplayedRooms { get; private set; }

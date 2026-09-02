@@ -119,6 +119,13 @@ https://kenney.nl/assets/mini-dungeon
 Modular Dungeon Kit 2.1 by Kenney
 https://kenney.nl/assets/modular-dungeon-kit
 
+Cursor Pack 1.1 by Kenney, acquired 2 September 2026. The mouse pointer is this
+pack's cursor_none, recoloured to a cold steel; the pointing gauntlet is kept
+alongside it as the second pointer the game can wear. The complete 182-cursor
+set is stored under the game package's Cursors~/ folder, which Unity ignores, so
+the whole pack stays available to choose from without shipping in a build.
+https://kenney.nl/assets/cursor-pack
+
 Metal063 from ambientCG.com, used for the steel bands, blades, spikes and
 fittings on dungeon props and for the surface detail under the gold tint. Its
 metalness map is scaled back so torchlit iron does not read as black.

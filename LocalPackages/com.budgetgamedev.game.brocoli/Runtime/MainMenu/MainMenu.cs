@@ -22,7 +22,23 @@ namespace BudgetGameDev.Games.Brocoli
 
         private int selectedIndex = -1;
 
-        private void Awake() => gameObject.AddComponent<ResponsiveMainMenuLayout>();
+        private static MainMenu active;
+
+        /// <summary>Whether the main menu is the screen in front of the player.</summary>
+        public static bool AnyOpen => active != null && active.isActiveAndEnabled;
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStaticState()
+        {
+            active = null;
+        }
+
+        private void Awake()
+        {
+            active = this;
+            gameObject.AddComponent<ResponsiveMainMenuLayout>();
+        }
+
 
         void Start()
         {
@@ -54,7 +70,12 @@ namespace BudgetGameDev.Games.Brocoli
                 Debug.Log("[MainMenu] Running as installed PWA - hiding install button");
         }
 
-        private void OnDestroy() => RestoreEventSystemNavigation();
+        private void OnDestroy()
+        {
+            if (active == this)
+                active = null;
+            RestoreEventSystemNavigation();
+        }
 
         public void Update()
         {

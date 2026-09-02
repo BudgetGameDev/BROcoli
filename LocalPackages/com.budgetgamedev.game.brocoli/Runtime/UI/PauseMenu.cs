@@ -21,6 +21,17 @@ namespace BudgetGameDev.Games.Brocoli
         public Button settingsButton;
         public Button mainMenuButton;
 
+        private static PauseMenu active;
+
+        /// <summary>Whether the pause screen is up anywhere.</summary>
+        public static bool AnyPaused => active != null && active.isPaused;
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStaticState()
+        {
+            active = null;
+        }
+
         private bool isPaused = false;
         private bool isMobilePlatform = false;
         private EventSystem eventSystem;
@@ -43,6 +54,7 @@ namespace BudgetGameDev.Games.Brocoli
         void Awake()
         {
             // Reset state on awake
+            active = this;
             isPaused = false;
             Time.timeScale = 1f;
 
@@ -63,6 +75,12 @@ namespace BudgetGameDev.Games.Brocoli
             {
                 gameObject.AddComponent<GraphicRegistryCleaner>();
             }
+        }
+
+        void OnDestroy()
+        {
+            if (active == this)
+                active = null;
         }
 
         void Start()

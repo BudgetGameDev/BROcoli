@@ -42,6 +42,13 @@ namespace BudgetGameDev.Games.Brocoli
         private float nextInventoryRefresh;
 
         public bool IsOpen => overlayRoot != null && overlayRoot.gameObject.activeSelf;
+
+        /// <summary>
+        /// Whether the inventory or map is up anywhere. Both are panes of this one overlay, so
+        /// this answers for both.
+        /// </summary>
+        public static bool AnyOpen => instance != null && instance.IsOpen;
+
         internal Pane ActivePane => activePane;
 
         public static ExplorationOverlay EnsurePresent()

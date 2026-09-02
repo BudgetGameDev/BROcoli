@@ -67,6 +67,17 @@ namespace BudgetGameDev.Games.Brocoli
         [SerializeField]
         private ProceduralLevelUpAudio levelUpAudio;
 
+        private static LevelUpScreen active;
+
+        /// <summary>Whether the upgrade choice is in front of the player anywhere.</summary>
+        public static bool AnyShowing => active != null && active.isShowing;
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStaticState()
+        {
+            active = null;
+        }
+
         private bool isShowing = false;
         private UpgradeOption[] currentOptions = new UpgradeOption[3];
         private PlayerStats playerStats;
@@ -81,6 +92,7 @@ namespace BudgetGameDev.Games.Brocoli
 
         void Awake()
         {
+            active = this;
             if (levelUpPanel != null)
             {
                 levelUpPanel.SetActive(false);
@@ -94,6 +106,12 @@ namespace BudgetGameDev.Games.Brocoli
                     levelUpAudio = gameObject.AddComponent<ProceduralLevelUpAudio>();
                 }
             }
+        }
+
+        void OnDestroy()
+        {
+            if (active == this)
+                active = null;
         }
 
         void Start()
