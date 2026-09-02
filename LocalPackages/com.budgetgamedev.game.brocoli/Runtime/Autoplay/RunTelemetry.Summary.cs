@@ -27,9 +27,23 @@ namespace BudgetGameDev.Games.Brocoli
             Debug.Log(
                 $"[Autoplay] Run ended ({reason}). scenario={_cfg.Scenario} passed={passed}. "
                     + $"Unused features: {(missing.Count == 0 ? "none" : string.Join(", ", missing))}. "
-                    + $"Out: {_cfg.OutDir}"
+                    + $"{DescribeCaptures()}Out: {_cfg.OutDir}"
             );
             Quit(passed ? 0 : 1);
+        }
+
+        /// <summary>
+        /// Names the triggers that never fired, because a run whose whole point was
+        /// one screenshot should say so where the log is all a reader has.
+        /// </summary>
+        private static string DescribeCaptures()
+        {
+            if (!AutoplayCaptureTriggers.Any)
+                return "";
+            List<string> unfired = AutoplayCaptureTriggers.Unfired();
+            return unfired.Count == 0
+                ? "Every requested capture fired. "
+                : $"Captures that never fired: {string.Join(", ", unfired)}. ";
         }
 
         private bool EvaluateScenario(string reason, List<string> missing)
@@ -86,7 +100,10 @@ namespace BudgetGameDev.Games.Brocoli
             AppendRunCounters(sb);
             sb.Append(',');
             sb.Append("\"features\":").Append(AutoplayFeatureLog.ToJson()).Append(',');
-            AppendMissing(sb, missing);
+            AppendStrings(sb, "missingFeatures", missing);
+            sb.Append(',');
+            sb.Append("\"captures\":").Append(AutoplayCaptureTriggers.ToJson()).Append(',');
+            AppendStrings(sb, "missingCaptures", AutoplayCaptureTriggers.Unfired());
             sb.Append(',');
             Str(sb, "firstError", _firstError);
             sb.Append('}');
@@ -112,14 +129,14 @@ namespace BudgetGameDev.Games.Brocoli
             sb.Append("\"exceptions\":").Append(_exceptions);
         }
 
-        private static void AppendMissing(StringBuilder sb, List<string> missing)
+        private static void AppendStrings(StringBuilder sb, string key, List<string> values)
         {
-            sb.Append("\"missingFeatures\":[");
-            for (int index = 0; index < missing.Count; index++)
+            sb.Append('"').Append(key).Append("\":[");
+            for (int index = 0; index < values.Count; index++)
             {
                 if (index > 0)
                     sb.Append(',');
-                sb.Append('"').Append(missing[index]).Append('"');
+                sb.Append('"').Append(Escape(values[index])).Append('"');
             }
             sb.Append(']');
         }

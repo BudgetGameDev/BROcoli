@@ -100,6 +100,7 @@ namespace BudgetGameDev.Games.Brocoli
             float height = style == DropStyle.Chest ? ChestDropHeight : EnemyDropHeight;
             float duration = style == DropStyle.Chest ? ChestDropDuration : EnemyDropDuration;
             BeginDrop(landingPosition, height, duration);
+            AutoplayFeatureLog.Record(AutoplayFeatures.ExperienceDropped);
         }
 
         /// <summary>Returns a point along a parabolic pickup drop arc.</summary>

@@ -27,6 +27,13 @@ namespace BudgetGameDev.Games.Brocoli
         public bool DriveMenus; // enter through the main menu instead of the dungeon
         public bool ExerciseFeatures = true; // drive the optional systems, not just combat
 
+        /// <summary>
+        /// Event triggers to photograph, as <c>event[#occurrence|*][+delay]</c>. This
+        /// is what lets an agent ask a batch run a specific question -- show me the
+        /// first experience orb that drops -- instead of reading every frame.
+        /// </summary>
+        public readonly List<string> CaptureOn = new();
+
         public static AutoplayConfig FromCommandLine() =>
             FromArguments(Environment.GetCommandLineArgs(), Environment.GetEnvironmentVariable);
 
@@ -113,6 +120,8 @@ namespace BudgetGameDev.Games.Brocoli
                 Scenario = argument.Substring(11);
             else if (argument.StartsWith("--sha=", StringComparison.Ordinal))
                 Sha = argument.Substring(6);
+            else if (argument.StartsWith("--capture-on=", StringComparison.Ordinal))
+                AddCaptureTriggers(argument.Substring(13));
         }
 
         private void ApplyEnvironment(Func<string, string> environment)
@@ -123,6 +132,21 @@ namespace BudgetGameDev.Games.Brocoli
             TryFloat(environment("BROCOLI_TIMESTEP"), ref Timestep);
             TryText(environment("BROCOLI_OUT"), ref OutDir);
             TryText(environment("BROCOLI_SCENARIO"), ref Scenario);
+
+            string triggers = environment("BROCOLI_CAPTURE_ON");
+            if (!string.IsNullOrEmpty(triggers))
+            {
+                CaptureOn.Clear();
+                AddCaptureTriggers(triggers);
+            }
+        }
+
+        /// <summary>Adds a comma-separated list, so the option can repeat or bundle.</summary>
+        private void AddCaptureTriggers(string value)
+        {
+            foreach (string spec in value.Split(','))
+                if (!string.IsNullOrWhiteSpace(spec))
+                    CaptureOn.Add(spec.Trim());
         }
 
         private static string ResolveOutDir(string requested) =>
@@ -138,6 +162,7 @@ namespace BudgetGameDev.Games.Brocoli
             $"tier={(Tier.Length > 0 ? Tier : "custom")} seed={Seed} duration={Duration}s "
             + $"interval={Interval}s timestep={Timestep:0.####} deterministic={Deterministic} "
             + $"scenario={Scenario} menus={DriveMenus} features={ExerciseFeatures} "
+            + $"captureOn={(CaptureOn.Count > 0 ? string.Join(";", CaptureOn) : "none")} "
             + $"sha={Sha} out={OutDir}";
 
         private static bool EnvFlag(string value) =>

@@ -19,6 +19,7 @@ namespace BudgetGameDev.Games.Brocoli
         internal const string HydraSplit = "combat.hydra-split";
         internal const string ProjectileDodged = "combat.projectile-dodged";
         internal const string DamageTaken = "combat.damage-taken";
+        internal const string ExperienceDropped = "pickup.experience-dropped";
         internal const string ExperienceCollected = "pickup.experience";
         internal const string BoostCollected = "pickup.boost";
         internal const string UpgradeChosen = "levelup.upgrade-chosen";
@@ -73,5 +74,12 @@ namespace BudgetGameDev.Games.Brocoli
             GameOverShown,
             GameOverRestart,
         };
+
+        /// <summary>
+        /// Moments recorded so a run can be watched rather than graded. They gate
+        /// nothing -- what they buy is a name a <c>--capture-on</c> trigger can point
+        /// at, and a count in the ledger.
+        /// </summary>
+        internal static readonly string[] Observed = { ExperienceDropped };
     }
 }

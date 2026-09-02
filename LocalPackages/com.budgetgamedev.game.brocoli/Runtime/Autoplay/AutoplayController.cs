@@ -49,6 +49,7 @@ namespace BudgetGameDev.Games.Brocoli
 
             Application.runInBackground = true;
             UnityEngine.Random.InitState(_config.Seed);
+            AutoplayCaptureTriggers.Arm(_config.CaptureOn);
 
             // Make each frame cheap so the fake-time fast-forward actually accelerates even
             // in heavy combat. Capturing stack traces for log/warning spam (thousands of
@@ -63,6 +64,12 @@ namespace BudgetGameDev.Games.Brocoli
 
             if (_config.Deterministic)
                 BeginFastForward();
+
+            // Capture spans the whole session rather than the dungeon alone: a trigger
+            // may name something that happens in a menu, and a run that never renders
+            // its first screen is exactly what the picture check is for.
+            var capture = gameObject.AddComponent<FrameCapture>();
+            capture.Configure(_config);
 
             SceneManager.sceneLoaded += OnSceneLoaded;
             EnterGame(SceneManager.LoadScene);
@@ -114,15 +121,12 @@ namespace BudgetGameDev.Games.Brocoli
             if (_config.ExerciseFeatures)
                 gameObject.AddComponent<AutoplayFeatureDirector>();
 
-            var capture = gameObject.AddComponent<FrameCapture>();
-            capture.Configure(_config);
-
             var telemetry = gameObject.AddComponent<RunTelemetry>();
             telemetry.Configure(_config);
 
             Debug.Log(
                 "[Autoplay] Dungeon scene wired (autonomous navigation + combat policy + "
-                    + "capture + telemetry + adaptive upgrades)."
+                    + "telemetry + adaptive upgrades)."
             );
         }
     }

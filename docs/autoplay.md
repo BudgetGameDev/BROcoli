@@ -51,7 +51,7 @@ harness portable: it understands the tiers itself.
 
 Runner options are `-tier`, `-seed`, `-out`, `-build`, and `-timeout`. Anything
 else is handed to the player untouched: `-duration`, `-interval`, `-timestep`,
-`-scenario`, `-minlevel`, `-tuning`, `-menus`/`-noMenus`, and
+`-scenario`, `-minlevel`, `-tuning`, `-capture-on`, `-menus`/`-noMenus`, and
 `-features`/`-noFeatures`. An explicit option always beats the tier preset it
 appears alongside.
 
@@ -76,6 +76,87 @@ survives happily and reaches its features, so nothing else here would catch it.
 A `coverage` run starts a fresh life when the player dies rather than stopping
 there. A roguelite run ends in death, and a sweep that stopped at the first one
 would only test whatever that life happened to stumble into.
+
+## Inspecting a live run
+
+A batch run answers questions after the fact. An open Editor answers them while
+the bot plays, which is what makes the harness useful for looking at the game
+rather than only grading it: the agent inspects a real playthrough instead of
+driving the game itself.
+
+The player bootstrap reads the environment, so a run starts inside the Editor
+without any separate entry point. Through the editor integration:
+
+```bash
+unity cmd eval 'System.Environment.SetEnvironmentVariable("BROCOLI_AUTOPLAY", "1");
+System.Environment.SetEnvironmentVariable("BROCOLI_TIER", "tune");'
+unity cmd editor_play
+```
+
+The bot then plays the game in the Game view while every editor query reads the
+live objects behind it: `eval` for arbitrary C# against the running scene,
+`find_gameobjects` and `get_component_properties` for the hierarchy,
+`capture_game_view` with `source=screen` for the composited picture including
+the HUD, and `get_console_logs` for what the game is saying about itself. The
+same environment variables that steer a batch run steer this one --
+`BROCOLI_TIER`, `BROCOLI_DURATION`, `BROCOLI_OUT`, `BROCOLI_CAPTURE_ON` -- so a
+session can be shaped before Play and read afterwards from `AutoplayRuns/`.
+
+Three things to know before relying on it:
+
+- Clear those variables when finished (set them to `null` through `eval`), or the
+  next Play in that Editor autoplays too.
+- Prefer the `tune` tier. The deterministic tiers advance game time as fast as
+  the machine renders, so a probe races the simulation; `tune` runs at real time.
+- Read the state, not the verdict. The run still ends itself and leaves Play
+  mode, and an Editor-only render warning such as "Ignoring depth surface store
+  action as it is memoryless" is enough to mark the scenario failed. A verdict
+  means what it says in the built player.
+
+## Capturing a moment
+
+The interval captures show a run; a trigger shows a moment. Name a recorded
+event and the run photographs the frame it happened in, which is how an agent
+asks a batch run one specific question -- show me the first experience orb that
+drops -- rather than reading every frame looking for it.
+
+```bash
+unity run . -- -executeMethod \
+    BudgetGameDev.Games.Brocoli.Editor.AutoplayRunner.Run \
+    -tier medium -capture-on pickup.experience-dropped+0.4
+```
+
+The spec is `event[#occurrence|*][+delay]`, and the option may repeat or carry a
+comma-separated list:
+
+| Spec | What it photographs |
+| --- | --- |
+| `pickup.experience-dropped` | the first orb to drop |
+| `combat.enemy-killed#3` | the third kill |
+| `dungeon.chest-opened*` | every chest, capped at 40 frames per spec |
+| `pickup.experience-dropped+0.4` | 0.4 game-seconds later, once the orb has landed |
+
+The delay is what usually decides whether the picture is worth having: an event
+fires when the game decides it, and the thing it is about is often still
+arriving. An orb spawns in the air and takes about a third of a second to land.
+
+The event names are the feature ledger's, listed in `AutoplayFeatures`
+(`Runtime/Autoplay/AutoplayFeatures.cs`) -- everything the coverage sweep grades,
+plus the moments recorded only so a run can be watched, such as
+`pickup.experience-dropped`. Anything recorded through the ledger can be
+triggered on, so a new moment costs one `AutoplayFeatureLog.Record` call at the
+place in gameplay code where it genuinely happens.
+
+Each fired trigger writes `events/<event>-<occurrence>.png` -- an ordinary
+full-screen frame, the game exactly as a player would see it -- and a line in
+`events.jsonl` naming the event, its occurrence, the game time, and the file.
+`summary.json` carries the same list as `captures`, alongside `missingCaptures`
+for triggers that were asked for and never fired, and the runner prints both.
+
+A spec the harness cannot read warns, and a warning fails any scenario: a typo
+is a mistake in the request, and a twenty-minute run that ends with no picture
+is a worse way to learn about it. An event name that simply never happened is
+not a warning -- it is reported as a capture that never fired.
 
 ## What the agent does
 
@@ -137,11 +218,15 @@ a hope.
 ## Results
 
 Each run writes screenshots, `telemetry.jsonl`, `summary.json`, and player logs
-beneath `AutoplayRuns/` unless `-out` selects another directory. Telemetry
-includes position, health, level, enemy pressure, current intent, visited rooms,
-route replans, and stuck recoveries. The summary adds the tier, the achieved
-speedup, distance travelled, final navigation counters, the feature ledger, and
-the list of required features the run never reached.
+beneath `AutoplayRuns/` unless `-out` selects another directory. Interval
+captures land in `frames/` and cover the whole session, menus included, because
+a run that never renders its first screen is exactly what the picture check
+below is for. Triggered captures land in `events/` with `events.jsonl` beside
+them. Telemetry includes position, health, level, enemy pressure, current
+intent, visited rooms, route replans, and stuck recoveries. The summary adds the
+tier, the achieved speedup, distance travelled, final navigation counters, the
+feature ledger, the list of required features the run never reached, and the
+captures it took.
 
 The runner also reads the captured frames back and prints mean luminance in top,
 middle, and bottom screen bands. A run that has gone completely black, or blown

@@ -29,6 +29,11 @@ namespace BudgetGameDev.Games.Brocoli
 
             Counts.TryGetValue(feature, out int seen);
             Counts[feature] = seen + 1;
+
+            // Every named moment in the game passes through here, which makes this the
+            // one place a screenshot trigger can watch without the recording sites
+            // knowing anything about capture.
+            AutoplayCaptureTriggers.Notify(feature, seen + 1);
         }
 
         /// <summary>Records only when the condition holds, keeping call sites one line.</summary>
@@ -59,6 +64,7 @@ namespace BudgetGameDev.Games.Brocoli
             var json = new StringBuilder("{");
             AppendGroup(json, AutoplayFeatures.Required);
             AppendGroup(json, AutoplayFeatures.Optional);
+            AppendGroup(json, AutoplayFeatures.Observed);
             return json.Append('}').ToString();
         }
 
