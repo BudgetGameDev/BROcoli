@@ -122,6 +122,19 @@ a lit room.
 Ray tracing needs DX12 and a GPU that supports it. The Medium and High tiers do not, and
 are the fallback when it is missing.
 
+### Selecting one
+
+The four appear as quality levels named `HDRP Medium` through `HDRP RT Ultra`, each
+carrying its pipeline asset. They are excluded from WebGL, Android, iOS and tvOS, so the
+web build cannot land on one even by accident.
+
+No platform default points at them yet. Switching Windows over is one deliberate change
+-- `Standalone` in `m_PerPlatformDefaultQuality`, or a build profile that pins the
+quality level -- and it is left undone on purpose: the editor's active build target is
+Windows, so changing it switches the editor itself to High Definition, and that wants
+someone looking at the result rather than a commit doing it quietly. Until then the
+tiers exist, are selectable, and are what a graphics menu would offer.
+
 ## The web build
 
 The web build renders through Universal and must stay cheap. Adding High Definition to
