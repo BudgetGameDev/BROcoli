@@ -1,5 +1,6 @@
 using NUnit.Framework;
 using UnityEngine;
+using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
 
 namespace BudgetGameDev.Shared.Tests
@@ -15,13 +16,12 @@ namespace BudgetGameDev.Shared.Tests
         public void OffIOSNothingIsChangedAndTheSkipIsRecorded()
         {
             iOSSafariWebGLOptimizer optimizer = NewOptimizer();
-            QualitySettings.antiAliasing = 4;
             ExpectLog("Not an iOS/iPadOS WebGL device - skipping optimizations");
 
             optimizer.Awake();
 
             Assert.That(iOSSafariWebGLOptimizer._optimizationsApplied, Is.False);
-            Assert.That(QualitySettings.antiAliasing, Is.EqualTo(4), "a desktop keeps its MSAA");
+            Assert.That(WrittenQuality, Is.Null, "a desktop keeps its MSAA");
         }
 
         [Test]
@@ -31,16 +31,11 @@ namespace BudgetGameDev.Shared.Tests
             iOSSafariWebGLOptimizer.RemoveSelf = target => removed = target;
             iOSSafariWebGLOptimizer._optimizationsApplied = true;
             iOSSafariWebGLOptimizer optimizer = NewOptimizer();
-            QualitySettings.antiAliasing = 4;
 
             optimizer.Awake();
 
             Assert.That(removed, Is.SameAs(optimizer.gameObject), "the duplicate takes itself out");
-            Assert.That(
-                QualitySettings.antiAliasing,
-                Is.EqualTo(4),
-                "and bows out before touching anything"
-            );
+            Assert.That(WrittenQuality, Is.Null, "and bows out before touching anything");
         }
 
         [Test]
@@ -77,7 +72,6 @@ namespace BudgetGameDev.Shared.Tests
             iOSSafariWebGLOptimizer optimizer = NewOptimizer();
             ScratchPipeline = ScriptableObject.CreateInstance<UniversalRenderPipelineAsset>();
             ScratchPipeline.msaaSampleCount = 4;
-            QualitySettings.antiAliasing = 4;
 
             ExpectLog("applying optimizations");
             ExpectQualityReport();
@@ -87,24 +81,33 @@ namespace BudgetGameDev.Shared.Tests
             optimizer.ApplyOptimizations(ScratchPipeline);
 
             Assert.That(iOSSafariWebGLOptimizer._optimizationsApplied, Is.True);
-            Assert.That(QualitySettings.antiAliasing, Is.EqualTo(0));
+            Assert.That(WrittenQuality.Value.AntiAliasing, Is.EqualTo(0));
             Assert.That(ScratchPipeline.msaaSampleCount, Is.EqualTo(1));
         }
 
         [Test]
         public void TheDefaultRouteReachesForTheProjectsOwnPipeline()
         {
+            Assert.That(
+                iOSSafariWebGLOptimizer.ResolveLivePipeline(),
+                Is.SameAs(GraphicsSettings.currentRenderPipeline),
+                "the route the player takes is the project's own pipeline asset"
+            );
+
             iOSSafariWebGLOptimizer optimizer = NewOptimizer();
-            QualitySettings.antiAliasing = 4;
+            ScratchPipeline = ScriptableObject.CreateInstance<UniversalRenderPipelineAsset>();
+            ScratchPipeline.msaaSampleCount = 4;
+            iOSSafariWebGLOptimizer.ResolveLivePipeline = () => ScratchPipeline;
 
             ExpectLog("applying optimizations");
             ExpectQualityReport();
-            ExpectPipelineReport(LivePipeline);
+            ExpectPipelineReport(ScratchPipeline);
             ExpectLog("All optimizations applied");
 
             optimizer.ApplyOptimizations();
 
-            Assert.That(QualitySettings.antiAliasing, Is.EqualTo(0));
+            Assert.That(WrittenQuality.Value.AntiAliasing, Is.EqualTo(0));
+            Assert.That(ScratchPipeline.msaaSampleCount, Is.EqualTo(1));
             Assert.That(iOSSafariWebGLOptimizer._optimizationsApplied, Is.True);
         }
 

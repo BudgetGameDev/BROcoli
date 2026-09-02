@@ -5,8 +5,8 @@ using UnityEngine.Rendering.Universal;
 namespace BudgetGameDev.Shared.Tests
 {
     /// <summary>
-    /// What the optimizer actually relaxes. The whole point is that it buys frame
-    /// time without touching the light budget: the dungeon is lit by two additional
+    /// What the relief valve gives up and what it refuses to give up. The dungeon is
+    /// lit almost entirely by the pixel-light budget and by two additional
     /// URP lights, and dropping either leaves most of it black on iOS.
     /// </summary>
     public sealed class IOSSafariWebGLOptimizerSettingsTests : IOSSafariWebGLOptimizerTestBase
@@ -16,18 +16,18 @@ namespace BudgetGameDev.Shared.Tests
         {
             int lightsBefore = QualitySettings.pixelLightCount;
             int levelBefore = QualitySettings.GetQualityLevel();
-            QualitySettings.antiAliasing = 4;
             ExpectQualityReport();
 
             iOSSafariWebGLOptimizer.ApplyLightingSafeQualitySettings();
 
-            Assert.That(QualitySettings.antiAliasing, Is.EqualTo(0));
-            Assert.That(QualitySettings.softParticles, Is.False);
-            Assert.That(QualitySettings.softVegetation, Is.False);
-            Assert.That(QualitySettings.billboardsFaceCameraPosition, Is.False);
-            Assert.That(QualitySettings.lodBias, Is.EqualTo(0.5f));
-            Assert.That(QualitySettings.maximumLODLevel, Is.EqualTo(2));
-            Assert.That(QualitySettings.particleRaycastBudget, Is.EqualTo(16));
+            iOSSafariWebGLOptimizer.QualitySnapshot applied = WrittenQuality.Value;
+            Assert.That(applied.AntiAliasing, Is.EqualTo(0));
+            Assert.That(applied.SoftParticles, Is.False);
+            Assert.That(applied.SoftVegetation, Is.False);
+            Assert.That(applied.BillboardsFaceCameraPosition, Is.False);
+            Assert.That(applied.LodBias, Is.EqualTo(0.5f));
+            Assert.That(applied.MaximumLodLevel, Is.EqualTo(2));
+            Assert.That(applied.ParticleRaycastBudget, Is.EqualTo(16));
             Assert.That(
                 QualitySettings.pixelLightCount,
                 Is.EqualTo(lightsBefore),
@@ -37,6 +37,28 @@ namespace BudgetGameDev.Shared.Tests
                 QualitySettings.GetQualityLevel(),
                 Is.EqualTo(levelBefore),
                 "the quality level is deliberately left alone"
+            );
+        }
+
+        /// <summary>
+        /// The one check that lets the reductions through to the project settings for
+        /// real. It hands over what the project already holds, so the write it makes
+        /// is the write the project would make to itself and no run, finished or
+        /// interrupted, can leave the editor's MSAA switched off.
+        /// </summary>
+        [Test]
+        public void TheDefaultRouteWritesTheSnapshotStraightToTheProject()
+        {
+            iOSSafariWebGLOptimizer.ResetStatics();
+            iOSSafariWebGLOptimizer.QualitySnapshot unchanged = iOSSafariWebGLOptimizer
+                .QualitySnapshot
+                .Current;
+
+            iOSSafariWebGLOptimizer.WriteQuality(unchanged);
+
+            Assert.That(
+                iOSSafariWebGLOptimizer.QualitySnapshot.Current.ToString(),
+                Is.EqualTo(unchanged.ToString())
             );
         }
 

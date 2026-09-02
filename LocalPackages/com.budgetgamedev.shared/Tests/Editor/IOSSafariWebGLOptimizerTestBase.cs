@@ -10,8 +10,9 @@ namespace BudgetGameDev.Shared.Tests
 {
     /// <summary>
     /// Shared fixture for the iOS Safari relief valve. Everything the optimizer
-    /// touches is global - quality settings and the render pipeline asset - so the
-    /// fixture records the previous values and puts every one of them back.
+    /// touches is global - quality settings and the render pipeline asset - so every
+    /// check reaches them through the optimizer's seams, and this fixture verifies
+    /// the project itself came through untouched.
     /// </summary>
     public abstract class IOSSafariWebGLOptimizerTestBase
     {
@@ -20,13 +21,10 @@ namespace BudgetGameDev.Shared.Tests
         /// <summary>A pipeline asset owned by the test rather than the project.</summary>
         protected UniversalRenderPipelineAsset ScratchPipeline;
 
-        private int savedAntiAliasing;
-        private bool savedSoftParticles;
-        private bool savedSoftVegetation;
-        private bool savedBillboards;
-        private float savedLodBias;
-        private int savedMaximumLodLevel;
-        private int savedParticleRaycastBudget;
+        /// <summary>What the optimizer last asked the project to apply.</summary>
+        internal iOSSafariWebGLOptimizer.QualitySnapshot? WrittenQuality;
+
+        private iOSSafariWebGLOptimizer.QualitySnapshot savedQuality;
         private int savedLivePipelineMsaa;
         private float savedLivePipelineRenderScale;
 
@@ -44,13 +42,9 @@ namespace BudgetGameDev.Shared.Tests
             )
                 Object.DestroyImmediate(existing.gameObject);
             iOSSafariWebGLOptimizer.ResetStatics();
-            savedAntiAliasing = QualitySettings.antiAliasing;
-            savedSoftParticles = QualitySettings.softParticles;
-            savedSoftVegetation = QualitySettings.softVegetation;
-            savedBillboards = QualitySettings.billboardsFaceCameraPosition;
-            savedLodBias = QualitySettings.lodBias;
-            savedMaximumLodLevel = QualitySettings.maximumLODLevel;
-            savedParticleRaycastBudget = QualitySettings.particleRaycastBudget;
+            savedQuality = iOSSafariWebGLOptimizer.QualitySnapshot.Current;
+            WrittenQuality = null;
+            iOSSafariWebGLOptimizer.WriteQuality = snapshot => WrittenQuality = snapshot;
 
             UniversalRenderPipelineAsset live = LivePipeline;
             if (live != null)
@@ -60,24 +54,15 @@ namespace BudgetGameDev.Shared.Tests
             }
         }
 
+        /// <summary>
+        /// Checks that the fixture left the project exactly as it found it. Restoring
+        /// afterwards would not be enough: an Editor flushes whatever these settings
+        /// hold when it quits, and a run interrupted partway through never reaches
+        /// its restore, so the project would keep the reductions meant for iOS.
+        /// </summary>
         [TearDown]
         public void RestoreGlobalSettings()
         {
-            QualitySettings.antiAliasing = savedAntiAliasing;
-            QualitySettings.softParticles = savedSoftParticles;
-            QualitySettings.softVegetation = savedSoftVegetation;
-            QualitySettings.billboardsFaceCameraPosition = savedBillboards;
-            QualitySettings.lodBias = savedLodBias;
-            QualitySettings.maximumLODLevel = savedMaximumLodLevel;
-            QualitySettings.particleRaycastBudget = savedParticleRaycastBudget;
-
-            UniversalRenderPipelineAsset live = LivePipeline;
-            if (live != null)
-            {
-                live.msaaSampleCount = savedLivePipelineMsaa;
-                live.renderScale = savedLivePipelineRenderScale;
-            }
-
             if (ScratchPipeline != null)
             {
                 Object.DestroyImmediate(ScratchPipeline);
@@ -94,6 +79,23 @@ namespace BudgetGameDev.Shared.Tests
 
             spawned.Clear();
             iOSSafariWebGLOptimizer.ResetStatics();
+
+            Assert.That(
+                iOSSafariWebGLOptimizer.QualitySnapshot.Current.ToString(),
+                Is.EqualTo(savedQuality.ToString()),
+                "the project's own quality settings are not this fixture's to change"
+            );
+
+            UniversalRenderPipelineAsset live = LivePipeline;
+            if (live != null)
+            {
+                Assert.That(
+                    live.msaaSampleCount,
+                    Is.EqualTo(savedLivePipelineMsaa),
+                    "nor is the pipeline asset the project renders with"
+                );
+                Assert.That(live.renderScale, Is.EqualTo(savedLivePipelineRenderScale));
+            }
         }
 
         protected iOSSafariWebGLOptimizer NewOptimizer()

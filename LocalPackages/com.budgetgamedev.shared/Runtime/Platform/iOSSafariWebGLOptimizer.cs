@@ -19,7 +19,7 @@ namespace BudgetGameDev.Shared
     /// Note: this does not change the frame rate; it only relaxes iOS Safari's cost.
     /// </summary>
     [DefaultExecutionOrder(-1000)] // Run very early
-    public class iOSSafariWebGLOptimizer : MonoBehaviour
+    public partial class iOSSafariWebGLOptimizer : MonoBehaviour
     {
 #if UNITY_WEBGL && !UNITY_EDITOR
         [DllImport("__Internal")]
@@ -48,6 +48,21 @@ namespace BudgetGameDev.Shared
         internal static Action<GameObject> RemoveSelf = Destroy;
 
         /// <summary>
+        /// How the quality reductions reach the project, and how the pipeline asset
+        /// the project renders with is found. Both cross into state an open Editor
+        /// owns and flushes to disk when it quits: a check that turned the project's
+        /// MSAA off for real leaves it off when the run is interrupted before it can
+        /// put it back. Each is reached through a field an editor context can
+        /// substitute, so the policy is checked without the project being written.
+        /// </summary>
+        internal static Action<QualitySnapshot> WriteQuality = snapshot =>
+            snapshot.ApplyToProject();
+
+        /// <inheritdoc cref="WriteQuality"/>
+        internal static Func<UniversalRenderPipelineAsset> ResolveLivePipeline = () =>
+            GraphicsSettings.currentRenderPipeline as UniversalRenderPipelineAsset;
+
+        /// <summary>
         /// Clears the once-only latch. Statics survive a play session when domain
         /// reloading is off, so without this the second run would skip the work.
         /// </summary>
@@ -57,6 +72,9 @@ namespace BudgetGameDev.Shared
             _optimizationsApplied = false;
             KeepAcrossScenes = DontDestroyOnLoad;
             RemoveSelf = Destroy;
+            WriteQuality = snapshot => snapshot.ApplyToProject();
+            ResolveLivePipeline = () =>
+                GraphicsSettings.currentRenderPipeline as UniversalRenderPipelineAsset;
         }
 
         /// <summary>
@@ -126,10 +144,7 @@ namespace BudgetGameDev.Shared
             ApplyOptimizations();
         }
 
-        internal void ApplyOptimizations() =>
-            ApplyOptimizations(
-                GraphicsSettings.currentRenderPipeline as UniversalRenderPipelineAsset
-            );
+        internal void ApplyOptimizations() => ApplyOptimizations(ResolveLivePipeline());
 
         /// <summary>
         /// The optimizations themselves, split from the detection so they can be
@@ -170,18 +185,10 @@ namespace BudgetGameDev.Shared
             );
 
             // Note: VSync and target frame rate are left at their project defaults.
-
-            // Disable MSAA via quality settings
-            QualitySettings.antiAliasing = 0;
+            // MSAA goes, and so do the effects that do not alter the scene's light
+            // selection or shadow budget.
+            WriteQuality(QualitySnapshot.LightingSafe);
             Debug.Log("[iOSSafariOptimizer] MSAA disabled (QualitySettings)");
-
-            // Reduce effects that do not alter the scene's light selection or shadow budget.
-            QualitySettings.softParticles = false;
-            QualitySettings.softVegetation = false;
-            QualitySettings.billboardsFaceCameraPosition = false;
-            QualitySettings.lodBias = 0.5f;
-            QualitySettings.maximumLODLevel = 2;
-            QualitySettings.particleRaycastBudget = 16;
             Debug.Log("[iOSSafariOptimizer] Additional quality reductions applied");
         }
 
