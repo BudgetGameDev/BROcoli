@@ -51,6 +51,7 @@ MonoBehaviour:
   torchLight: {fileID: 3090564659937762140}
   flickerAmount: 0.35
   flickerSpeed: 7
+  hdrIntensityScale: 1.6
 --- !u!1 &3510084619610221229
 GameObject:
   m_ObjectHideFlags: 0
@@ -61,6 +62,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1778693923876468432}
   - component: {fileID: 3090564659937762140}
+  - component: {fileID: 113206924327483650}
   m_Layer: 0
   m_Name: FlameLight
   m_TagString: Untagged
@@ -148,6 +150,22 @@ Light:
   m_LightUnit: 1
   m_LuxAtDistance: 1
   m_EnableSpotReflector: 1
+--- !u!114 &113206924327483650
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3510084619610221229}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1531bacbb9ec0c44e81e41cea2b7dc40, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: BudgetGameDev.Shared::BudgetGameDev.Shared.Rendering.PhysicalPunctualLight
+  targetLuminanceNits: 67.5
+  referenceDistanceMeters: 2
+  rangeMeters: 8
+  lightColor: {r: 1, g: 0.62, b: 0.28, a: 1}
 --- !u!1 &7475088733294057544
 GameObject:
   m_ObjectHideFlags: 0

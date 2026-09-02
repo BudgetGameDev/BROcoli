@@ -35,6 +35,7 @@
       "source": "local",
       "dependencies": {
         "com.unity.inputsystem": "1.18.0",
+        "com.unity.render-pipelines.high-definition": "17.3.0",
         "com.unity.render-pipelines.universal": "17.3.0",
         "com.unity.ugui": "2.0.0",
         "com.unity.modules.audio": "1.0.0",
