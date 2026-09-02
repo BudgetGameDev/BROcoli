@@ -110,6 +110,57 @@ unity status                     # the Editor reports state "ready"
 work: it means the CLI, the Editor, and the Pipeline package are all talking to
 each other. `unity doctor` prints a broader diagnostic when one of them is not.
 
+## Restarting a wedged Editor
+
+A long-lived Editor sometimes reaches a state that no amount of retrying gets it
+out of. What that looks like:
+
+- The Game view is black on Play although the scene is loaded and its camera
+  still renders: `capture_game_view source=camera` returns the scene while
+  `source=screen` comes back pure black.
+- An exception whose every frame is Unity's own editor code, with nothing from
+  this repository in the stack -- a `NullReferenceException` in
+  `SerializedObjectBindingToBaseField.OnFieldAttached` while
+  `EditorApplicationLayout.SetStopmodeLayout` restores the window layout on
+  leaving play mode, for instance.
+- A test run that aborted mid-flight: `InvalidOperationException: This cannot be
+  used during play mode` out of `SaveModifiedSceneTask` or
+  `RestoreSceneSetupTask`, then "Test tree is not available" and "An unexpected
+  error happened while running tests". The runner skips its cleanup tasks, so
+  whatever play mode left behind stays behind.
+- `unity status` or `unity cmd editor_status` no longer answering.
+
+None of that is a bug in the game to be debugged in place. Close the Editor and
+open a fresh automated one:
+
+```powershell
+unity cmd save_all               # only if the Editor still answers
+unity cmd menu path="File/Exit"  # ask it to quit
+unity status                     # the instance is gone
+unity-open                       # a fresh automated Editor
+unity cmd editor_status          # "ready"
+```
+
+When it is too wedged to quit on request, stop the process instead. `unity
+status --format json` reports the pid for this project, `Temp/UnityLockfile` in
+the clone disappears once the process is really gone, and `unity-open` refuses
+to start while another Editor still holds the project.
+
+```powershell
+Stop-Process -Id <pid>
+```
+
+```bash
+kill <pid>
+```
+
+Two things that look like the same failure but are not. A batch-mode gate such
+as `./scripts/unity-test-check.sh` exits 1 with "no results written" whenever an
+Editor holds the project lock: run those tests through the open Editor
+(`unity cmd run_tests mode=editor`) or close it first. And a running Editor
+serves the assemblies it last compiled, so `unity cmd recompile` after editing
+C# is what keeps a test run from quietly exercising the old code.
+
 ## Windows
 
 ```powershell

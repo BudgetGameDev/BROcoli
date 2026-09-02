@@ -14,6 +14,13 @@ installed. When the Unity CLI, the Editor, or the agent integration is missing
 entirely, read [docs/machine-setup.md](docs/machine-setup.md) rather than
 improvising a setup.
 
+When the Editor wedges -- a black Game view on Play with the scene intact, an
+exception thrown entirely inside Unity's own editor code, a test run that
+aborted mid-flight, or a Pipeline connection that stopped answering -- do not
+debug it in place or work around it. Close that Editor and open a fresh
+automated one with `unity-open`; the symptoms, the quit commands, and what to
+save first are in [docs/machine-setup.md](docs/machine-setup.md).
+
 ## No emoji in source
 
 Never put emoji in source, in console output, in log lines, or in commit
