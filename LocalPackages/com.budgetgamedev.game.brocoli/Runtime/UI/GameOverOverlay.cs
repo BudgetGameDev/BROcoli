@@ -156,7 +156,7 @@ namespace BudgetGameDev.Games.Brocoli
         public void GoToMainMenu()
         {
             ProceduralUIAudio.PlaySelect();
-            TransitionToScene("Brocoli_MainMenu");
+            TransitionToScene("Brocoli_MainMenu_Common");
         }
 
         private void TransitionToScene(string sceneName)

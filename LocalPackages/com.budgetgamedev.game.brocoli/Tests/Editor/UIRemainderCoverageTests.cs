@@ -155,7 +155,7 @@ namespace BudgetGameDev.Games.Brocoli.Tests
                 PauseMenu pause = ctaHost.AddComponent<PauseMenu>();
                 string loadedScene = null;
                 pause.GoToMainMenu(scene => loadedScene = scene);
-                Assert.That(loadedScene, Is.EqualTo("Brocoli_MainMenu"));
+                Assert.That(loadedScene, Is.EqualTo("Brocoli_MainMenu_Common"));
                 Assert.That(PauseMenu.FindNamedButton(new Button[] { null }, "resume"), Is.Null);
                 PlayerPrefs.SetInt("LastScore", -1);
                 IEnumerator show = (IEnumerator)Invoke(cta, "ShowAfterOverlayLayout");

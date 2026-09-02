@@ -16,8 +16,8 @@ namespace BudgetGameDev.Games.Brocoli
     /// </summary>
     public class AutoplaySessionDirector : MonoBehaviour
     {
-        internal const string MenuScene = "Brocoli_MainMenu";
-        internal const string DungeonScene = "Brocoli_Dungeon";
+        internal const string MenuScene = "Brocoli_MainMenu_Common";
+        internal const string DungeonScene = "Brocoli_Dungeon_Common";
 
         private const string ControlPreferenceKey = "ShowVirtualController";
 

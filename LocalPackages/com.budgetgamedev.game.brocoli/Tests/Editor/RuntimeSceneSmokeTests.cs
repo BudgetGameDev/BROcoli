@@ -26,7 +26,7 @@ namespace BudgetGameDev.Games.Brocoli.Tests
             yield return new EnterPlayMode();
             yield return null;
             yield return null;
-            Assert.That(SceneManager.GetActiveScene().name, Is.EqualTo("Brocoli_MainMenu"));
+            Assert.That(SceneManager.GetActiveScene().name, Is.EqualTo("Brocoli_MainMenu_Common"));
             ExerciseSharedRuntime();
             ExerciseMainMenu();
 
@@ -39,7 +39,7 @@ namespace BudgetGameDev.Games.Brocoli.Tests
             for (int frame = 0; frame < 90; frame++)
                 yield return null;
 
-            Assert.That(SceneManager.GetActiveScene().name, Is.EqualTo("Brocoli_Dungeon"));
+            Assert.That(SceneManager.GetActiveScene().name, Is.EqualTo("Brocoli_Dungeon_Common"));
             Assert.That(Object.FindAnyObjectByType<GameStates>(), Is.Not.Null);
             PlayerStats stats = Object.FindAnyObjectByType<PlayerStats>();
             Assert.That(stats, Is.Not.Null);
@@ -79,7 +79,7 @@ namespace BudgetGameDev.Games.Brocoli.Tests
             for (int frame = 0; frame < 90; frame++)
                 yield return null;
             yield return ReturnThroughPauseAndGameOverMenus();
-            Assert.That(SceneManager.GetActiveScene().name, Is.EqualTo("Brocoli_MainMenu"));
+            Assert.That(SceneManager.GetActiveScene().name, Is.EqualTo("Brocoli_MainMenu_Common"));
             yield return new ExitPlayMode();
             EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
             PlayerPrefs.DeleteKey("ShowVirtualController");

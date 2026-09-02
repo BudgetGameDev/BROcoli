@@ -18,7 +18,7 @@ namespace BudgetGameDev.Hub.Tests
         [Test]
         public void ABlankIdAndNameFallBackToTheAssetName()
         {
-            GameDefinition game = games.Add("brocoli", "Brocoli_MainMenu");
+            GameDefinition game = games.Add("brocoli", "Brocoli_MainMenu_Common");
             HubTestGames.Set(game, "id", "   ");
             HubTestGames.Set(game, "displayName", string.Empty);
 

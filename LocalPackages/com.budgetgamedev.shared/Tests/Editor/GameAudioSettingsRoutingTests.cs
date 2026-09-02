@@ -118,7 +118,10 @@ namespace BudgetGameDev.Shared.Tests
         [Test]
         public void ShippedMixerAppliesVolumesAndRoutesLooseSources()
         {
-            GameAudioSettings.Configure("Brocoli/Audio/BrocoliAudioMixer", "Brocoli_MainMenu");
+            GameAudioSettings.Configure(
+                "Brocoli/Audio/BrocoliAudioMixer",
+                "Brocoli_MainMenu_Common"
+            );
             GameAudioSettings settings = NewSettings();
             settings.Awake();
 

@@ -8,7 +8,7 @@ namespace BudgetGameDev.Games.Brocoli
     [DefaultExecutionOrder(1000)]
     internal sealed class BrocoliAutosaveController : MonoBehaviour
     {
-        private const string DungeonScene = "Brocoli_Dungeon";
+        private const string DungeonScene = "Brocoli_Dungeon_Common";
         private const float SaveIntervalSeconds = 5f;
 
         private static BrocoliAutosaveController active;

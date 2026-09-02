@@ -17,11 +17,19 @@ MonoBehaviour:
   description: Spray your way through a procedurally generated dungeon of coronaviruses.
   icon: {fileID: 0}
   sortOrder: 0
-  mainMenuSceneName: Brocoli_MainMenu
+  mainMenuSceneName: Brocoli_MainMenu_Common
   sceneNames:
-  - Brocoli_MainMenu
-  - Brocoli_Dungeon
+  - Brocoli_MainMenu_Common
+  - Brocoli_Dungeon_Common
+  - Brocoli_Dungeon_URP
+  - Brocoli_Dungeon_HDRP
+  - Brocoli_MainMenu_URP
+  - Brocoli_MainMenu_HDRP
   mixerResourcePath: Brocoli/Audio/BrocoliAudioMixer
   mainMenuScene: {fileID: 102900000, guid: 732b5d6be8132d74ba6b7c50e4647e90, type: 3}
   additionalScenes:
   - {fileID: 102900000, guid: dca5f90fea8d6426b8ab350af152b749, type: 3}
+  - {fileID: 102900000, guid: f0575c9afe4533e4fbc60b69bf888c94, type: 3}
+  - {fileID: 102900000, guid: 8854d02b7c121c74e96a334ff82329bf, type: 3}
+  - {fileID: 102900000, guid: 41be21d0fda29df41825a0434bacf663, type: 3}
+  - {fileID: 102900000, guid: 78536d91c8d9f204284c444ab5e79cd4, type: 3}

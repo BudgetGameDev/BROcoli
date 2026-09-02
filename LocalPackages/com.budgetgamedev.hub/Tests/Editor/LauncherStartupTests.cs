@@ -77,7 +77,7 @@ namespace BudgetGameDev.Hub.Tests
         [Test]
         public void SceneMissingFromTheBuildIsIgnored()
         {
-            GameDefinition brocoli = Game("brocoli", "Brocoli_MainMenu");
+            GameDefinition brocoli = Game("brocoli", "Brocoli_MainMenu_Common");
             LogAssert.Expect(
                 LogType.Warning,
                 new System.Text.RegularExpressions.Regex("Renamed_Scene")
@@ -86,7 +86,7 @@ namespace BudgetGameDev.Hub.Tests
             LauncherStartup.Plan plan = LauncherStartup.Resolve(
                 "Renamed_Scene",
                 new List<GameDefinition> { brocoli },
-                InBuild("Brocoli_MainMenu")
+                InBuild("Brocoli_MainMenu_Common")
             );
 
             Assert.That(plan.ShowsPicker, Is.True, "an unknown scene must not strand the build");
@@ -95,23 +95,27 @@ namespace BudgetGameDev.Hub.Tests
         [Test]
         public void ConfiguredSceneBootsAndCarriesItsOwningGame()
         {
-            GameDefinition brocoli = Game("brocoli", "Brocoli_MainMenu", "Brocoli_Dungeon");
+            GameDefinition brocoli = Game(
+                "brocoli",
+                "Brocoli_MainMenu_Common",
+                "Brocoli_Dungeon_Common"
+            );
 
             LauncherStartup.Plan plan = LauncherStartup.Resolve(
-                "Brocoli_Dungeon",
+                "Brocoli_Dungeon_Common",
                 new List<GameDefinition> { brocoli },
-                InBuild("Brocoli_MainMenu", "Brocoli_Dungeon")
+                InBuild("Brocoli_MainMenu_Common", "Brocoli_Dungeon_Common")
             );
 
             Assert.That(plan.ShowsPicker, Is.False);
-            Assert.That(plan.SceneName, Is.EqualTo("Brocoli_Dungeon"));
+            Assert.That(plan.SceneName, Is.EqualTo("Brocoli_Dungeon_Common"));
             Assert.That(plan.Game, Is.SameAs(brocoli), "the owner supplies the per-game setup");
         }
 
         [Test]
         public void OwnerMatchIgnoresCaseAndSurroundingSpace()
         {
-            GameDefinition brocoli = Game("brocoli", "Brocoli_MainMenu");
+            GameDefinition brocoli = Game("brocoli", "Brocoli_MainMenu_Common");
 
             LauncherStartup.Plan plan = LauncherStartup.Resolve(
                 "  brocoli_mainmenu  ",

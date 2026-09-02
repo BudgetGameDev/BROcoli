@@ -9,10 +9,22 @@ EditorBuildSettings:
     path: Packages/com.budgetgamedev.hub/Scenes/GameLauncher.unity
     guid: cd5df6500999149e185b75e35f9fce50
   - enabled: 1
-    path: Packages/com.budgetgamedev.game.brocoli/Scenes/Brocoli_MainMenu.unity
+    path: Packages/com.budgetgamedev.game.brocoli/Scenes/Brocoli_MainMenu_Common.unity
     guid: 732b5d6be8132d74ba6b7c50e4647e90
   - enabled: 1
-    path: Packages/com.budgetgamedev.game.brocoli/Scenes/Brocoli_Dungeon.unity
+    path: Packages/com.budgetgamedev.game.brocoli/Scenes/Brocoli_Dungeon_Common.unity
     guid: dca5f90fea8d6426b8ab350af152b749
+  - enabled: 1
+    path: Packages/com.budgetgamedev.game.brocoli/Scenes/Brocoli_Dungeon_URP.unity
+    guid: f0575c9afe4533e4fbc60b69bf888c94
+  - enabled: 1
+    path: Packages/com.budgetgamedev.game.brocoli/Scenes/Brocoli_Dungeon_HDRP.unity
+    guid: 8854d02b7c121c74e96a334ff82329bf
+  - enabled: 1
+    path: Packages/com.budgetgamedev.game.brocoli/Scenes/Brocoli_MainMenu_URP.unity
+    guid: 41be21d0fda29df41825a0434bacf663
+  - enabled: 1
+    path: Packages/com.budgetgamedev.game.brocoli/Scenes/Brocoli_MainMenu_HDRP.unity
+    guid: 78536d91c8d9f204284c444ab5e79cd4
   m_configObjects: {}
   m_UseUCBPForAssetBundles: 0

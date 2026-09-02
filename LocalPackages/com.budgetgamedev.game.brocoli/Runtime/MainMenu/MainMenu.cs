@@ -39,7 +39,6 @@ namespace BudgetGameDev.Games.Brocoli
             gameObject.AddComponent<ResponsiveMainMenuLayout>();
         }
 
-
         void Start()
         {
             // Hide install button if already running as installed PWA
@@ -110,7 +109,7 @@ namespace BudgetGameDev.Games.Brocoli
         /// <summary>Resumes the run held in the given save slot.</summary>
         /// <returns>False when that slot turned out to be empty or unreadable.</returns>
         public bool LoadSave(int slot) =>
-            LoadSave(slot, () => SceneManager.LoadScene("Brocoli_Dungeon"));
+            LoadSave(slot, () => SceneManager.LoadScene("Brocoli_Dungeon_Common"));
 
         internal bool LoadSave(int slot, Action loadScene)
         {
@@ -130,7 +129,10 @@ namespace BudgetGameDev.Games.Brocoli
         /// </summary>
         /// <returns>False when all ten save slots are taken.</returns>
         private static bool LaunchNewDungeon(bool mobileControls) =>
-            LaunchNewDungeon(mobileControls, () => SceneManager.LoadScene("Brocoli_Dungeon"));
+            LaunchNewDungeon(
+                mobileControls,
+                () => SceneManager.LoadScene("Brocoli_Dungeon_Common")
+            );
 
         internal static bool LaunchNewDungeon(bool mobileControls, Action loadScene)
         {

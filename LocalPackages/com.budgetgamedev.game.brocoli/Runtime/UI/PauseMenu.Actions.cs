@@ -221,7 +221,7 @@ namespace BudgetGameDev.Games.Brocoli
             Time.timeScale = 1f;
             isPaused = false;
 
-            loadScene("Brocoli_MainMenu");
+            loadScene("Brocoli_MainMenu_Common");
         }
 
         internal static Button FindNamedButton(Button[] buttons, params string[] names)

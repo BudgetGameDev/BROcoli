@@ -15,8 +15,8 @@ namespace BudgetGameDev.Games.Brocoli
     /// </summary>
     internal static class BrocoliPointer
     {
-        private const string MainMenuScene = "Brocoli_MainMenu";
-        private const string DungeonScene = "Brocoli_Dungeon";
+        private const string MainMenuScene = "Brocoli_MainMenu_Common";
+        private const string DungeonScene = "Brocoli_Dungeon_Common";
 
         /// <summary>
         /// The pointers this game ships art for. Both come from Kenney's CC0 cursor pack, whose
