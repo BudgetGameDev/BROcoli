@@ -4,7 +4,7 @@
 QualitySettings:
   m_ObjectHideFlags: 0
   serializedVersion: 5
-  m_CurrentQuality: 7
+  m_CurrentQuality: 5
   m_QualitySettings:
   - serializedVersion: 5
     name: Very Low
@@ -522,9 +522,9 @@ QualitySettings:
     realtimeGICPUUsage: 100
     adaptiveVsyncExtraA: 0
     adaptiveVsyncExtraB: 0
-    lodBias: 0.5
+    lodBias: 1
     meshLodThreshold: 1
-    maximumLODLevel: 2
+    maximumLODLevel: 0
     enableLODCrossFade: 1
     streamingMipmapsActive: 0
     streamingMipmapsAddAllCameras: 1
@@ -565,7 +565,7 @@ QualitySettings:
     Server: 0
     Stadia: 5
     Standalone: 9
-    WebGL: 3
+    WebGL: 2
     Windows Store Apps: 5
     XboxOne: 5
     iPhone: 2

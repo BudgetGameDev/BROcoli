@@ -36,10 +36,10 @@ MonoBehaviour:
     m_Value: {x: 0, y: -6378.1, z: 0}
   windOrientation:
     m_OverrideState: 0
-    m_Value: 0
+    m_Value: 71
   windSpeed:
     m_OverrideState: 0
-    m_Value: 0
+    m_Value: 30
   fogType:
     m_OverrideState: 0
     m_Value: 0
@@ -68,10 +68,10 @@ MonoBehaviour:
     m_Value: 1
   fixedExposure:
     m_OverrideState: 1
-    m_Value: 10.9
+    m_Value: 13.199999
   compensation:
     m_OverrideState: 0
-    m_Value: 0
+    m_Value: 2
   limitMin:
     m_OverrideState: 0
     m_Value: -1
@@ -260,7 +260,7 @@ MonoBehaviour:
     m_OverrideState: 0
     m_Value: 2
   acesPreset:
-    m_OverrideState: 0
+    m_OverrideState: 1
     m_Value: 3
   fallbackMode:
     m_OverrideState: 0
@@ -269,11 +269,11 @@ MonoBehaviour:
     m_OverrideState: 0
     m_Value: 0
   detectPaperWhite:
-    m_OverrideState: 0
+    m_OverrideState: 1
     m_Value: 0
   paperWhite:
-    m_OverrideState: 0
-    m_Value: 300
+    m_OverrideState: 1
+    m_Value: 200
   detectBrightnessLimits:
     m_OverrideState: 0
     m_Value: 1
@@ -323,7 +323,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 953beb541740ddc499d005ee80c9ff29, type: 3}
   m_Name: Fog
   m_EditorClassIdentifier: Unity.RenderPipelines.HighDefinition.Runtime::UnityEngine.Rendering.HighDefinition.Fog
-  active: 1
+  active: 0
   quality:
     m_OverrideState: 0
     m_Value: 1
@@ -395,10 +395,10 @@ MonoBehaviour:
     m_Value: 64
   m_VolumetricFogBudget:
     m_OverrideState: 0
-    m_Value: 0.25
+    m_Value: 0.33
   m_ResolutionDepthRatio:
     m_OverrideState: 0
-    m_Value: 0.5
+    m_Value: 0.666
   directionalLightsOnly:
     m_OverrideState: 0
     m_Value: 0
