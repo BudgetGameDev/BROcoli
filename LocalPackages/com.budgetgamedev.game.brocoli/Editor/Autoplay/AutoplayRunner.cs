@@ -40,6 +40,9 @@ namespace BudgetGameDev.Games.Brocoli.Editor
         [MenuItem("Tools/Autoplay/Run Feature Coverage Tier")]
         public static void RunCoverage() => LaunchDetached("coverage");
 
+        [MenuItem("Tools/Autoplay/Run Balance Tier")]
+        public static void RunBalance() => LaunchDetached("balance");
+
         [MenuItem("Tools/Autoplay/Run Marathon Tier")]
         public static void RunMarathon() => LaunchDetached("marathon");
 

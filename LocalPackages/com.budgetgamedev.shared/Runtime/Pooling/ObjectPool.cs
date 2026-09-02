@@ -128,7 +128,12 @@ namespace BudgetGameDev.Shared
         public void Return(T obj)
         {
             if (obj == null)
+            {
+                // A destroyed object reads as null here. Callers do hand one back
+                // after destroying it, and its slot must not stay on loan.
+                DropDestroyedActive();
                 return;
+            }
             if (!_active.Contains(obj))
             {
                 Debug.LogWarning(
@@ -209,8 +214,25 @@ namespace BudgetGameDev.Shared
             if (_maxSize <= 0 || _active.Count < _maxSize)
                 return true;
 
+            // A caller may destroy a borrowed object instead of returning it. Those
+            // entries linger in _active as destroyed references and would hold the
+            // pool at its cap for the rest of the session, so drop them before
+            // refusing to grow.
+            DropDestroyedActive();
+            if (_active.Count < _maxSize)
+                return true;
+
             Debug.LogWarning($"[ObjectPool] Pool for {_prefab.name} at max capacity ({_maxSize})");
             return false;
+        }
+
+        /// <summary>
+        /// Forgets loans that something else destroyed. A keyed Remove cannot find
+        /// a destroyed entry, so this sweeps the set instead.
+        /// </summary>
+        private void DropDestroyedActive()
+        {
+            _active.RemoveWhere(obj => obj == null);
         }
 
         private T Activate(T obj)

@@ -125,6 +125,20 @@ namespace BudgetGameDev.Games.Brocoli
                 true
             ),
             new(
+                "balance",
+                "15 game-minutes of uninterrupted play, graded on progression and difficulty",
+                900f,
+                1f,
+                Frame,
+                "balance",
+                true,
+                false,
+                // The feature sweep pauses the game to poke menus. That is fine when
+                // the question is coverage and wrong when it is pacing: the seconds a
+                // level took would include the seconds spent in the inventory.
+                false
+            ),
+            new(
                 "tune",
                 "10 real-time minutes for live lighting tuning; no fast-forward",
                 600f,

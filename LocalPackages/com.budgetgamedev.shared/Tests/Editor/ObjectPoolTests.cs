@@ -10,7 +10,7 @@ namespace BudgetGameDev.Shared.Tests
     /// it refuses, and what it destroys. Transform stands in for a pooled prefab
     /// because every GameObject already has one.
     /// </summary>
-    public sealed class ObjectPoolTests
+    public sealed partial class ObjectPoolTests
     {
         private readonly List<GameObject> _created = new List<GameObject>();
         private Transform _prefab;

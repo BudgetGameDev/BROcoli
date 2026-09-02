@@ -21,6 +21,20 @@ debug it in place or work around it. Close that Editor and open a fresh
 automated one with `unity-open`; the symptoms, the quit commands, and what to
 save first are in [docs/machine-setup.md](docs/machine-setup.md).
 
+## Seeing the game run
+
+The game plays itself. `docs/autoplay.md` describes an agent that drives the
+ordinary input path through a real session, and there are two ways to use it:
+start a run inside an open Editor and inspect the live game while the bot plays
+it, or run one in batch and ask it to photograph a named moment with
+`-capture-on`. Either beats driving the game by hand through the Editor to reach
+the state you wanted to look at, and both leave the run's frames, telemetry, and
+summary behind under `AutoplayRuns/`.
+
+Read [docs/autoplay.md](docs/autoplay.md) before writing your own play loop,
+screenshot harness, or scripted input, and before adding a probe to answer a
+question about runtime state that a run already records.
+
 ## No emoji in source
 
 Never put emoji in source, in console output, in log lines, or in commit

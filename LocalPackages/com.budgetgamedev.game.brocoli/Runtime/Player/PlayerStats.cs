@@ -25,7 +25,9 @@ namespace BudgetGameDev.Games.Brocoli
         private const float DefaultAttackSpeed = 0.6f;
         public const float DefaultBaseDamage = 8f;
         private const float DefaultMovementSpeed = 4f;
-        private const float DefaultMaxExperience = 30f;
+        private static readonly float DefaultMaxExperience = PlayerProgression.ExperienceForLevel(
+            1
+        );
         private const float DefaultDetectionRadius = 12f;
 
         // Roguelike stat defaults

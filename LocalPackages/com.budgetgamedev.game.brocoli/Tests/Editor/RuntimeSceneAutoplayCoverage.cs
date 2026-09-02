@@ -115,13 +115,13 @@ namespace BudgetGameDev.Games.Brocoli.Tests
                 SceneManager.GetActiveScene(),
                 LoadSceneMode.Single
             );
-            // OnSceneLoaded wires the real autoplay components. Keep this integration
-            // test from letting telemetry observe the deliberate game-over exercised
-            // later in the smoke test, because telemetry correctly exits Play Mode at
-            // the end of an autoplay run.
+            // OnSceneLoaded wires the gameplay-scoped autoplay components -- frame
+            // capture is not among them, because it belongs to the whole session and
+            // is added when the run begins. Keep this integration test from letting
+            // telemetry observe the deliberate game-over exercised later in the smoke
+            // test, because telemetry correctly exits Play Mode at the end of a run.
             controllerObject.GetComponent<RunTelemetry>().enabled = false;
             controllerObject.GetComponent<BotDriver>().enabled = false;
-            controllerObject.GetComponent<FrameCapture>().enabled = false;
             controllerObject.GetComponent<LevelUpAutoResolver>().enabled = false;
             InvokeHierarchy(
                 controller,

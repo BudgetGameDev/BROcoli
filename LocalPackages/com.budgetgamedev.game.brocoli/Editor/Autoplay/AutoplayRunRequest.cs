@@ -112,6 +112,7 @@ namespace BudgetGameDev.Games.Brocoli.Editor
                 case "-scenario":
                 case "-minlevel":
                 case "-tuning":
+                case "-capture-on":
                     Overrides.Add($"--{argument.Substring(1)}={value}");
                     return 1;
                 default:

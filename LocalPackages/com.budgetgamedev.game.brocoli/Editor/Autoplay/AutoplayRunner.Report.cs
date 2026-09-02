@@ -31,7 +31,59 @@ namespace BudgetGameDev.Games.Brocoli.Editor
             public int errors;
             public int exceptions;
             public string[] missingFeatures;
+            public CaptureRecord[] captures;
+            public string[] missingCaptures;
             public string firstError;
+            public ProgressionRecord progression;
+            public ScalingRecord scaling;
+            public string[] balanceFindings;
+        }
+
+        /// <summary>How the run levelled and how hard it was pressed doing it.</summary>
+        [Serializable]
+        internal sealed class ProgressionRecord
+        {
+            public int peakLevel;
+            public int levels;
+            public int lives;
+            public int deaths;
+            public float deathsPerHour;
+            public float secondsPerLevel;
+            public float earlySecondsPerLevel;
+            public float lateSecondsPerLevel;
+            public float paceRatio;
+            public float earlyKillsPerLevel;
+            public float lateKillsPerLevel;
+            public float meanHealth;
+            public float lowestHealth;
+            public float dangerShare;
+            public float safeShare;
+        }
+
+        /// <summary>What the dungeon scaled the run's rooms to.</summary>
+        [Serializable]
+        internal sealed class ScalingRecord
+        {
+            public int rooms;
+            public int maxRing;
+            public int enemies;
+            public int mostEnemiesInARoom;
+            public float peakPlayerPower;
+            public float firstHealthScale;
+            public float peakHealthScale;
+            public float peakDamageScale;
+            public float healthScaleGrowth;
+        }
+
+        /// <summary>One screenshot a <c>--capture-on</c> trigger asked for.</summary>
+        [Serializable]
+        internal sealed class CaptureRecord
+        {
+            public float t;
+            public string @event;
+            public int occurrence;
+            public string trigger;
+            public string file;
         }
 
         private static void ReportRun(AutoplayRunRequest request, int exitCode)
@@ -75,9 +127,37 @@ namespace BudgetGameDev.Games.Brocoli.Editor
                 $"  logs:       {summary.warnings} warning(s), {summary.errors} error(s), "
                     + $"{summary.exceptions} exception(s)",
                 $"  unused:     {missing}",
+                DescribeProgression(summary, invariant),
+                DescribeScaling(summary, invariant),
+                DescribeBalance(summary),
+                $"  captures:   {DescribeCaptures(summary, invariant)}",
                 $"  first error:{Blank(summary.firstError)}",
                 $"  results:    {outDir}"
             );
+        }
+
+        /// <summary>
+        /// Names each captured event and the frame it landed in, then the triggers
+        /// that never fired -- the run a trigger was the whole point of is worth
+        /// reading at a glance.
+        /// </summary>
+        internal static string DescribeCaptures(RunSummary summary, IFormatProvider invariant)
+        {
+            bool none = summary.captures == null || summary.captures.Length == 0;
+            bool nothingAsked =
+                none && (summary.missingCaptures == null || summary.missingCaptures.Length == 0);
+            if (nothingAsked)
+                return "none requested";
+
+            var parts = new System.Collections.Generic.List<string>();
+            foreach (CaptureRecord capture in summary.captures ?? Array.Empty<CaptureRecord>())
+                parts.Add(
+                    $"{capture.@event}#{capture.occurrence} at "
+                        + $"{Number(capture.t, invariant)}s -> {capture.file}"
+                );
+            if (summary.missingCaptures is { Length: > 0 })
+                parts.Add($"never fired: {string.Join(", ", summary.missingCaptures)}");
+            return string.Join("; ", parts);
         }
 
         private static string Number(float value, IFormatProvider invariant) =>

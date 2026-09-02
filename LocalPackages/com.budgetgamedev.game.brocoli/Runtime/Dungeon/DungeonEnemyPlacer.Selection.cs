@@ -77,16 +77,31 @@ namespace BudgetGameDev.Games.Brocoli
             return DungeonPropPlacer.IsOnDivider(offset, archetype);
         }
 
-        /// <summary>The minimum ring distance at which an enemy type appears.</summary>
+        /// <summary>
+        /// The minimum ring distance at which an enemy type appears. The ladder is
+        /// the run's difficulty spine: the first ring is one archetype the starting
+        /// build beats cleanly, and each ring out adds either a new behaviour or a
+        /// bigger health pool, never both at once.
+        ///
+        /// The chunky bruisers are placed by health rather than by name family. A
+        /// two-hundred-point bruiser that hits for fifteen is a fifteen-second fight
+        /// for a fresh player carrying a hundred points, so meeting one in the ring
+        /// next to the spawn is the run's sharpest difficulty spike and it lands
+        /// before the player owns a single upgrade.
+        /// </summary>
         internal static int MinRingFor(string prefabName)
         {
-            if (prefabName.Contains("Hydra"))
-                return 4;
             if (prefabName.Contains("HardChunky") || prefabName.Contains("ShootingHard"))
                 return 5;
+            if (prefabName.Contains("NormalChunky") || prefabName.Contains("Hydra"))
+                return 4;
             if (prefabName.Contains("Hard") || prefabName.Contains("Shooting"))
                 return 3;
-            if (prefabName.Contains("Normal") || prefabName.Contains("Spider"))
+            if (
+                prefabName.Contains("Chunky")
+                || prefabName.Contains("Normal")
+                || prefabName.Contains("Spider")
+            )
                 return 2;
             return 1;
         }

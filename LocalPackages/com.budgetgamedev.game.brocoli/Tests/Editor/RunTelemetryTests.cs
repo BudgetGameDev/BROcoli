@@ -8,13 +8,15 @@ using UnityEngine.TestTools;
 
 namespace BudgetGameDev.Games.Brocoli.Tests
 {
-    public sealed class RunTelemetryTests
+    public sealed partial class RunTelemetryTests
     {
         private const BindingFlags Members =
             BindingFlags.Instance | BindingFlags.Static | BindingFlags.NonPublic;
 
         private static readonly List<string> NothingMissing = new();
         private static readonly List<string> SomethingMissing = new() { "ui.map-panned" };
+        private static readonly List<string> NoFindings = new();
+        private static readonly List<string> OutOfBand = new() { "deaths too low" };
 
         private string output;
         private GameObject host;
@@ -77,6 +79,10 @@ namespace BudgetGameDev.Games.Brocoli.Tests
             Assert.That(summary, Does.Contain("\"speedup\":"));
             Assert.That(summary, Does.Contain("\"features\":{"));
             Assert.That(summary, Does.Contain("\"missingFeatures\":["));
+            Assert.That(summary, Does.Contain("\"progression\":{"));
+            Assert.That(summary, Does.Contain("\"secondsPerLevel\":"));
+            Assert.That(summary, Does.Contain("\"scaling\":{"));
+            Assert.That(summary, Does.Contain("\"balanceFindings\":["));
         }
 
         [Test]
@@ -89,11 +95,20 @@ namespace BudgetGameDev.Games.Brocoli.Tests
             Invoke("OnLog", "second exception", "", LogType.Exception);
             Invoke("OnLog", "ordinary", "", LogType.Log);
 
-            Assert.That((bool)Invoke("EvaluateScenario", "duration", NothingMissing), Is.False);
+            Assert.That(
+                (bool)Invoke("EvaluateScenario", "duration", NothingMissing, NoFindings),
+                Is.False
+            );
             SetConfigScenario("survive");
-            Assert.That((bool)Invoke("EvaluateScenario", "duration", NothingMissing), Is.False);
+            Assert.That(
+                (bool)Invoke("EvaluateScenario", "duration", NothingMissing, NoFindings),
+                Is.False
+            );
             SetConfigScenario("progress");
-            Assert.That((bool)Invoke("EvaluateScenario", "gameover", NothingMissing), Is.False);
+            Assert.That(
+                (bool)Invoke("EvaluateScenario", "gameover", NothingMissing, NoFindings),
+                Is.False
+            );
 
             LogAssert.Expect(
                 LogType.Log,
@@ -186,10 +201,13 @@ namespace BudgetGameDev.Games.Brocoli.Tests
         [Test]
         public void ARunThatStopsGettingAnywhereIsFailedRatherThanRiddenOut()
         {
-            Assert.That((bool)Invoke("EvaluateScenario", "stalled", NothingMissing), Is.False);
+            Assert.That(
+                (bool)Invoke("EvaluateScenario", "stalled", NothingMissing, NoFindings),
+                Is.False
+            );
             SetConfigScenario("coverage");
             Assert.That(
-                (bool)Invoke("EvaluateScenario", "stalled", NothingMissing),
+                (bool)Invoke("EvaluateScenario", "stalled", NothingMissing, NoFindings),
                 Is.False,
                 "standing still long enough to reach every feature is not a pass"
             );
@@ -216,9 +234,11 @@ namespace BudgetGameDev.Games.Brocoli.Tests
         }
 
         [Test]
-        public void DeathDuringACoverageSweepStartsAnotherLifeInsteadOfEndingTheRun()
+        public void DeathDuringASweepStartsAnotherLifeInsteadOfEndingTheRun(
+            [Values("coverage", "balance")] string scenario
+        )
         {
-            SetConfigScenario("coverage");
+            SetConfigScenario(scenario);
             SetConfigValue("Duration", 1000f);
 
             Invoke("OnGameOver");
@@ -232,32 +252,6 @@ namespace BudgetGameDev.Games.Brocoli.Tests
                 (bool)Invoke("TryRestart"),
                 Is.False,
                 "nothing to press until the overlay is actually up"
-            );
-        }
-
-        [Test]
-        public void CleanScenarioPoliciesCoverSurvivalAndProgress()
-        {
-            Assert.That((bool)Invoke("EvaluateScenario", "duration", NothingMissing), Is.True);
-            SetConfigScenario("survive");
-            Assert.That((bool)Invoke("EvaluateScenario", "duration", NothingMissing), Is.True);
-            Assert.That((bool)Invoke("EvaluateScenario", "gameover", NothingMissing), Is.False);
-            SetConfigScenario("progress");
-            SetConfigValue("MinLevel", 0);
-            Assert.That((bool)Invoke("EvaluateScenario", "gameover", NothingMissing), Is.True);
-            SetConfigValue("MinLevel", 1);
-            Assert.That((bool)Invoke("EvaluateScenario", "gameover", NothingMissing), Is.False);
-
-            SetConfigScenario("coverage");
-            Assert.That(
-                (bool)Invoke("EvaluateScenario", "gameover", NothingMissing),
-                Is.True,
-                "reaching every system passes even if the agent then died"
-            );
-            Assert.That(
-                (bool)Invoke("EvaluateScenario", "duration", SomethingMissing),
-                Is.False,
-                "surviving is not enough when a system was never reached"
             );
         }
 

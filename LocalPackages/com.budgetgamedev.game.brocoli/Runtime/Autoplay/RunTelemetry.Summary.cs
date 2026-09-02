@@ -18,8 +18,9 @@ namespace BudgetGameDev.Games.Brocoli
 
             WriteSample();
             List<string> missing = AutoplayFeatureLog.Missing();
-            bool passed = EvaluateScenario(reason, missing);
-            WriteSummary(reason, passed, missing);
+            List<string> findings = ProgressionBalance.Evaluate(Progression, Scaling);
+            bool passed = EvaluateScenario(reason, missing, findings);
+            WriteSummary(reason, passed, missing, findings);
 
             if (_logBuffer.Length > 0)
                 File.WriteAllText(Path.Combine(_cfg.OutDir, "logs.txt"), _logBuffer.ToString());
@@ -27,12 +28,27 @@ namespace BudgetGameDev.Games.Brocoli
             Debug.Log(
                 $"[Autoplay] Run ended ({reason}). scenario={_cfg.Scenario} passed={passed}. "
                     + $"Unused features: {(missing.Count == 0 ? "none" : string.Join(", ", missing))}. "
-                    + $"Out: {_cfg.OutDir}"
+                    + $"Balance: {(findings.Count == 0 ? "in band" : string.Join("; ", findings))}. "
+                    + $"{DescribeCaptures()}Out: {_cfg.OutDir}"
             );
             Quit(passed ? 0 : 1);
         }
 
-        private bool EvaluateScenario(string reason, List<string> missing)
+        /// <summary>
+        /// Names the triggers that never fired, because a run whose whole point was
+        /// one screenshot should say so where the log is all a reader has.
+        /// </summary>
+        private static string DescribeCaptures()
+        {
+            if (!AutoplayCaptureTriggers.Any)
+                return "";
+            List<string> unfired = AutoplayCaptureTriggers.Unfired();
+            return unfired.Count == 0
+                ? "Every requested capture fired. "
+                : $"Captures that never fired: {string.Join(", ", unfired)}. ";
+        }
+
+        private bool EvaluateScenario(string reason, List<string> missing, List<string> findings)
         {
             if (!LogsAreClean(_warnings, _errors, _exceptions))
                 return false;
@@ -48,6 +64,9 @@ namespace BudgetGameDev.Games.Brocoli
                 case "coverage":
                     // Surviving is not the point here: reaching every system is.
                     return missing.Count == 0;
+                case "balance":
+                    // Nor is surviving the point here: staying in the difficulty band is.
+                    return findings.Count == 0;
                 case "smoke":
                 default:
                     return true; // ran without exceptions
@@ -59,7 +78,12 @@ namespace BudgetGameDev.Games.Brocoli
             return warnings == 0 && errors == 0 && exceptions == 0;
         }
 
-        private void WriteSummary(string reason, bool passed, List<string> missing)
+        private void WriteSummary(
+            string reason,
+            bool passed,
+            List<string> missing,
+            List<string> findings
+        )
         {
             float real = Time.realtimeSinceStartup - _startedRealtime;
             var sb = new StringBuilder();
@@ -85,8 +109,13 @@ namespace BudgetGameDev.Games.Brocoli
             sb.Append(',');
             AppendRunCounters(sb);
             sb.Append(',');
+            AppendProgression(sb, findings);
+            sb.Append(',');
             sb.Append("\"features\":").Append(AutoplayFeatureLog.ToJson()).Append(',');
-            AppendMissing(sb, missing);
+            AppendStrings(sb, "missingFeatures", missing);
+            sb.Append(',');
+            sb.Append("\"captures\":").Append(AutoplayCaptureTriggers.ToJson()).Append(',');
+            AppendStrings(sb, "missingCaptures", AutoplayCaptureTriggers.Unfired());
             sb.Append(',');
             Str(sb, "firstError", _firstError);
             sb.Append('}');
@@ -112,14 +141,14 @@ namespace BudgetGameDev.Games.Brocoli
             sb.Append("\"exceptions\":").Append(_exceptions);
         }
 
-        private static void AppendMissing(StringBuilder sb, List<string> missing)
+        private static void AppendStrings(StringBuilder sb, string key, List<string> values)
         {
-            sb.Append("\"missingFeatures\":[");
-            for (int index = 0; index < missing.Count; index++)
+            sb.Append('"').Append(key).Append("\":[");
+            for (int index = 0; index < values.Count; index++)
             {
                 if (index > 0)
                     sb.Append(',');
-                sb.Append('"').Append(missing[index]).Append('"');
+                sb.Append('"').Append(Escape(values[index])).Append('"');
             }
             sb.Append(']');
         }

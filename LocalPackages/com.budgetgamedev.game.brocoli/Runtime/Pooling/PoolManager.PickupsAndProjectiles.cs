@@ -125,6 +125,7 @@ namespace BudgetGameDev.Games.Brocoli
 
         private void OnProjectileGet(EnemyProjectile proj)
         {
+            proj.SetPooled(true);
             var rb = proj.GetComponent<Rigidbody>();
             if (rb != null)
             {

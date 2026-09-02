@@ -17,12 +17,18 @@ namespace BudgetGameDev.Games.Brocoli
         // How much of the player's power growth (see PlayerStats.ComputePowerScore)
         // feeds back into enemy strength. Every exponent sits below 1 so upgrades
         // still feel like progress: a player four times as powerful meets enemies
-        // roughly 2.3x as tough, not 4x.
-        private const float HealthPowerExponent = 0.6f;
-        private const float DamagePowerExponent = 0.35f;
+        // roughly twice as tough, not four times.
+        //
+        // Damage is scaled harder than health on purpose. A run that answers a
+        // stronger player only with deeper health pools makes every fight longer
+        // without making any of it dangerous, which measures as a slog: a balance
+        // run spent its whole second life above ninety per cent health while enemy
+        // health scaling sat pinned at its ceiling.
+        private const float HealthPowerExponent = 0.55f;
+        private const float DamagePowerExponent = 0.42f;
         private const float CountPowerExponent = 0.25f;
-        private const float MaxHealthPowerScale = 8f;
-        private const float MaxDamagePowerScale = 3f;
+        private const float MaxHealthPowerScale = 6f;
+        private const float MaxDamagePowerScale = 3.2f;
         private const float MaxCountPowerScale = 1.75f;
 
         /// <summary>
@@ -117,6 +123,7 @@ namespace BudgetGameDev.Games.Brocoli
                 spawned.Add(enemy);
             }
 
+            AutoplayScalingLog.Record(ring, power, healthScale, damageScale, spawned.Count);
             return spawned;
         }
 
