@@ -176,7 +176,8 @@ namespace BudgetGameDev.Games.Brocoli
                 level,
                 health,
                 maxHealth,
-                AutoplayFeatureLog.Count(AutoplayFeatures.EnemyKilled)
+                AutoplayFeatureLog.Count(AutoplayFeatures.EnemyKilled),
+                PlayerRing
             );
 
             var sb = new StringBuilder(220);
@@ -206,6 +207,8 @@ namespace BudgetGameDev.Games.Brocoli
             sb.Append(',');
             sb.Append("\"roomsVisited\":").Append(_dungeon != null ? _dungeon.RoomsVisited : 0);
             sb.Append(',');
+            sb.Append("\"ring\":").Append(PlayerRing);
+            sb.Append(',');
             sb.Append("\"botReplans\":").Append(BotDriver.ReplanCount);
             sb.Append(',');
             sb.Append("\"stuckRecoveries\":").Append(BotDriver.StuckRecoveryCount);
@@ -213,6 +216,16 @@ namespace BudgetGameDev.Games.Brocoli
 
             File.AppendAllText(_jsonlPath, sb.ToString());
         }
+
+        /// <summary>
+        /// How far out of the dungeon the player currently is. Read from where they
+        /// are standing rather than from what the dungeon has streamed in, because
+        /// rooms are built ahead of arrival and depth is about where the run got to.
+        /// </summary>
+        private int PlayerRing =>
+            _dungeon != null && _dungeon.HasCurrentRoom
+                ? DungeonLayout.Ring(_dungeon.CurrentRoom)
+                : 0;
 
         /// <summary>Remembers the last moment the run actually got somewhere.</summary>
         private void TrackProgress()

@@ -16,14 +16,20 @@ namespace BudgetGameDev.Games.Brocoli
     /// </summary>
     public static class PlayerProgression
     {
-        // Measured against what a run actually earns. A balance run brings in
-        // roughly a thousand experience a minute once the dungeon opens up, which
-        // these three numbers are set against: the opening levels land in a handful
-        // of kills, and a quarter-hour session finishes somewhere around level
+        // Measured against what a run actually earns. These numbers are set against
+        // a four-seed balance sweep: the opening levels land in a handful of kills,
+        // and a quarter-hour of uninterrupted play finishes somewhere around level
         // fifteen rather than eighteen or five.
+        //
+        // The base is what sets the pace, and the pace is the whole curve moved at
+        // once. At forty a sweep levelled every thirty-four seconds -- close enough
+        // to the twenty-five the balance band calls confetti that a level-up had
+        // stopped being a choice worth reading. Raising the base slows every level
+        // by the same factor and leaves the shape of the curve, which measured a
+        // healthy two-to-one late against early, exactly where it was.
 
         /// <summary>Experience the first level costs.</summary>
-        public const float BaseExperience = 40f;
+        public const float BaseExperience = 60f;
 
         /// <summary>Growth from the first level to the second, before any decay.</summary>
         public const float GrowthStart = 1.7f;

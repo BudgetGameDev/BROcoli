@@ -36,7 +36,9 @@ namespace BudgetGameDev.Games.Brocoli
         /// </summary>
         private bool CanStartAttack()
         {
-            return !isAttacking && !isKnockedBack && Time.time >= nextMeleeAttackTime;
+            // An enemy walking back to its room has given up on this player; brushing
+            // past it on the way should not cost a hit.
+            return IsPursuing && !isAttacking && !isKnockedBack && Time.time >= nextMeleeAttackTime;
         }
 
         private bool IsPlayerInAttackStartRange()

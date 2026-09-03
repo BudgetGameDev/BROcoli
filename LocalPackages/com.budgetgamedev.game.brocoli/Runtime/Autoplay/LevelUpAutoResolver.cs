@@ -17,10 +17,17 @@ namespace BudgetGameDev.Games.Brocoli
         private PlayerStats _stats;
         private float _cooldown;
 
+        /// <summary>
+        /// What a common upgrade of each stat is worth, on one scale. Speed used to
+        /// sit at the top of this list, above damage and above health, which made it
+        /// the pick whenever it was offered: a run that kept being shown it stacked
+        /// movement and nothing else, and finished a quarter-hour no stronger in a
+        /// fight than it started. It is worth having and it is not worth everything.
+        /// </summary>
         private static float StatWeight(UpgradeOption.StatType t) =>
             t switch
             {
-                UpgradeOption.StatType.Speed => 9f,
+                UpgradeOption.StatType.Speed => 7f,
                 UpgradeOption.StatType.LifeSteal => 8f,
                 UpgradeOption.StatType.SprayRange => 8f,
                 UpgradeOption.StatType.HealthRegen => 8f,

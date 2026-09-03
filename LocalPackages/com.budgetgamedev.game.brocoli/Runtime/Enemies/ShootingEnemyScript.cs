@@ -75,10 +75,20 @@ namespace BudgetGameDev.Games.Brocoli
                 return;
             }
 
-            Vector2 toPlayer = player.position.ToGround() - rb.GroundPosition();
+            Vector2 toPlayer = ChaseTarget - rb.GroundPosition();
             float dist = toPlayer.magnitude;
             if (dist < 0.0001f)
                 return;
+
+            // Walking back to the room it woke in, rather than holding a firing line.
+            if (!IsPursuing)
+            {
+                AccelerateTowards(
+                    HasReachedLeashHome ? Vector2.zero : toPlayer / dist * Speed * EnemyTimeScale
+                );
+                base.FixedUpdate();
+                return;
+            }
 
             // If far away -> move towards player
             if (dist > stopDistance)
@@ -112,9 +122,10 @@ namespace BudgetGameDev.Games.Brocoli
             if (player == null)
                 return;
 
-            // Shooting logic (only shoot when within stop distance)
+            // Shooting logic (only shoot when within stop distance, and only at a
+            // player it has not already given up on).
             float distToPlayer = GroundPlane.GroundDistance(transform.position, player.position);
-            if (distToPlayer <= stopDistance)
+            if (IsPursuing && distToPlayer <= stopDistance)
             {
                 TryShoot();
             }

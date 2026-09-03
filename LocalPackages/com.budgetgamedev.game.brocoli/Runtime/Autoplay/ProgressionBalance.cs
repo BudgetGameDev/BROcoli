@@ -1,72 +1,7 @@
 using System.Collections.Generic;
-using UnityEngine;
 
 namespace BudgetGameDev.Games.Brocoli
 {
-    /// <summary>How a run progressed and how hard it was pressed while doing it.</summary>
-    internal readonly struct ProgressionSummary
-    {
-        internal readonly int PeakLevel;
-        internal readonly int Levels;
-        internal readonly int Lives;
-        internal readonly int Deaths;
-        internal readonly float Duration;
-        internal readonly float SecondsPerLevel;
-        internal readonly float EarlySecondsPerLevel;
-        internal readonly float LateSecondsPerLevel;
-        internal readonly float EarlyKillsPerLevel;
-        internal readonly float LateKillsPerLevel;
-        internal readonly float MeanHealthFraction;
-        internal readonly float LowestHealthFraction;
-        internal readonly float DangerShare;
-        internal readonly float SafeShare;
-
-        internal ProgressionSummary(
-            int peakLevel,
-            int levels,
-            int lives,
-            int deaths,
-            float duration,
-            float secondsPerLevel,
-            float earlySecondsPerLevel,
-            float lateSecondsPerLevel,
-            float earlyKillsPerLevel,
-            float lateKillsPerLevel,
-            float meanHealthFraction,
-            float lowestHealthFraction,
-            float dangerShare,
-            float safeShare
-        )
-        {
-            PeakLevel = peakLevel;
-            Levels = levels;
-            Lives = lives;
-            Deaths = deaths;
-            Duration = duration;
-            SecondsPerLevel = secondsPerLevel;
-            EarlySecondsPerLevel = earlySecondsPerLevel;
-            LateSecondsPerLevel = lateSecondsPerLevel;
-            EarlyKillsPerLevel = earlyKillsPerLevel;
-            LateKillsPerLevel = lateKillsPerLevel;
-            MeanHealthFraction = meanHealthFraction;
-            LowestHealthFraction = lowestHealthFraction;
-            DangerShare = dangerShare;
-            SafeShare = safeShare;
-        }
-
-        internal float DeathsPerHour => Deaths / Mathf.Max(1f / 3600f, Duration / 3600f);
-
-        /// <summary>
-        /// How much slower a late level is than an early one. This is the number that
-        /// says whether a curve walls: one means the run never slows down, and a
-        /// large one means the bar stopped moving while the rooms kept deepening.
-        /// </summary>
-        internal float PaceRatio =>
-            LateSecondsPerLevel <= 0f || EarlySecondsPerLevel <= 0f
-                ? 1f
-                : LateSecondsPerLevel / EarlySecondsPerLevel;
-    }
-
     /// <summary>
     /// Grades a run's progression and pressure against the band a session is meant
     /// to sit in -- challenging without being punishing -- and says which way it
@@ -74,7 +9,7 @@ namespace BudgetGameDev.Games.Brocoli
     /// outside one of them is the harness reporting a tuning regression, in the same
     /// way a missing feature is it reporting a coverage regression.
     /// </summary>
-    internal static class ProgressionBalance
+    internal static partial class ProgressionBalance
     {
         /// <summary>Levels counted as the opening of a run, for pacing comparisons.</summary>
         internal const int EarlyLevels = 5;
@@ -109,8 +44,11 @@ namespace BudgetGameDev.Games.Brocoli
         internal const float MinDeathsPerHour = 0.4f;
         internal const float MaxDeathsPerHour = 8f;
 
-        /// <summary>Deepest ring a judged run is expected to have reached.</summary>
-        internal const int MinRingToJudgeScaling = 2;
+        // How long a ring takes. Depth is the difficulty axis the ring ladder and the
+        // depth multiplier both hang off, so a run that never pushes out never meets
+        // either -- and one that sprints out arrives at archetypes it has no build for.
+        internal const float MinSecondsPerRing = 30f;
+        internal const float MaxSecondsPerRing = 200f;
 
         /// <summary>
         /// Grades the run. The findings are the whole output: a bare pass or fail
@@ -145,6 +83,16 @@ namespace BudgetGameDev.Games.Brocoli
                 "x late vs early level",
                 "late levels are no dearer than the first ones",
                 "the experience curve walls"
+            );
+            Band(
+                findings,
+                "depth pace",
+                progression.SecondsPerRing,
+                MinSecondsPerRing,
+                MaxSecondsPerRing,
+                "s per ring",
+                "the run sprints past the ring ladder it is meant to climb",
+                "the run never pushes out of the rings it started in"
             );
             Band(
                 findings,
@@ -198,35 +146,6 @@ namespace BudgetGameDev.Games.Brocoli
             return findings.Count > 0;
         }
 
-        /// <summary>
-        /// Scaling is graded separately from pacing because it fails silently. A
-        /// build whose depth multiplier stopped applying still levels the player on
-        /// schedule and still kills them occasionally; what it stops doing is making
-        /// the tenth room different from the first.
-        /// </summary>
-        private static void EvaluateScaling(ScalingSummary scaling, List<string> findings)
-        {
-            if (scaling.Rooms == 0)
-            {
-                findings.Add("no room ever spawned enemies, so scaling went unmeasured");
-                return;
-            }
-
-            if (scaling.MaxRing < MinRingToJudgeScaling)
-            {
-                findings.Add(
-                    $"the run never left ring {scaling.MaxRing}, so depth scaling went unmeasured"
-                );
-                return;
-            }
-
-            if (scaling.PeakHealthScale <= scaling.FirstHealthScale)
-                findings.Add(
-                    $"enemy health never scaled: {Round(scaling.PeakHealthScale)}x at the "
-                        + $"deepest, {Round(scaling.FirstHealthScale)}x at the first room"
-                );
-        }
-
         /// <summary>Reports one measurement that left its band, and which end it left.</summary>
         private static void Band(
             List<string> findings,
@@ -251,7 +170,7 @@ namespace BudgetGameDev.Games.Brocoli
                 );
         }
 
-        private static string Round(float value) =>
+        internal static string Round(float value) =>
             value.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
     }
 }

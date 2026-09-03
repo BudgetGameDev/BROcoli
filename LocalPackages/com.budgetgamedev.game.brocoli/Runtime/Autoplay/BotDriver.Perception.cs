@@ -14,6 +14,12 @@ namespace BudgetGameDev.Games.Brocoli
             internal readonly Vector2 Centroid;
             internal readonly Vector2 Repulsion;
 
+            /// <summary>How much of the space around the agent has something in it.</summary>
+            internal readonly float Coverage;
+
+            /// <summary>The middle of the widest way out, when there is one.</summary>
+            internal readonly Vector2 Escape;
+
             internal EnemyObservation(
                 int count,
                 int closeCount,
@@ -21,7 +27,9 @@ namespace BudgetGameDev.Games.Brocoli
                 Vector2 nearestPosition,
                 Vector2 targetPosition,
                 Vector2 centroid,
-                Vector2 repulsion
+                Vector2 repulsion,
+                float coverage = 0f,
+                Vector2 escape = default
             )
             {
                 Count = count;
@@ -31,6 +39,8 @@ namespace BudgetGameDev.Games.Brocoli
                 TargetPosition = targetPosition;
                 Centroid = centroid;
                 Repulsion = repulsion;
+                Coverage = coverage;
+                Escape = escape;
             }
         }
 
@@ -67,6 +77,7 @@ namespace BudgetGameDev.Games.Brocoli
             float weakestHealth = float.PositiveInfinity;
             int count = 0;
             int closeCount = 0;
+            encirclementBuffer.Clear();
 
             foreach (EnemyBase enemy in hash.GetNearbyEnemies(position, senseRadius))
             {
@@ -101,9 +112,21 @@ namespace BudgetGameDev.Games.Brocoli
                 float repelRange = dangerRadius * 1.6f;
                 if (distance < repelRange)
                     repulsion += away / distance * ((repelRange - distance) / repelRange);
+                if (distance <= encirclementRadius)
+                    encirclementBuffer.Add(enemyPosition);
             }
 
             centroid = count > 0 ? centroid / count : position;
+            BotEncirclement.Measure(
+                position,
+                encirclementBuffer,
+                encirclementRadius,
+                out float coverage,
+                out Vector2 escape
+            );
+            // Remembered for the unsticking manoeuvre, which runs from the progress
+            // check rather than from here and has no other view of the crowd.
+            lastEscape = coverage >= EncirclementBreakout ? escape : Vector2.zero;
             return new EnemyObservation(
                 count,
                 closeCount,
@@ -111,7 +134,9 @@ namespace BudgetGameDev.Games.Brocoli
                 nearestPosition,
                 targetPosition,
                 centroid,
-                repulsion
+                repulsion,
+                coverage,
+                escape
             );
         }
 
@@ -128,9 +153,19 @@ namespace BudgetGameDev.Games.Brocoli
                 away = Vector2.up;
             away.Normalize();
 
-            Vector2 strafe = Vector2.Perpendicular(away) * recoverySide * strafeWeight;
+            Vector2 strafe = Vector2.Perpendicular(away) * StrafeSide * strafeWeight;
             if (forceRetreat)
+            {
+                // Once the crowd is round more than one side, the way out is the gap
+                // in it rather than the direction away from its middle -- which, in a
+                // ring, is wherever the agent is already standing.
+                if (
+                    enemies.Coverage >= EncirclementBreakout
+                    && enemies.Escape.sqrMagnitude > 0.001f
+                )
+                    return NavigateLocal(position, enemies.Escape * 2f + enemies.Repulsion * 0.5f);
                 return NavigateLocal(position, away + enemies.Repulsion * 1.5f + strafe);
+            }
 
             float engage = EngageRange;
             if (enemies.NearestDistance > engage + 0.65f)

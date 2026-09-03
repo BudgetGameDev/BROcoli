@@ -5,21 +5,27 @@ namespace BudgetGameDev.Games.Brocoli
     public partial class BotDriver
     {
         /// <summary>
-        /// Marks the last moment combat achieved anything. Only two things count:
-        /// earning experience, and being hit. Health regeneration ticks forever and
-        /// enemies wander in and out of sense range, so treating either as progress
-        /// keeps resetting the clock and the agent never notices it is up against
-        /// something it cannot reach.
+        /// Marks the last moment combat achieved anything, which is only ever an
+        /// enemy going down. Health regeneration ticks forever and enemies wander in
+        /// and out of sense range, so neither can count.
+        ///
+        /// Nor can being hit, however much it feels like a fight. An agent holding
+        /// its weapon's range against a crowd it is not killing takes a hit every
+        /// few seconds, and reading that as progress is what let a run spend a whole
+        /// game-minute walking the same circle while fifty enemies followed it
+        /// round: nothing was landing that ended anything, and nothing noticed.
+        ///
+        /// The kill ledger is read rather than the experience bar because
+        /// experience is granted where the orb is picked up rather than where the
+        /// enemy died, so a run that is killing but not collecting reads as stalled.
         /// </summary>
         private void TrackCombatProgress()
         {
-            float experience = stats != null ? stats.CurrentExperience : 0f;
-            float health = stats != null ? stats.CurrentHealth : 0f;
-            bool fighting = experience > lastExperience + 0.01f || health < lastHealth - 0.01f;
+            int kills = AutoplayFeatureLog.Count(AutoplayFeatures.EnemyKilled);
+            bool killing = kills > lastKills;
 
-            lastExperience = experience;
-            lastHealth = health;
-            if (fighting)
+            lastKills = kills;
+            if (killing)
                 lastProgress = Time.time;
         }
 
@@ -138,6 +144,26 @@ namespace BudgetGameDev.Games.Brocoli
 
         private void BeginStuckRecovery()
         {
+            // Wedged in a crowd is not wedged in the geometry, and the manoeuvre for
+            // one is useless against the other. Enemy bodies are deliberately not
+            // navigation obstacles -- the agent has to be able to path through where
+            // one is standing -- so a ring of them reads as open floor in every
+            // direction while physically holding the agent still. A run measured
+            // eighty game-seconds at a single unchanged position with sixty-six of
+            // them around it, collecting an unsticking manoeuvre every second. When
+            // there is a gap in the ring, that gap is the manoeuvre.
+            if (lastEscape.sqrMagnitude > 0.001f)
+            {
+                recoveryDirection = lastEscape.normalized;
+                recoveryUntil = Time.time + 0.8f;
+                stationaryTime = 0f;
+                nextPathRefresh = 0f;
+                StuckRecoveryCount++;
+                if (++recoveriesSinceProgress >= recoveriesBeforeAbandoning)
+                    AbandonCurrentTarget();
+                return;
+            }
+
             Vector2 basis = Move.sqrMagnitude > 0.01f ? Move.normalized : Vector2.up;
             recoveryDirection = Vector2.Perpendicular(basis) * recoverySide - basis * 0.25f;
             recoveryDirection.Normalize();

@@ -39,6 +39,22 @@ namespace BudgetGameDev.Games.Brocoli
         [SerializeField]
         private float strafeWeight = 0.55f;
 
+        [Tooltip("Game-seconds the agent circles one way before reversing at weapon range.")]
+        [SerializeField]
+        private float strafeHoldSeconds = 2.5f;
+
+        [Tooltip("How far out enemies count toward being boxed in.")]
+        [SerializeField]
+        private float encirclementRadius = 7f;
+
+        /// <summary>
+        /// Share of the surrounding space that has to have something in it before the
+        /// agent stops backing off and starts breaking out. Half is deliberately early:
+        /// the point of the manoeuvre is to leave while there is still a way out, and
+        /// waiting for a closed ring is waiting until there is not one.
+        /// </summary>
+        private const float EncirclementBreakout = 0.5f;
+
         [Header("Projectile dodging")]
         [SerializeField]
         private float projectileSenseRadius = 8f;
@@ -95,6 +111,21 @@ namespace BudgetGameDev.Games.Brocoli
         [SerializeField]
         private float abandonedObjectiveDelay = 6f;
 
+        /// <summary>How near the middle of a room counts as having got there.</summary>
+        private const float UnwedgeArrival = 1.5f;
+
+        /// <summary>Ticks with nowhere walkable in the fan before heading for open floor.</summary>
+        private const int BlockedTicksBeforeUnwedging = 6;
+
+        /// <summary>What open ground is worth when there is something to be cornered by.</summary>
+        private const float OpenGroundWeight = 1.35f;
+
+        /// <summary>How near the middle of a fresh room counts as having taken it.</summary>
+        private const float StagingArrival = 3.5f;
+
+        /// <summary>Game-seconds spent trying to reach a fresh room's middle before giving up.</summary>
+        private const float StagingSeconds = 6f;
+
         /// <summary>
         /// Ground a window has to cover before its efficiency means anything. Under
         /// this the agent has barely moved, which is the stationary check's
@@ -109,13 +140,34 @@ namespace BudgetGameDev.Games.Brocoli
         /// itself, so it chose left, then right, then left, and paced the wall
         /// instead of getting round it. Small enough to stay a preference: a
         /// genuinely clearer way still wins on the same tick it opens up.
+        ///
+        /// Raised once already, because the same flip-flop is what a prop does to the
+        /// agent at close quarters: it clips one, two ways round score alike, and it
+        /// picks at the corner for a second or two before carrying on. Committing
+        /// harder is what turns that into going round.
         /// </summary>
-        private const float HeadingCommitment = 0.8f;
+        private const float HeadingCommitment = 1.15f;
 
         private static BotIntent currentIntent;
 
+        private readonly System.Collections.Generic.List<Vector2> encirclementBuffer = new();
+
+        /// <summary>Rooms whose open middle the agent has already walked out to.</summary>
+        private readonly System.Collections.Generic.HashSet<Vector2Int> stagedRooms = new();
+
+        private Vector2Int stagingRoom;
+        private float stagingDeadline;
+
+        /// <summary>The way out of the crowd, as of the last look at it.</summary>
+        private Vector2 lastEscape;
+
         private readonly Collider[] projectileBuffer = new Collider[64];
-        private readonly Collider[] objectiveBuffer = new Collider[96];
+
+        // A cleared room can hold an orb per enemy that died in it alongside every
+        // prop collider in sweep range, and an overflowing buffer drops whichever
+        // colliders the query happened to reach last -- which is how a run walks past
+        // the experience it is standing next to.
+        private readonly Collider[] objectiveBuffer = new Collider[256];
         private readonly RaycastHit[] obstacleHits = new RaycastHit[24];
         private readonly Vector3[] pathCorners = new Vector3[32];
         private readonly HashSet<Vector2Int> visitedRooms = new();
@@ -145,11 +197,23 @@ namespace BudgetGameDev.Games.Brocoli
         private float loiterTravelled;
         private float nextLoiterCheck;
         private int recoveriesSinceProgress;
-        private float lastExperience;
-        private float lastHealth;
+        private int lastKills;
         private int frame;
         private int explorationDirection = -1;
+        private int blockedTicks;
+
         private int recoverySide;
+
+        /// <summary>
+        /// Which way the agent circles while holding its weapon's range, reversed on
+        /// a timer. Circling is how a ranged fight is meant to look, but always
+        /// circling the same way is an orbit rather than a fight: with a crowd
+        /// following it round, the agent walks a closed ring at engage range,
+        /// covering two hundred metres a minute and ending each lap where it began.
+        /// Reversing keeps the sidestep and loses the ring.
+        /// </summary>
+        private int StrafeSide =>
+            Mathf.FloorToInt(Time.time / Mathf.Max(0.1f, strafeHoldSeconds)) % 2 == 0 ? 1 : -1;
         private bool hasPosition;
         private bool hasExplorationRoom;
         private bool hasOccupiedRoom;
@@ -187,8 +251,11 @@ namespace BudgetGameDev.Games.Brocoli
             loiterTravelled = 0f;
             nextLoiterCheck = 0f;
             recoveriesSinceProgress = 0;
-            lastExperience = -1f;
-            lastHealth = float.MaxValue;
+            blockedTicks = 0;
+            stagedRooms.Clear();
+            stagingDeadline = 0f;
+            lastEscape = Vector2.zero;
+            lastKills = 0;
             hasPosition = false;
         }
 
@@ -249,7 +316,8 @@ namespace BudgetGameDev.Games.Brocoli
                 Time.time < recoveryUntil,
                 objectives.ChestDistance(position),
                 objectives.PickupDistance(position),
-                Time.time - lastProgress > engagementStallDelay
+                Time.time - lastProgress > engagementStallDelay,
+                enemies.Coverage
             );
         }
 

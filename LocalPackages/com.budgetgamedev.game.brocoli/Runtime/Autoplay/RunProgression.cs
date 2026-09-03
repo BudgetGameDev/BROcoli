@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace BudgetGameDev.Games.Brocoli
 {
-    /// <summary>One level the run reached, and what it cost to get there.</summary>
+    /// <summary>One step the run took -- a level, or a ring -- and what it cost.</summary>
     internal readonly struct LevelStep
     {
         internal readonly int Level;
@@ -39,9 +39,13 @@ namespace BudgetGameDev.Games.Brocoli
         internal const float SafeHealthFraction = 0.98f;
 
         private readonly List<LevelStep> steps = new();
+        private readonly List<float> ringSeconds = new();
 
         private int level = 1;
+        private int ring;
+        private int deepestRing;
         private float lifeLevelTime;
+        private float lifeRingTime;
         private int lifeLevelKills;
         private int samples;
         private float healthFractionTotal;
@@ -53,6 +57,7 @@ namespace BudgetGameDev.Games.Brocoli
         private int peakLevel = 1;
 
         internal IReadOnlyList<LevelStep> Steps => steps;
+        internal int DeepestRing => deepestRing;
         internal int Deaths => deaths;
         internal int Lives => lives;
         internal int PeakLevel => peakLevel;
@@ -62,11 +67,20 @@ namespace BudgetGameDev.Games.Brocoli
         /// run already writes rather than from a level-up callback, so the ledger
         /// cannot disagree with the telemetry beside it.
         /// </summary>
-        internal void Sample(float time, float level, float health, float maxHealth, int kills)
+        internal void Sample(
+            float time,
+            float level,
+            float health,
+            float maxHealth,
+            int kills,
+            int ring
+        )
         {
             int reached = Mathf.Max(1, Mathf.RoundToInt(level));
             if (reached < this.level)
                 BeginLife(time, kills);
+
+            SampleDepth(time, ring);
 
             int gained = reached - this.level;
             if (gained > 0)
@@ -118,26 +132,64 @@ namespace BudgetGameDev.Games.Brocoli
             lives++;
             lifeLevelTime = time;
             lifeLevelKills = kills;
+            ring = 0;
+            lifeRingTime = time;
+        }
+
+        /// <summary>
+        /// Folds in how deep the run has got. Depth is charged the same way a level is
+        /// -- only a new personal best costs anything -- because a bot that walks back
+        /// through ring two on its way somewhere has not undone reaching ring three,
+        /// and a fresh life starts its own descent.
+        /// </summary>
+        private void SampleDepth(float time, int reachedRing)
+        {
+            if (reachedRing <= ring)
+                return;
+
+            int gained = reachedRing - ring;
+            float seconds = (time - lifeRingTime) / gained;
+            for (int step = 0; step < gained; step++)
+                ringSeconds.Add(seconds);
+            ring = reachedRing;
+            deepestRing = Mathf.Max(deepestRing, ring);
+            lifeRingTime = time;
         }
 
         internal ProgressionSummary Summarize(float duration)
         {
             return new ProgressionSummary(
-                peakLevel,
-                steps.Count,
+                new LevelPacing(
+                    peakLevel,
+                    steps.Count,
+                    SecondsPerLevel(1, int.MaxValue),
+                    SecondsPerLevel(1, ProgressionBalance.EarlyLevels),
+                    SecondsPerLevel(ProgressionBalance.EarlyLevels + 1, int.MaxValue),
+                    KillsPerLevel(1, ProgressionBalance.EarlyLevels),
+                    KillsPerLevel(ProgressionBalance.EarlyLevels + 1, int.MaxValue)
+                ),
+                new DepthPacing(deepestRing, ringSeconds.Count, MeanRingSeconds()),
+                new HealthPressure(
+                    samples > 0 ? healthFractionTotal / samples : 1f,
+                    samples > 0 ? lowestHealthFraction : 1f,
+                    samples > 0 ? dangerSamples / (float)samples : 0f,
+                    samples > 0 ? safeSamples / (float)samples : 1f
+                ),
                 lives,
                 deaths,
-                duration,
-                SecondsPerLevel(1, int.MaxValue),
-                SecondsPerLevel(1, ProgressionBalance.EarlyLevels),
-                SecondsPerLevel(ProgressionBalance.EarlyLevels + 1, int.MaxValue),
-                KillsPerLevel(1, ProgressionBalance.EarlyLevels),
-                KillsPerLevel(ProgressionBalance.EarlyLevels + 1, int.MaxValue),
-                samples > 0 ? healthFractionTotal / samples : 1f,
-                samples > 0 ? lowestHealthFraction : 1f,
-                samples > 0 ? dangerSamples / (float)samples : 0f,
-                samples > 0 ? safeSamples / (float)samples : 1f
+                duration
             );
+        }
+
+        /// <summary>Mean seconds a ring took, over every ring the run pushed out to.</summary>
+        private float MeanRingSeconds()
+        {
+            if (ringSeconds.Count == 0)
+                return 0f;
+            float total = 0f;
+            foreach (float seconds in ringSeconds)
+                total += seconds;
+            return total / ringSeconds.Count;
         }
 
         /// <summary>Mean seconds a level took, over the levels in a band.</summary>

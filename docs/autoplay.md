@@ -186,7 +186,10 @@ or shot.
 The goals are `explore`, `engage`, `retreat`, `loot`, `collect`, `dodge`, and
 `recover`. To pursue them it:
 
-- explores unvisited rooms, preferring junctions that keep the frontier growing;
+- explores the nearest room it has not been in, crossing known ones to reach it,
+  rather than only ranking the four rooms next door;
+- walks out to the open middle of a room it has not cleared before going on, so a
+  group waking up behind it does not start the fight in a corner;
 - plans routes over the runtime NavMesh and follows path corners around walls;
 - probes nearby space before moving and picks a clear alternative direction;
 - detects lost progress and performs a bounded stuck-recovery manoeuvre;
@@ -194,6 +197,11 @@ The goals are `explore`, `engage`, `retreat`, `loot`, `collect`, `dodge`, and
   upgrade or boost immediately changes how it kites;
 - focuses the enemy it can finish soonest rather than merely the nearest;
 - backs off from crowds, from anything inside its danger radius, and when hurt;
+- measures how much of the space around it is occupied and, once a crowd has more
+  than half of it, breaks out through the widest gap rather than backing away
+  from the crowd's middle -- which, in a ring, is where it is already standing;
+- writes off a fight nothing is dying in, because holding weapon range against a
+  crowd it cannot kill is how a run spends a game-minute walking in a circle;
 - walks to chests and to dropped boosts, which nothing else in the game brings to
   the player; and
 - scores level-up choices from their real bonus, penalty, current health, nearby
@@ -216,16 +224,48 @@ and are the game's difficulty target written down:
 | --- | --- | --- |
 | Seconds per level | 25 to 150 | levels are confetti / levelling is a grind |
 | Late vs early seconds per level | 0.9x to 4x | the curve never steepens / it walls |
+| Seconds per ring | 30 to 200 | the run sprints past the ladder / never climbs it |
 | Mean health | 45% to 90% | fought at the edge of death / nothing is a threat |
 | Share of the run under 35% health | 2% to 35% | never in trouble / only ever in trouble |
 | Deaths per hour | 0.4 to 8 | the run cannot be lost / it cannot be learned |
 
-Alongside those, the run records what the dungeon actually set each room to --
-the ring, the player's power score at that moment, and the health, damage, and
-count multipliers the room was built with -- because scaling fails quietly. A
-build whose depth multiplier stopped applying still levels the player on schedule
-and still kills them occasionally; what it stops doing is making the tenth room
-different from the first, and nothing else here would notice.
+Depth is graded alongside pacing because it is the axis the rest of the
+difficulty hangs off. The ring ladder unlocks archetypes and the depth multiplier
+raises health, and a run that circles the rooms it started in meets neither --
+while one that sprints outward arrives at archetypes it has no build for. Depth
+is charged the way a level is: only a new personal best costs anything, and a
+fresh life starts its own descent.
+
+Scaling is then graded on its own, because it fails quietly. A build whose depth
+multiplier stopped applying still levels the player on schedule and still kills
+them occasionally; what it stops doing is making the tenth room different from
+the first, and pacing and pressure read the same on that build as on a working
+one. So the run records what the dungeon actually set each room to -- the ring,
+the player's power score at that moment, and the depth, health, damage, and count
+multipliers the room was built with -- and grades four things from it:
+
+| Measurement | Band | Outside it means |
+| --- | --- | --- |
+| Enemy health, first room to toughest | 1.5x to 6x | the dungeon is flat / it outruns any build |
+| Enemy damage at the hardest | 1.2x to 3x | depth is longer, not harder / it one-shots |
+| Difficulty tracking | 0.6 to 1.15 | the player outgrows the dungeon / a treadmill |
+| Rooms built against a ceiling | under 35% | -- / scaling has stopped answering the player |
+
+Difficulty tracking is the measurement the other three exist to support. Health
+and damage can both grow on schedule and still leave a run trivial, if the build
+they are answering grew faster than either of them. It reads enemy threat --
+health times damage, because health alone measures how long a fight lasts rather
+than how dangerous it is -- against the player's own power score, as an exponent:
+enemy threat grows as player power to this power, so a run reports the feedback
+strength the game was built with rather than a ratio that means something
+different at every power level. One is a treadmill, where every upgrade is
+answered in full and none of them is ever felt; near zero is a feedback path that
+has stopped applying, or one whose ceilings the run has already reached.
+
+The ring a room sits in is left out of that number and graded as enemy health
+growth instead. Depth is somewhere the player chose to walk rather than the
+dungeon answering their build, and folding it in would read a run that pushed
+deep as a treadmill however hard its upgrades were landing.
 
 ```bash
 unity run . -- -executeMethod \
@@ -248,11 +288,22 @@ game-minutes or six levels it reports that it is too short to judge rather than
 guessing -- and one seed is one dungeon, so a tuning change is worth confirming
 across a few (`-seed`).
 
-The experience curve itself is `PlayerProgression`
-(`Runtime/Player/PlayerProgression.cs`), and the enemy ladder that gates which
-archetypes a ring may spawn is `DungeonEnemyPlacer.MinRingFor`. Those two and the
-power exponents at the top of `DungeonEnemyPlacer` are the knobs a balance
-finding points at.
+The knobs a balance finding points at are three files. The experience curve is
+`PlayerProgression` (`Runtime/Player/PlayerProgression.cs`); the depth slopes,
+power exponents, scaling ceilings, and each archetype's pace are `EnemyScaling`
+(`Runtime/Dungeon/EnemyScaling.cs`); and the ladder gating which archetypes a
+ring may spawn is `DungeonEnemyPlacer.MinRingFor`. The two name-keyed tables --
+which ring an archetype appears in, and how it carries itself when it does --
+are meant to be read together.
+
+One thing the dungeon does that is not a multiplier: an enemy is anchored to
+where it was placed and gives up about a room away from it, then walks back and
+holds its attacks on the way (`EnemyBase.SetLeashHome`). Without it nothing in
+the game ever ended a chase, so every enemy a run had woken followed the player
+for the rest of the session -- a balance run measured eighty-five alive at once,
+and the tenth room was fought with the first nine still in tow. A room is meant
+to be a fight that can be won and left behind, and the balance numbers only mean
+anything once it is.
 
 ## Feature coverage
 

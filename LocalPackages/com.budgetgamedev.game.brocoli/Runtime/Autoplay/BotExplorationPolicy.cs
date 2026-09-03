@@ -8,7 +8,7 @@ namespace BudgetGameDev.Games.Brocoli
     /// it answers a different question: not "what should I want" but "which way is
     /// the unseen part of the dungeon".
     /// </summary>
-    internal static class BotExplorationPolicy
+    internal static partial class BotExplorationPolicy
     {
         internal static int ChooseDirection(
             DungeonLayout layout,
@@ -47,7 +47,7 @@ namespace BudgetGameDev.Games.Brocoli
             return bestDirection;
         }
 
-        private static float ScoreCandidate(
+        internal static float ScoreCandidate(
             DungeonLayout layout,
             Vector2Int candidate,
             HashSet<Vector2Int> visited,

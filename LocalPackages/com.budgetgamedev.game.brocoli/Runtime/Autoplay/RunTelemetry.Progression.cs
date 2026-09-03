@@ -26,6 +26,8 @@ namespace BudgetGameDev.Games.Brocoli
             sb.Append("\"levels\":").Append(progression.Levels).Append(',');
             sb.Append("\"lives\":").Append(progression.Lives).Append(',');
             sb.Append("\"deaths\":").Append(progression.Deaths).Append(',');
+            sb.Append("\"deepestRing\":").Append(progression.DeepestRing).Append(',');
+            sb.Append("\"rings\":").Append(progression.Rings).Append(',');
             Num(sb, "deathsPerHour", progression.DeathsPerHour);
             sb.Append(',');
             Num(sb, "secondsPerLevel", progression.SecondsPerLevel);
@@ -39,6 +41,8 @@ namespace BudgetGameDev.Games.Brocoli
             Num(sb, "earlyKillsPerLevel", progression.EarlyKillsPerLevel);
             sb.Append(',');
             Num(sb, "lateKillsPerLevel", progression.LateKillsPerLevel);
+            sb.Append(',');
+            Num(sb, "secondsPerRing", progression.SecondsPerRing);
             sb.Append(',');
             Num(sb, "meanHealth", progression.MeanHealthFraction);
             sb.Append(',');
@@ -54,6 +58,8 @@ namespace BudgetGameDev.Games.Brocoli
             sb.Append("\"maxRing\":").Append(scaling.MaxRing).Append(',');
             sb.Append("\"enemies\":").Append(scaling.Enemies).Append(',');
             sb.Append("\"mostEnemiesInARoom\":").Append(scaling.MostEnemiesInARoom).Append(',');
+            Num(sb, "firstPlayerPower", scaling.FirstPlayerPower);
+            sb.Append(',');
             Num(sb, "peakPlayerPower", scaling.PeakPlayerPower);
             sb.Append(',');
             Num(sb, "firstHealthScale", scaling.FirstHealthScale);
@@ -62,7 +68,21 @@ namespace BudgetGameDev.Games.Brocoli
             sb.Append(',');
             Num(sb, "peakDamageScale", scaling.PeakDamageScale);
             sb.Append(',');
+            Num(sb, "peakCountScale", scaling.PeakCountScale);
+            sb.Append(',');
+            Num(sb, "peakSpeedScale", scaling.PeakSpeedScale);
+            sb.Append(',');
             Num(sb, "healthScaleGrowth", scaling.HealthScaleGrowth);
+            sb.Append(',');
+            Num(sb, "threatGrowth", scaling.ThreatGrowth);
+            sb.Append(',');
+            Num(sb, "powerThreatGrowth", scaling.PowerThreatGrowth);
+            sb.Append(',');
+            Num(sb, "powerGrowth", scaling.PowerGrowth);
+            sb.Append(',');
+            Num(sb, "trackingRatio", scaling.TrackingRatio);
+            sb.Append(',');
+            Num(sb, "saturatedShare", scaling.SaturatedShare);
             sb.Append("},");
 
             AppendStrings(sb, "balanceFindings", findings);

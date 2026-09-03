@@ -141,15 +141,27 @@ namespace BudgetGameDev.Games.Brocoli
                 return;
             }
 
-            Vector2 dir = player.position.ToGround() - rb.GroundPosition();
+            Vector2 target = ChaseTarget;
+            Vector2 dir = target - rb.GroundPosition();
             float distToPlayer = dir.magnitude;
 
             if (distToPlayer < 0.0001f)
                 return;
 
             dir.Normalize();
+
+            // Walking back to the room it woke in: no stand-off to hold, nobody to
+            // hold it against, and nothing to swing at on the way.
+            if (!IsPursuing)
+            {
+                AccelerateTowards(
+                    HasReachedLeashHome ? Vector2.zero : dir * Speed * EnemyTimeScale
+                );
+                base.FixedUpdate();
+                return;
+            }
             float colliderGap = GetPlayerColliderGap();
-            float standOffGap = Mathf.Max(0f, playerStandOffGap);
+            float standOffGap = StandOffInsideReach(playerStandOffGap, GetAttackReach());
             const float standOffDeadZone = 0.025f;
             Vector2 targetVel;
 

@@ -10,7 +10,7 @@ namespace BudgetGameDev.Games.Brocoli
 
             UpdateAttackAnimation();
 
-            if (player != null && !isAttacking && !isKnockedBack)
+            if (player != null && IsPursuing && !isAttacking && !isKnockedBack)
             {
                 if (IsPlayerWithinColliderGap(GetAttackReach()) && Time.time >= nextMeleeAttackTime)
                 {

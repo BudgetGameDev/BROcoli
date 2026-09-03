@@ -27,7 +27,18 @@ namespace BudgetGameDev.Games.Brocoli
             }
 
             if (Time.time < unwedgeUntil)
-                return DungeonLayout.RoomCenter(currentRoom);
+            {
+                // Walking at a point it is already standing on leaves the avoidance
+                // fan with no direction worth preferring, and the agent turns on the
+                // spot in the middle of the room for the rest of the manoeuvre.
+                Vector2 centre = DungeonLayout.RoomCenter(currentRoom);
+                if ((centre - position).sqrMagnitude > UnwedgeArrival * UnwedgeArrival)
+                    return centre;
+                unwedgeUntil = 0f;
+            }
+
+            if (TryStageInRoom(currentRoom, position, out Vector2 staging))
+                return staging;
 
             if (
                 dungeon == null
@@ -42,14 +53,82 @@ namespace BudgetGameDev.Games.Brocoli
             return hasExplorationRoom ? DungeonLayout.RoomCenter(explorationRoom) : position;
         }
 
+        /// <summary>
+        /// Walking into a room nobody has cleared, head for the middle of it before
+        /// heading anywhere else.
+        ///
+        /// The shortest line from one doorway to the next runs along a wall, and taking
+        /// it with a group waking up behind is how a fight starts in a corner: the
+        /// agent has a quarter of the room to back into and the crowd has the rest.
+        /// The middle of a room is the one part of it the dungeon keeps clear of
+        /// spawns and props, so it is both the safest place to meet a room and the
+        /// easiest place to leave from once it is met. Each room is staged once --
+        /// crossing it again later costs nothing.
+        /// </summary>
+        private bool TryStageInRoom(Vector2Int currentRoom, Vector2 position, out Vector2 staging)
+        {
+            staging = position;
+            if (stagedRooms.Contains(currentRoom))
+                return false;
+
+            if (currentRoom != stagingRoom)
+            {
+                stagingRoom = currentRoom;
+                stagingDeadline = Time.time + StagingSeconds;
+            }
+
+            Vector2 centre = DungeonLayout.RoomCenter(currentRoom);
+            bool arrived = (centre - position).sqrMagnitude <= StagingArrival * StagingArrival;
+
+            // Not every room has a middle the agent can stand in: a divided room, or
+            // one whose centre a prop sits on, will never be arrived at. Staging is
+            // worth a few seconds and never worth a run -- a bounded attempt is the
+            // difference between a manoeuvre and a wedge, and one seed spent its
+            // whole session walking at a point it could not reach.
+            if (arrived || Time.time > stagingDeadline)
+            {
+                stagedRooms.Add(currentRoom);
+                return false;
+            }
+
+            staging = centre;
+            return true;
+        }
+
+        /// <summary>
+        /// Chooses somewhere unseen to walk to. The nearest room the run has not been
+        /// in wins, however many known rooms lie between here and it -- the route is
+        /// the navmesh's problem, not this one's. Only when nothing unseen is
+        /// reachable does the agent fall back to ranking the four rooms next door,
+        /// which is all it can do in a pocket it has already cleared.
+        /// </summary>
         private void PickExplorationRoom(Vector2Int currentRoom)
         {
+            DungeonLayout layout = dungeon != null ? dungeon.Layout : null;
             float healthFraction =
                 stats != null && stats.CurrentMaxHealth > 0f
                     ? stats.CurrentHealth / stats.CurrentMaxHealth
                     : 1f;
+
+            if (
+                BotExplorationPolicy.TryFindFrontier(
+                    layout,
+                    currentRoom,
+                    visitedRooms,
+                    healthFraction,
+                    out Vector2Int frontier
+                )
+            )
+            {
+                explorationRoom = frontier;
+                explorationDirection = -1;
+                hasExplorationRoom = true;
+                nextPathRefresh = 0f;
+                return;
+            }
+
             explorationDirection = BotExplorationPolicy.ChooseDirection(
-                dungeon != null ? dungeon.Layout : null,
+                layout,
                 currentRoom,
                 visitedRooms,
                 healthFraction,
@@ -137,6 +216,7 @@ namespace BudgetGameDev.Games.Brocoli
             Vector2 normalized = desired.normalized;
             Vector2 best = Vector2.zero;
             float bestScore = float.NegativeInfinity;
+            float openness = OpennessWeight();
             for (int i = 0; i < AvoidanceAngles.Length; i++)
             {
                 Vector2 candidate = Quaternion.Euler(0f, 0f, AvoidanceAngles[i]) * normalized;
@@ -144,7 +224,8 @@ namespace BudgetGameDev.Games.Brocoli
                     continue;
 
                 float score =
-                    ScoreHeading(candidate, normalized, committedHeading, clearance) - i * 0.01f;
+                    ScoreHeading(candidate, normalized, committedHeading, clearance, openness)
+                    - i * 0.01f;
                 if (score > bestScore)
                 {
                     bestScore = score;
@@ -152,11 +233,29 @@ namespace BudgetGameDev.Games.Brocoli
                 }
             }
 
-            // Nothing in the fan is walkable, so back out the way it came in and let
-            // the stuck manoeuvre take over rather than pressing on into geometry.
-            Vector2 chosen = bestScore > float.NegativeInfinity ? best : -normalized;
-            committedHeading = chosen;
-            return chosen;
+            if (bestScore > float.NegativeInfinity)
+            {
+                blockedTicks = 0;
+                committedHeading = best;
+                return best;
+            }
+
+            // Nothing in the fan is walkable. Backing out the way it came in is the
+            // right first answer, but on its own it is only half a manoeuvre: the
+            // route is recomputed a sixth of a second later and points back into the
+            // same geometry, so the agent shuffles in and out of the corner it is
+            // wedged in without the stationary check ever quite firing. After a few
+            // ticks of finding nowhere to go, head for the middle of the room
+            // instead -- the one point in a room that is always on the navmesh.
+            if (++blockedTicks >= BlockedTicksBeforeUnwedging)
+            {
+                blockedTicks = 0;
+                unwedgeUntil = Time.time + unwedgeSeconds;
+                nextPathRefresh = 0f;
+            }
+
+            committedHeading = -normalized;
+            return committedHeading;
         }
 
         /// <summary>
@@ -164,14 +263,25 @@ namespace BudgetGameDev.Games.Brocoli
         /// the agent wants to go and how much room it has, plus a nudge for
         /// continuing the way it was already going.
         /// </summary>
+        /// <summary>
+        /// How much room to move is worth against pointing the right way. Enough to
+        /// bow the agent off a wall it would otherwise scrape along, and not enough to
+        /// out-vote the route: a doorway is a gap one body wide, and an agent that
+        /// preferred open ground over its destination stopped using them at all --
+        /// measured as a run that reached ten rooms and then spent six game-minutes
+        /// wandering the ones it had already seen.
+        /// </summary>
+        private float OpennessWeight() => NearbyEnemyCount > 0 ? OpenGroundWeight : 1f;
+
         internal static float ScoreHeading(
             Vector2 candidate,
             Vector2 desired,
             Vector2 committed,
-            float clearance
+            float clearance,
+            float clearanceWeight = 1f
         )
         {
-            float score = Vector2.Dot(candidate, desired) * 2f + clearance;
+            float score = Vector2.Dot(candidate, desired) * 2f + clearance * clearanceWeight;
             if (committed.sqrMagnitude < 0.0001f)
                 return score;
             return score + Vector2.Dot(candidate, committed) * HeadingCommitment;
@@ -179,12 +289,22 @@ namespace BudgetGameDev.Games.Brocoli
 
         private bool TryMeasureClearance(Vector2 position, Vector2 direction, out float clearance)
         {
-            const float probeDistance = 1.8f;
+            // Far enough to tell open floor from a wall the agent is about to be
+            // pinned against. At the old distance a wall a stride and a half away
+            // measured as clear as the middle of the room.
+            const float probeDistance = 3.2f;
+
+            // The body's own width, and no wider. A fatter sweep reads a doorway as
+            // impassable -- the arch is a tile across and the sides are inside the
+            // sweep from the moment the agent lines up with it -- and an agent that
+            // cannot use doorways stops exploring: measured as a run pinned in five
+            // rooms with fifty unsticking manoeuvres to show for it.
+            const float probeRadius = 0.42f;
             clearance = probeDistance;
             Vector3 origin = position.ToWorld(0.75f);
             int hitCount = Physics.SphereCastNonAlloc(
                 origin,
-                0.42f,
+                probeRadius,
                 direction.ToWorld(),
                 obstacleHits,
                 probeDistance,

@@ -24,6 +24,10 @@ namespace BudgetGameDev.Games.Brocoli.Editor
                 + $"{Number(progression.earlyKillsPerLevel, invariant)} to "
                 + $"{Number(progression.lateKillsPerLevel, invariant)} kills per level"
                 + Environment.NewLine
+                + $"  depth:      ring {progression.deepestRing} over "
+                + $"{progression.rings} ring(s), "
+                + $"{Number(progression.secondsPerRing, invariant)}s each"
+                + Environment.NewLine
                 + $"  pressure:   {Percent(progression.meanHealth, invariant)} mean health, "
                 + $"{Percent(progression.lowestHealth, invariant)} at the worst, "
                 + $"{Percent(progression.dangerShare, invariant)} of the run in danger, "
@@ -43,7 +47,14 @@ namespace BudgetGameDev.Games.Brocoli.Editor
                 + $"player power {Number(scaling.peakPlayerPower, invariant)}x, "
                 + $"enemy health {Number(scaling.firstHealthScale, invariant)}x to "
                 + $"{Number(scaling.peakHealthScale, invariant)}x, damage up to "
-                + $"{Number(scaling.peakDamageScale, invariant)}x";
+                + $"{Number(scaling.peakDamageScale, invariant)}x, pace up to "
+                + $"{Number(scaling.peakSpeedScale, invariant)}x"
+                + Environment.NewLine
+                + $"  tracking:   {Number(scaling.powerThreatGrowth, invariant)}x threat "
+                + $"answering {Number(scaling.powerGrowth, invariant)}x player power "
+                + $"(exponent {Number(scaling.trackingRatio, invariant)}), "
+                + $"{Number(scaling.threatGrowth, invariant)}x counting depth, "
+                + $"{Percent(scaling.saturatedShare, invariant)} of rooms at a ceiling";
         }
 
         /// <summary>The verdict itself: which bands the run left, and which way.</summary>

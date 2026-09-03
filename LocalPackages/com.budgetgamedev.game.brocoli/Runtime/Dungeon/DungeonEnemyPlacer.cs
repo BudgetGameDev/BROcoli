@@ -14,23 +14,6 @@ namespace BudgetGameDev.Games.Brocoli
     {
         private const float CenterClearRadius = 4f;
 
-        // How much of the player's power growth (see PlayerStats.ComputePowerScore)
-        // feeds back into enemy strength. Every exponent sits below 1 so upgrades
-        // still feel like progress: a player four times as powerful meets enemies
-        // roughly twice as tough, not four times.
-        //
-        // Damage is scaled harder than health on purpose. A run that answers a
-        // stronger player only with deeper health pools makes every fight longer
-        // without making any of it dangerous, which measures as a slog: a balance
-        // run spent its whole second life above ninety per cent health while enemy
-        // health scaling sat pinned at its ceiling.
-        private const float HealthPowerExponent = 0.55f;
-        private const float DamagePowerExponent = 0.42f;
-        private const float CountPowerExponent = 0.25f;
-        private const float MaxHealthPowerScale = 6f;
-        private const float MaxDamagePowerScale = 3.2f;
-        private const float MaxCountPowerScale = 1.75f;
-
         /// <summary>
         /// Spawns the room's enemy group dormant and returns it. The mix of enemy
         /// types unlocks with ring distance; elite dens promote low-tier enemies.
@@ -65,10 +48,12 @@ namespace BudgetGameDev.Games.Brocoli
 
             System.Random random = layout.RoomRandom(room, 606);
             float power = CurrentPlayerPower();
-            float healthScale =
-                layout.EnemyHealthScale(room)
-                * PowerScale(power, HealthPowerExponent, MaxHealthPowerScale);
-            float damageScale = PowerScale(power, DamagePowerExponent, MaxDamagePowerScale);
+            float depthScale = layout.EnemyHealthScale(room);
+            float healthPowerScale = EnemyScaling.Health(power);
+            float damageScale = EnemyScaling.Damage(power);
+            float countScale = EnemyScaling.Count(power);
+            float speedScale = EnemyScaling.SpeedScale(ring, power);
+            float healthScale = depthScale * healthPowerScale;
             Vector2 roomCenter = DungeonLayout.RoomCenter(room);
 
             int spawnCount = Mathf.Min(population.Count, archetype.EnemyCapacity);
@@ -76,9 +61,7 @@ namespace BudgetGameDev.Games.Brocoli
             {
                 spawnCount = Mathf.Min(
                     archetype.EnemyCapacity,
-                    Mathf.RoundToInt(
-                        spawnCount * PowerScale(power, CountPowerExponent, MaxCountPowerScale)
-                    )
+                    Mathf.RoundToInt(spawnCount * countScale)
                 );
             }
             for (int i = 0; i < spawnCount; i++)
@@ -101,9 +84,14 @@ namespace BudgetGameDev.Games.Brocoli
                     enemy = Object.Instantiate(prefab, position, Quaternion.identity);
                 }
 
+                // The room it was placed in is the room it belongs to; wandering more
+                // than a room or so from it ends the chase.
+                enemy.SetLeashHome(position.ToGround());
+
                 enemy.Health *= healthScale;
                 enemy.MaxHealth *= healthScale;
                 enemy.Damage *= damageScale;
+                enemy.Speed = EnemyScaling.Speed(enemy.Speed, speedScale, prefab.name);
 
                 if (enemy is HydraEnemyScript hydra)
                     hydra.ConfigureForDungeonRing(ring);
@@ -123,7 +111,18 @@ namespace BudgetGameDev.Games.Brocoli
                 spawned.Add(enemy);
             }
 
-            AutoplayScalingLog.Record(ring, power, healthScale, damageScale, spawned.Count);
+            AutoplayScalingLog.Record(
+                new ScalingSample(
+                    ring,
+                    power,
+                    depthScale,
+                    healthPowerScale,
+                    damageScale,
+                    countScale,
+                    speedScale,
+                    spawned.Count
+                )
+            );
             return spawned;
         }
 
@@ -213,12 +212,6 @@ namespace BudgetGameDev.Games.Brocoli
         {
             PlayerStats stats = PlayerStats.Resolve();
             return stats != null ? stats.ComputePowerScore() : 1f;
-        }
-
-        /// <summary>A power multiplier that never weakens enemies below baseline.</summary>
-        private static float PowerScale(float power, float exponent, float max)
-        {
-            return Mathf.Clamp(Mathf.Pow(Mathf.Max(1f, power), exponent), 1f, max);
         }
 
         private static void DropEliteReward(Vector3 position) =>

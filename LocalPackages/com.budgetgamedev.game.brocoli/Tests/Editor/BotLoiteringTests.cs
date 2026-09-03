@@ -179,6 +179,58 @@ namespace BudgetGameDev.Games.Brocoli.Tests
             }
         }
 
+        /// <summary>
+        /// What counts as a fight going somewhere. Only an enemy going down does:
+        /// taking a hit is not progress, however much it feels like one, and reading
+        /// it as progress is what let a run hold its weapon's range against a crowd
+        /// it was not killing for a game-minute at a time.
+        /// </summary>
+        [Test]
+        public void OnlyAnEnemyGoingDownCountsAsGettingSomewhereInAFight()
+        {
+            GameObject host = new("Combat progress host");
+            host.SetActive(false);
+            try
+            {
+                SetAutoplayActive(true);
+                AutoplayFeatureLog.Reset();
+                BotDriver bot = host.AddComponent<BotDriver>();
+                Set(bot, "lastKills", 0);
+                Set(bot, "lastProgress", 0f);
+
+                Invoke(bot, "TrackCombatProgress");
+                Assert.That(
+                    Read<float>(bot, "lastProgress"),
+                    Is.Zero,
+                    "a fight with nothing dying in it has achieved nothing"
+                );
+
+                AutoplayFeatureLog.Record(AutoplayFeatures.EnemyKilled);
+                Invoke(bot, "TrackCombatProgress");
+                Assert.That(Read<float>(bot, "lastProgress"), Is.EqualTo(Time.time));
+                Assert.That(Read<int>(bot, "lastKills"), Is.EqualTo(1));
+
+                Set(bot, "lastProgress", 0f);
+                Invoke(bot, "TrackCombatProgress");
+                Assert.That(
+                    Read<float>(bot, "lastProgress"),
+                    Is.Zero,
+                    "the same kill cannot count twice"
+                );
+            }
+            finally
+            {
+                AutoplayFeatureLog.Reset();
+                SetAutoplayActive(false);
+                Object.DestroyImmediate(host);
+            }
+        }
+
+        private static void SetAutoplayActive(bool active) =>
+            typeof(AutoplayController)
+                .GetField("<IsActive>k__BackingField", BindingFlags.Static | BindingFlags.NonPublic)
+                .SetValue(null, active);
+
         private const BindingFlags Private =
             BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public;
 

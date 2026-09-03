@@ -273,10 +273,25 @@ namespace BudgetGameDev.Games.Brocoli
                 (_currentMaxHealth + sustain * 8f)
                 * (1f + _currentArmor / 20f)
                 / Mathf.Max(0.25f, 1f - _currentDodgeChance / 100f);
-            float defense = effectiveHealth / DefaultMaxHealth;
+            float defense = effectiveHealth / DefaultMaxHealth * Mobility();
 
             return Mathf.Sqrt(Mathf.Max(0.1f, offense) * Mathf.Max(0.1f, defense));
         }
+
+        /// <summary>
+        /// What outrunning things is worth, as a multiplier on effective health.
+        /// Moving faster is the other half of not being hit, and leaving it out let a
+        /// build stack speed until nothing in the dungeon could touch it while still
+        /// reading to the dungeon as a fresh player -- so every room it walked into
+        /// was built for one. A balance sweep caught it as runs that reached level ten
+        /// having grown 1.3x by this score next to runs that grew 5.3x.
+        ///
+        /// The exponent keeps it honest. Speed helps a great deal at first and less
+        /// and less after that, because a dungeon room is only so wide, and it is
+        /// clamped so neither a slowed build nor a runaway one dominates the score.
+        /// </summary>
+        private float Mobility() =>
+            Mathf.Pow(Mathf.Clamp(_currentMovementSpeed / DefaultMovementSpeed, 0.5f, 2.5f), 0.7f);
 
         /// <summary>
         /// Apply life steal healing based on damage dealt.

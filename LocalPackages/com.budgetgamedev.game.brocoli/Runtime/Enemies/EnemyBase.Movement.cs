@@ -26,6 +26,7 @@ namespace BudgetGameDev.Games.Brocoli
             if (eliteEffects != null)
                 eliteEffects.RemoveEliteVisuals();
 
+            ResetLeash();
             isElite = false;
             alwaysShowHealthBar = false;
             isDying = false;
@@ -140,6 +141,20 @@ namespace BudgetGameDev.Games.Brocoli
                 : Mathf.Max(maxSeparationSpeed, Speed);
             rb.SetGroundVelocity(Vector2.ClampMagnitude(rb.GroundVelocity(), speedLimit));
         }
+
+        /// <summary>
+        /// The gap a melee enemy holds from the player, never wider than the distance
+        /// it can actually strike from.
+        ///
+        /// These two were authored independently and disagreed: the ordinary enemy
+        /// held four tenths of a unit of personal space and could swing from two and a
+        /// half, so one that reached its preferred station could never attack from it.
+        /// A balance run measured the player standing at full health in the middle of
+        /// a dozen of them. Landing a hit was left to whichever enemy the crowd
+        /// happened to shove inside its own stand-off.
+        /// </summary>
+        internal static float StandOffInsideReach(float authoredGap, float attackReach) =>
+            Mathf.Min(Mathf.Max(0f, authoredGap), Mathf.Max(0f, attackReach) * 0.6f);
 
         /// <summary>Checks whether the player and enemy colliders are within a world-space gap.</summary>
         protected bool IsPlayerWithinColliderGap(float maxGap)

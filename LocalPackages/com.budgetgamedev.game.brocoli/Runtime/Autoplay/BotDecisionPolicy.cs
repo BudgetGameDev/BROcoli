@@ -38,6 +38,14 @@ namespace BudgetGameDev.Games.Brocoli
         /// <summary>The most an attack urge can ever be worth; retreats clear it.</summary>
         private const float EngageCeiling = 56f;
 
+        /// <summary>
+        /// Share of the surrounding space with something in it before the agent treats
+        /// itself as being closed in on. Deliberately short of a full ring: a crowd
+        /// that has three sides of the agent is one step from having four, and the
+        /// whole value of noticing is noticing while there is still a way out.
+        /// </summary>
+        internal const float CrowdingConcern = 0.45f;
+
         private static readonly BotIntent[] Scored =
         {
             BotIntent.Explore,
@@ -102,15 +110,30 @@ namespace BudgetGameDev.Games.Brocoli
             score += Proximity(situation.NearestEnemyDistance, tuning.SenseRadius) * 10f;
             if (situation.CloseEnemyCount >= tuning.CrowdCount)
                 score -= 18f;
+            // Standing and fighting is worth less the more of the room is behind the
+            // agent rather than in front of it.
+            if (situation.Encirclement >= CrowdingConcern)
+                score -= 20f * situation.Encirclement;
             return score;
         }
 
         private static float RetreatUtility(BotSituation situation, BotTuning tuning)
         {
-            // A stalled standoff is by definition one where nothing is landing a hit,
-            // so there is nothing to back away from -- and backing away and returning
-            // is the other half of the pacing this is here to stop.
-            if (!situation.HasEnemies || situation.EngagementStalled)
+            if (!situation.HasEnemies)
+                return float.NegativeInfinity;
+
+            // A stalled standoff the agent is walking away from untouched has nothing
+            // to back away from, and backing away and returning is the other half of
+            // the pacing this is here to stop. Two things are not that. Being hurt in
+            // one is a fight going nowhere while the agent bleeds, which is exactly
+            // the fight to leave; and something already inside the danger radius is
+            // biting, whatever the stall clock says. Without the second, writing off a
+            // fight sends the agent walking through the crowd it just gave up on.
+            if (
+                situation.EngagementStalled
+                && situation.HealthFraction >= tuning.LowHealthFraction
+                && situation.NearestEnemyDistance >= tuning.DangerRadius
+            )
                 return float.NegativeInfinity;
 
             float score = 12f;
@@ -118,14 +141,28 @@ namespace BudgetGameDev.Games.Brocoli
                 score += 50f + 25f * Proximity(situation.NearestEnemyDistance, tuning.DangerRadius);
             if (situation.CloseEnemyCount >= tuning.CrowdCount)
                 score += 48f;
+            // Being closed in on is worth acting on before it finishes: a crowd that
+            // has most of the way round the agent is the last moment there is a gap
+            // left to leave through.
+            if (situation.Encirclement >= CrowdingConcern)
+                score += 30f + 40f * situation.Encirclement;
             if (situation.HealthFraction < tuning.LowHealthFraction)
                 score += 30f + 40f * (1f - situation.HealthFraction / tuning.LowHealthFraction);
             return score;
         }
 
+        /// <summary>
+        /// Experience earns the same floor a chest does: an orb anywhere in sight has
+        /// to outrank wandering off. It used to sit below that, on the grounds that a
+        /// distant orb was not worth abandoning exploration for -- true while orbs
+        /// expired half a minute after they dropped, and false now they wait on the
+        /// floor. A run that fights through a room and leaves its far corner behind is
+        /// throwing away experience it has already earned, and levelling is measured
+        /// on what the run collects rather than on what it killed.
+        /// </summary>
         private static float CollectUtility(BotSituation situation, BotTuning tuning)
         {
-            float score = ObjectiveUtility(situation.PickupDistance, 48f, situation, tuning);
+            float score = ObjectiveUtility(situation.PickupDistance, 68f, situation, tuning);
             // A dropped boost is worth a detour precisely when the run is going badly.
             return situation.HealthFraction < tuning.LowHealthFraction ? score + 14f : score;
         }

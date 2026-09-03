@@ -47,6 +47,8 @@ namespace BudgetGameDev.Games.Brocoli.Editor
             public int levels;
             public int lives;
             public int deaths;
+            public int deepestRing;
+            public int rings;
             public float deathsPerHour;
             public float secondsPerLevel;
             public float earlySecondsPerLevel;
@@ -54,6 +56,7 @@ namespace BudgetGameDev.Games.Brocoli.Editor
             public float paceRatio;
             public float earlyKillsPerLevel;
             public float lateKillsPerLevel;
+            public float secondsPerRing;
             public float meanHealth;
             public float lowestHealth;
             public float dangerShare;
@@ -68,11 +71,19 @@ namespace BudgetGameDev.Games.Brocoli.Editor
             public int maxRing;
             public int enemies;
             public int mostEnemiesInARoom;
+            public float firstPlayerPower;
             public float peakPlayerPower;
             public float firstHealthScale;
             public float peakHealthScale;
             public float peakDamageScale;
+            public float peakCountScale;
+            public float peakSpeedScale;
             public float healthScaleGrowth;
+            public float threatGrowth;
+            public float powerThreatGrowth;
+            public float powerGrowth;
+            public float trackingRatio;
+            public float saturatedShare;
         }
 
         /// <summary>One screenshot a <c>--capture-on</c> trigger asked for.</summary>

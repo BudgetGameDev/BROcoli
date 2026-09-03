@@ -23,6 +23,14 @@ namespace BudgetGameDev.Games.Brocoli
         /// </summary>
         internal readonly bool EngagementStalled;
 
+        /// <summary>
+        /// How much of the space around the agent has something in it, from nothing to
+        /// completely enclosed. Counting bodies says how many; this says whether they
+        /// are on one side or all of them, which is the difference between a fight to
+        /// back out of and one to break out of.
+        /// </summary>
+        internal readonly float Encirclement;
+
         internal BotSituation(
             bool hasEnemies,
             float nearestEnemyDistance,
@@ -32,10 +40,12 @@ namespace BudgetGameDev.Games.Brocoli
             bool recovering,
             float chestDistance,
             float pickupDistance,
-            bool engagementStalled = false
+            bool engagementStalled = false,
+            float encirclement = 0f
         )
         {
             EngagementStalled = engagementStalled;
+            Encirclement = encirclement;
             HasEnemies = hasEnemies;
             NearestEnemyDistance = nearestEnemyDistance;
             CloseEnemyCount = closeEnemyCount;
