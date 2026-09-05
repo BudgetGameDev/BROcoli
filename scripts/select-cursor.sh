@@ -35,7 +35,9 @@ if [ "$#" -eq 0 ]; then
     usage
     echo >&2
     echo "available cursors:" >&2
-    ls "$PACK/Outline" | sed 's/\.png$//' | column -c 100 >&2
+    find "$PACK/Outline" -maxdepth 1 -type f -name '*.png' -exec basename {} .png \; |
+        sort |
+        column -c 100 >&2
     exit 2
 fi
 
@@ -47,13 +49,19 @@ fi
 case "$1" in
     basic) STYLE_DIR="Basic" ;;
     outline) STYLE_DIR="Outline" ;;
-    *) usage; exit 2 ;;
+    *)
+        usage
+        exit 2
+        ;;
 esac
 
 case "$3" in
     Steel) SLOT="PointerSteel" ;;
     Gauntlet) SLOT="PointerGauntlet" ;;
-    *) usage; exit 2 ;;
+    *)
+        usage
+        exit 2
+        ;;
 esac
 
 SOURCE="$PACK/$STYLE_DIR/$2.png"
