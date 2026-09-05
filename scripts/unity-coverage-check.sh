@@ -111,6 +111,12 @@ if [ -z "${UNITY_EDITOR_PATH:-}" ] || [ ! -x "${UNITY_EDITOR_PATH:-}" ]; then
     exit 1
 fi
 
+case "$(uname -s)" in
+    Darwin*) TEST_BUILD_TARGET="StandaloneOSX" ;;
+    Linux*) TEST_BUILD_TARGET="StandaloneLinux64" ;;
+    MINGW* | MSYS* | CYGWIN*) TEST_BUILD_TARGET="StandaloneWindows64" ;;
+esac
+
 echo "Unity EditMode Coverage"
 echo "=========================="
 echo "Project: $PROJECT_PATH"
@@ -128,6 +134,7 @@ set +e
 "$UNITY_EDITOR_PATH" \
     -batchmode \
     -projectPath "$PROJECT_PATH" \
+    -buildTarget "$TEST_BUILD_TARGET" \
     -runTests \
     -testPlatform EditMode \
     -testResults "$RESULTS_FILE" \

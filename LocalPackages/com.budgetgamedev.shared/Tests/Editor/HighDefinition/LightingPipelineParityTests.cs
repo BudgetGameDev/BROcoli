@@ -13,7 +13,7 @@ using URP = UnityEngine.Rendering.Universal;
 
 namespace BudgetGameDev.Shared.Rendering.HighDefinition.Tests
 {
-    public sealed class LightingPipelineParityTests
+    public sealed partial class LightingPipelineParityTests
     {
         private const string HighDefinitionAsset =
             "Assets/Settings/Rendering/HDRP/BROcoli HDRP High.asset";
@@ -36,6 +36,7 @@ namespace BudgetGameDev.Shared.Rendering.HighDefinition.Tests
         [UnityTest]
         public IEnumerator PhysicalSurfaceAndUnlitHdrFlameRetainTheirSceneLinearValuesAcrossPipelines()
         {
+            IgnoreWhenHdrpIsUnsupported();
             if (SystemInfo.graphicsDeviceType == GraphicsDeviceType.Null)
                 Assert.Ignore(
                     "Requires float GPU rendering; an SDR screenshot cannot validate HDR lighting."
@@ -164,7 +165,6 @@ namespace BudgetGameDev.Shared.Rendering.HighDefinition.Tests
                 mesh.colors = colors;
                 quad.GetComponent<MeshFilter>().sharedMesh = mesh;
                 Material surface = CreateMaterial("BROcoli/Surface", owned);
-                // The non-HDR graph color property expects an sRGB-authored color.
                 surface.SetColor("_BaseColor", new Color(0.18f, 0.18f, 0.18f, 1f).gamma);
                 surface.SetTexture("_BaseMap", Texture2D.whiteTexture);
                 surface.SetFloat("_Metallic", 0f);
