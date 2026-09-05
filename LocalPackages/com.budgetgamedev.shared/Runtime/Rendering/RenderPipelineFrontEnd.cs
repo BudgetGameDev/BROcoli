@@ -29,8 +29,10 @@ namespace BudgetGameDev.Shared.Rendering
     {
         private static readonly Dictionary<RenderPipelineKind, IHdrGradeFrontEnd> registeredGrades =
             new();
-        private static readonly Dictionary<RenderPipelineKind, ILightingFrontEnd> registeredLighting =
-            new();
+        private static readonly Dictionary<
+            RenderPipelineKind,
+            ILightingFrontEnd
+        > registeredLighting = new();
 
         private static IHdrGradeFrontEnd hdrGrade;
         private static RenderPipelineKind searchedFor;
@@ -149,9 +151,11 @@ namespace BudgetGameDev.Shared.Rendering
         }
 
         /// <summary>What announced itself for <paramref name="active"/>, if anything did.</summary>
-        private static T Registered<T>(Dictionary<RenderPipelineKind, T> registry, RenderPipelineKind active)
-            where T : class =>
-            registry.TryGetValue(active, out T frontEnd) ? frontEnd : null;
+        private static T Registered<T>(
+            Dictionary<RenderPipelineKind, T> registry,
+            RenderPipelineKind active
+        )
+            where T : class => registry.TryGetValue(active, out T frontEnd) ? frontEnd : null;
 
         /// <summary>
         /// The single implementation of <typeparamref name="T"/> whose pipeline is the active

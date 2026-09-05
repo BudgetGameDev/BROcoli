@@ -8,7 +8,9 @@ using UnityEngine;
 using UnityEngine.Rendering;
 
 /// <summary>Manual Windows, macOS, and Linux desktop player builds.</summary>
-public sealed class NativePlayerBuildScript : IPreprocessBuildWithReport, IPostprocessBuildWithReport
+public sealed class NativePlayerBuildScript
+    : IPreprocessBuildWithReport,
+        IPostprocessBuildWithReport
 {
     private const string DefaultBuildRoot = "build/native/players";
 
@@ -168,8 +170,9 @@ public sealed class NativePlayerBuildScript : IPreprocessBuildWithReport, IPostp
     /// <summary>The pipeline <paramref name="target"/> ships with: Windows renders through High
     /// Definition, every other player through Universal.</summary>
     internal static string PipelineAssetPathFor(BuildTarget target) =>
-        target == BuildTarget.StandaloneWindows64 ? HighDefinitionPipelinePath
-        : UniversalPipelinePath;
+        target == BuildTarget.StandaloneWindows64
+            ? HighDefinitionPipelinePath
+            : UniversalPipelinePath;
 
     /// <summary>
     /// Points Graphics Settings at the pipeline this target ships with, so a player carries one

@@ -112,11 +112,7 @@ namespace BudgetGameDev.Shared.Tests
             // A three-pixel diagonal from (1,1) down-right. Its bounding box starts at (1,1),
             // which here is also the tip; the row below is what would drag a bounding-box
             // answer away from it if the shape were any wider.
-            Texture2D arrow = BuildPointer(
-                8,
-                8,
-                new[] { (1, 1), (2, 2), (3, 3), (2, 3), (0, 4) }
-            );
+            Texture2D arrow = BuildPointer(8, 8, new[] { (1, 1), (2, 2), (3, 3), (2, 3), (0, 4) });
             try
             {
                 Assert.That(GameCursor.MeasureHotspot(arrow), Is.EqualTo(new Vector2(1f, 1f)));
@@ -185,14 +181,8 @@ namespace BudgetGameDev.Shared.Tests
         public void PointerArtWithoutAnImageIsTreatedAsHavingNone()
         {
             Assert.That(default(GameCursor.PointerArt).IsEmpty, Is.True);
-            Assert.That(
-                new GameCursor.PointerArt(string.Empty, Color.white).IsEmpty,
-                Is.True
-            );
-            Assert.That(
-                new GameCursor.PointerArt("Some/Pointer", Color.white).IsEmpty,
-                Is.False
-            );
+            Assert.That(new GameCursor.PointerArt(string.Empty, Color.white).IsEmpty, Is.True);
+            Assert.That(new GameCursor.PointerArt("Some/Pointer", Color.white).IsEmpty, Is.False);
         }
 
         /// <summary>

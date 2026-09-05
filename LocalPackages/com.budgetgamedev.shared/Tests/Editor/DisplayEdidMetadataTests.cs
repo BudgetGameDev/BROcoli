@@ -45,11 +45,7 @@ namespace BudgetGameDev.Shared.Tests
             Assert.That(metadata.HasHdrStaticMetadata, Is.False);
         }
 
-        private static byte[] CreateEdid(
-            byte maximumCode,
-            byte fullFrameCode,
-            byte minimumCode
-        )
+        private static byte[] CreateEdid(byte maximumCode, byte fullFrameCode, byte minimumCode)
         {
             byte[] edid = new byte[256];
             byte[] header = { 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00 };

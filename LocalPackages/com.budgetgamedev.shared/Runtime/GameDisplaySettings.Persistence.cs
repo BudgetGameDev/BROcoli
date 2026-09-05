@@ -135,10 +135,7 @@ namespace BudgetGameDev.Shared
             bool detectedChanged =
                 !hasDetectedHdrProfile
                 || !Mathf.Approximately(detectedPeakBrightnessNits, normalizedPeak)
-                || !Mathf.Approximately(
-                    detectedFullFrameBrightnessNits,
-                    normalizedFullFrame
-                )
+                || !Mathf.Approximately(detectedFullFrameBrightnessNits, normalizedFullFrame)
                 || !Mathf.Approximately(detectedPaperWhiteNits, normalizedPaperWhite)
                 || !Mathf.Approximately(detectedBlackLevelNits, normalizedBlack);
             hasDetectedHdrProfile = true;

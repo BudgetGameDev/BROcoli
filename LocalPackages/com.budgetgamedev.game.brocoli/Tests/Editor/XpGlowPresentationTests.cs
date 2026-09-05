@@ -83,8 +83,8 @@ namespace BudgetGameDev.Games.Brocoli.Tests
                     + "XpEnergyGlow.shader"
             );
 
-            int passes = System.Text.RegularExpressions.Regex
-                .Matches(source, @"Name\s+""XpEnergyGlow""")
+            int passes = System
+                .Text.RegularExpressions.Regex.Matches(source, @"Name\s+""XpEnergyGlow""")
                 .Count;
             Assert.That(
                 passes,
@@ -130,11 +130,13 @@ namespace BudgetGameDev.Games.Brocoli.Tests
             {
                 PickupVisual3D.AttachExperience(pickup);
 
-                foreach (string shellName in new[]
-                {
-                    PickupVisual3D.GlowCoreName,
-                    PickupVisual3D.GlowHaloName,
-                })
+                foreach (
+                    string shellName in new[]
+                    {
+                        PickupVisual3D.GlowCoreName,
+                        PickupVisual3D.GlowHaloName,
+                    }
+                )
                 {
                     Transform shell = FindChild(pickup.transform, shellName);
                     Mesh mesh = shell.GetComponent<MeshFilter>().sharedMesh;
@@ -257,10 +259,7 @@ namespace BudgetGameDev.Games.Brocoli.Tests
         public void TheOrbBurnsBrighterWhileTheMagnetHasHoldOfIt()
         {
             Assert.That(XpGlowPresentation.IntensityForAttraction(0f), Is.EqualTo(1f));
-            Assert.That(
-                XpGlowPresentation.IntensityForAttraction(1f),
-                Is.GreaterThan(1.5f)
-            );
+            Assert.That(XpGlowPresentation.IntensityForAttraction(1f), Is.GreaterThan(1.5f));
             Assert.That(
                 XpGlowPresentation.IntensityForAttraction(0.5f),
                 Is.GreaterThan(XpGlowPresentation.IntensityForAttraction(0f))

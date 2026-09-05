@@ -76,7 +76,7 @@ namespace BudgetGameDev.Shared
 
                 int dataEnd = edid[offset + 2];
                 dataEnd = dataEnd == 0 ? 4 : Mathf.Clamp(dataEnd, 4, 127);
-                for (int cursor = 4; cursor < dataEnd;)
+                for (int cursor = 4; cursor < dataEnd; )
                 {
                     byte header = edid[offset + cursor];
                     int length = header & 0x1f;
@@ -89,18 +89,12 @@ namespace BudgetGameDev.Shared
                     {
                         int luminance = offset + cursor + 4;
                         bool hasMaximum = length >= 4 && edid[luminance] != 0;
-                        float maximum = hasMaximum
-                            ? DecodeLuminance(edid[luminance])
-                            : 0f;
+                        float maximum = hasMaximum ? DecodeLuminance(edid[luminance]) : 0f;
                         bool hasFullFrame = length >= 5 && edid[luminance + 1] != 0;
-                        float fullFrame = hasFullFrame
-                            ? DecodeLuminance(edid[luminance + 1])
-                            : 0f;
+                        float fullFrame = hasFullFrame ? DecodeLuminance(edid[luminance + 1]) : 0f;
                         bool hasMinimum = length >= 6 && edid[luminance + 2] != 0 && hasMaximum;
                         float minimum = hasMinimum
-                            ? maximum
-                                * Mathf.Pow(edid[luminance + 2] / 255f, 2f)
-                                / 100f
+                            ? maximum * Mathf.Pow(edid[luminance + 2] / 255f, 2f) / 100f
                             : 0f;
                         metadata = new DisplayEdidMetadata(
                             name,
@@ -152,7 +146,8 @@ namespace BudgetGameDev.Shared
                 )
                     continue;
 
-                string name = Encoding.ASCII.GetString(edid, offset + 5, 13)
+                string name = Encoding
+                    .ASCII.GetString(edid, offset + 5, 13)
                     .Trim('\0', '\n', '\r', ' ');
                 if (!string.IsNullOrEmpty(name))
                     return name;
@@ -167,17 +162,7 @@ namespace BudgetGameDev.Shared
         }
 
         private static DisplayEdidMetadata Unavailable(string status, string displayName = "") =>
-            new(
-                displayName,
-                false,
-                false,
-                0f,
-                false,
-                0f,
-                false,
-                0f,
-                status
-            );
+            new(displayName, false, false, 0f, false, 0f, false, 0f, status);
 
 #if UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN
         private const int DisplayDeviceActive = 0x00000001;
@@ -215,9 +200,10 @@ namespace BudgetGameDev.Shared
                         continue;
                     }
 
-                    float distance = preferredPeakNits > 0f && candidate.HasMaximumLuminance
-                        ? Mathf.Abs(candidate.MaximumLuminanceNits - preferredPeakNits)
-                        : 0f;
+                    float distance =
+                        preferredPeakNits > 0f && candidate.HasMaximumLuminance
+                            ? Mathf.Abs(candidate.MaximumLuminanceNits - preferredPeakNits)
+                            : 0f;
                     if (distance < bestDistance)
                     {
                         best = candidate;
@@ -232,7 +218,10 @@ namespace BudgetGameDev.Shared
         {
             edid = null;
             const string machinePrefix = @"\Registry\Machine\";
-            if (string.IsNullOrEmpty(deviceKey) || !deviceKey.StartsWith(machinePrefix, StringComparison.OrdinalIgnoreCase))
+            if (
+                string.IsNullOrEmpty(deviceKey)
+                || !deviceKey.StartsWith(machinePrefix, StringComparison.OrdinalIgnoreCase)
+            )
                 return false;
 
             string path = deviceKey.Substring(machinePrefix.Length);
@@ -248,7 +237,10 @@ namespace BudgetGameDev.Shared
             try
             {
                 uint size = 0;
-                if (RegQueryValueEx(key, "EDID", IntPtr.Zero, out _, null, ref size) != 0 || size < 128)
+                if (
+                    RegQueryValueEx(key, "EDID", IntPtr.Zero, out _, null, ref size) != 0
+                    || size < 128
+                )
                     return false;
                 byte[] buffer = new byte[size];
                 if (RegQueryValueEx(key, "EDID", IntPtr.Zero, out _, buffer, ref size) != 0)
@@ -268,16 +260,21 @@ namespace BudgetGameDev.Shared
         private struct DisplayDevice
         {
             public int Cb;
-            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)] public string DeviceName;
-            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 128)] public string DeviceString;
-            public int StateFlags;
-            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 128)] public string DeviceId;
-            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 128)] public string DeviceKey;
 
-            public static DisplayDevice Create() => new()
-            {
-                Cb = Marshal.SizeOf<DisplayDevice>(),
-            };
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)]
+            public string DeviceName;
+
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 128)]
+            public string DeviceString;
+            public int StateFlags;
+
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 128)]
+            public string DeviceId;
+
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 128)]
+            public string DeviceKey;
+
+            public static DisplayDevice Create() => new() { Cb = Marshal.SizeOf<DisplayDevice>() };
         }
 
         [DllImport("user32.dll", CharSet = CharSet.Unicode)]

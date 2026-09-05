@@ -24,9 +24,19 @@ namespace BudgetGameDev.Shared.Rendering.HighDefinition.Tests
                 var volume = host.GetComponent<Volume>();
                 foreach (bool hdr in new[] { false, true, false, true })
                 {
-                    grade.Apply(new HdrGradeRequest(
-                        hdr, HDRRangeReduction.ACES1000Nits, 200f, 0.0005f, 600f,
-                        false, 12f, 17f, -0.0008f));
+                    grade.Apply(
+                        new HdrGradeRequest(
+                            hdr,
+                            HDRRangeReduction.ACES1000Nits,
+                            200f,
+                            0.0005f,
+                            600f,
+                            false,
+                            12f,
+                            17f,
+                            -0.0008f
+                        )
+                    );
                     Assert.That(volume.enabled, Is.True);
                     if (highDefinition)
                     {
@@ -78,7 +88,10 @@ namespace BudgetGameDev.Shared.Rendering.HighDefinition.Tests
         private static void CheckHighlightGain(Vector4 wheel, float expected)
         {
             var (shadows, midtones, highlights) = ColorUtils.PrepareShadowsMidtonesHighlights(
-                new Vector4(1f, 1f, 1f, 0f), new Vector4(1f, 1f, 1f, 0f), wheel);
+                new Vector4(1f, 1f, 1f, 0f),
+                new Vector4(1f, 1f, 1f, 0f),
+                wheel
+            );
             Assert.That(shadows.x, Is.EqualTo(1f).Within(0.0001f));
             Assert.That(midtones.x, Is.EqualTo(1f).Within(0.0001f));
             Assert.That(highlights.x, Is.EqualTo(expected).Within(0.0001f));
