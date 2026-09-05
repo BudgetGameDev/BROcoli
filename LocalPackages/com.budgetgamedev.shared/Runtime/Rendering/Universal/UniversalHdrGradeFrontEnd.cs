@@ -83,14 +83,26 @@ namespace BudgetGameDev.Shared.Rendering.Universal
             Action<UnityEngine.Object> destroyImmediate
         )
         {
-            if (profile == null)
-                return;
-
-            if (isPlaying)
-                destroyDeferred(profile);
-            else
-                destroyImmediate(profile);
-            profile = null;
+            Action<UnityEngine.Object> destroy = isPlaying ? destroyDeferred : destroyImmediate;
+            if (volume != null)
+            {
+                // Destroy is deferred in play mode. Stop contributing to the stack immediately
+                // when a quality change moves the driver to the other pipeline.
+                volume.enabled = false;
+                volume.sharedProfile = null;
+                destroy(volume);
+                volume = null;
+            }
+            if (profile != null)
+            {
+                foreach (VolumeComponent component in profile.components)
+                    destroy(component);
+                destroy(profile);
+                profile = null;
+            }
+            tonemapping = null;
+            colorAdjustments = null;
+            liftGammaGain = null;
         }
     }
 }

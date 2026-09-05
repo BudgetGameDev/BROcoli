@@ -72,10 +72,6 @@ namespace BudgetGameDev.Games.Brocoli.Tests
                 {
                     name = HdrTorchFlamePresentation.PrimaryMaterialName,
                 };
-                // The shipped tint. A flame shader emits its core colour times the material's,
-                // so a test on a default white tint would pass however the two are combined.
-                Color coreTint = new(1f, 0.76f, 0.42f, 1f);
-                primaryMaterial.SetColor("_CoreColor", coreTint);
                 ParticleSystemRenderer flameRenderer = CreateFlameRenderer(
                     root.transform,
                     "Flames",
@@ -100,12 +96,8 @@ namespace BudgetGameDev.Games.Brocoli.Tests
                 Assert.That(GameDisplaySettings.HighlightOvershoot, Is.GreaterThan(1f));
                 // The grade applies its contrast before the tone map, and the material is
                 // authored to survive it, so the whole path has to be walked to land on the peak:
-                // the shader's own core tint, then the particle's alpha, then the grade.
-                Vector3 emitted = new(
-                    material.r * coreTint.r,
-                    material.g * coreTint.g,
-                    material.b * coreTint.b
-                );
+                // the white-hot texture sample, then particle alpha, then the grade.
+                Vector3 emitted = new(material.r, material.g, material.b);
                 Vector3 graded = AcesToneScale.ApplyContrast(
                     emitted * alpha,
                     (GameDisplaySettings.HdrContrastLift / 100f) + 1f
@@ -161,94 +153,35 @@ namespace BudgetGameDev.Games.Brocoli.Tests
         }
 
         [Test]
-        public void WhatLeavesTheFlameShaderDoesNotDependOnItsCoreTint()
-        {
-            // The flame is solved for a colour, and the shader is free to arrive at it however
-            // it likes. Re-tinting the shader must move the material by the inverse, or the
-            // solve silently stops landing where it was solved to -- which is what a swap from
-            // an untinted particle shader to a tinted graph did to the HDR flame.
-            Color white = EmittedFlameColour(Color.white);
-            Color tinted = EmittedFlameColour(new Color(1f, 0.76f, 0.42f, 1f));
-
-            Assert.That(tinted.r, Is.EqualTo(white.r).Within(white.r * 0.001f));
-            Assert.That(tinted.g, Is.EqualTo(white.g).Within(white.g * 0.001f));
-            Assert.That(tinted.b, Is.EqualTo(white.b).Within(white.b * 0.001f));
-        }
-
-        /// <summary>
-        /// The colour the flame shader emits for its hottest particles, given a core tint: the
-        /// material colour the presentation authored, times the tint the shader multiplies back
-        /// in.
-        /// </summary>
-        private static Color EmittedFlameColour(Color coreTint)
+        public void ReapplyingHdrCalibrationDoesNotRepeatedlyCrushTheFlameFade()
         {
             GameObject root = new("Torch");
-            Material material = null;
             try
             {
-                material = new Material(BrocoliShaders.Resolve(BrocoliShaders.Flame))
-                {
-                    name = HdrTorchFlamePresentation.PrimaryMaterialName,
-                };
-                material.SetColor("_CoreColor", coreTint);
-                ParticleSystemRenderer flameRenderer = CreateFlameRenderer(
-                    root.transform,
-                    "Flames",
-                    material
+                var particles = root.AddComponent<ParticleSystem>();
+                var presentation = root.AddComponent<HdrTorchFlamePresentation>();
+                var fade = particles.colorOverLifetime;
+                fade.enabled = true;
+                Gradient gradient = new();
+                gradient.SetKeys(
+                    new[] { new GradientColorKey(Color.white, 0f) },
+                    new[] { new GradientAlphaKey(1f, 0f), new GradientAlphaKey(0f, 1f) }
                 );
+                fade.color = new ParticleSystem.MinMaxGradient(gradient);
 
-                root.AddComponent<HdrTorchFlamePresentation>().SetHdrPresentation(true);
-
-                var propertyBlock = new MaterialPropertyBlock();
-                flameRenderer.GetPropertyBlock(propertyBlock);
-                Color authored = propertyBlock.GetColor("_BaseColor");
-                return new Color(
-                    authored.r * coreTint.r,
-                    authored.g * coreTint.g,
-                    authored.b * coreTint.b,
-                    1f
-                );
+                presentation.SteepenFade(particles, 4f);
+                float first = fade.color.gradient.Evaluate(0.5f).a;
+                presentation.SteepenFade(particles, 4f);
+                Assert.That(fade.color.gradient.Evaluate(0.5f).a, Is.EqualTo(first).Within(1e-6f));
+                presentation.SteepenFade(particles, 2f);
+                Assert.That(fade.color.gradient.Evaluate(0.5f).a, Is.GreaterThan(first));
+                presentation.SteepenFade(particles, 1f);
+                Assert.That(fade.color.gradient.Evaluate(0.5f).a, Is.EqualTo(0.5f).Within(1e-6f));
             }
             finally
             {
                 Object.DestroyImmediate(root);
-                if (material != null)
-                    Object.DestroyImmediate(material);
             }
-        }
-
-        [Test]
-        public void MaterialColourDividesOutTheShaderCoreTint()
-        {
-            Material material = null;
-            try
-            {
-                material = new Material(BrocoliShaders.Resolve(BrocoliShaders.Flame));
-                material.SetColor("_CoreColor", new Color(1f, 0.5f, 0.25f, 1f));
-
-                Color authored = HdrTorchFlamePresentation.UndoCoreTint(
-                    new Color(4f, 2f, 0.5f, 1f),
-                    material
-                );
-
-                // The shader multiplies the core tint back in, so what leaves it is the peak.
-                Assert.That(authored.r, Is.EqualTo(4f).Within(0.001f));
-                Assert.That(authored.g, Is.EqualTo(4f).Within(0.001f));
-                Assert.That(authored.b, Is.EqualTo(2f).Within(0.001f));
-            }
-            finally
-            {
-                if (material != null)
-                    Object.DestroyImmediate(material);
-            }
-        }
-
-        [Test]
-        public void MaterialColourIsUntouchedWhenTheShaderHasNoCoreTint()
-        {
-            Color peak = new(4f, 2f, 0.5f, 1f);
-
-            Assert.That(HdrTorchFlamePresentation.UndoCoreTint(peak, null), Is.EqualTo(peak));
         }
 
         [Test]

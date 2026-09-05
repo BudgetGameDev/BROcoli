@@ -93,20 +93,6 @@
             },
             "m_InputSlot": {
                 "m_Node": {
-                    "m_Id": "47c58d6dc3bd4b2bb100a9036988f64a"
-                },
-                "m_SlotId": 0
-            }
-        },
-        {
-            "m_OutputSlot": {
-                "m_Node": {
-                    "m_Id": "0a79cacd562d486c8c06fed4b17f1bdb"
-                },
-                "m_SlotId": 2
-            },
-            "m_InputSlot": {
-                "m_Node": {
                     "m_Id": "8718d47cf8ec481c960c12c11737a33f"
                 },
                 "m_SlotId": 0
@@ -124,20 +110,6 @@
                     "m_Id": "74531c05a0284496b95a55d82b1c255d"
                 },
                 "m_SlotId": 1
-            }
-        },
-        {
-            "m_OutputSlot": {
-                "m_Node": {
-                    "m_Id": "2422cfd514ae42d885378657cf7c6ce3"
-                },
-                "m_SlotId": 3
-            },
-            "m_InputSlot": {
-                "m_Node": {
-                    "m_Id": "72c71b963a7c40fb93a73305a3b3936e"
-                },
-                "m_SlotId": 0
             }
         },
         {
@@ -178,6 +150,20 @@
             "m_InputSlot": {
                 "m_Node": {
                     "m_Id": "52218114db9f482d94c3d9e5bc9c3cdb"
+                },
+                "m_SlotId": 0
+            }
+        },
+        {
+            "m_OutputSlot": {
+                "m_Node": {
+                    "m_Id": "74531c05a0284496b95a55d82b1c255d"
+                },
+                "m_SlotId": 0
+            },
+            "m_InputSlot": {
+                "m_Node": {
+                    "m_Id": "72c71b963a7c40fb93a73305a3b3936e"
                 },
                 "m_SlotId": 0
             }
@@ -1312,20 +1298,6 @@
 
 {
     "m_SGVersion": 0,
-    "m_Type": "UnityEditor.Rendering.HighDefinition.ShaderGraph.LightingData",
-    "m_ObjectId": "6cb7e1a37d9a450ea42a8b28a111d779",
-    "m_NormalDropOffSpace": 0,
-    "m_BlendPreserveSpecular": true,
-    "m_ReceiveDecals": true,
-    "m_ReceiveSSR": true,
-    "m_ReceiveSSRTransparent": false,
-    "m_SpecularAA": false,
-    "m_SpecularOcclusionMode": 1,
-    "m_OverrideBakedGI": false
-}
-
-{
-    "m_SGVersion": 0,
     "m_Type": "UnityEditor.ShaderGraph.DynamicValueMaterialSlot",
     "m_ObjectId": "6d5663f3c0c64ed7ac49b2905b7a2c42",
     "m_Id": 2,
@@ -2450,9 +2422,6 @@
         "m_Id": "5b1dc1a3286f4cfa94af46a49661444a"
     },
     "m_Datas": [
-        {
-            "m_Id": "6cb7e1a37d9a450ea42a8b28a111d779"
-        },
         {
             "m_Id": "959b09adaf0e4efcb3c1e87eb5b4373f"
         },

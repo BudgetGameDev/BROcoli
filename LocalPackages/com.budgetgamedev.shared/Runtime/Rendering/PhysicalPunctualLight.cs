@@ -7,7 +7,7 @@ namespace BudgetGameDev.Shared.Rendering
     /// pipeline's front end work out the number.
     ///
     /// A torch authored as "intensity 7.5" means one thing to Universal and something else
-    /// entirely to High Definition, which counts in lumens. Authored as "put a dark stone
+    /// entirely to High Definition, which counts in candela. Authored as "put a dark stone
     /// two metres away at thirty nits" it means the same thing to both, which is the only
     /// way one dungeon can be lit once and rendered by either.
     ///
@@ -60,7 +60,7 @@ namespace BudgetGameDev.Shared.Rendering
             lighting.ConfigurePunctual(
                 GetComponent<Light>(),
                 Spec,
-                GameDisplaySettings.PaperWhiteNits
+                SceneLuminanceBudget.AuthoringPaperWhiteNits
             );
         }
 

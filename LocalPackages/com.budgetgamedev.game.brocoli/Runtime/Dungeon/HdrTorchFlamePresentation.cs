@@ -17,7 +17,6 @@ namespace BudgetGameDev.Games.Brocoli
 
         private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
         private static readonly int ColorId = Shader.PropertyToID("_Color");
-        private static readonly int CoreColorId = Shader.PropertyToID("_CoreColor");
 
         /// <summary>
         /// The flame's colour at the peak, chosen so the tone map renders the hottest particles
@@ -31,12 +30,6 @@ namespace BudgetGameDev.Games.Brocoli
         /// alpha the flame is authored against is never taken below this.
         /// </summary>
         private const float MinimumParticleAlpha = 0.05f;
-
-        /// <summary>
-        /// A core tint channel is divided out, so a flame authored with none of a primary would
-        /// otherwise ask for an unbounded colour in it. Same guard, same reason.
-        /// </summary>
-        private const float MinimumCoreTint = 0.05f;
 
         private ParticleSystemRenderer[] flameRenderers;
         private MaterialPropertyBlock propertyBlock;
@@ -86,10 +79,7 @@ namespace BudgetGameDev.Games.Brocoli
                 }
 
                 ParticleSystem particles = flameRenderer.GetComponent<ParticleSystem>();
-                Color color = MaterialColorForPeak(
-                    UndoCoreTint(peak, flameRenderer.sharedMaterial),
-                    PeakParticleAlpha(particles)
-                );
+                Color color = MaterialColorForPeak(peak, PeakParticleAlpha(particles));
                 flameRenderer.GetPropertyBlock(propertyBlock);
                 propertyBlock.SetColor(BaseColorId, color);
                 propertyBlock.SetColor(ColorId, color);
@@ -101,34 +91,6 @@ namespace BudgetGameDev.Games.Brocoli
         internal static bool IsPrimaryFlame(Material material)
         {
             return material != null && material.name == PrimaryMaterialName;
-        }
-
-        /// <summary>
-        /// Undoes the tint the flame shader applies after <c>_BaseColor</c>, so what leaves the
-        /// shader is the colour that was solved for.
-        ///
-        /// The graph does not emit <c>_BaseColor</c>. It emits the flame map lerped between
-        /// <c>_EdgeColor</c> and <c>_CoreColor</c>, times the particle colour, times
-        /// <c>_BaseColor</c> -- and the hottest particles, the ones this is solving for, are
-        /// exactly where that lerp has arrived at <c>_CoreColor</c>. Writing the solved peak
-        /// straight into <c>_BaseColor</c> therefore lands the flame at the core tint's fraction
-        /// of it, three quarters on green and two fifths on blue, which is most of the display
-        /// range the flame exists to spend. The material the shader swap replaced had no such
-        /// term, which is why this is only needed now; a material without the property is left
-        /// alone.
-        /// </summary>
-        internal static Color UndoCoreTint(Color peak, Material material)
-        {
-            if (material == null || !material.HasProperty(CoreColorId))
-                return peak;
-
-            Color tint = material.GetColor(CoreColorId);
-            return new Color(
-                peak.r / Mathf.Max(tint.r, MinimumCoreTint),
-                peak.g / Mathf.Max(tint.g, MinimumCoreTint),
-                peak.b / Mathf.Max(tint.b, MinimumCoreTint),
-                peak.a
-            );
         }
 
         /// <summary>
@@ -205,20 +167,50 @@ namespace BudgetGameDev.Games.Brocoli
         /// </summary>
         internal void SteepenFade(ParticleSystem particles, float boost)
         {
-            if (particles == null || boost <= 1f)
+            if (particles == null)
                 return;
+            if (boost <= 1f)
+            {
+                RestoreFade(particles);
+                return;
+            }
 
             ParticleSystem.ColorOverLifetimeModule fade = particles.colorOverLifetime;
-            if (!fade.enabled || !TryReadGradient(fade.color, out Gradient authored))
+            if (!fade.enabled)
                 return;
 
-            if (!authoredFades.ContainsKey(particles))
-                authoredFades[particles] = fade.color;
+            // Always start from the original fade. Calibration changes can refresh this
+            // repeatedly; bending the previously bent curve progressively erases the flame.
+            if (!authoredFades.TryGetValue(particles, out var original))
+                original = SnapshotFade(fade.color);
+            if (!TryReadGradient(original, out Gradient authored))
+                return;
+            authoredFades[particles] = original;
 
             // Cancelling the boost by the time a particle is half faded keeps the tail at the
             // brightness SDR draws it at while the young particles keep every bit of the boost.
             float exponent = 1f + (Mathf.Log(boost) / Mathf.Log(2f));
             fade.color = new ParticleSystem.MinMaxGradient(Steepen(authored, exponent));
+        }
+
+        private static ParticleSystem.MinMaxGradient SnapshotFade(
+            ParticleSystem.MinMaxGradient source
+        )
+        {
+            // MinMaxGradient is a struct but its Gradient values can reference the native
+            // particle module. Copy the curves before assigning a new fade to that module.
+            source.gradientMin = SnapshotGradient(source.gradientMin);
+            source.gradientMax = SnapshotGradient(source.gradientMax);
+            return source;
+        }
+
+        private static Gradient SnapshotGradient(Gradient source)
+        {
+            if (source == null)
+                return null;
+            Gradient copy = new() { mode = source.mode };
+            copy.SetKeys(source.colorKeys, source.alphaKeys);
+            return copy;
         }
 
         private void RestoreFade(ParticleSystem particles)

@@ -83,23 +83,18 @@ namespace BudgetGameDev.Shared.Rendering
             Mathf.Max(0f, sceneLinear) * Mathf.Max(0f, paperWhiteNits);
 
         /// <summary>
-        /// The fixed exposure, in EV100, the dungeon is rendered at on High Definition,
-        /// which meters the scene physically and otherwise renders it many stops hot.
-        ///
-        /// This is measured against the Universal build rather than derived from
-        /// <see cref="DiffuseWhiteNits"/>. It was found by rendering the same dungeon seed
-        /// from the same camera on both pipelines with the tone map off, and comparing the
-        /// scene-linear picture the grade is handed: at this exposure the two agree within
-        /// three hundredths of a stop from the fifth percentile to the brightest flame core,
-        /// which lands that core at four times paper white, where the ladder's peak is.
-        ///
-        /// It still does not agree with what the ladder implies. <see cref="Ev100For"/> says
-        /// 9.4 for diffuse white, a stop and a half below this, because the dungeon's lights
-        /// were authored in Universal's arbitrary units and converted to preserve that look
-        /// rather than to sit on the ladder. Whoever brings the lights onto the ladder should
-        /// expect this number to fall the rest of the way towards Ev100For's answer.
+        /// The fixed scene authoring reference. Display paper white belongs to the output
+        /// transform; changing it must not change the light illuminating game geometry.
         /// </summary>
-        public float FixedExposureEv100 => 10.9f;
+        public const float AuthoringPaperWhiteNits = 200f;
+
+        /// <summary>
+        /// HDRP's imperfect lens (attenuation 0.65) uses exposure = 1 / (1.2 * 2^EV).
+        /// At this EV physical luminance is divided by the same 200-nit authoring white used
+        /// by Universal. It is an input-space conversion, not an artistic exposure adjustment
+        /// and not a measurement made from a display-clamped screenshot.
+        /// </summary>
+        public float FixedExposureEv100 => Mathf.Log(AuthoringPaperWhiteNits / 1.2f, 2f);
 
         /// <summary>The exposure that renders a surface of <paramref name="nits"/> correctly.</summary>
         public static float Ev100For(float nits) =>

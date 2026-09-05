@@ -59,10 +59,9 @@ namespace BudgetGameDev.Shared.Rendering.HighDefinition
             tonemapping.acesPreset.Override((HDRACESPreset)request.AcesPreset);
             tonemapping.hueShiftAmount.Override(0f);
 
-            // useFullACES swaps the tone map for the full academy transform, which is graded
-            // for a reference projector rather than a desktop panel and lands the dungeon
-            // roughly a stop darker. The scene is authored against the same approximation
-            // Universal uses, so it stays off.
+            // SDR uses the same fitted ACES transform as Universal. Native HDR always uses
+            // the full RRT and HDR output transform in both pipelines, regardless of this flag;
+            // it must never be disabled to make an SDR screenshot resemble an HDR display.
             tonemapping.useFullACES.Override(false);
 
             tonemapping.detectPaperWhite.Override(false);
@@ -90,14 +89,26 @@ namespace BudgetGameDev.Shared.Rendering.HighDefinition
             Action<UnityEngine.Object> destroyImmediate
         )
         {
-            if (profile == null)
-                return;
-
-            if (isPlaying)
-                destroyDeferred(profile);
-            else
-                destroyImmediate(profile);
-            profile = null;
+            Action<UnityEngine.Object> destroy = isPlaying ? destroyDeferred : destroyImmediate;
+            if (volume != null)
+            {
+                // Destroy is deferred in play mode. Stop contributing to the stack immediately
+                // when a quality change moves the driver to the other pipeline.
+                volume.enabled = false;
+                volume.sharedProfile = null;
+                destroy(volume);
+                volume = null;
+            }
+            if (profile != null)
+            {
+                foreach (VolumeComponent component in profile.components)
+                    destroy(component);
+                destroy(profile);
+                profile = null;
+            }
+            tonemapping = null;
+            colorAdjustments = null;
+            liftGammaGain = null;
         }
     }
 }

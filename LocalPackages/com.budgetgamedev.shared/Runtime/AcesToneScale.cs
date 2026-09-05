@@ -53,6 +53,42 @@ namespace BudgetGameDev.Shared
                 : HDRRangeReduction.ACES4000Nits;
         }
 
+        /// <summary>
+        /// Keeps the authored highlight target reachable at the calibrated paper white. A
+        /// preset's nominal ceiling alone is insufficient: its shoulder and the grading LUT's
+        /// finite scene range can stop below the requested overshoot. Keep the original preset
+        /// when it works, otherwise use the next available curve. The largest curve remains a
+        /// best effort when even it cannot reach the target at a very low paper white.
+        /// </summary>
+        public static HDRRangeReduction SelectPreset(
+            float peakNits,
+            float paperWhiteNits,
+            float highlightOvershoot
+        )
+        {
+            HDRRangeReduction preset = SelectPreset(peakNits);
+            if (
+                !float.IsFinite(paperWhiteNits)
+                || paperWhiteNits <= 0f
+                || !float.IsFinite(highlightOvershoot)
+                || highlightOvershoot <= 0f
+            )
+                return preset;
+
+            float targetNits = peakNits * highlightOvershoot;
+            while (
+                preset != HDRRangeReduction.ACES4000Nits
+                && DisplayNits(MaximumSceneValue, paperWhiteNits, preset) < targetNits
+            )
+            {
+                preset =
+                    preset == HDRRangeReduction.ACES1000Nits
+                        ? HDRRangeReduction.ACES2000Nits
+                        : HDRRangeReduction.ACES4000Nits;
+            }
+            return preset;
+        }
+
         /// <summary>The display luminance a neutral scene value is tone mapped to.</summary>
         public static float DisplayNits(
             float sceneValue,

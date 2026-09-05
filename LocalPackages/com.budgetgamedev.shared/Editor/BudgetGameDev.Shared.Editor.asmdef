@@ -1,7 +1,7 @@
 {
   "name": "BudgetGameDev.Shared.Editor",
   "rootNamespace": "BudgetGameDev.Shared.Editor",
-  "references": ["BudgetGameDev.Shared"],
+  "references": ["BudgetGameDev.Shared", "Unity.RenderPipelines.Core.Runtime"],
   "includePlatforms": ["Editor"],
   "excludePlatforms": [],
   "allowUnsafeCode": false,

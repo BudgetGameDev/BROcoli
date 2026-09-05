@@ -10,7 +10,7 @@ namespace BudgetGameDev.Shared
         /// calibrated peak so the display's whole range stays reachable.
         /// </summary>
         public static HDRRangeReduction HdrToneMapPreset =>
-            AcesToneScale.SelectPreset(PeakBrightnessNits);
+            AcesToneScale.SelectPreset(PeakBrightnessNits, PaperWhiteNits, HighlightOvershoot);
 
         /// <summary>
         /// The neutral scene value that the HDR tone map displays at <paramref name="nits"/>,

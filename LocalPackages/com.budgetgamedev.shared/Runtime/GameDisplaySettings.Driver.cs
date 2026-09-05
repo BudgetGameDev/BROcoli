@@ -26,7 +26,6 @@ namespace BudgetGameDev.Shared
 
                 instance = this;
                 InitializeCanvasComposition();
-                AttachGrade();
                 RefreshSystemHdrState();
                 TryUseNativeDisplayCalibration();
                 Apply();
@@ -50,7 +49,7 @@ namespace BudgetGameDev.Shared
 
                 nextStatusPoll = Time.unscaledTime + StatusPollInterval;
                 bool systemChanged = RefreshSystemHdrState();
-                if (systemChanged)
+                if (systemChanged || !ReferenceEquals(grade, RenderPipelineFrontEnd.HdrGrade))
                     Apply();
                 TryUseNativeDisplayCalibration();
 
@@ -77,6 +76,7 @@ namespace BudgetGameDev.Shared
                 if (instance == this)
                     instance = null;
                 grade?.Detach(isPlaying, destroyDeferred, destroyImmediate);
+                grade = null;
             }
 
             internal void Apply()
@@ -92,6 +92,10 @@ namespace BudgetGameDev.Shared
 
             internal void Apply(bool switchable, bool displayDetected, Action<bool> requestHdrMode)
             {
+                if (instance != null && instance != this)
+                    return;
+
+                AttachGrade();
                 // The HDR grade re-exposes the scene for a wide-luminance swapchain. On an SDR
                 // desktop it only flattens the picture, so it needs a detected HDR display too.
                 bool enabled = HdrEnabled && displayDetected;
@@ -121,13 +125,18 @@ namespace BudgetGameDev.Shared
                 );
 
             /// <summary>
-            /// Builds the active pipeline's grade volume on this object. A build whose pipeline
-            /// registers no front end -- the web build, which has no native HDR swapchain to
-            /// grade for -- simply runs without one.
+            /// Follows quality-level pipeline changes as well as startup. The old volume must
+            /// be detached before the replacement is attached, otherwise switching back leaves
+            /// a stale maximum-priority grade participating in the stack.
             /// </summary>
             private void AttachGrade()
             {
-                grade = RenderPipelineFrontEnd.HdrGrade;
+                IHdrGradeFrontEnd active = RenderPipelineFrontEnd.HdrGrade;
+                if (ReferenceEquals(grade, active))
+                    return;
+
+                grade?.Detach(Application.isPlaying, Destroy, DestroyImmediate);
+                grade = active;
                 grade?.Attach(gameObject);
             }
         }

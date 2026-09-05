@@ -1,0 +1,21 @@
+{
+  "name": "BudgetGameDev.Shared.Rendering.HighDefinition.Tests",
+  "references": [
+    "BudgetGameDev.Shared",
+    "BudgetGameDev.Shared.Rendering.Universal",
+    "BudgetGameDev.Shared.Rendering.HighDefinition",
+    "Unity.RenderPipelines.Core.Runtime",
+    "Unity.RenderPipelines.Universal.Runtime",
+    "Unity.RenderPipelines.HighDefinition.Runtime",
+    "UnityEngine.TestRunner",
+    "UnityEditor.TestRunner"
+  ],
+  "includePlatforms": ["Editor"],
+  "overrideReferences": true,
+  "precompiledReferences": ["nunit.framework.dll"],
+  "autoReferenced": false,
+  "defineConstraints": ["UNITY_INCLUDE_TESTS", "BROCOLI_HDRP"],
+  "versionDefines": [
+    {"name": "com.unity.render-pipelines.high-definition", "expression": "17.0.0", "define": "BROCOLI_HDRP"}
+  ]
+}

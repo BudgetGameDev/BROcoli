@@ -4,7 +4,7 @@ using UnityEngine.Rendering;
 
 namespace BudgetGameDev.Shared.Tests
 {
-    public class AcesToneScaleTests
+    public partial class AcesToneScaleTests
     {
         private const float PaperWhite = 200f;
 

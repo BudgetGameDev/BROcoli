@@ -66,83 +66,144 @@ appearance in a traced reflection, no contribution to traced global illumination
 on anything opaque that the player should see reflected. Leave it off transparent
 effects, where tracing costs more than it returns.
 
-## Luminance
+## Lighting reference and units
 
-The dungeon is authored against a fixed ladder, in nits, written down in
-`SceneLuminanceBudget.Dungeon`:
+The lighting reference is the URP setup at `6fb6c401baa0c4baa05a5231817bf71b37a20c40`.
+Its compact flame highlights target **1.3 times the calibrated display peak** (30% above,
+not 130% above). This is a highlight target, not a target for every diffuse surface.
+The point lights, flame texture and additive bloom together create the bright cores,
+colored glow and dark surroundings; ACES shapes their shoulder and toe.
 
-| what | nits |
-| --- | --- |
-| pitch-black recesses | ~0.05 |
-| distant cobblestones | ~1.75 |
-| shadow side of near objects | ~6 |
-| torch-lit stone | ~30 |
-| ordinary bright diffuse surface | ~85 |
-| flame body | ~300 |
-| hottest core, specular, sparks | ~800 |
+Keep these two controls separate:
 
-Two things on that ladder are deliberately separate and must stay separate:
+- The flame material controls the visible fire, including the calibrated HDR highlight.
+- The point light controls illumination reaching the room and player.
 
-- **The flame's emissive material** decides how bright the fire looks. It is the
-  `BROcoli/Flame` graph, driven in HDR.
-- **The torch's point light** decides how much light reaches the cobblestones. It is a
-  `PunctualLightSpec`, converted to lumens on High Definition and to graded units on
-  Universal.
+`PunctualLightSpec` describes incident illumination through a reference Lambertian
+surface. `SceneLuminanceBudget.AuthoringPaperWhiteNits` is fixed at **200** for converting
+these authored lights. Changing display paper white must not also change the light's
+physical intensity. The historical torch intensity is 7.5 in URP; its specification is
+67.5 reference nits on an 18% surface at two meters, or 4712.389 candela.
 
-Neither is derived from the other. Pushing the flame makes the fire hotter without
-washing out the floor; raising the light brightens the room without turning the fire
-into a white blob. Wiring one to the other would collapse that, and is the most likely
-way for this to be broken by accident.
+URP's diffuse BRDF omits the `1/pi` normalization that HDRP includes. The front ends
+therefore convert the same specification as follows:
 
-High Definition meters the scene itself, so every tier's volume profile pins exposure to
-Fixed. An automatic exposure would chase the torches and undo the ladder.
+```
+URP intensity = referenceNits * distance² / (reflectance * 200)
+HDRP candela  = pi * referenceNits * distance² / reflectance
+```
 
-That fixed exposure is **EV100 10.9**, and it is measured against the Universal build
-rather than derived from the ladder. The measurement is worth repeating whenever the
-dungeon's lighting moves: render the same seed from the same camera on both pipelines
-with the tone map turned off, and compare the scene-linear picture the grade is handed.
-At 10.9 the two agree within 0.03 stop from the fifth percentile to the brightest flame
-core, and that core lands at four times paper white -- 800 nits against 200 -- which is
-where the ladder puts it.
+In Unity 6 HDRP, `Light.intensity` for a point light stores **candela**. Setting
+`Light.lightUnit` to Lumen only changes the authoring/display unit; it does not make a
+subsequent raw intensity assignment a lumen conversion. The earlier adapter wrote
+lumens there, introducing a factor of `4*pi` before exposure. `HDAdditionalLightData`
+is now added before assigning the final intensity so initialization cannot overwrite it.
 
-Measure it that way rather than by eye or by screenshot. Both pipelines resolve their
-post stack through a target the Editor clamps, so a picture of the game says nothing
-about the range above paper white, which is the whole of what HDR adds. It was exactly
-that range that a wrong exposure erased: at EV100 12.5, three times too dark, nothing in
-the dungeon reached paper white at all and the flames topped out at a quarter of the
-peak they are authored for.
+All HDRP tier, default and game profiles use fixed **EV100 7.380822**, with zero exposure
+compensation. The project's imperfect-lens setting gives an exposure multiplier of
+`1 / (1.2 * 2^EV)`, so this exposure equals `1/200`. Combined with the BRDF normalization,
+it puts the corrected lights in the same scene-linear range as URP. Automatic exposure
+would chase the fire and change the authored look, so it remains disabled.
 
-`SceneLuminanceBudget.Ev100For` computes what the ladder implies -- 9.4 -- and that is
-still a stop and a half below the measured number, because the dungeon's lights were
-authored in Universal's arbitrary units and then converted to preserve that look rather
-than to sit on the ladder. Both numbers are kept, and the gap is the honest size of the
-remaining tuning job: bringing the lights onto the ladder should pull the exposure the
-rest of the way down to 9.4. Until then, matching the two pipelines beats matching the
-theory.
+The previous 10.9/13.2 exposure values compensated for incorrect units and are no longer
+valid references. Similar lighting does not imply identical pixels: URP and HDRP have
+different diffuse/specular models, shadow filtering and indirect-lighting features.
 
-Both pipelines tone map through the ACES 1000 nit preset, which is what
-`AcesToneScale.SelectPreset` returns for the calibrated peak the game ships with.
+The Flame graph uses the original texture RGB multiplied by particle color and material
+color. It no longer recolors the texture through a red-channel ramp. In HDRP its unlit
+BaseColor carries that same authored scene-linear signal; wiring it to Emission as well
+would add a second, exposure-dependent contribution. HDR highlight presentation changes
+the compact bright particles and preserves their authored fade when calibration changes.
 
-## Bloom, and why only one pipeline has it
+## HDR grade and additive bloom
 
-Universal's bloom is additive: it adds the thresholded, blurred image on top of the
-picture, so the torches gain a halo and the flame cores themselves get brighter.
-Measured on a torch, its authored settings put about 8% more light in the ring around
-the flames and 6% more on the flame pixels.
+Native HDR retains the reference contrast **+17**, saturation **+12**, and compact
+highlight target **peak * 1.3**. The subsequent near-black correction of -0.0008 remains.
+At the default calibration of 600-nit peak / 200-nit paper white, the ACES 1000 preset
+still solves for a 780-nit highlight. Preset selection also checks paper white and the
+reachable grading range: it promotes the preset when necessary to retain that overshoot.
+An extreme calibration can exceed the available LUT range even with the 4000 preset;
+for example, 2000/80 cannot achieve the whole 2600-nit target. Do not compensate for that
+by flattening the rest of the lighting.
 
-High Definition's bloom is a veiling glare -- a mix between the picture and its blurred
-self, with intensity as the mix weight. It can only move light around, never add any,
-and around a small bright source it moves light *off* it. Measured on the same torch on
-the same frame, every intensity took light away and put almost none back: at 0.2 the
-flame cores lost 6% and the ring 3%; at 0.7 the cores lost 24%, the ring 12%, and the
-brightest pixel in the frame lost 46%. Scatter, threshold and pyramid resolution changed
-none of that.
+The runtime grade follows pipeline changes and disposes the old pipeline's volume and
+profile components. This matters when comparing URP and HDRP in one Editor session.
 
-So the High Definition profiles carry no bloom override. Adding one costs exactly the
-peak the HDR grade exists to reach, and returns a halo too small to measure. If the
-dungeon's glow is to be matched on both pipelines, it has to come from something that
-adds light -- brighter flame emissive, or a bloom written for the purpose -- not from
-turning this one up.
+Universal keeps its historical bloom: gamma-space threshold **0.85**, intensity **1.35**,
+scatter **0.72**, high-quality Gaussian/bicubic filtering, at most six half-resolution
+pyramid levels. HDRP's `ImpressionistBloom` implements the same additive operations in
+half-float buffers before the color grade and ACES. Its source signal is preserved and
+the thresholded halo is added to it; values above 1 remain available to the tone mapper.
+
+Native HDRP bloom redistributes highlight energy (`source - thresholded source + blur`)
+and cannot reproduce that additive operation. It is explicitly zeroed in the default
+and game profiles. Merely omitting a scene override was insufficient because the default
+profile still enabled intensity 0.2. The custom effect is registered in HDRP Global
+Settings under **Before Post Process**, and enabled in both game rendering profiles.
+Its shader is retained in Resources for player builds.
+
+## Validate HDR without an 8-bit screenshot
+
+Use **Tools > BROcoli > Rendering > Log HDR Lighting Diagnostics** in a running game.
+It records the actual output availability, activity, graphics format, gamut, display
+limits, calibration, camera target format and resolved volume values in the Console
+and `Temp/BrocoliHdrLighting.txt`. A reported HDR render buffer does not by itself mean
+that the monitor is receiving native HDR.
+
+**Tools > BROcoli > Rendering > Show Values Above Paper White** opens Unity's Rendering
+Debugger and enables its HDR luminance overlay. On an HDR-capable Windows Editor/player,
+verify native HDR is active, then inspect HDRP Rendering > HDR Output > DebugMode
+(or URP Lighting > HDR Debug Mode) > Values Above Paper White and the HDRP exposure
+histogram/color picker. HDRP advises using the play-mode debug UI (Ctrl+Backspace) for
+accurate HDR display readings. Use Hide HDR Debug Overlay afterward when judging the artwork. See [Unity's Rendering Debugger documentation](https://docs.unity3d.com/Packages/com.unity.render-pipelines.high-definition@17.0/manual/Render-Pipeline-Debug.html).
+
+For numerical comparisons, render the same reference surface or deterministic dungeon
+view into floating-point targets, disable tone mapping only for the scene-linear
+comparison, and read back RGBAFloat values. Re-enable the production grade/bloom to test
+the output transform. The bloom GPU regression tests verify a signal of 8 remains above
+1, bright cores retain energy, halos reach nearby dark pixels, and resized targets do
+not sample stale bright backing pixels. ACES tests exercise the highlight target over
+multiple peak/paper-white calibrations.
+
+Do not use an 8-bit PNG or a model's screenshot preview to calibrate native HDR nits.
+A float scene-linear capture proves the input range; a native HDR display/debug capture
+is still needed to verify the display transform, panel clipping and final appearance.
+
+## Remaining atmosphere difference
+
+The reference URP scene uses Exp2 fog at density 0.016; the HDRP dungeon's native Fog
+component remains disabled. At the authored camera's visible floor depths, URP fog
+contributes about 3–14% (about 6% at the center). This is a remaining visual difference,
+not covered by the direct-light parity assertion. The Surface graph has no replacement
+distance-fog function.
+
+HDRP's saved mean free path 60 uses a different distance/height curve and would be much
+stronger. A uniform native approximation around 259 m matches the center but differs at
+the edges. Exact parity would also need to preserve final-lighting fog on transparent
+occlusion walls, water and lit/unlit particles; an opaque-only post-process plus a flame
+adjustment is insufficient. The lighting restoration does not claim to solve that
+separate atmosphere mismatch or to certify final 10-bit display appearance.
+
+## Verification recorded on 2026-09-05
+
+Unity 6000.3.6f1 on Apple M4 / Metal compiled the changes without errors.
+The six HDRP GPU/profile checks and seven flame-presentation checks passed. The paired
+18%-linear reference surface agrees within 5% between pipelines, and both preserve an
+unlit `(8, 4, 1)` signal in float readback. The broader shared suite passed 274/276;
+`ForceLandscapeAspectLoggingTests.ASceneLoadNamesTheSceneItIsCorrecting` and
+`VirtualControllerTests.EnhancedTouchInputIsForwardedToTheJoystickProcessor` still fail
+on this Editor's portrait-layout/touch-input expectations.
+
+A live dungeon camera resolved fixed EV100 7.380822, ACES, active additive bloom 1.35,
+native bloom 0, and enabled Postprocess / CustomPostProcess / ExposureControl frame
+settings. The HDR debug selector was exercised and read back as Values Above Paper
+White, then reset. Native HDR availability and activity were both false on this host,
+so these checks establish scene-linear behavior and configuration, not final panel nits
+or a visually certified match on a 10-bit monitor. No 8-bit screenshot was used to tune
+luminance. The Editor was returned to GameLauncher / Ultra (URP).
+
+Changed C# files pass the pinned formatter and stay within 300 lines. The repository-wide
+source-size gate still reports unrelated oversized files elsewhere in the existing tree.
 
 ## Windows tiers
 

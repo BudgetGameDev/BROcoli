@@ -5,7 +5,7 @@ namespace BudgetGameDev.Shared.Rendering
     /// <summary>
     /// A light stated by what it does to the surfaces around it, rather than in either
     /// pipeline's intensity units. Universal counts in arbitrary numbers and High Definition
-    /// counts in lumens, so a torch authored for one is wrong on the other; both can, however,
+    /// counts in candela, so a torch authored for one is wrong on the other; both can, however,
     /// answer the same question -- how bright does this make the stone two metres away.
     ///
     /// This is deliberately not the flame's own brightness. The fire is emissive geometry and
@@ -79,16 +79,16 @@ namespace BudgetGameDev.Shared.Rendering
             ReferenceIlluminanceLux * ReferenceDistanceMeters * ReferenceDistanceMeters;
 
         /// <summary>
-        /// The same light as a total luminous flux, in lumens, which is how High Definition
-        /// asks for a point light. A point source radiates over the whole sphere, so the flux
+        /// The same light as a total luminous flux, in lumens, for inspection. Unity's runtime
+        /// Light.intensity remains candela; a point source radiates over the whole sphere, so the flux
         /// is its intensity times 4*pi steradians.
         /// </summary>
         public float LuminousFluxLumens => LuminousIntensityCandela * 4f * Mathf.PI;
 
         /// <summary>
-        /// The same light in Universal's units, given where the grade puts diffuse white.
+        /// The same light in Universal's units, given the fixed scene authoring white.
         /// Universal's Lambert term is albedo * intensity * attenuation, with the 1/pi folded
-        /// into its intensity convention and with scene-linear 1.0 meaning paper white; so an
+        /// into its intensity convention and with scene-linear 1.0 meaning authoring white; so an
         /// intensity of L*d^2/(p*paperWhite) lands the reference surface on L nits.
         /// </summary>
         public float UniversalIntensity(float paperWhiteNits)
