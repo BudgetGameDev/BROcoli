@@ -1,6 +1,6 @@
 BROCOLI
 CREDITS, DEPENDENCIES & LICENSES
-Last updated: 2026-09-01
+Last updated: 2026-09-05
 
 BROCOLI AND BUDGET GAMEDEV SOFTWARE
 
@@ -42,6 +42,8 @@ Unity engine modules 1.0.0:
   Terrain (com.unity.modules.terrain)
   UI (com.unity.modules.ui)
   UI Elements (com.unity.modules.uielements)
+  Unity Web Request (com.unity.modules.unitywebrequest)
+  Video (com.unity.modules.video)
 
 Runtime package dependencies:
   Scriptable Render Pipeline Core 17.3.0 (com.unity.render-pipelines.core)

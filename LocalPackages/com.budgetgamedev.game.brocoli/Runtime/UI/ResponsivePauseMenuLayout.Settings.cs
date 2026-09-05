@@ -172,7 +172,8 @@ namespace BudgetGameDev.Games.Brocoli
             HdrDetailsOpen = false;
             if (hdrDetailsPanel != null)
                 hdrDetailsPanel.gameObject.SetActive(false);
-            settingsPanel.gameObject.SetActive(false);
+            if (settingsPanel != null)
+                settingsPanel.gameObject.SetActive(false);
         }
 
         private void ResetSettings()
@@ -180,7 +181,8 @@ namespace BudgetGameDev.Games.Brocoli
             ProceduralUIAudio.PlaySelect();
             GameAudioSettings.ResetToDefaults();
             GameDisplaySettings.ResetToDefault();
-            SyncSettings();
+            if (settingsPanel != null)
+                SyncSettings();
         }
 
         private void SyncSettings()

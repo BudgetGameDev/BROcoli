@@ -118,12 +118,12 @@ namespace BudgetGameDev.Hub.Tests
             GameDefinition brocoli = Game("brocoli", "Brocoli_MainMenu_Common");
 
             LauncherStartup.Plan plan = LauncherStartup.Resolve(
-                "  brocoli_mainmenu  ",
+                "  brocoli_mainmenu_common  ",
                 new List<GameDefinition> { brocoli },
-                InBuild("brocoli_mainmenu")
+                InBuild("brocoli_mainmenu_common")
             );
 
-            Assert.That(plan.SceneName, Is.EqualTo("brocoli_mainmenu"));
+            Assert.That(plan.SceneName, Is.EqualTo("brocoli_mainmenu_common"));
             Assert.That(plan.Game, Is.SameAs(brocoli));
         }
 

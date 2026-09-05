@@ -126,21 +126,21 @@ namespace BudgetGameDev.Games.Brocoli.Tests
         [Test]
         public void TheRunningGoalIsKeptUntilAnotherClearlyBeatsIt()
         {
-            // Tuned so exploring and collecting sit within the hysteresis margin.
-            BotSituation borderline = Calm(float.PositiveInfinity, 11.6f);
+            // Tuned so collecting beats exploring, but not by enough to interrupt it.
+            BotSituation borderline = Calm(float.PositiveInfinity, 14f);
 
             Assert.That(
                 BotDecisionPolicy.Utility(BotIntent.Collect, borderline, Tuning),
-                Is.LessThan(BotDecisionPolicy.Utility(BotIntent.Explore, borderline, Tuning))
-            );
-            Assert.That(
-                BotDecisionPolicy.Utility(BotIntent.Collect, borderline, Tuning)
-                    + BotDecisionPolicy.Hysteresis,
                 Is.GreaterThan(BotDecisionPolicy.Utility(BotIntent.Explore, borderline, Tuning))
             );
             Assert.That(
-                BotDecisionPolicy.ChooseIntent(borderline, Tuning, BotIntent.Collect),
-                Is.EqualTo(BotIntent.Collect)
+                BotDecisionPolicy.Utility(BotIntent.Explore, borderline, Tuning)
+                    + BotDecisionPolicy.Hysteresis,
+                Is.GreaterThan(BotDecisionPolicy.Utility(BotIntent.Collect, borderline, Tuning))
+            );
+            Assert.That(
+                BotDecisionPolicy.ChooseIntent(borderline, Tuning, BotIntent.Explore),
+                Is.EqualTo(BotIntent.Explore)
             );
         }
 
@@ -180,7 +180,7 @@ namespace BudgetGameDev.Games.Brocoli.Tests
         {
             var unhurt = new BotSituation(
                 true,
-                1f,
+                5f,
                 8,
                 1f,
                 false,
@@ -191,7 +191,7 @@ namespace BudgetGameDev.Games.Brocoli.Tests
             );
             var bleeding = new BotSituation(
                 true,
-                1f,
+                5f,
                 8,
                 0.2f,
                 false,

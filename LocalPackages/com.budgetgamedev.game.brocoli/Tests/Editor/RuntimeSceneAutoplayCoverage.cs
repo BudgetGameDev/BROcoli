@@ -142,7 +142,18 @@ namespace BudgetGameDev.Games.Brocoli.Tests
                     observationType,
                     BindingFlags.Instance | BindingFlags.NonPublic,
                     null,
-                    new object[] { 1, 1, distance, nearest, nearest, centroid, repulsion },
+                    new object[]
+                    {
+                        1,
+                        1,
+                        distance,
+                        nearest,
+                        nearest,
+                        centroid,
+                        repulsion,
+                        0f,
+                        Vector2.zero,
+                    },
                     null
                 );
 

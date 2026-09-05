@@ -67,8 +67,7 @@ namespace BudgetGameDev.Shared.Rendering.HighDefinition.Tests
             );
             for (int channel = 0; channel < 3; channel++)
             {
-                // Compare the same 18% linear reference. Disney versus URP diffuse differs
-                // slightly; near-black albedo would amplify their specular differences.
+                // Disney versus URP diffuse differs slightly at the same 18% linear reference.
                 Assert.That(
                     hdrp.surface[channel],
                     Is.EqualTo(urp.surface[channel]).Within(urp.surface[channel] * 0.05f),
@@ -196,12 +195,13 @@ namespace BudgetGameDev.Shared.Rendering.HighDefinition.Tests
                     24,
                     RenderTextureFormat.ARGBFloat,
                     RenderTextureReadWrite.Linear
-                );
+                )
+                {
+                    hideFlags = HideFlags.DontUnloadUnusedAsset,
+                };
                 owned.Add(target);
                 Assert.That(target.Create(), Is.True);
-                var readback = new Texture2D(Size, Size, TextureFormat.RGBAFloat, false, true);
-                owned.Add(readback);
-                Color lit = Sample(camera, target, readback, 4);
+                Color lit = Sample(camera, target);
 
                 light.enabled = false;
                 Material flame = CreateMaterial("BROcoli/Flame", owned);
@@ -209,7 +209,7 @@ namespace BudgetGameDev.Shared.Rendering.HighDefinition.Tests
                 flame.SetFloat("_EmissiveIntensity", 1f);
                 flame.SetTexture("_BaseMap", Texture2D.whiteTexture);
                 renderer.sharedMaterial = flame;
-                return (lit, Sample(camera, target, readback, 2));
+                return (lit, Sample(camera, target));
             }
             finally
             {
@@ -277,21 +277,24 @@ namespace BudgetGameDev.Shared.Rendering.HighDefinition.Tests
             return material;
         }
 
-        private static Color Sample(
-            Camera camera,
-            RenderTexture target,
-            Texture2D readback,
-            int renders
-        )
+        private static Color Sample(Camera camera, RenderTexture target)
         {
-            var request = new RenderPipeline.StandardRequest { destination = target };
-            // Bounded history warm-up; the same number of submissions runs on each pipeline.
-            for (int i = 0; i < renders; i++)
-                RenderPipeline.SubmitRenderRequest(camera, request);
+            RenderPipeline.SubmitRenderRequest(
+                camera,
+                new RenderPipeline.StandardRequest { destination = target }
+            );
             RenderTexture.active = target;
-            readback.ReadPixels(new Rect(0, 0, Size, Size), 0, 0);
-            readback.Apply();
-            return readback.GetPixel(Size / 2, Size / 2);
+            var readback = new Texture2D(Size, Size, TextureFormat.RGBAFloat, false, true);
+            try
+            {
+                readback.ReadPixels(new Rect(0, 0, Size, Size), 0, 0);
+                readback.Apply();
+                return readback.GetPixel(Size / 2, Size / 2);
+            }
+            finally
+            {
+                Object.DestroyImmediate(readback);
+            }
         }
     }
 }

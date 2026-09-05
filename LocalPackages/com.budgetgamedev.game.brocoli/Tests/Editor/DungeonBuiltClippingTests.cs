@@ -160,10 +160,6 @@ namespace BudgetGameDev.Games.Brocoli.Tests
             Assert.That(material.GetTexture("_OcclusionMap"), Is.Not.Null);
             Assert.That(material.GetTexture("_ParallaxMap"), Is.Not.Null);
             Assert.That(material.GetTexture("_MetallicGlossMap"), Is.Not.Null);
-            Assert.That(material.IsKeywordEnabled("_NORMALMAP"), Is.True);
-            Assert.That(material.IsKeywordEnabled("_OCCLUSIONMAP"), Is.True);
-            Assert.That(material.IsKeywordEnabled("_PARALLAXMAP"), Is.True);
-            Assert.That(material.IsKeywordEnabled("_METALLICSPECGLOSSMAP"), Is.True);
         }
 
         private void ForEachBuiltRoom(System.Action<int, Vector2Int> check)

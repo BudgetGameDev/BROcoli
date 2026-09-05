@@ -80,7 +80,8 @@ namespace BudgetGameDev.Games.Brocoli.Tests
         [Test]
         public void AHydraAtItsGapHoldsStill()
         {
-            Assert.That(GroundVelocityAt(1f + StandOff).magnitude, Is.LessThan(0.01f));
+            float reachableGap = EnemyBase.StandOffInsideReach(StandOff, 0.42f);
+            Assert.That(GroundVelocityAt(1f + reachableGap).magnitude, Is.LessThan(0.01f));
         }
 
         /// <summary>
