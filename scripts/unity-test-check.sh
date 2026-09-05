@@ -141,6 +141,10 @@ case "$(uname -s)" in
     Darwin*) TEST_BUILD_TARGET="StandaloneOSX" ;;
     Linux*) TEST_BUILD_TARGET="StandaloneLinux64" ;;
     MINGW* | MSYS* | CYGWIN*) TEST_BUILD_TARGET="StandaloneWindows64" ;;
+    *)
+        echo "Unknown OS: $(uname -s)"
+        exit 1
+        ;;
 esac
 
 echo "Unity EditMode Tests"
