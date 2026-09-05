@@ -1,0 +1,7 @@
+{
+  "buildId": "build-1788641075-04f3557",
+  "buildTimestamp": "2026-09-05T20:44:35Z",
+  "buildNumber": 418,
+  "commitSha": "04f35572807f2c95931d8947aeaf963e5d2f3f8c",
+  "description": "fix: reject unsupported Unity test hosts"
+}
