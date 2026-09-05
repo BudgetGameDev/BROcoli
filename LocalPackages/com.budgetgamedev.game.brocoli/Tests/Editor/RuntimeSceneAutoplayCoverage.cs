@@ -71,6 +71,7 @@ namespace BudgetGameDev.Games.Brocoli.Tests
             // sends the agent to the middle of the room to unwedge itself.
             InvokeHierarchy(bot, "TrackRoom", position);
             SetHierarchyField(bot, "lastProgress", -10000f);
+            SetHierarchyField(bot, "lastCombatProgress", -10000f);
             InvokeHierarchy(bot, "GetExplorationTarget", position);
             SetHierarchyField(bot, "unwedgeUntil", float.MaxValue);
             InvokeHierarchy(bot, "GetExplorationTarget", position);
@@ -133,17 +134,15 @@ namespace BudgetGameDev.Games.Brocoli.Tests
 
         private static void ExerciseCombatNavigationStates(BotDriver bot, Vector2 position)
         {
-            System.Type observationType = typeof(BotDriver).GetNestedType(
-                "EnemyObservation",
-                BindingFlags.NonPublic
-            );
             object Create(float distance, Vector2 nearest, Vector2 centroid, Vector2 repulsion) =>
-                System.Activator.CreateInstance(
-                    observationType,
-                    BindingFlags.Instance | BindingFlags.NonPublic,
-                    null,
-                    new object[] { 1, 1, distance, nearest, nearest, centroid, repulsion },
-                    null
+                new BotDriver.EnemyObservation(
+                    1,
+                    1,
+                    distance,
+                    nearest,
+                    nearest,
+                    centroid,
+                    repulsion
                 );
 
             // The kiting band now follows the live weapon, so read what the agent

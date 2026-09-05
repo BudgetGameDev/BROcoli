@@ -145,8 +145,23 @@ namespace BudgetGameDev.Games.Brocoli.Tests
 
             Assert.That(
                 AutoplayScalingLog.Summarize().SaturatedShare,
-                Is.EqualTo(0.8f).Within(0.001f)
+                Is.EqualTo(0.6f).Within(0.001f)
             );
+        }
+
+        [Test]
+        public void MovementSafetyCapDoesNotMeanHealthDamageAndCountStoppedScaling()
+        {
+            ScalingSummary summary = ScalingSummary.Of(
+                new[]
+                {
+                    Room(1, 1f, 1f, 1f, 1f, 3),
+                    Room(4, 4f, 1.5f, 2f, 1.5f, 8, 1.2f, EnemyScaling.MaxSpeedScale),
+                }
+            );
+            Assert.That(summary.SaturatedShare, Is.Zero);
+            Assert.That(summary.SpeedCappedShare, Is.EqualTo(0.5f));
+            Assert.That(summary.ThreatGrowth, Is.GreaterThan(1f));
         }
 
         [Test]

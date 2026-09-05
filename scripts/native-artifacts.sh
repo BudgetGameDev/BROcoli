@@ -17,6 +17,21 @@ native_artifacts_assets() {
     local targets
     local target
 
+    local product
+    local product_name
+    product="$(native_artifacts_field "$artifacts_root" product)"
+    case "$product" in
+        brocoli) product_name="BROcoli" ;;
+        launcher) product_name="GameLauncher" ;;
+        *)
+            if [[ ! "$product" =~ ^[a-z0-9][a-z0-9-]*$ ]]; then
+                echo "native-artifacts: build-info records no valid product; rebuild" >&2
+                return 1
+            fi
+            product_name="$product"
+            ;;
+    esac
+
     targets="$(native_artifacts_field "$artifacts_root" targets)"
     if [ -z "$targets" ]; then
         echo "native-artifacts: build-info records no targets; rebuild" >&2
@@ -26,9 +41,9 @@ native_artifacts_assets() {
     local IFS=,
     for target in $targets; do
         case "$target" in
-            windows) echo "$artifacts_root/BROcoli-windows-x86_64.zip" ;;
-            macos) echo "$artifacts_root/BROcoli-macos-universal.zip" ;;
-            linux) echo "$artifacts_root/BROcoli-linux-x86_64.tar.gz" ;;
+            windows) echo "$artifacts_root/${product_name}-windows-x86_64.zip" ;;
+            macos) echo "$artifacts_root/${product_name}-macos-universal.zip" ;;
+            linux) echo "$artifacts_root/${product_name}-linux-x86_64.tar.gz" ;;
             *)
                 echo "native-artifacts: build-info records unknown target '$target'" >&2
                 return 1
@@ -37,6 +52,7 @@ native_artifacts_assets() {
     done
     echo "$artifacts_root/SHA256SUMS"
     echo "$artifacts_root/build-info.txt"
+    echo "$artifacts_root/release-audit.json"
 }
 
 # Fails unless every recorded artifact exists, matches its checksum, and came

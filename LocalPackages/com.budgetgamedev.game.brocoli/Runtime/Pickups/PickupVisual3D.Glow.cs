@@ -24,7 +24,10 @@ namespace BudgetGameDev.Games.Brocoli
             Halo,
         }
 
-        private static readonly Dictionary<GlowShell, Material> GlowMaterials = new();
+        private static readonly Dictionary<
+            (ModelKind kind, GlowShell shell),
+            Material
+        > GlowMaterials = new();
 
         /// <summary>
         /// Just clear of the crystal, in the crystal's own frame. The core glow is drawn on a
@@ -42,39 +45,40 @@ namespace BudgetGameDev.Games.Brocoli
         private static readonly Vector3 HaloShellScale = new(1.25f, 1.25f, 1.25f);
 
         /// <summary>
-        /// Wraps the crystal in its two glow shells and gives the pickup the component that
-        /// colours them. Safe to call on an orb that already has them, which is what a pooled
-        /// orb -- and a prefab baked before the glow existed -- comes back as.
-        ///
-        /// Both shells are siblings of the crystal rather than children of it, so neither
-        /// inherits the crystal's own scale on top of its authored one.
+        /// Adds a silhouette rim and a soft halo. Boost rims follow the token border,
+        /// leaving the face and symbol uncovered. Reuses existing shells after pooling.
         /// </summary>
-        private void EnsureExperienceGlow()
+        private void EnsurePickupGlow()
         {
-            if (Kind != ModelKind.Experience || modelRoot == null)
+            if (modelRoot == null)
                 return;
 
-            if (modelRoot.Find(GlowCoreName) == null)
+            bool experience = Kind == ModelKind.Experience;
+            Transform parent = experience ? modelRoot : modelRoot.Find("Token Face");
+            if (parent == null)
+                return;
+
+            if (parent.Find(GlowCoreName) == null)
             {
                 CreateGlowPart(
-                    modelRoot,
+                    parent,
                     GlowCoreName,
                     GlowShell.Core,
-                    GetGemMesh(),
-                    CoreShellFrame,
-                    CoreShellScale
+                    experience ? GetGemMesh() : GetRingMesh(),
+                    experience ? CoreShellFrame : Quaternion.identity,
+                    experience ? CoreShellScale : new Vector3(1.015f, 1.015f, 0.23f)
                 );
             }
 
-            if (modelRoot.Find(GlowHaloName) == null)
+            if (parent.Find(GlowHaloName) == null)
             {
                 CreateGlowPart(
-                    modelRoot,
+                    parent,
                     GlowHaloName,
                     GlowShell.Halo,
                     GetGlowSphereMesh(),
                     Quaternion.identity,
-                    HaloShellScale
+                    experience ? HaloShellScale : new Vector3(1.65f, 1.65f, 0.8f)
                 );
             }
 
@@ -111,7 +115,7 @@ namespace BudgetGameDev.Games.Brocoli
             MeshRenderer renderer = part.GetComponent<MeshRenderer>();
             // The gem is split into three facet groups. One material per submesh, all the same,
             // or a renderer given a single material would draw only the first third of it.
-            renderer.sharedMaterials = GlowMaterialsFor(shell, mesh.subMeshCount);
+            renderer.sharedMaterials = GlowMaterialsFor(shell, mesh.subMeshCount, Kind);
             renderer.shadowCastingMode = ShadowCastingMode.Off;
             renderer.receiveShadows = false;
             renderer.lightProbeUsage = LightProbeUsage.Off;
@@ -119,28 +123,65 @@ namespace BudgetGameDev.Games.Brocoli
             renderer.motionVectorGenerationMode = MotionVectorGenerationMode.ForceNoMotion;
         }
 
-        private static Material[] GlowMaterialsFor(GlowShell shell, int subMeshCount)
+        private static Material[] GlowMaterialsFor(
+            GlowShell shell,
+            int subMeshCount,
+            ModelKind kind
+        )
         {
-            Material material = GetGlowMaterial(shell);
+            Material material = GetGlowMaterial(shell, kind);
             Material[] materials = new Material[Mathf.Max(subMeshCount, 1)];
             for (int i = 0; i < materials.Length; i++)
                 materials[i] = material;
             return materials;
         }
 
-        internal static Material GetGlowMaterial(GlowShell shell)
+        internal static Material GetGlowMaterial(
+            GlowShell shell,
+            ModelKind kind = ModelKind.Experience
+        )
         {
-            if (GlowMaterials.TryGetValue(shell, out Material cached) && cached != null)
+            var key = (kind, shell);
+            if (GlowMaterials.TryGetValue(key, out Material cached) && cached != null)
                 return cached;
 
             Shader shader = FindGlowShader(Resources.Load<Shader>, Shader.Find);
             if (shader == null)
                 return null;
 
-            Material material = new(shader) { name = $"XpEnergyGlow {shell}" };
+            Material material = new(shader)
+            {
+                name = $"Pickup Glow {kind} {shell}",
+                enableInstancing = true,
+            };
             ApplyGlowShape(material, shell);
-            GlowMaterials[shell] = material;
+            material.SetFloat(
+                "_AuthoringWhiteNits",
+                BudgetGameDev.Shared.Rendering.SceneLuminanceBudget.AuthoringPaperWhiteNits
+            );
+            if (kind != ModelKind.Experience && shell == GlowShell.Core)
+            {
+                // Light the token's border, leaving the symbol and dark face uncovered.
+                material.SetFloat("_FresnelBias", 0.5f);
+                material.SetFloat("_PulseAmount", 0.12f);
+                material.SetFloat("_FlickerAmount", 0.04f);
+            }
+            if (GlowMaterials.Count == 0)
+                BudgetGameDev.Shared.GameDisplaySettings.ValuesChanged += RefreshGlowColors;
+            GlowMaterials[key] = material;
+            XpGlowPresentation.ApplyShellColors(material, shell, kind);
             return material;
+        }
+
+        private static void RefreshGlowColors()
+        {
+            foreach (var entry in GlowMaterials)
+                if (entry.Value != null)
+                    XpGlowPresentation.ApplyShellColors(
+                        entry.Value,
+                        entry.Key.shell,
+                        entry.Key.kind
+                    );
         }
 
         /// <summary>

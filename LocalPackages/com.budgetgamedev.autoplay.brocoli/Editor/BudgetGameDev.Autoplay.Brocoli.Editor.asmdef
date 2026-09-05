@@ -1,0 +1,22 @@
+{
+  "name": "BudgetGameDev.Autoplay.Brocoli.Editor",
+  "rootNamespace": "BudgetGameDev.Autoplay.Brocoli.Editor",
+  "references": [
+    "BudgetGameDev.Autoplay",
+    "BudgetGameDev.Autoplay.Brocoli",
+    "BudgetGameDev.Games.Brocoli",
+    "BudgetGameDev.Shared",
+    "BudgetGameDev.Shared.Editor"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

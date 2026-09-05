@@ -81,7 +81,12 @@ namespace BudgetGameDev.Games.Brocoli.Tests
 
             foreach (Type type in componentTypes)
             {
-                GameObject host = new($"Default-state {type.Name}");
+                // UI layout lifecycle requires its normal RectTransform host, even before
+                // scene references exist. A plain Transform prevents its controls building.
+                GameObject host =
+                    type == typeof(ResponsivePauseMenuLayout)
+                        ? new GameObject($"Default-state {type.Name}", typeof(RectTransform))
+                        : new GameObject($"Default-state {type.Name}");
                 host.SetActive(false);
                 MonoBehaviour component;
                 try

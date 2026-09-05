@@ -80,6 +80,7 @@ namespace BudgetGameDev.Games.Brocoli
         private static void ResetSharedResources()
         {
             Materials.Clear();
+            BudgetGameDev.Shared.GameDisplaySettings.ValuesChanged -= RefreshGlowColors;
             GlowMaterials.Clear();
             boxMesh = null;
             cylinderMesh = null;
@@ -163,7 +164,7 @@ namespace BudgetGameDev.Games.Brocoli
                         : Quaternion.Euler(-60f, 0f, 0f);
                 if (spinTarget != null)
                     spinTarget.localRotation = spinBaseRotation;
-                EnsureExperienceGlow();
+                EnsurePickupGlow();
                 return;
             }
 
@@ -182,7 +183,7 @@ namespace BudgetGameDev.Games.Brocoli
             else
                 BuildBoostToken(kind);
 
-            EnsureExperienceGlow();
+            EnsurePickupGlow();
 
             spinTarget = kind == ModelKind.Experience ? modelRoot : modelRoot.Find("Token Face");
             spinBaseRotation = spinTarget != null ? spinTarget.localRotation : Quaternion.identity;

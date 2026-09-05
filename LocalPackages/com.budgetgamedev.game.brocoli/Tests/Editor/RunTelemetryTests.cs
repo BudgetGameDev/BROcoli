@@ -21,10 +21,13 @@ namespace BudgetGameDev.Games.Brocoli.Tests
         private string output;
         private GameObject host;
         private RunTelemetry telemetry;
+        private float originalTimeScale;
 
         [SetUp]
         public void CreateTelemetry()
         {
+            originalTimeScale = Time.timeScale;
+            Time.timeScale = 1f;
             output = Path.Combine(Path.GetTempPath(), "BrocoliTelemetry-" + Guid.NewGuid());
             host = new GameObject("Telemetry");
             telemetry = host.AddComponent<RunTelemetry>();
@@ -49,6 +52,7 @@ namespace BudgetGameDev.Games.Brocoli.Tests
             if (telemetry != null)
                 Invoke("OnDisable");
             UnityEngine.Object.DestroyImmediate(host);
+            Time.timeScale = originalTimeScale;
             if (Directory.Exists(output))
                 Directory.Delete(output, true);
         }

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using BudgetGameDev.Autoplay;
 using NUnit.Framework;
 
 namespace BudgetGameDev.Games.Brocoli.Tests
@@ -270,15 +271,30 @@ namespace BudgetGameDev.Games.Brocoli.Tests
         }
 
         [Test]
-        public void ARunThatCannotBeLostAndOneLostConstantlyAreBothReported()
+        public void PerRunDeathRateRejectsConstantLossButRareLossIsGradedByTheCohort()
         {
-            Assert.That(
-                ProgressionBalance.Evaluate(Balanced(deaths: 0), Scaled())[0],
-                Does.Contain("deaths too low").And.Contain("cannot be lost")
-            );
+            Assert.That(ProgressionBalance.Evaluate(Balanced(deaths: 0), Scaled()), Is.Empty);
             Assert.That(
                 ProgressionBalance.Evaluate(Balanced(deaths: 40), Scaled())[0],
                 Does.Contain("deaths too high").And.Contain("faster than it can be learned")
+            );
+        }
+
+        [TestCase(float.NaN)]
+        [TestCase(float.PositiveInfinity)]
+        public void InvalidMeasurementsNeverSilentlyPass(float invalid)
+        {
+            Assert.That(
+                ProgressionBalance.Evaluate(Balanced(secondsPerLevel: invalid), Scaled()),
+                Has.Some.Contains("invalid")
+            );
+            Assert.That(
+                ProgressionBalance.Evaluate(Balanced(meanHealth: invalid), Scaled()),
+                Has.Some.Contains("invalid")
+            );
+            Assert.That(
+                ProgressionBalance.Evaluate(Balanced(duration: invalid), Scaled()),
+                Has.Some.Contains("invalid duration")
             );
         }
     }

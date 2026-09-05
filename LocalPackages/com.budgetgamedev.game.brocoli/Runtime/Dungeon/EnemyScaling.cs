@@ -61,7 +61,11 @@ namespace BudgetGameDev.Games.Brocoli
         /// </summary>
         public const float DepthSpeedSlope = 0.05f;
         public const float SpeedPowerExponent = 0.12f;
-        public const float MaxSpeedScale = 1.6f;
+
+        // Let ordinary late-room melee reach the existing 3.9 m/s safety ceiling.
+        // At 1.6x their 2–2.1 m/s base pace remained only 3.2–3.36 m/s; a
+        // holdout run reached level 19 with five hits in fifteen minutes.
+        public const float MaxSpeedScale = 1.85f;
 
         /// <summary>
         /// The fastest depth may make anything, just under the player's own four, so

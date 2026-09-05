@@ -55,13 +55,14 @@ namespace BudgetGameDev.Games.Brocoli
         /// </summary>
         public void UpdateInput()
         {
-            // Autoplay/E2E: a bot may drive the player. Inert during normal play
-            // (BotDriver.Active is false).
-            if (BotDriver.Active)
+#if UNITY_EDITOR || (DEVELOPMENT_BUILD && GAME_AUTOPLAY)
+            Vector2? diagnosticMovement = GameplayDiagnostics.Movement?.Invoke();
+            if (diagnosticMovement.HasValue)
             {
-                ApplyResolvedInput(BotDriver.Move, 0.01f);
+                ApplyResolvedInput(diagnosticMovement.Value, 0.01f);
                 return;
             }
+#endif
 
             // Read WASD explicitly. Unity's legacy Horizontal/Vertical axes also
             // contain the arrow keys, which are reserved for overlay navigation.

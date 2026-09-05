@@ -1,15 +1,43 @@
 # Autonomous autoplay
 
-The autoplay harness plays the game the way a person would and reports what it
-reached. It drives the ordinary movement input path -- it never teleports the
+The autoplay harness drives the ordinary player controls and reports what it
+reached. It uses the ordinary movement input path -- it never teleports the
 player or replays a recorded script -- and an autonomous agent repeatedly
 observes the run, scores its options, and steers.
 
-The whole harness is game code. It lives in
-`LocalPackages/com.budgetgamedev.game.brocoli/`, split between `Runtime/Autoplay/`
-(the agent, the feature ledger, telemetry) and `Editor/Autoplay/` (building the
-player, launching it, and reporting). Nothing about it is shell-specific, so the
-same commands work on macOS, Linux, and Windows.
+The harness is installed as two local packages:
+
+- `LocalPackages/com.budgetgamedev.autoplay/`: reusable action scoring with hysteresis, feature coverage, simulation timing, progression measurements, and multi-seed cohort evaluation. It references no game.
+- `LocalPackages/com.budgetgamedev.autoplay.brocoli/`: BROcoli perception/navigation, upgrade and menu control, capture, telemetry, balance targets, and the Editor runner.
+
+BROcoli has no dependency on either package. The adapter injects movement, feature and room-spawn observations, and checkpoint policy through development-only delegates owned by the game. Those delegates and call sites, including automatic upgrade selection, are preprocessor-excluded from release code.
+
+Both runtime assemblies require **Editor**, or **Development Build plus `GAME_AUTOPLAY`**. `AutoplayPlayerBuild` sets both requirements. A release never compiles either assembly, even if `GAME_AUTOPLAY` is accidentally supplied. The release staging workflow also physically removes both packages before Unity imports the project. `AlwaysLinkAssembly` preserves the adapter's runtime entrypoints only in builds where its assembly exists; production BROcoli never references autoplay.
+
+The runner works on macOS, Linux, and Windows.
+
+Active autoplay runs in the background and suppresses automatic focus-loss
+pausing, so a visible run continues when you switch windows. Manual and
+level-up pauses still work. Disabling the controller restores the previous
+background and focus policies. The focus override is compiled out of releases.
+
+### Reusing the core in another game
+
+Create a separate `com.budgetgamedev.autoplay.<game>` adapter that references
+the core and that game's runtime assembly. Keep observations, action scores,
+navigation, menus, and difficulty targets in the adapter. The game should
+expose conditional development delegates without referencing its adapter.
+
+Implement `IUtilityPolicy<TAction>` to feed `UtilitySelection.Choose`, and use
+`DelayedCommandScheduler<TSnapshot>` with the game's simulation clock for
+declared observation and reaction timing. Record milestones in `FeatureLedger`,
+sample progression through `RunProgression`, and grade independent runs with
+`BalanceCohort`. `SimulationReadinessGate` can account for asynchronous loading
+without counting loading time as gameplay.
+
+Apply the same assembly constraints and release package exclusion policy to
+each new adapter. A future development launcher can select the matching
+adapter; the shipping launcher follows the same no-autoplay release policy.
 
 ## Running it
 
@@ -158,7 +186,7 @@ fires when the game decides it, and the thing it is about is often still
 arriving. An orb spawns in the air and takes about a third of a second to land.
 
 The event names are the feature ledger's, listed in `AutoplayFeatures`
-(`Runtime/Autoplay/AutoplayFeatures.cs`) -- everything the coverage sweep grades,
+(`com.budgetgamedev.autoplay.brocoli/Runtime/AutoplayFeatures.cs`) -- everything the coverage sweep grades,
 plus the moments recorded only so a run can be watched, such as
 `pickup.experience-dropped`. Anything recorded through the ledger can be
 triggered on, so a new moment costs one `AutoplayFeatureLog.Record` call at the
@@ -217,7 +245,7 @@ the harness records reads the same for the two of them.
 
 So a run also measures its own pacing and the pressure it played under, and the
 `balance` scenario grades both against the band a session is meant to sit in.
-The bands live in `ProgressionBalance` (`Runtime/Autoplay/ProgressionBalance.cs`)
+The bands live in `ProgressionBalance` (`com.budgetgamedev.autoplay.brocoli/Runtime/ProgressionBalance.cs`)
 and are the game's difficulty target written down:
 
 | Measurement | Band | Outside it means |
@@ -382,6 +410,11 @@ clamped to four physics sub-steps per frame, and the achieved speedup is
 reported in the summary so a run's compression is a measured number rather than
 a hope.
 
+Progression telemetry counts active simulation time. Paused level-up, inventory,
+and game-over screens contribute no duration or health samples. Menu automation
+keeps its separate control clock so it can choose upgrades and restart a dead
+run while gameplay is paused.
+
 ## Results
 
 Each run writes screenshots, `telemetry.jsonl`, `summary.json`, and player logs
@@ -410,3 +443,48 @@ The runner also reads the captured frames back and prints mean luminance in top,
 middle, and bottom screen bands. A run that has gone completely black, or blown
 out to white, raises no exception and passes every other check, so the harness
 measures the picture rather than trusting it.
+
+## Progression and scaling cohort
+
+Use independent seeds to verify difficulty, rather than requiring every short run to die:
+
+```bash
+unity run . -- -executeMethod \
+    BudgetGameDev.Games.Brocoli.Editor.AutoplayRunner.RunBalanceCohort \
+    -build -seed 12345 -out AutoplayRuns/balance-cohort
+```
+
+This builds once and runs three 15-minute balance sessions, with seeds `12345`, `117074`, and `221803`. Each session must independently meet the existing level pace, early/late curve, depth pace, health pressure, close-call, and scaling bands. Any stalled run, missing measurement, warning, error, or exception fails the cohort. NaN and infinite measurements fail explicitly. `-duration` and the other normal runner overrides are forwarded to each run; grading still requires at least three unique seeds and 1,800 combined game-seconds.
+
+Rare deaths are graded over total exposure: 0.4–8 deaths per hour across the cohort, with the existing per-run maximum retained. A healthy 15-minute run can survive without being artificially failed; three runs that never lose still fail the cohort. Averages never hide a seed with grinding progression or overwhelming combat. `cohort.json` records the aggregate verdict, exposure, deaths, findings tagged by seed, and paths to all three full `summary.json` files.
+
+To adapt another game, implement `IUtilityPolicy<TAction>` over its observations, call `UtilitySelection.Choose` in its driver, record game events into `FeatureLedger`, and feed its level/depth/health samples into `RunProgression` (the early-level boundary is configurable). Keep that game's navigation, controls, and balance bands in its own adapter package; the core needs no dependency on the launcher or any game.
+
+### Headless simulation
+
+Pass `-no-capture` to the Editor runner (or `--no-capture` directly to the development player) to disable all screenshot capture explicitly. This is intended for `-batchmode -nographics` progression/scaling simulations: no `FrameCapture` component is created, no screenshot API is called, and `summary.json` records `captureEnabled: false`. The completion log states that visual validation was not performed. Capture remains enabled by default; run a separate rendered smoke/capture session to validate presentation.
+
+Existing concurrently generated runs can be graded without replaying them from Editor C#:
+
+```csharp
+BudgetGameDev.Games.Brocoli.Editor.AutoplayRunner.ReportBalanceCohort(
+    "AutoplayRuns/balance-final-20260905", new[] { 12345, 117074, 221803 });
+```
+
+The helper returns 0/1, checks the requested seed and balance scenario, applies the same run-failure and cohort gates as the sequential runner, and writes `cohort.json`. Missing, unreadable, mismatched, or stalled reports fail.
+
+For a fresh batch Editor process, grade the existing default three seeds without loading an interactive session:
+
+```bash
+unity run . -- -executeMethod BudgetGameDev.Games.Brocoli.Editor.AutoplayRunner.ReportExistingBalanceCohort -out AutoplayRuns/balance-final-20260905 -seed 12345
+```
+
+Navigation telemetry also records `pathStatus`, `navigationTargetX`, `navigationTargetZ`, and `failedPaths`, so a residual stall can be distinguished from a rejected route or combat policy. Scaling reports `speedCappedShare` separately as informational: the movement safety ceiling is not a loss of health/damage/count scaling headroom.
+
+Accelerated simulations wait for the dungeon's explicit streamed-navigation readiness signal. The reusable core `SimulationReadinessGate` accounts for this wall-clock work; the BROcoli adapter pauses simulation while streaming coroutines and the asynchronous NavMesh update finish. These frames advance neither `GameDelta` nor progression/balance duration, and path failure alone never pauses the clock. A single wait reaching 30 real seconds ends the run with `readiness-timeout`, which fails every scenario. Ordinary gameplay and nonaccelerated autoplay keep their usual streaming behavior.
+
+Every telemetry row and summary contains a `readiness` record (`enabled`, `waiting`, `timedOut`, `waitCount`, `realSeconds`, `maxWaitSeconds`, `timeoutSeconds`). Navigation `pathStatus` distinguishes missing source/target NavMesh, target projection outside its intended room, and partial/invalid routes. Wait time remains included in total real runtime and reported speedup. The capture clock is reproducible, but asynchronous work and shared gameplay random calls mean seed alone does not promise identical playthroughs.
+
+Navigation now previews each step through the player's own collision resolver, including the authored capsule, wall sliding, and enemy stand-off. A complete route retains waypoint positions and follows them from the current position each physics tick; a physically clear direct step takes priority over local avoidance. The live collider probe is recorded in `build/verification/pinned-navigation-probe.txt`. `BotGeometryIntegrationTests` bakes a real NavMesh around a solid divider and checks actual capsule travel, plus a wall/enemy pinch with a valid tangent escape. Objective progress persists across retreat/dodge interruptions and temporarily retires repeated targets that stop getting closer.
+
+Telemetry distinguishes a current complete route (`activeRoute: true`) from `local-retreat`, `local-recover`, or other local steering. `acceptedStepX/Z` records the player's collision-resolved preview, and `blockedSteps` counts ticks without an accepted physical candidate. The recorded last destination alone is not evidence that local combat movement is following a route.

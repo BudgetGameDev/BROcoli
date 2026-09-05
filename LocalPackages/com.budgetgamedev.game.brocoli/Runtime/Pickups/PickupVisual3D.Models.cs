@@ -208,9 +208,9 @@ namespace BudgetGameDev.Games.Brocoli
                     new Color(0.72f, 1f, 0.8f)
                 ),
                 ModelKind.Magnet => (
-                    new Color(0.14f, 0.07f, 0.2f),
-                    new Color(0.28f, 0.63f, 1f),
-                    new Color(1f, 0.22f, 0.22f)
+                    new Color(0.2f, 0.025f, 0.035f),
+                    new Color(1f, 0.055f, 0.075f),
+                    new Color(0.9f, 0.94f, 1f)
                 ),
                 ModelKind.Hourglass => (
                     new Color(0.04f, 0.1f, 0.3f),

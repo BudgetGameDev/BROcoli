@@ -91,7 +91,10 @@ namespace BudgetGameDev.Games.Brocoli
             float height = style == DropStyle.Chest ? ChestDropHeight : EnemyDropHeight;
             float duration = style == DropStyle.Chest ? ChestDropDuration : EnemyDropDuration;
             BeginDrop(landingPosition, height, duration);
-            AutoplayFeatureLog.Record(AutoplayFeatures.ExperienceDropped);
+
+#if UNITY_EDITOR || (DEVELOPMENT_BUILD && GAME_AUTOPLAY)
+            GameplayDiagnostics.Record("pickup.experience-dropped");
+#endif
         }
 
         /// <summary>Returns a point along a parabolic pickup drop arc.</summary>
@@ -155,7 +158,10 @@ namespace BudgetGameDev.Games.Brocoli
                 return;
 
             _isCollected = true;
-            AutoplayFeatureLog.Record(AutoplayFeatures.ExperienceCollected);
+
+#if UNITY_EDITOR || (DEVELOPMENT_BUILD && GAME_AUTOPLAY)
+            GameplayDiagnostics.Record("pickup.experience");
+#endif
             int experience = expAmountGain;
 
             // Hide/recycle before applying XP. Applying XP can pause the game for

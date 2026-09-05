@@ -131,6 +131,7 @@ namespace BudgetGameDev.Games.Brocoli
             }
         }
 
+#if UNITY_EDITOR || (DEVELOPMENT_BUILD && GAME_AUTOPLAY)
         /// <summary>
         /// Autoplay/E2E hook: programmatically pick an upgrade (mirrors a button click)
         /// so an unattended run never stalls on the paused level-up menu.
@@ -145,6 +146,7 @@ namespace BudgetGameDev.Games.Brocoli
             (currentOptions != null && index >= 0 && index < currentOptions.Length)
                 ? currentOptions[index]
                 : null;
+#endif
 
         private void ChooseUpgrade(int index)
         {

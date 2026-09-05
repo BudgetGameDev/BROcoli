@@ -238,7 +238,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 47aa78e6649174d709c728f1bcc53a90, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: BudgetGameDev.Hub::BudgetGameDev.Hub.GameLauncher
 --- !u!4 &1834554593
 Transform:
@@ -267,7 +267,7 @@ GameObject:
   - component: {fileID: 1855923385}
   m_Layer: 0
   m_Name: BuildOnlyPipelineConfiguration
-  m_TagString: Untagged
+  m_TagString: EditorOnly
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -297,7 +297,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: dd4ab1c9091e0194196b5f5d51cb932f, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Unity.Pipeline::Unity.Pipeline.RuntimePipelineManager
   enableInBuilds: 1
   port: 0

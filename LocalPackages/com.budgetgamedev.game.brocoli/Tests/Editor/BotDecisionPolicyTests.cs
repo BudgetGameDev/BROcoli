@@ -126,17 +126,17 @@ namespace BudgetGameDev.Games.Brocoli.Tests
         [Test]
         public void TheRunningGoalIsKeptUntilAnotherClearlyBeatsIt()
         {
-            // Tuned so exploring and collecting sit within the hysteresis margin.
-            BotSituation borderline = Calm(float.PositiveInfinity, 11.6f);
+            // Equidistant chest and experience compete within the hysteresis margin.
+            BotSituation borderline = Calm(6f, 6f);
 
             Assert.That(
                 BotDecisionPolicy.Utility(BotIntent.Collect, borderline, Tuning),
-                Is.LessThan(BotDecisionPolicy.Utility(BotIntent.Explore, borderline, Tuning))
+                Is.LessThan(BotDecisionPolicy.Utility(BotIntent.Loot, borderline, Tuning))
             );
             Assert.That(
                 BotDecisionPolicy.Utility(BotIntent.Collect, borderline, Tuning)
                     + BotDecisionPolicy.Hysteresis,
-                Is.GreaterThan(BotDecisionPolicy.Utility(BotIntent.Explore, borderline, Tuning))
+                Is.GreaterThan(BotDecisionPolicy.Utility(BotIntent.Loot, borderline, Tuning))
             );
             Assert.That(
                 BotDecisionPolicy.ChooseIntent(borderline, Tuning, BotIntent.Collect),
@@ -176,12 +176,12 @@ namespace BudgetGameDev.Games.Brocoli.Tests
         /// circling a crowd at weapon range while its health bar sits half empty.
         /// </summary>
         [Test]
-        public void AStalemateIsWalkedAwayFromUnhurtAndRetreatedFromWhenBleeding()
+        public void AStalemateIsWalkedAwayFromWhenClearAndRetreatedFromWhenCrowded()
         {
             var unhurt = new BotSituation(
                 true,
-                1f,
-                8,
+                5f,
+                0,
                 1f,
                 false,
                 false,
@@ -191,7 +191,7 @@ namespace BudgetGameDev.Games.Brocoli.Tests
             );
             var bleeding = new BotSituation(
                 true,
-                1f,
+                5f,
                 8,
                 0.2f,
                 false,

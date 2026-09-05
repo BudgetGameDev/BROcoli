@@ -1,6 +1,8 @@
 #if UNITY_EDITOR
 using System;
 using System.Linq;
+using BudgetGameDev.Hub.Editor;
+using BudgetGameDev.Shared.Rendering;
 using UnityEditor;
 using UnityEditor.Build;
 using UnityEditor.Build.Reporting;
@@ -8,25 +10,21 @@ using UnityEngine;
 using UnityEngine.Rendering;
 
 /// <summary>Manual Windows, macOS, and Linux desktop player builds.</summary>
-public sealed class NativePlayerBuildScript : IPreprocessBuildWithReport, IPostprocessBuildWithReport
+public sealed class NativePlayerBuildScript
+    : IPreprocessBuildWithReport,
+        IPostprocessBuildWithReport
 {
     private const string DefaultBuildRoot = "build/native/players";
 
-    /// <summary>
-    /// The pipeline the Windows player renders through: the top tier, which is also what
-    /// `Standalone` in the quality settings' per-platform defaults selects. The other three
-    /// tiers name their own asset and are reached by changing quality level.
-    /// </summary>
     private const string HighDefinitionPipelinePath =
         "Assets/Settings/Rendering/HDRP/BROcoli HDRP RT Ultra.asset";
-
-    /// <summary>The pipeline every other player renders through, the web build included.</summary>
     private const string UniversalPipelinePath = "Assets/3dRenderer.asset";
 
     private static readonly string[] KnownTargets = { "windows", "macos", "linux" };
 
     private static RenderPipelineAsset authoredDefaultPipeline;
     private static bool defaultPipelineHeld;
+    private static string authoredQualitySettings;
 
     /// <summary>
     /// First, ahead of every other build callback. High Definition's own
@@ -59,7 +57,7 @@ public sealed class NativePlayerBuildScript : IPreprocessBuildWithReport, IPostp
         {
             BuildPlayer(
                 BuildTarget.StandaloneWindows64,
-                CombinePath(root, "windows/BROcoli.exe"),
+                CombinePath(root, $"windows/{BuildContentPolicy.ProductName}.exe"),
                 "Windows HDR10",
                 scenes,
                 development
@@ -69,7 +67,7 @@ public sealed class NativePlayerBuildScript : IPreprocessBuildWithReport, IPostp
         {
             BuildPlayer(
                 BuildTarget.StandaloneOSX,
-                CombinePath(root, "macos/BROcoli.app"),
+                CombinePath(root, $"macos/{BuildContentPolicy.ProductName}.app"),
                 "macOS Metal HDR",
                 scenes,
                 development
@@ -79,7 +77,7 @@ public sealed class NativePlayerBuildScript : IPreprocessBuildWithReport, IPostp
         {
             BuildPlayer(
                 BuildTarget.StandaloneLinux64,
-                CombinePath(root, "linux/BROcoli.x86_64"),
+                CombinePath(root, $"linux/{BuildContentPolicy.ProductName}.x86_64"),
                 "Linux",
                 scenes,
                 development
@@ -116,13 +114,28 @@ public sealed class NativePlayerBuildScript : IPreprocessBuildWithReport, IPostp
     private static string[] ReadSelectedTargets() =>
         ParseSelectedTargets(ReadArgument("-buildTargets"));
 
-    [MenuItem("Tools/Build/Native/Windows HDR10 Player")]
+    [MenuItem("Tools/Build/Native/Windows URP HDR10 Player")]
     public static void BuildWindows() =>
         BuildSingle(
             BuildTarget.StandaloneWindows64,
             "build/native/players/windows/BROcoli.exe",
             "Windows HDR10"
         );
+
+    [MenuItem("Tools/Build/Native/Windows HDRP HDR10 Player")]
+    public static void BuildWindowsHighDefinition()
+    {
+        var previous = BuildRenderingPolicy.PipelineOverride;
+        try
+        {
+            BuildRenderingPolicy.PipelineOverride = RenderPipelineKind.HighDefinition;
+            BuildWindows();
+        }
+        finally
+        {
+            BuildRenderingPolicy.PipelineOverride = previous;
+        }
+    }
 
     [MenuItem("Tools/Build/Native/macOS Metal HDR Player")]
     public static void BuildMacOS() =>
@@ -165,24 +178,12 @@ public sealed class NativePlayerBuildScript : IPreprocessBuildWithReport, IPostp
         PlayerSettings.SplashScreen.showUnityLogo = false;
     }
 
-    /// <summary>The pipeline <paramref name="target"/> ships with: Windows renders through High
-    /// Definition, every other player through Universal.</summary>
     internal static string PipelineAssetPathFor(BuildTarget target) =>
-        target == BuildTarget.StandaloneWindows64 ? HighDefinitionPipelinePath
-        : UniversalPipelinePath;
+        BuildRenderingPolicy.PipelineFor(target) == RenderPipelineKind.HighDefinition
+            ? HighDefinitionPipelinePath
+            : UniversalPipelinePath;
 
-    /// <summary>
-    /// Points Graphics Settings at the pipeline this target ships with, so a player carries one
-    /// pipeline rather than two.
-    ///
-    /// The four Windows tiers name their own pipeline asset; the six levels from Very Low to
-    /// Ultra name none, so they follow this default. High Definition refuses to build a target
-    /// whose quality levels and Graphics Settings disagree, which is why leaving the default on
-    /// Universal fails the Windows player before it compiles a shader rather than shipping a
-    /// mixed one.
-    ///
-    /// The authored value is remembered and put back once the player is written.
-    /// </summary>
+    /// <summary>Temporarily select only the pipeline and quality tiers this player uses.</summary>
     internal static void ConfigureDefaultPipeline(BuildTarget target)
     {
         string path = PipelineAssetPathFor(target);
@@ -197,6 +198,9 @@ public sealed class NativePlayerBuildScript : IPreprocessBuildWithReport, IPostp
         if (!defaultPipelineHeld)
         {
             authoredDefaultPipeline = GraphicsSettings.defaultRenderPipeline;
+            authoredQualitySettings = EditorJsonUtility.ToJson(
+                QualitySettings.GetQualitySettings()
+            );
             defaultPipelineHeld = true;
             // A build that fails reaches no post-process callback, and one started from the
             // Build Settings window reaches none of this class's own entry points either, so
@@ -205,7 +209,50 @@ public sealed class NativePlayerBuildScript : IPreprocessBuildWithReport, IPostp
             EditorApplication.update += RestoreWhenBuildEnds;
         }
 
+        ConfigureQualityLevels(target, pipeline);
         SetDefaultPipeline(pipeline);
+    }
+
+    private static void ConfigureQualityLevels(BuildTarget target, RenderPipelineAsset pipeline)
+    {
+        // Start from the authored tiers on repeated callbacks and when BuildAll switches targets.
+        var settings = QualitySettings.GetQualitySettings();
+        EditorJsonUtility.FromJsonOverwrite(authoredQualitySettings, settings);
+        string platform = NamedBuildTarget
+            .FromBuildTargetGroup(BuildPipeline.GetBuildTargetGroup(target))
+            .TargetName;
+        int[] included = QualitySettings.GetActiveQualityLevelsForPlatform(platform);
+        int[] compatible = included
+            .Where(index =>
+            {
+                var asset = QualitySettings.GetRenderPipelineAssetAt(index);
+                return asset == null || asset.GetType() == pipeline.GetType();
+            })
+            .ToArray();
+        if (compatible.Length == 0)
+            throw new BuildFailedException(
+                $"No {pipeline.GetType().Name} quality levels enabled for {target}."
+            );
+
+        foreach (int index in included.Except(compatible))
+            if (!QualitySettings.TryExcludePlatformAt(platform, index, out Exception error))
+                throw new BuildFailedException(error);
+
+        // An excluded HDRP default must not survive in a URP player. Keep an authored
+        // compatible default; otherwise use the highest remaining enabled tier.
+        var serialized = new SerializedObject(settings);
+        var defaults = serialized.FindProperty("m_PerPlatformDefaultQuality");
+        for (int index = 0; index < defaults.arraySize; index++)
+        {
+            var entry = defaults.GetArrayElementAtIndex(index);
+            if (entry.FindPropertyRelative("first").stringValue != platform)
+                continue;
+            var quality = entry.FindPropertyRelative("second");
+            if (!compatible.Contains(quality.intValue))
+                quality.intValue = compatible.Last();
+        }
+        serialized.ApplyModifiedPropertiesWithoutUndo();
+        EditorUtility.SetDirty(settings);
     }
 
     private static void RestoreWhenBuildEnds()
@@ -223,6 +270,12 @@ public sealed class NativePlayerBuildScript : IPreprocessBuildWithReport, IPostp
             return;
 
         EditorApplication.update -= RestoreWhenBuildEnds;
+        EditorJsonUtility.FromJsonOverwrite(
+            authoredQualitySettings,
+            QualitySettings.GetQualitySettings()
+        );
+        EditorUtility.SetDirty(QualitySettings.GetQualitySettings());
+        authoredQualitySettings = null;
         SetDefaultPipeline(authoredDefaultPipeline);
         authoredDefaultPipeline = null;
         defaultPipelineHeld = false;
@@ -248,7 +301,6 @@ public sealed class NativePlayerBuildScript : IPreprocessBuildWithReport, IPostp
     private static string[] PrepareBuild()
     {
         BudgetGameDev.Hub.Editor.HubBuildScenes.Sync(false);
-        BudgetGameDev.Hub.Editor.LauncherConfigSync.Sync();
 
         string[] scenes = EditorBuildSettings
             .scenes.Where(scene => scene.enabled)
@@ -268,18 +320,20 @@ public sealed class NativePlayerBuildScript : IPreprocessBuildWithReport, IPostp
         bool development
     )
     {
-        ConfigureTarget(target);
         BuildReport report;
         try
         {
+            ConfigureTarget(target);
             report = BuildPipeline.BuildPlayer(
-                new BuildPlayerOptions
-                {
-                    scenes = scenes,
-                    locationPathName = output,
-                    target = target,
-                    options = development ? BuildOptions.Development : BuildOptions.None,
-                }
+                BuildRenderingPolicy.PrepareOptions(
+                    new BuildPlayerOptions
+                    {
+                        scenes = scenes,
+                        locationPathName = output,
+                        target = target,
+                        options = development ? BuildOptions.Development : BuildOptions.None,
+                    }
+                )
             );
         }
         finally

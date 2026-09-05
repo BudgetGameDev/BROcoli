@@ -84,7 +84,7 @@ run_gate "No emoji in source" python3 scripts/check_no_emoji.py
 
 run_gate "Unity EditMode tests" ./scripts/unity-test-check.sh
 run_gate "Game runtime coverage" ./scripts/unity-coverage-check.sh
-run_gate "WebGL player build" ./scripts/unity-webgl-build.sh
+run_gate "WebGL player build" ./scripts/unity-webgl-build.sh brocoli
 run_gate "WebGL desktop smoke test" ./scripts/webgl-smoke.sh build/WebGL
 run_gate \
     "WebGL iOS smoke test" \

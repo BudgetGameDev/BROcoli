@@ -1,8 +1,8 @@
 # Render pipelines
 
-BROcoli renders through two pipelines. Universal drives the web build, which is the one
-most players see. High Definition drives the Windows build, which is where the ray
-traced tiers live. They are two front ends over one game, not two games.
+BROcoli renders through two pipelines. Universal is the default for web and native
+builds. High Definition is an explicit native build option, where the ray traced
+tiers live. They are two front ends over one game, not two games.
 
 That distinction is the whole design. Gameplay code never asks which pipeline is
 running, never spells a pipeline's shader name, and never sets a light's intensity in a
@@ -25,7 +25,8 @@ you are reaching for belongs in one of those three.
 
 Two assemblies implement it, `…Rendering.Universal` and `…Rendering.HighDefinition`.
 The High Definition one is gated behind a `BROCOLI_HDRP` version define, so it costs
-nothing in a project without the package.
+nothing in a project without the package. URP player builds also exclude this assembly
+with `BROCOLI_URP_PLAYER`, supplied through the build options before compilation.
 
 ## Scenes
 
@@ -39,7 +40,8 @@ Brocoli_Dungeon_HDRP     the same, in High Definition's terms
 
 `RenderingSceneLoader` sits in the common scene and additively loads whichever
 rendering scene matches the running pipeline. Only two of the three are ever loaded
-together, so neither pipeline can see the other's data.
+together. Player builds filter out the unused rendering scenes before calling
+`BuildPipeline.BuildPlayer`, so their dependencies are not packaged.
 
 Nothing that affects gameplay may live in a `_URP` or `_HDRP` scene. If a change to one
 of them can alter what the player can do rather than what they see, it is in the wrong

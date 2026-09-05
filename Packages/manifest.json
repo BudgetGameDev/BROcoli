@@ -18,11 +18,14 @@
     "com.unity.modules.physics2d": "1.0.0",
     "com.unity.modules.screencapture": "1.0.0",
     "com.unity.modules.ui": "1.0.0",
-    "com.unity.pipeline": "0.5.0-exp.1"
+    "com.unity.pipeline": "0.5.0-exp.1",
+    "com.budgetgamedev.autoplay": "file:../LocalPackages/com.budgetgamedev.autoplay",
+    "com.budgetgamedev.autoplay.brocoli": "file:../LocalPackages/com.budgetgamedev.autoplay.brocoli"
   },
   "testables": [
     "com.budgetgamedev.game.brocoli",
     "com.budgetgamedev.hub",
-    "com.budgetgamedev.shared"
+    "com.budgetgamedev.shared",
+    "com.budgetgamedev.autoplay"
   ]
 }

@@ -11,37 +11,45 @@ namespace BudgetGameDev.Shared.Tests
         [Test]
         public void AutomaticPreferenceUsesTheTestablePlatformDecision()
         {
-            LogAssert.Expect(
-                LogType.Log,
-                new System.Text.RegularExpressions.Regex(
-                    "^\\[VirtualController\\] Runtime mobile detection:"
-                )
+            bool expected = VirtualController.IsMobileDevice(
+                Application.platform,
+                SystemInfo.deviceType,
+                Input.touchSupported,
+                UnityEngine.Device.SystemInfo.deviceType,
+                UnityEngine.Device.Application.isMobilePlatform
             );
             LogAssert.Expect(
                 LogType.Log,
-                new System.Text.RegularExpressions.Regex(
-                    "^\\[VirtualController\\] No preference set"
-                )
+                $"[VirtualController] Runtime mobile detection: {expected}"
+            );
+            LogAssert.Expect(
+                LogType.Log,
+                $"[VirtualController] No preference set, auto-detecting: {(expected ? "mobile" : "desktop")}"
             );
             LogAssert.Expect(
                 LogType.Log,
                 new System.Text.RegularExpressions.Regex("^\\[VirtualController\\] Awake -")
             );
-            LogAssert.Expect(
-                LogType.Log,
-                "[VirtualController] Hiding joystick controls, keeping pause button"
-            );
+            if (expected)
+            {
+                LogAssert.Expect(LogType.Log, "[VirtualController] EnhancedTouchSupport enabled");
+                LogAssert.Expect(LogType.Log, "[VirtualController] Visible and ready");
+            }
+            else
+                LogAssert.Expect(
+                    LogType.Log,
+                    "[VirtualController] Hiding joystick controls, keeping pause button"
+                );
 
             Set("isMobileCacheSet", false);
             Invoke("Awake");
+            Assert.That(joystick.gameObject.activeSelf, Is.EqualTo(expected));
             Set("isMobileCacheSet", false);
             LogAssert.Expect(
                 LogType.Log,
-                new System.Text.RegularExpressions.Regex(
-                    "^\\[VirtualController\\] Runtime mobile detection:"
-                )
+                $"[VirtualController] Runtime mobile detection: {expected}"
             );
-            Assert.That((bool)Invoke("IsMobilePlatform"), Is.False);
+            Assert.That((bool)Invoke("IsMobilePlatform"), Is.EqualTo(expected));
         }
 
         [TestCase(

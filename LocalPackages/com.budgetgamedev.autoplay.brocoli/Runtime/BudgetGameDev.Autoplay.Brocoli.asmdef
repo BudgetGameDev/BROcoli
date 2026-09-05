@@ -1,0 +1,27 @@
+{
+  "name": "BudgetGameDev.Autoplay.Brocoli",
+  "rootNamespace": "BudgetGameDev.Autoplay.Brocoli",
+  "references": [
+    "BudgetGameDev.Autoplay",
+    "BudgetGameDev.Games.Brocoli",
+    "BudgetGameDev.Shared",
+    "Unity.AI.Navigation",
+    "Unity.InputSystem",
+    "Unity.RenderPipelines.Universal.Runtime",
+    "Unity.RenderPipelines.Universal.2D.Runtime",
+    "Unity.TextMeshPro",
+    "UnityEngine.UI"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [
+    "UNITY_EDITOR || DEVELOPMENT_BUILD",
+    "UNITY_EDITOR || GAME_AUTOPLAY"
+  ],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

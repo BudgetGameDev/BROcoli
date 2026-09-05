@@ -10,6 +10,28 @@ namespace BudgetGameDev.Games.Brocoli
         // decorative arch frame so it stays a highlight instead of the norm.
         private const double ArchwayEdgeChance = 0.22;
 
+        /// <summary>
+        /// Remove the short shared-railing stubs that meet the outer shell. They
+        /// create pockets beside room entrances. Both neighbouring cells are
+        /// playable here; the separate cliff boundary continues to seal the void.
+        /// Opening the passage plan also updates navigation and prop clearance.
+        /// </summary>
+        private DungeonPassage OpenBoundaryJoiningEnds(DungeonEdge edge, DungeonPassage passage)
+        {
+            int joins = BoundaryParapetJoinMask(edge);
+            int slots = edge.Horizontal ? RoomTilesX : RoomTilesZ;
+            int openings = passage.OpeningMask;
+            if ((joins & RunEndLow) != 0)
+                openings |= 1;
+            if ((joins & RunEndHigh) != 0)
+                openings |= 1 << (slots - 1);
+            return new DungeonPassage(
+                passage.Open,
+                openings,
+                passage.ArchwayMask & FramedOpeningMask(openings, slots)
+            );
+        }
+
         private static readonly int[] HorizontalDoubleOpeningMasks =
         {
             (1 << 1) | (1 << 3),

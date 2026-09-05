@@ -47,71 +47,13 @@ namespace BudgetGameDev.Hub
 
         internal ScrollRect ListScroll => gameListScroll;
 
-        /// <summary>
-        /// Cleared at startup so a configured game boots once per run. Statics
-        /// survive "Enter Play Mode without domain reload".
-        /// </summary>
-        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        internal static void ResetAutoBoot() => autoBootUsed = false;
-
-        private static bool autoBootUsed;
-
         internal void Start()
         {
             GameCatalog.Invalidate();
-            CompleteStart(TryBootConfiguredGame());
-        }
-
-        internal void CompleteStart(bool gameBooted)
-        {
-            if (gameBooted)
-                return;
-
             BuildInterface();
             Populate();
             RestoreSelection();
             SuppressEventSystemNavigation();
-        }
-
-        private bool TryBootConfiguredGame() =>
-            TryBootConfiguredGame(LauncherConfig.Load().StartupScene);
-
-        /// <summary>
-        /// Opens the configured startup scene, if there is a usable one, and only
-        /// the first time the launcher opens in this run.
-        /// </summary>
-        /// <remarks>
-        /// The once-per-run limit is what keeps the picker reachable: a player who
-        /// leaves a booted game through "all games" would otherwise be thrown
-        /// straight back into it and could never see the list.
-        ///
-        /// The scene name is a parameter rather than read here, so the decision can
-        /// be checked against a known value the way <see cref="LauncherStartup"/>
-        /// takes build membership as a parameter.
-        /// </remarks>
-        internal static bool TryBootConfiguredGame(string startupScene)
-        {
-            if (autoBootUsed)
-                return false;
-
-            autoBootUsed = true;
-
-            LauncherStartup.Plan plan = LauncherStartup.Resolve(
-                startupScene,
-                GameCatalog.All,
-                LauncherStartup.IsSceneInBuild
-            );
-            if (plan.ShowsPicker)
-                return false;
-
-            if (plan.Game != null)
-                return GameSession.Launch(plan.Game, plan.SceneName);
-
-            // A configured scene that no registered game claims still opens; it
-            // just gets no per-game setup, because there is none to apply.
-            Debug.Log($"[Launcher] Opening configured startup scene '{plan.SceneName}'.");
-            GameSession.OpenScene(plan.SceneName);
-            return true;
         }
 
         internal void Populate()

@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -20,10 +21,19 @@ namespace BudgetGameDev.Shared.Rendering.HighDefinition.Tests
         private const int FixtureLayer = 31;
         private const int Size = 128;
         private RenderPipelineAsset previousQualityPipeline;
+        private Camera[] suspendedCameras;
 
         [SetUp]
-        public void SaveSelectedPipeline() =>
+        public void SaveSelectedPipeline()
+        {
             previousQualityPipeline = QualitySettings.renderPipeline;
+            suspendedCameras = Object
+                .FindObjectsByType<Camera>(FindObjectsSortMode.None)
+                .Where(camera => camera.enabled)
+                .ToArray();
+            foreach (Camera camera in suspendedCameras)
+                camera.enabled = false;
+        }
 
         [UnityTearDown]
         public IEnumerator RestoreSelectedPipeline()
@@ -31,6 +41,9 @@ namespace BudgetGameDev.Shared.Rendering.HighDefinition.Tests
             QualitySettings.renderPipeline = previousQualityPipeline;
             yield return null;
             yield return null;
+            foreach (Camera camera in suspendedCameras)
+                if (camera != null)
+                    camera.enabled = true;
         }
 
         [UnityTest]
@@ -50,52 +63,61 @@ namespace BudgetGameDev.Shared.Rendering.HighDefinition.Tests
             Assert.That(universal, Is.Not.Null);
             Assert.That(highDefinition, Is.Not.Null);
 
-            QualitySettings.renderPipeline = universal;
-            yield return null;
-            yield return null;
-            (Color surface, Color flame) urp = RenderFixture(false);
-
-            QualitySettings.renderPipeline = highDefinition;
-            yield return null;
-            yield return null;
-            (Color surface, Color flame) hdrp = RenderFixture(true);
-
-            Assert.That(
-                urp.surface.r,
-                Is.GreaterThan(0.001f),
-                "The fixture must actually receive direct light."
-            );
-            for (int channel = 0; channel < 3; channel++)
+            // Creating/closing a preview scene can unload editor render resources. Keep the
+            // scene alive across pipeline initialization and both float readbacks.
+            Scene scene = EditorSceneManager.NewPreviewScene();
+            try
             {
-                // Compare the same 18% linear reference. Disney versus URP diffuse differs
-                // slightly; near-black albedo would amplify their specular differences.
+                QualitySettings.renderPipeline = universal;
+                yield return null;
+                yield return null;
+                (Color surface, Color flame) urp = RenderFixture(false, scene);
+
+                QualitySettings.renderPipeline = highDefinition;
+                yield return null;
+                yield return null;
+                (Color surface, Color flame) hdrp = RenderFixture(true, scene);
+
                 Assert.That(
-                    hdrp.surface[channel],
-                    Is.EqualTo(urp.surface[channel]).Within(urp.surface[channel] * 0.05f),
-                    $"Scene-linear surface channel {channel}: URP {urp.surface}, HDRP {hdrp.surface}"
+                    urp.surface.r,
+                    Is.GreaterThan(0.001f),
+                    "The fixture must actually receive direct light."
                 );
-                float expectedFlame = new Color(8f, 4f, 1f)[channel];
-                Assert.That(
-                    urp.flame[channel],
-                    Is.EqualTo(expectedFlame).Within(expectedFlame * 0.01f),
-                    $"URP flame channel {channel} must remain above display white in RGBAFloat."
-                );
-                Assert.That(
-                    hdrp.flame[channel],
-                    Is.EqualTo(expectedFlame).Within(expectedFlame * 0.01f),
-                    $"HDRP flame channel {channel} must not be multiplied by physical-light exposure or emitted twice."
-                );
+                for (int channel = 0; channel < 3; channel++)
+                {
+                    // Compare the same 18% linear reference. Disney versus URP diffuse differs
+                    // slightly; near-black albedo would amplify their specular differences.
+                    Assert.That(
+                        hdrp.surface[channel],
+                        Is.EqualTo(urp.surface[channel]).Within(urp.surface[channel] * 0.05f),
+                        $"Scene-linear surface channel {channel}: URP {urp.surface}, HDRP {hdrp.surface}"
+                    );
+                    float expectedFlame = new Color(8f, 4f, 1f)[channel];
+                    Assert.That(
+                        urp.flame[channel],
+                        Is.EqualTo(expectedFlame).Within(expectedFlame * 0.01f),
+                        $"URP flame channel {channel} must remain above display white in RGBAFloat."
+                    );
+                    Assert.That(
+                        hdrp.flame[channel],
+                        Is.EqualTo(expectedFlame).Within(expectedFlame * 0.01f),
+                        $"HDRP flame channel {channel} must not be multiplied by physical-light exposure or emitted twice."
+                    );
+                }
+            }
+            finally
+            {
+                EditorSceneManager.ClosePreviewScene(scene);
             }
         }
 
-        private static (Color surface, Color flame) RenderFixture(bool highDefinition)
+        private static (Color surface, Color flame) RenderFixture(bool highDefinition, Scene scene)
         {
             Assert.That(
                 GraphicsSettings.currentRenderPipeline is HD.HDRenderPipelineAsset,
                 Is.EqualTo(highDefinition)
             );
             using var ambient = new AmbientIsolation();
-            Scene scene = EditorSceneManager.NewPreviewScene();
             var owned = new List<Object>();
             RenderTexture previousTarget = RenderTexture.active;
             VolumeProfile profile = null;
@@ -196,10 +218,20 @@ namespace BudgetGameDev.Shared.Rendering.HighDefinition.Tests
                     24,
                     RenderTextureFormat.ARGBFloat,
                     RenderTextureReadWrite.Linear
-                );
+                )
+                {
+                    hideFlags = HideFlags.HideAndDontSave,
+                };
                 owned.Add(target);
                 Assert.That(target.Create(), Is.True);
-                var readback = new Texture2D(Size, Size, TextureFormat.RGBAFloat, false, true);
+                // Keep a native scene reference throughout all submissions. Shader imports
+                // may unload unused assets while the Editor services a render request; a
+                // managed local and request object alone do not root this render texture.
+                camera.targetTexture = target;
+                var readback = new Texture2D(Size, Size, TextureFormat.RGBAFloat, false, true)
+                {
+                    hideFlags = HideFlags.HideAndDontSave,
+                };
                 owned.Add(readback);
                 Color lit = Sample(camera, target, readback, 4);
 
@@ -214,7 +246,8 @@ namespace BudgetGameDev.Shared.Rendering.HighDefinition.Tests
             finally
             {
                 RenderTexture.active = previousTarget;
-                EditorSceneManager.ClosePreviewScene(scene);
+                foreach (GameObject root in scene.GetRootGameObjects())
+                    Object.DestroyImmediate(root);
                 if (profile != null)
                 {
                     foreach (VolumeComponent component in profile.components)
@@ -284,10 +317,30 @@ namespace BudgetGameDev.Shared.Rendering.HighDefinition.Tests
             int renders
         )
         {
-            var request = new RenderPipeline.StandardRequest { destination = target };
+            // HDRP initializes these shared defaults; URP imports them without initializing
+            // them. Preview-scene cleanup can unload their native textures between tests.
+            // Use the public initializer to recreate unloaded defaults before either render.
+            var clearShader = AssetDatabase.LoadAssetAtPath<ComputeShader>(
+                "Packages/com.unity.render-pipelines.high-definition/Runtime/Core/CoreResources/ClearUIntTextureArray.compute"
+            );
+            Assert.That(clearShader, Is.Not.Null);
+            CommandBuffer initialize = CommandBufferPool.Get("Lighting fixture XR defaults");
+            try
+            {
+                TextureXR.Initialize(initialize, clearShader);
+                Graphics.ExecuteCommandBuffer(initialize);
+            }
+            finally
+            {
+                CommandBufferPool.Release(initialize);
+            }
+
             // Bounded history warm-up; the same number of submissions runs on each pipeline.
             for (int i = 0; i < renders; i++)
-                RenderPipeline.SubmitRenderRequest(camera, request);
+                RenderPipeline.SubmitRenderRequest(
+                    camera,
+                    new RenderPipeline.StandardRequest { destination = target }
+                );
             RenderTexture.active = target;
             readback.ReadPixels(new Rect(0, 0, Size, Size), 0, 0);
             readback.Apply();

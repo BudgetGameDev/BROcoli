@@ -77,6 +77,19 @@ namespace BudgetGameDev.Games.Brocoli
         void Start()
         {
             cam = GetComponent<Camera>();
+            if (cam != null)
+            {
+                // The procedural fire softens its intersections against scene depth. URP's
+                // lowest quality asset does not request depth globally, so the gameplay camera
+                // must explicitly supply it; otherwise the flame can disappear completely.
+                cam.depthTextureMode |= DepthTextureMode.Depth;
+                if (
+                    cam.TryGetComponent<UnityEngine.Rendering.Universal.UniversalAdditionalCameraData>(
+                        out var urp
+                    )
+                )
+                    urp.requiresDepthTexture = true;
+            }
 
             // The scene authors the rig looking due north; the diagonal view is
             // applied here so the one yaw constant also governs input mapping.

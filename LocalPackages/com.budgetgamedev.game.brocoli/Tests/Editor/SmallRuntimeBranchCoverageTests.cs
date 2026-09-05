@@ -187,23 +187,6 @@ namespace BudgetGameDev.Games.Brocoli.Tests
         }
 
         [Test]
-        public void LauncherBootedPathDoesNotBuildTheCatalogInterface()
-        {
-            GameObject host = new("Coverage Booted Launcher");
-            try
-            {
-                GameLauncher launcher = host.AddComponent<GameLauncher>();
-                typeof(GameLauncher)
-                    .GetMethod("CompleteStart", BindingFlags.Instance | BindingFlags.NonPublic)
-                    .Invoke(launcher, new object[] { true });
-            }
-            finally
-            {
-                UnityEngine.Object.DestroyImmediate(host);
-            }
-        }
-
-        [Test]
         public void PickupSymbolsAndRendererColorsCoverAlternateShaderProperties()
         {
             GameObject host = new("Coverage Small Visual Branches");

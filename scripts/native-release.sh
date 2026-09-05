@@ -3,7 +3,7 @@
 set -euo pipefail
 
 PROJECT_PATH="$(cd "$(dirname "$0")/.." && pwd)"
-ARTIFACTS_ROOT="$PROJECT_PATH/build/native/artifacts"
+ARTIFACTS_ROOT="$PROJECT_PATH/build/native/brocoli/artifacts"
 TAG=""
 TITLE=""
 NOTES_FILE=""
@@ -106,7 +106,7 @@ if gh release view "$TAG" >/dev/null 2>&1; then
 fi
 
 if [ "$SKIP_BUILD" -eq 0 ]; then
-    "$PROJECT_PATH/scripts/native-builds.sh"
+    "$PROJECT_PATH/scripts/native-builds.sh" --product brocoli
 fi
 
 # shellcheck source=scripts/native-artifacts.sh

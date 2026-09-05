@@ -35,7 +35,6 @@ namespace BudgetGameDev.Hub.Tests
             previousLastPlayed = GameSession.LastPlayedId;
             PlayerPrefs.SetString(GameSession.LastPlayedKey, string.Empty);
             GameSession.ResetSessionState();
-            GameLauncher.ResetAutoBoot();
             GameCatalog.Invalidate();
             LoadedScenes.Clear();
             GameSession.SceneLoader = LoadedScenes.Add;
@@ -57,7 +56,6 @@ namespace BudgetGameDev.Hub.Tests
             GameCatalog.Invalidate();
             Games.DestroyAll();
             GameSession.ResetSessionState();
-            GameLauncher.ResetAutoBoot();
             GameAudioSettings.Configure(null, null);
             Time.timeScale = 1f;
             PlayerPrefs.SetString(GameSession.LastPlayedKey, previousLastPlayed);

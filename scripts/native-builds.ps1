@@ -1,21 +1,27 @@
 # Build and package the native Windows player without Unix command dependencies.
-# Usage: .\scripts\native-builds.ps1 [-Development]
+# Usage: .\scripts\native-builds.ps1 -Product brocoli|launcher [-Development] [-RenderPipeline urp|hdrp]
 
 [CmdletBinding()]
 param(
-    [switch]$Development
+    [Parameter(Mandatory = $true)]
+    [ValidatePattern("^[a-z0-9][a-z0-9-]*$")]
+    [string]$Product,
+    [switch]$Development,
+    [ValidateSet("urp", "hdrp")]
+    [string]$RenderPipeline = "urp"
 )
 
 $ErrorActionPreference = "Stop"
 $ScriptDirectory = Split-Path -Parent $MyInvocation.MyCommand.Path
 $ProjectPath = Split-Path -Parent $ScriptDirectory
-$NativeRoot = Join-Path $ProjectPath "build\native"
+$ProductName = if ($Product -eq "launcher") { "GameLauncher" } elseif ($Product -eq "brocoli") { "BROcoli" } else { $Product }
+$NativeRoot = Join-Path $ProjectPath "build\native\$Product"
 $PlayersRoot = Join-Path $NativeRoot "players"
 $WindowsPlayerRoot = Join-Path $PlayersRoot "windows"
 $ArtifactsRoot = Join-Path $NativeRoot "artifacts"
-$BuildLog = Join-Path $NativeRoot "native-build.log"
-$ExecutablePath = Join-Path $WindowsPlayerRoot "BROcoli.exe"
-$ArchivePath = Join-Path $ArtifactsRoot "BROcoli-windows-x86_64.zip"
+$BuildLog = Join-Path $PlayersRoot "unity-build.log"
+$ExecutablePath = Join-Path $WindowsPlayerRoot "$ProductName.exe"
+$ArchivePath = Join-Path $ArtifactsRoot "$ProductName-windows-x86_64.zip"
 $VersionFile = Join-Path $ProjectPath "ProjectSettings\ProjectVersion.txt"
 
 function Write-UsageErrorAndExit {
@@ -50,19 +56,14 @@ function Write-Utf8File {
 if (-not (Get-Command unity -ErrorAction SilentlyContinue)) {
     Write-UsageErrorAndExit "Unity CLI is required"
 }
+if (-not (Get-Command python -ErrorAction SilentlyContinue)) {
+    Write-UsageErrorAndExit "Python 3 is required"
+}
 if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
     Write-UsageErrorAndExit "Git is required"
 }
 if (-not (Test-Path -LiteralPath $VersionFile)) {
     Write-UsageErrorAndExit "could not find $VersionFile"
-}
-
-. (Join-Path $ScriptDirectory "unity-editor-connection.ps1")
-$editorPid = Get-RunningUnityEditorPid -ProjectPath $ProjectPath
-if ($editorPid) {
-    [Console]::Error.WriteLine("native-builds: Unity currently has this project open (PID $editorPid)")
-    [Console]::Error.WriteLine("Close it safely before running the batch build.")
-    exit 2
 }
 
 $versionMatch = Select-String -LiteralPath $VersionFile -Pattern '^m_EditorVersion: (.+)$' |
@@ -80,53 +81,24 @@ if (Test-Path -LiteralPath $PlayersRoot) {
 if (Test-Path -LiteralPath $ArtifactsRoot) {
     Remove-Item -LiteralPath $ArtifactsRoot -Recurse -Force
 }
-New-Item -ItemType Directory -Path $WindowsPlayerRoot -Force | Out-Null
+New-Item -ItemType Directory -Path $PlayersRoot -Force | Out-Null
 New-Item -ItemType Directory -Path $ArtifactsRoot -Force | Out-Null
 
-$settingsBackup = Join-Path ([System.IO.Path]::GetTempPath()) ("brocoli-native-settings-" + [guid]::NewGuid())
-New-Item -ItemType Directory -Path $settingsBackup | Out-Null
-$projectSettings = Join-Path $ProjectPath "ProjectSettings\ProjectSettings.asset"
-$qualitySettings = Join-Path $ProjectPath "ProjectSettings\QualitySettings.asset"
-# The build points Graphics Settings at the pipeline the target ships with, so this file
-# is restored alongside the other two even though the build puts it back itself.
-$graphicsSettings = Join-Path $ProjectPath "ProjectSettings\GraphicsSettings.asset"
-Copy-Item -LiteralPath $projectSettings -Destination $settingsBackup
-Copy-Item -LiteralPath $qualitySettings -Destination $settingsBackup
-Copy-Item -LiteralPath $graphicsSettings -Destination $settingsBackup
-
-try {
-    $unityArguments = @(
-        "build",
-        $ProjectPath,
-        "--editor-version", $UnityVersion,
-        "--target", "StandaloneWindows64",
-        "--execute-method", "NativePlayerBuildScript.BuildWindows",
-        "--output-path", $ExecutablePath,
-        "--log-file", $BuildLog,
-        "--allow-dirty-build",
-        "--non-interactive",
-        "--no-banner"
-    )
-    if ($Development) {
-        $unityArguments += @("--args", "-development")
-    }
-
-    Write-Host "native-builds: building Windows"
-    & unity @unityArguments
-    if ($LASTEXITCODE -ne 0) {
-        throw "Unity player build failed with exit code $LASTEXITCODE"
-    }
-} finally {
-    Copy-Item -LiteralPath (Join-Path $settingsBackup "ProjectSettings.asset") -Destination $projectSettings -Force
-    Copy-Item -LiteralPath (Join-Path $settingsBackup "QualitySettings.asset") -Destination $qualitySettings -Force
-    Copy-Item -LiteralPath (Join-Path $settingsBackup "GraphicsSettings.asset") -Destination $graphicsSettings -Force
-    Remove-Item -LiteralPath $settingsBackup -Recurse -Force
-}
+$releaseArguments = @(
+    (Join-Path $ScriptDirectory "release-build.py"),
+    "--product", $Product,
+    "--targets", "windows",
+    "--pipeline", $RenderPipeline,
+    "--output", $PlayersRoot
+)
+if ($Development) { $releaseArguments += "--development" }
+& python @releaseArguments
+if ($LASTEXITCODE -ne 0) { throw "Isolated player build failed with exit code $LASTEXITCODE" }
 
 if (-not (Test-Path -LiteralPath $ExecutablePath)) {
     throw "Expected player was not produced: $ExecutablePath"
 }
-$requiredPayload = @("BROcoli_Data", "UnityPlayer.dll", "MonoBleedingEdge")
+$requiredPayload = @("${ProductName}_Data", "UnityPlayer.dll", "MonoBleedingEdge")
 foreach ($name in $requiredPayload) {
     $payloadPath = Join-Path $WindowsPlayerRoot $name
     if (-not (Test-Path -LiteralPath $payloadPath)) {
@@ -142,6 +114,7 @@ if ($buildSummary.Line -notmatch '0 warning\(s\), 0 error\(s\)') {
     throw "Windows build was not clean: $($buildSummary.Line)"
 }
 
+Copy-Item -LiteralPath (Join-Path $PlayersRoot "release-audit.json") -Destination $ArtifactsRoot
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 [System.IO.Compression.ZipFile]::CreateFromDirectory(
     $WindowsPlayerRoot,
@@ -167,6 +140,8 @@ Write-Utf8File -Path $buildInfoPath -Lines @(
     "commit=$commit",
     "unity=$UnityVersion",
     "targets=windows",
+    "product=$Product",
+    "render_pipeline=$($RenderPipeline.ToLowerInvariant())",
     "development=$developmentValue",
     "dirty=$dirty",
     "built_at=$builtAtText"
@@ -174,10 +149,12 @@ Write-Utf8File -Path $buildInfoPath -Lines @(
 
 $archiveHash = (Get-FileHash -LiteralPath $ArchivePath -Algorithm SHA256).Hash.ToLowerInvariant()
 $buildInfoHash = (Get-FileHash -LiteralPath $buildInfoPath -Algorithm SHA256).Hash.ToLowerInvariant()
+$auditHash = (Get-FileHash -LiteralPath (Join-Path $ArtifactsRoot "release-audit.json") -Algorithm SHA256).Hash.ToLowerInvariant()
 $checksumsPath = Join-Path $ArtifactsRoot "SHA256SUMS"
 Write-Utf8File -Path $checksumsPath -Lines @(
-    "$archiveHash  BROcoli-windows-x86_64.zip",
-    "$buildInfoHash  build-info.txt"
+    "$archiveHash  $ProductName-windows-x86_64.zip",
+    "$buildInfoHash  build-info.txt",
+    "$auditHash  release-audit.json"
 )
 
 $archiveSize = (Get-Item -LiteralPath $ArchivePath).Length

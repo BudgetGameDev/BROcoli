@@ -209,11 +209,6 @@ namespace BudgetGameDev.Hub.Tests
         [Test]
         public void StartBuildsThePickerFromTheInstalledGames()
         {
-            Assume.That(
-                LauncherConfig.Load().StartupScene,
-                Is.Empty,
-                "this covers the picker path; a committed startup scene boots instead"
-            );
             GameLauncher launcher = NewLauncher();
 
             StartLauncher(launcher);

@@ -76,6 +76,7 @@ namespace BudgetGameDev.Games.Brocoli.Tests
         {
             try
             {
+                AutoplayController.InjectDiagnostics();
                 SetAutoplayFlag("IsActive", true);
                 SetAutoplayFlag("CheckpointsEnabled", false);
                 BrocoliAutosaveController.EnsurePresent();
@@ -100,6 +101,7 @@ namespace BudgetGameDev.Games.Brocoli.Tests
             {
                 SetAutoplayFlag("IsActive", false);
                 SetAutoplayFlag("CheckpointsEnabled", false);
+                GameplayDiagnostics.AllowCheckpoint = null;
             }
         }
 

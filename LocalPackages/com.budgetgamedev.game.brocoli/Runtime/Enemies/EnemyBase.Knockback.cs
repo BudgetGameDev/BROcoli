@@ -128,6 +128,9 @@ namespace BudgetGameDev.Games.Brocoli
                 return;
             }
 
+            if (appliedDamage > 0f)
+                AggroFromDamage();
+
             if (knockbackDirection != Vector2.zero && rb != null)
             {
                 TryApplyDamageKnockback(

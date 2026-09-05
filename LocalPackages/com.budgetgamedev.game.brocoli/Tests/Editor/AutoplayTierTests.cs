@@ -1,4 +1,5 @@
 using System;
+using BudgetGameDev.Autoplay;
 using NUnit.Framework;
 
 namespace BudgetGameDev.Games.Brocoli.Tests

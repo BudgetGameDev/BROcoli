@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace BudgetGameDev.Games.Brocoli
@@ -5,63 +6,54 @@ namespace BudgetGameDev.Games.Brocoli
     public static partial class DungeonWallDressing
     {
         /// <summary>
-        /// The mounting points a room shape offers, before doorways are consulted.
-        /// Compact shapes hang their torches on north-south interior runs; shapes
-        /// without those runs use the outer shell. East-west interior pieces are
-        /// deliberately too low to carry a wall fitting, so mounts never use them.
+        /// Mount on the masonry that the room actually builds. Broad platform passages can
+        /// remove every shell candidate; curved and diagonal rooms still have interior railings.
+        /// Using their geometry keeps lighting in step with new shapes and wall height changes.
         /// </summary>
-        private static DungeonWallMount[] ShapeTorchMounts(DungeonLayout.RoomArchetype archetype)
-        {
-            return archetype.Shape switch
-            {
-                DungeonLayout.RoomShape.Tiny => VerticalTorches(4f, 2.7f),
-                DungeonLayout.RoomShape.Compact => VerticalTorches(6f, 3.5f),
-                DungeonLayout.RoomShape.NarrowHorizontal => FourWallTorches(
-                    HalfRoomWidth,
-                    HalfRoomDepth,
-                    8f,
-                    5f
-                ),
-                DungeonLayout.RoomShape.LongHorizontal => FourWallTorches(
-                    HalfRoomWidth,
-                    HalfRoomDepth,
-                    8f,
-                    5f
-                ),
-                DungeonLayout.RoomShape.NarrowVertical => VerticalTorches(4f, 4f),
-                DungeonLayout.RoomShape.LongVertical => VerticalTorches(6f, 4f),
-                DungeonLayout.RoomShape.LargeSquare => FourWallTorches(10f, HalfRoomDepth, 6f, 4f),
-                _ => FourWallTorches(HalfRoomWidth, HalfRoomDepth, 8f, 5f),
-            };
-        }
-
-        private static DungeonWallMount[] FourWallTorches(
-            float wallX,
-            float wallZ,
-            float horizontalOffset,
-            float verticalOffset
+        private static List<DungeonWallMount> ShapeTorchMounts(
+            DungeonLayout.RoomArchetype archetype
         )
         {
-            return new[]
+            var mounts = new List<DungeonWallMount>();
+            var walls = new List<DungeonWallPiece>();
+            DungeonRoomGeometry.AppendInteriorWalls(walls, Vector2Int.zero, archetype);
+            foreach (DungeonWallPiece wall in walls)
             {
-                new DungeonWallMount(new Vector2(-horizontalOffset, InnerFace(wallZ)), 180f),
-                new DungeonWallMount(new Vector2(horizontalOffset, InnerFace(wallZ)), 180f),
-                new DungeonWallMount(new Vector2(InnerFace(wallX), -verticalOffset), -90f),
-                new DungeonWallMount(new Vector2(InnerFace(wallX), verticalOffset), -90f),
-                new DungeonWallMount(new Vector2(InnerFace(-wallX), -verticalOffset), 90f),
-                new DungeonWallMount(new Vector2(InnerFace(-wallX), verticalOffset), 90f),
-            };
+                float scale =
+                    wall.Kind == DungeonWallKind.InteriorFeature ? 1f
+                    : wall.AlongX ? DungeonRoomBuilder.InteriorRailingHeightScale
+                    : DungeonRoomBuilder.InteriorWallHeightScale;
+                mounts.Add(OnMasonry(wall.Anchor, wall.Normal, scale));
+            }
+
+            var railings = new List<DungeonRailingSegment>();
+            DungeonRoomGeometry.AppendInteriorRailings(railings, Vector2Int.zero, archetype);
+            foreach (DungeonRailingSegment railing in railings)
+                mounts.Add(
+                    OnMasonry(
+                        railing.Center,
+                        railing.Normal,
+                        DungeonRoomBuilder.InteriorRailingHeightScale,
+                        railing.BaseLift
+                    )
+                );
+            return mounts;
         }
 
-        private static DungeonWallMount[] VerticalTorches(float wallX, float offset)
+        private static DungeonWallMount OnMasonry(
+            Vector2 center,
+            Vector2 normal,
+            float heightScale,
+            float lift = 0f
+        )
         {
-            return new[]
-            {
-                new DungeonWallMount(new Vector2(InnerFace(wallX), -offset), -90f),
-                new DungeonWallMount(new Vector2(InnerFace(wallX), offset), -90f),
-                new DungeonWallMount(new Vector2(InnerFace(-wallX), -offset), 90f),
-                new DungeonWallMount(new Vector2(InnerFace(-wallX), offset), 90f),
-            };
+            // Face into the room where possible, keeping the bracket on the slab face.
+            if (Vector2.Dot(normal, -center) < 0f)
+                normal = -normal;
+            Vector2 point = center + normal * DungeonWallPiece.SlabHalfThickness;
+            float yaw = Mathf.Atan2(normal.x, normal.y) * Mathf.Rad2Deg;
+            float height = DungeonWallPiece.SlabHeight * (heightScale - 1f) + lift;
+            return new DungeonWallMount(point, yaw, height);
         }
     }
 }

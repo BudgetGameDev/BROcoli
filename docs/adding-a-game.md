@@ -9,8 +9,8 @@ registry file to update.
 
 ```
 LocalPackages/
-  com.budgetgamedev.shared/        reusable runtime services (no game knowledge)
-  com.budgetgamedev.hub/           brand-neutral launcher + registry
+  com.budgetgamedev.shared/        reusable runtime services + game registry contracts
+  com.budgetgamedev.hub/           brand-neutral launcher UI
   com.budgetgamedev.game.brocoli/  a game
 Packages/manifest.json             "com.budgetgamedev.game.x": "file:../LocalPackages/com.budgetgamedev.game.x"
 Assets/                            project-wide only: URP settings, TMP, WebGL template, build tooling
@@ -38,7 +38,7 @@ it, which only works while none of it lives in `Assets/`.
      Resources/<Id>/   game-owned resources, namespaced against collisions
    ```
 
-   Depend on `com.budgetgamedev.hub` and `com.budgetgamedev.shared`, plus any
+   Depend on `com.budgetgamedev.shared`, plus any
    Unity packages the game needs. Declaring them here rather than in the project
    manifest is what makes them arrive and leave with the game.
 
@@ -59,7 +59,7 @@ it, which only works while none of it lives in `Assets/`.
    on import and before a build.
 
 5. **Offer a way back.** Call `GameSession.ReturnToLauncher()` from the game's own
-   main menu.
+   main menu, showing the button only when `GameSession.LauncherAvailable` is true.
 
 ## Conventions that keep games from colliding
 
@@ -93,13 +93,26 @@ discovers at runtime. A direct reference would compile the game into the
 launcher, so removing that game from the manifest would stop the project
 building — which is exactly the coupling this layout exists to prevent.
 
-## Booting straight into a game
+## Selecting release content
 
-`LauncherConfig.txt` at the project root, beside `.env`, can name a `startupScene`
-to open instead of the picker, once per run. Leave it commented out — the default — for the normal
-game list. An unknown scene name is reported and ignored, and a committed name
-that is not in the build fails the hub's test suite rather than surfacing as a
-runtime surprise. The file documents its own settings.
+Use `python scripts/release-build.py --product <id> --targets windows` for a
+single game, or `--product launcher` for the launcher with all installed games.
+The game id is the suffix of its package name. The selected game's main menu is
+scene zero. The launcher always presents its picker; `LauncherConfig.txt` and
+its startup-scene override have been removed.
+
+Releases use a fresh staging project containing only the selected game packages
+and their shared dependencies. Excluded game, hub and autoplay packages are
+absent before Unity imports anything, so their code and Resources never enter
+the compiler or linker. A dependency from a selected package to an excluded
+package fails the build rather than silently restoring it. Do not reference the
+hub assembly from game code; the shared assembly owns the GameDefinition,
+GameCatalog and GameSession contracts (their existing namespace is preserved).
+
+Autoplay belongs in `com.budgetgamedev.autoplay` (reusable core) and
+`com.budgetgamedev.autoplay.<id>` (adapter). Game runtime code never references
+the adapter. These packages are excluded from every release, including launcher
+releases. See [native releases](native-releases.md) for commands and audit files.
 
 ## Removing a game
 

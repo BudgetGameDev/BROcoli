@@ -30,8 +30,13 @@ namespace BudgetGameDev.Games.Brocoli
             // there to test; it frees every slot it claimed when the run ends.
             if (active != null)
                 return;
-            if (AutoplayController.IsActive && !AutoplayController.CheckpointsEnabled)
+#if UNITY_EDITOR || (DEVELOPMENT_BUILD && GAME_AUTOPLAY)
+            if (
+                GameplayDiagnostics.AllowCheckpoint != null
+                && !GameplayDiagnostics.AllowCheckpoint()
+            )
                 return;
+#endif
 
             new GameObject("[Brocoli Autosave]").AddComponent<BrocoliAutosaveController>();
         }

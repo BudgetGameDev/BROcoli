@@ -1,3 +1,4 @@
+using System.Linq;
 using NUnit.Framework;
 using UnityEngine;
 
@@ -5,10 +6,9 @@ namespace BudgetGameDev.Games.Brocoli.Tests
 {
     /// <summary>
     /// Where a room's shared wall run reaches the grid corner that the
-    /// platform's boundary parapet turns on, the two must be one continuous
-    /// line of masonry. These tests pin the join: which run ends the layout
-    /// reports as boundary joins, and that the builder actually lands them at
-    /// the parapet's height.
+    /// platform's boundary parapet turns on, the shared stub must leave a clear
+    /// entrance while the outer cliff stays solid. Closed structural runs still
+    /// use matching parapet heights.
     /// </summary>
     public sealed class DungeonBoundaryJoinTests
     {
@@ -38,6 +38,7 @@ namespace BudgetGameDev.Games.Brocoli.Tests
                             $"seed {seed}: north-row run at x {x} ignores the boundary above it"
                         );
                         checkedNorth++;
+                        AssertJoiningSlotsAreOpen(layout, northEdge);
                     }
 
                     if (TryEastEdge(layout, x, north: false, out DungeonEdge southEdge))
@@ -48,6 +49,7 @@ namespace BudgetGameDev.Games.Brocoli.Tests
                             $"seed {seed}: south-row run at x {x} ignores the cliff below it"
                         );
                         checkedSouth++;
+                        AssertJoiningSlotsAreOpen(layout, southEdge);
                     }
                 }
 
@@ -88,7 +90,7 @@ namespace BudgetGameDev.Games.Brocoli.Tests
         }
 
         [Test]
-        public void TheEndPieceMeetsTheBoundaryParapetAtTheSameHeight()
+        public void SharedBoundaryStubIsRemovedWithoutRemovingTheCliff()
         {
             var layout = new DungeonLayout(1);
             int column = -4;
@@ -135,25 +137,22 @@ namespace BudgetGameDev.Games.Brocoli.Tests
                     center.x + DungeonLayout.RoomWidth / 2f,
                     center.y + DungeonLayout.RoomDepth / 2f
                 );
-                float sharedTop = TopAt(sharedRun, corner);
                 float parapetTop = TopAt(
                     boundaryRun.transform.Find("Low Dungeon Railing").gameObject,
                     corner
                 );
 
                 Assert.That(
-                    sharedTop,
-                    Is.EqualTo(parapetTop).Within(0.02f),
-                    "the shared run steps where it meets the boundary parapet"
+                    sharedRun
+                        .GetComponentsInChildren<Collider>()
+                        .Any(c => c.bounds.Contains(new Vector3(corner.x, 0.3f, corner.y - 1f))),
+                    Is.False,
+                    "the shared stub still makes a pocket beside the shell"
                 );
                 Assert.That(
-                    sharedTop,
-                    Is.LessThan(
-                        DungeonWallPiece.SlabHeight
-                            * DungeonRoomBuilder.SharedEdgeRailingHeightScale
-                            - 0.1f
-                    ),
-                    "the joining piece kept the taller shared-railing height"
+                    parapetTop,
+                    Is.GreaterThan(0.1f),
+                    "removing the shared stub must not remove the outer cliff"
                 );
             }
             finally
@@ -161,6 +160,24 @@ namespace BudgetGameDev.Games.Brocoli.Tests
                 Object.DestroyImmediate(root);
                 Object.DestroyImmediate(host);
             }
+        }
+
+        private static void AssertJoiningSlotsAreOpen(DungeonLayout layout, DungeonEdge edge)
+        {
+            var left = new Vector2Int(edge.X, edge.Y);
+            DungeonPassage passage = layout.PlayablePassage(left, DungeonLayout.East);
+            Assert.That(passage.Open, Is.True);
+            Assert.That(
+                passage.OpeningMask,
+                Is.EqualTo(
+                    layout.PlayablePassage(left + Vector2Int.right, DungeonLayout.West).OpeningMask
+                )
+            );
+            int joins = layout.BoundaryParapetJoinMask(edge);
+            if ((joins & DungeonLayout.RunEndLow) != 0)
+                Assert.That(passage.HasOpening(0), Is.True);
+            if ((joins & DungeonLayout.RunEndHigh) != 0)
+                Assert.That(passage.HasOpening(DungeonLayout.RoomTilesZ - 1), Is.True);
         }
 
         [Test]

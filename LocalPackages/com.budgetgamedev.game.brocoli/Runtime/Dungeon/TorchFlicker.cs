@@ -34,6 +34,9 @@ namespace BudgetGameDev.Games.Brocoli
 
         private void Awake()
         {
+            // Build all particle layers before HDR presentation caches its renderers.
+            if (GetComponent<TorchFireVfx>() == null)
+                gameObject.AddComponent<TorchFireVfx>();
             if (GetComponent<HdrTorchFlamePresentation>() == null)
                 gameObject.AddComponent<HdrTorchFlamePresentation>();
 

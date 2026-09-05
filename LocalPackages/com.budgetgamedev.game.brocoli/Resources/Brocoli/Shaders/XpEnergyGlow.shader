@@ -1,13 +1,5 @@
-// An additive energy glow for experience pickups, in one asset for every pipeline.
-//
-// The two subshaders differ only in how they reach Unity's transforms. The Universal one
-// takes them from URP's own library. The other one declares the engine's built-in
-// constant buffers itself and builds on nothing but the SRP core library, which both
-// Universal and High Definition depend on. That is deliberate: a subshader that included
-// High Definition's headers would fail to compile on a machine without that package
-// installed -- Unity compiles every subshader, not only the one the active pipeline
-// selects -- and would put a permanent error in the console of this Universal-only
-// project. Declaring the bindings by hand costs a few lines and compiles anywhere.
+// Additive pickup glow with native transforms for each rendering pipeline.
+// The shared shading keeps pickup colors and animation consistent.
 Shader "BROcoli/XP Energy Glow"
 {
     Properties
@@ -15,6 +7,7 @@ Shader "BROcoli/XP Energy Glow"
         [HDR] _CoreColor("Core Color", Color) = (0.06, 0.42, 1, 1)
         [HDR] _RimColor("Rim Color", Color) = (0.35, 0.86, 1, 1)
         _Intensity("Intensity", Float) = 1
+        [HideInInspector] _AuthoringWhiteNits("Authoring White Nits", Float) = 200
         _FresnelPower("Fresnel Power", Range(0.25, 12)) = 3
         _FresnelBias("Fresnel Bias", Range(0, 1)) = 0.02
         [Toggle] _FalloffInverted("Falloff Inverted", Float) = 0
@@ -51,39 +44,13 @@ Shader "BROcoli/XP Energy Glow"
             Blend One One
 
             HLSLPROGRAM
-            #pragma target 3.5
+            #pragma target 4.5
             #pragma vertex Vert
             #pragma fragment Frag
 
             #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Common.hlsl"
 
-            // Unity binds these for any pipeline. Their layout matches the engine's, so a
-            // pipeline running the SRP Batcher can still batch this material.
-            CBUFFER_START(UnityPerDraw)
-                float4x4 unity_ObjectToWorld;
-                float4x4 unity_WorldToObject;
-                float4 unity_LODFade;
-                real4 unity_WorldTransformParams;
-            CBUFFER_END
-
-            float4x4 glstate_matrix_projection;
-            float4x4 unity_MatrixV;
-            float4x4 unity_MatrixInvV;
-            float4x4 unity_MatrixVP;
-            float4x4 unity_MatrixPreviousM;
-            float4x4 unity_MatrixPreviousMI;
-            float3 _WorldSpaceCameraPos;
-            float4 _Time;
-
-            #define UNITY_MATRIX_M unity_ObjectToWorld
-            #define UNITY_MATRIX_I_M unity_WorldToObject
-            #define UNITY_MATRIX_V unity_MatrixV
-            #define UNITY_MATRIX_I_V unity_MatrixInvV
-            #define UNITY_MATRIX_P glstate_matrix_projection
-            #define UNITY_MATRIX_VP unity_MatrixVP
-            #define UNITY_PREV_MATRIX_M unity_MatrixPreviousM
-            #define UNITY_PREV_MATRIX_I_M unity_MatrixPreviousMI
-
+            #include "Packages/com.unity.render-pipelines.high-definition/Runtime/ShaderLibrary/ShaderVariables.hlsl"
             #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/SpaceTransforms.hlsl"
             #include "Packages/com.budgetgamedev.game.brocoli/Resources/Brocoli/Shaders/XpEnergyGlow.hlsl"
 
@@ -113,14 +80,16 @@ Shader "BROcoli/XP Energy Glow"
 
             float4 Frag(Varyings input) : SV_Target
             {
-                float3 viewDirectionWS = _WorldSpaceCameraPos - input.positionWS;
+                float3 viewDirectionWS = GetWorldSpaceNormalizeViewDir(input.positionWS);
                 float3 glow = XpGlowShade(
                     input.positionOS,
                     input.normalWS,
                     viewDirectionWS,
                     _Time.y
                 );
-                return float4(glow, 0.0);
+                // Colors are authored in URP scene units. HDRP exposes physical luminance;
+                // convert with the same white reference used by the dungeon's fixed EV.
+                return float4(glow * _AuthoringWhiteNits * GetCurrentExposureMultiplier(), 0.0);
             }
             ENDHLSL
         }

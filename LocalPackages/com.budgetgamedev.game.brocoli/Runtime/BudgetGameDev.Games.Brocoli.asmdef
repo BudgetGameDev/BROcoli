@@ -2,7 +2,6 @@
   "name": "BudgetGameDev.Games.Brocoli",
   "rootNamespace": "BudgetGameDev.Games.Brocoli",
   "references": [
-    "BudgetGameDev.Hub",
     "BudgetGameDev.Shared",
     "Unity.AI.Navigation",
     "Unity.InputSystem",

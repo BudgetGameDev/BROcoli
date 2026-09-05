@@ -21,7 +21,7 @@ VERSION_FILE="$PROJECT_PATH/ProjectSettings/ProjectVersion.txt"
 # tooling rather than game code, test assemblies are the measuring instrument
 # rather than the code under measurement, and everything outside
 # BudgetGameDev.* belongs to Unity or a third party this project does not own.
-ASSEMBLY_FILTERS='+BudgetGameDev.Shared,+BudgetGameDev.Hub,+BudgetGameDev.Games.Brocoli'
+ASSEMBLY_FILTERS='+BudgetGameDev.Shared,+BudgetGameDev.Hub,+BudgetGameDev.Games.Brocoli,+BudgetGameDev.Autoplay,+BudgetGameDev.Autoplay.Brocoli'
 
 if [ "$#" -ne 0 ]; then
     echo "Usage: ./scripts/unity-coverage-check.sh" >&2

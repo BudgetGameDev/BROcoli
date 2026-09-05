@@ -1,11 +1,25 @@
 {
   "dependencies": {
+    "com.budgetgamedev.autoplay": {
+      "version": "file:../LocalPackages/com.budgetgamedev.autoplay",
+      "depth": 0,
+      "source": "local",
+      "dependencies": {}
+    },
+    "com.budgetgamedev.autoplay.brocoli": {
+      "version": "file:../LocalPackages/com.budgetgamedev.autoplay.brocoli",
+      "depth": 0,
+      "source": "local",
+      "dependencies": {
+        "com.budgetgamedev.autoplay": "0.1.0",
+        "com.budgetgamedev.game.brocoli": "0.1.0"
+      }
+    },
     "com.budgetgamedev.game.brocoli": {
       "version": "file:../LocalPackages/com.budgetgamedev.game.brocoli",
       "depth": 0,
       "source": "local",
       "dependencies": {
-        "com.budgetgamedev.hub": "0.1.0",
         "com.budgetgamedev.shared": "0.1.0",
         "com.unity.ai.navigation": "2.0.9",
         "com.unity.inputsystem": "1.18.0",

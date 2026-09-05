@@ -1,0 +1,17 @@
+{
+  "name": "BudgetGameDev.Autoplay",
+  "rootNamespace": "BudgetGameDev.Autoplay",
+  "references": [],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [
+    "UNITY_EDITOR || DEVELOPMENT_BUILD",
+    "UNITY_EDITOR || GAME_AUTOPLAY"
+  ],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

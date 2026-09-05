@@ -111,18 +111,18 @@ namespace BudgetGameDev.Games.Brocoli
                 spawned.Add(enemy);
             }
 
-            AutoplayScalingLog.Record(
-                new ScalingSample(
-                    ring,
-                    power,
-                    depthScale,
-                    healthPowerScale,
-                    damageScale,
-                    countScale,
-                    speedScale,
-                    spawned.Count
-                )
+#if UNITY_EDITOR || (DEVELOPMENT_BUILD && GAME_AUTOPLAY)
+            GameplayDiagnostics.RoomSpawned?.Invoke(
+                ring,
+                power,
+                depthScale,
+                healthPowerScale,
+                damageScale,
+                countScale,
+                speedScale,
+                spawned.Count
             );
+#endif
             return spawned;
         }
 

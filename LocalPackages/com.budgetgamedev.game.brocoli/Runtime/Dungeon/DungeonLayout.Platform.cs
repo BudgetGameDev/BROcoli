@@ -186,11 +186,11 @@ namespace BudgetGameDev.Games.Brocoli
             // slot between the grid posts; a broad crossing would leave a wall
             // run standing across the middle of the hall.
             if (IsClusterInternalEdge(edge))
-                return Passage(edge, true);
+                return OpenBoundaryJoiningEnds(edge, Passage(edge, true));
 
             int middle = slots / 2;
             int openingMask = (1 << (middle - 1)) | (1 << middle) | (1 << (middle + 1));
-            return new DungeonPassage(true, openingMask, 0);
+            return OpenBoundaryJoiningEnds(edge, new DungeonPassage(true, openingMask, 0));
         }
 
         /// <summary>

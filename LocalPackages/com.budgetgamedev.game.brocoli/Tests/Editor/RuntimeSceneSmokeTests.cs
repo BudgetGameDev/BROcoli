@@ -120,6 +120,38 @@ namespace BudgetGameDev.Games.Brocoli.Tests
 
         private static void ExerciseDungeon(PlayerStats stats, List<EnemyBase> enemies)
         {
+            var torches = Object.FindObjectsByType<TorchFlicker>(FindObjectsSortMode.None);
+            Assert.That(
+                Camera
+                    .main.GetComponent<UnityEngine.Rendering.Universal.UniversalAdditionalCameraData>()
+                    .requiresDepthTexture,
+                Is.True,
+                "Gameplay must supply the depth texture used by fire."
+            );
+            Assert.That(torches.Length, Is.GreaterThan(0), "The running dungeon must place fire.");
+            foreach (var torch in torches)
+            {
+                var fire = torch.GetComponent<TorchFireVfx>();
+                Assert.That(fire, Is.Not.Null, "Real prefab Awake must install the fire.");
+                int layers = 0;
+                foreach (var particles in fire.GetComponentsInChildren<ParticleSystem>())
+                {
+                    var renderer = particles.GetComponent<ParticleSystemRenderer>();
+                    if (!renderer.enabled)
+                        continue;
+                    layers++;
+                    Assert.That(
+                        renderer.sharedMaterial.shader.name,
+                        Is.EqualTo(Rendering.BrocoliShaders.TorchFire)
+                    );
+                    Assert.That(
+                        particles.isPlaying,
+                        Is.True,
+                        "Real gameplay must start every fire layer."
+                    );
+                }
+                Assert.That(layers, Is.EqualTo(4));
+            }
             ExerciseVirtualController();
             ExerciseShuffleWalkVisual(stats);
             ExercisePlayerMovement(stats);

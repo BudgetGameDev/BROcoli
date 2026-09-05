@@ -19,31 +19,17 @@ references a game's code or scenes directly.
 Because discovery is a Resources scan, dropping the package from
 `Packages/manifest.json` removes the game from the launcher with no other edit.
 
-## Booting straight into a game
+## Release content
 
-`LauncherConfig.txt` at the project root — beside `.env` — is a committed,
-line-based config read when the launcher opens. With every setting commented out
-— the default — the launcher shows its game list.
+Build `python scripts/release-build.py --product launcher --targets windows` to
+ship this launcher with all installed game packages. The launcher always shows
+its game list. For a standalone game, use `--product <game-id>`; the hub package
+is absent before Unity imports or compiles the release project.
 
-```
-startupScene = Brocoli_Dungeon
-```
-
-opens that scene instead, once, the first time the launcher opens in a run. Use it
-for a single-game build or to skip the picker while iterating on one game. Leaving
-the game still returns to the list, so the other games stay reachable.
-
-The value is a scene name, and the scene must be in the build. A misspelled or
-removed name is reported and ignored rather than obeyed, so a stale config can
-never leave a build unable to open. When a registered game declares the scene,
-that game's configuration is applied first, so it starts exactly as if it had been
-picked by hand. The file documents its own settings; see it for the full contract.
-
-Nothing outside `Assets/` reaches a player, so an editor script mirrors the root
-file into `Assets/Generated/Resources/` (git-ignored) and the launcher reads that
-copy. The mirror is regenerated on editor load, on entering play mode, and before
-every build, so the root file stays the only one worth editing. `Budget GameDev >
-Sync Launcher Config` forces it by hand.
+The shared package owns GameDefinition, GameCatalog and GameSession contracts,
+so games do not depend on this UI package. Show the return-to-launcher button
+only when `GameSession.LauncherAvailable` is true. The previous default startup
+game config has been removed.
 
 ## Flow
 

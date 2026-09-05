@@ -58,6 +58,7 @@ namespace BudgetGameDev.Games.Brocoli
             // the launcher rather than a quit that strands the player.
             launcherButton = CreateButton("LauncherButton", card, "ALL GAMES");
             launcherButton.onClick.AddListener(GameSession.ReturnToLauncher);
+            launcherButton.gameObject.SetActive(GameSession.LauncherAvailable);
 
             mainButtons = new[]
             {

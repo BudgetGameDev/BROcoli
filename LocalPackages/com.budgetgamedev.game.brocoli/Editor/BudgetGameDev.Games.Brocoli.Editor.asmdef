@@ -3,11 +3,12 @@
   "rootNamespace": "BudgetGameDev.Games.Brocoli.Editor",
   "references": [
     "BudgetGameDev.Games.Brocoli",
-    "BudgetGameDev.Hub",
-    "BudgetGameDev.Hub.Editor",
-    "BudgetGameDev.Shared"
+    "BudgetGameDev.Shared",
+    "BudgetGameDev.Shared.Editor"
   ],
-  "includePlatforms": ["Editor"],
+  "includePlatforms": [
+    "Editor"
+  ],
   "excludePlatforms": [],
   "allowUnsafeCode": false,
   "overrideReferences": false,

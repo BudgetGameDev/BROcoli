@@ -163,7 +163,10 @@ namespace BudgetGameDev.Games.Brocoli
         )
         {
             hasSpawnedChildren = true;
-            AutoplayFeatureLog.Record(AutoplayFeatures.HydraSplit);
+
+#if UNITY_EDITOR || (DEVELOPMENT_BUILD && GAME_AUTOPLAY)
+            GameplayDiagnostics.Record("combat.hydra-split");
+#endif
             const int childrenToSpawn = 2;
             for (int i = 0; i < childrenToSpawn; i++)
             {

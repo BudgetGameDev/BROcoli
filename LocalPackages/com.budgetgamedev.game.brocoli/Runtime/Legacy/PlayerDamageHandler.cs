@@ -105,7 +105,9 @@ namespace BudgetGameDev.Games.Brocoli
         /// </summary>
         private void TriggerDamageFeedback(float damage, Vector2 knockbackDirection)
         {
-            AutoplayFeatureLog.Record(AutoplayFeatures.DamageTaken);
+#if UNITY_EDITOR || (DEVELOPMENT_BUILD && GAME_AUTOPLAY)
+            GameplayDiagnostics.Record("combat.damage-taken");
+#endif
             float intensity = CalculateDamageIntensity(damage);
 
             // Scaled knockback - additive impulse, player keeps control
@@ -137,9 +139,14 @@ namespace BudgetGameDev.Games.Brocoli
         /// Apply melee damage to the player with knockback.
         /// Called by enemy attack animations when strike lands.
         /// </summary>
-        public bool TakeMeleeDamage(float damage, Vector2 knockbackDirection)
+        public bool TakeMeleeDamage(float damage, Vector2 knockbackDirection) =>
+            TakeDamage(damage, knockbackDirection, false);
+
+        public bool TakeProjectileDamage(float damage) => TakeDamage(damage, Vector2.zero, true);
+
+        private bool TakeDamage(float damage, Vector2 knockbackDirection, bool projectile)
         {
-            if (_gameOver)
+            if (_gameOver || damage <= 0f)
                 return false;
 
             // Check damage immunity window to prevent rapid multiple hits
@@ -152,7 +159,12 @@ namespace BudgetGameDev.Games.Brocoli
             // A lethal hit gets only the dedicated defeat cue, not the inherited
             // damage sound immediately before it.
             if (!WillDamageBeFatal(damage))
-                _audioHandler?.PlayDamageSound();
+            {
+                if (projectile)
+                    _audioHandler?.PlayCollisionSound();
+                else
+                    _audioHandler?.PlayDamageSound();
+            }
 
             // Apply damage to stats
             _playerStats?.ApplyDamage(damage);
@@ -191,13 +203,7 @@ namespace BudgetGameDev.Games.Brocoli
             EnemyBase enemy = other.GetComponent<EnemyBase>();
             float damage = enemy?.Damage ?? 0f;
 
-            if (!WillDamageBeFatal(damage))
-                _audioHandler?.PlayCollisionSound();
-
-            // Apply damage and feedback for projectiles
-            _playerStats?.ApplyDamage(damage);
-            TriggerDamageFeedback(damage, Vector2.zero);
-            CheckForDeath();
+            TakeProjectileDamage(damage);
         }
 
         /// <summary>

@@ -4,6 +4,12 @@ namespace BudgetGameDev.Games.Brocoli
 {
     public partial class UpgradeOption
     {
+        // Sustain should buy recovery between encounters without erasing every hit.
+        // The three-seed balance sweep averaged 94–99% health with the old 1 HP/s
+        // and 2% lifesteal rewards, despite occasional burst deaths.
+        internal const float RegenerationReward = 0.2f;
+        internal const float LifeStealReward = 1f;
+
         internal static void SetStatAmount(UpgradeOption option, float rarityMult)
         {
             switch (option.Type)
@@ -42,10 +48,10 @@ namespace BudgetGameDev.Games.Brocoli
                     option.Amount = 3f * rarityMult;
                     break;
                 case StatType.HealthRegen:
-                    option.Amount = 1f * rarityMult;
+                    option.Amount = RegenerationReward * rarityMult;
                     break;
                 case StatType.LifeSteal:
-                    option.Amount = 2f * rarityMult;
+                    option.Amount = LifeStealReward * rarityMult;
                     break;
             }
         }
@@ -65,8 +71,8 @@ namespace BudgetGameDev.Games.Brocoli
                 StatType.CritDamage => 0.15f * mult,
                 StatType.Dodge => 2f * mult,
                 StatType.Armor => 3f * mult,
-                StatType.HealthRegen => 1f * mult,
-                StatType.LifeSteal => 2f * mult,
+                StatType.HealthRegen => RegenerationReward * mult,
+                StatType.LifeSteal => LifeStealReward * mult,
                 _ => 1f * mult,
             };
         }

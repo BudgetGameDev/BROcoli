@@ -161,11 +161,30 @@ namespace BudgetGameDev.Shared.Tests
         [Test]
         public void StartWiresTheActionsAndSettlesTheOnScreenController()
         {
-            // A desktop editor is not mobile, so the platform report is the only
-            // line Start writes and no on-screen controller is looked for.
+            // Touch hardware and the Device Simulator can make an Editor mobile.
+            // Supply the controller Start owns, then assert the actual platform decision.
+            bool isMobile = InputManager.IncludeEditorMobileSimulation(
+                InputManager.IsMobileDevice(
+                    Application.platform,
+                    SystemInfo.deviceType,
+                    Input.touchSupported
+                ),
+                UnityEngine.Device.SystemInfo.deviceType,
+                Input.touchSupported
+            );
+            var controllerHost = new GameObject("Start fixture virtual controller");
+            controllerHost.transform.SetParent(host.transform);
+            controllerHost.SetActive(false);
+            controllerHost.AddComponent<VirtualController>();
             LogAssert.Expect(LogType.Log, new Regex(Regex.Escape("[InputManager] Platform:")));
+            if (isMobile)
+                LogAssert.Expect(
+                    LogType.Log,
+                    "[InputManager] VirtualController found and activated. Active: True"
+                );
 
             manager.Start();
+            Assert.That(controllerHost.activeSelf, Is.EqualTo(isMobile));
 
             int started = 0;
             manager.OnUP += axis => started++;

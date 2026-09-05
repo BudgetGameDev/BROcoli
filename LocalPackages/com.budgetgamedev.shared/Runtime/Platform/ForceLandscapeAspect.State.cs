@@ -37,6 +37,11 @@ namespace BudgetGameDev.Shared
         /// </summary>
         internal static Func<bool> IsEditorPlayer = () => Application.isEditor;
 
+#if UNITY_EDITOR || (DEVELOPMENT_BUILD && GAME_AUTOPLAY)
+        /// <summary>Lets development automation keep running when its window loses focus.</summary>
+        public static bool SuppressFocusLossPause { get; set; }
+#endif
+
         /// <summary>
         /// Clears every static this type owns. Statics survive a play session when
         /// domain reloading is off, so the next run - and each test - has to start
@@ -49,6 +54,9 @@ namespace BudgetGameDev.Shared
             KeepAcrossScenes = UnityEngine.Object.DontDestroyOnLoad;
             FindPauseController = PauseControllerLocator.Find;
             IsEditorPlayer = () => Application.isEditor;
+#if UNITY_EDITOR || (DEVELOPMENT_BUILD && GAME_AUTOPLAY)
+            SuppressFocusLossPause = false;
+#endif
             _initialized = false;
             _isPortrait = false;
             _isFocusLost = false;

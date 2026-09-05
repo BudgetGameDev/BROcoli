@@ -29,6 +29,38 @@ namespace BudgetGameDev.Shared.Tests
             );
         }
 
+        [TestCase(false, false)]
+        [TestCase(false, true)]
+        [TestCase(true, false)]
+        [TestCase(true, true)]
+        public void NativeFocusEventsRespectDevelopmentSuppression(bool suppressed, bool focused)
+        {
+            TestPauseController pause = NewPauseMenu();
+            ForceLandscapeAspect.SuppressFocusLossPause = suppressed;
+            ForceLandscapeAspect.AspectRatioUpdater updater = NewUpdater();
+            updater.OnApplicationFocus(focused);
+            Assert.That(pause.PauseCalls, Is.EqualTo(!suppressed && !focused ? 1 : 0));
+            Assert.That(ForceLandscapeAspect._isFocusLost, Is.EqualTo(!suppressed && !focused));
+        }
+
+        [Test]
+        public void SuppressionPreservesManualPauseAndEndingItRestoresFocusPause()
+        {
+            TestPauseController pause = NewPauseMenu();
+            pause.Pause();
+            Time.timeScale = 0f;
+            ForceLandscapeAspect.SuppressFocusLossPause = true;
+            ForceLandscapeAspect.OnFocusLost();
+            ForceLandscapeAspect.OnFocusRegained();
+            Assert.That(pause.IsPaused, Is.True);
+            Assert.That(pause.PauseCalls, Is.EqualTo(1));
+            Assert.That(pause.ResumeCalls, Is.Zero);
+            Assert.That(Time.timeScale, Is.Zero);
+            ForceLandscapeAspect.SuppressFocusLossPause = false;
+            ForceLandscapeAspect.OnFocusLost();
+            Assert.That(pause.PauseCalls, Is.EqualTo(2));
+        }
+
         [Test]
         public void LosingFocusOutsideGameplayLeavesTheMenuRunning()
         {
@@ -116,6 +148,21 @@ namespace BudgetGameDev.Shared.Tests
             Assert.That(clearer.backgroundColor, Is.EqualTo(Color.black));
             Assert.That(clearer.cullingMask, Is.EqualTo(0), "it draws nothing but the bars");
             Assert.That(clearer.rect, Is.EqualTo(new Rect(0f, 0f, 1f, 1f)));
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void StartupWithoutFocusRespectsDevelopmentSuppression(bool suppressed)
+        {
+            ForceLandscapeAspect.CheckForScreenChange();
+            ForceLandscapeAspect.SuppressFocusLossPause = suppressed;
+            ForceLandscapeAspect.AspectRatioUpdater updater = NewUpdater();
+            TestPauseController pause = NewPauseMenu();
+            updater.Tick(false);
+            updater.OnApplicationFocus(true);
+            updater.OnApplicationFocus(false);
+            Assert.That(pause.PauseCalls, Is.EqualTo(suppressed ? 0 : 2));
+            Assert.That(ForceLandscapeAspect._isFocusLost, Is.EqualTo(!suppressed));
         }
 
         [Test]

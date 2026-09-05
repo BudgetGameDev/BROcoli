@@ -136,16 +136,12 @@ namespace BudgetGameDev.Games.Brocoli
             // Check if hit player
             if (other.CompareTag("Player"))
             {
-                PlayerStats stats = other.GetComponentInChildren<PlayerStats>();
-
-                stats.ApplyDamage(damage);
-
-                // Play enemy projectile hit sound
-                ProceduralEnemyProjectileHitAudio.PlayHit(
-                    transform.position,
-                    ProceduralEnemyProjectileHitAudio.EnemyHitSoundType.PlasmaImpact,
-                    0.45f
-                );
+                if (DamagePlayer(other, damage))
+                    ProceduralEnemyProjectileHitAudio.PlayHit(
+                        transform.position,
+                        ProceduralEnemyProjectileHitAudio.EnemyHitSoundType.PlasmaImpact,
+                        0.45f
+                    );
 
                 Despawn();
             }
@@ -154,6 +150,19 @@ namespace BudgetGameDev.Games.Brocoli
             {
                 DespawnOnWall();
             }
+        }
+
+        internal static bool DamagePlayer(Collider player, float amount)
+        {
+            var handler = player.GetComponentInParent<PlayerDamageHandler>(true);
+            if (handler != null)
+                return handler.TakeProjectileDamage(amount);
+            // Isolated targets without a controller still receive damage (e.g. test dummies).
+            var stats = player.GetComponentInChildren<PlayerStats>();
+            if (stats == null || !stats.IsAlive)
+                return false;
+            stats.ApplyDamage(amount);
+            return true;
         }
 
         private void DespawnOnWall()

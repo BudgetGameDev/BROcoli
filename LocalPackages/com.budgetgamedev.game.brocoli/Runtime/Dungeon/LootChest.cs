@@ -83,7 +83,10 @@ namespace BudgetGameDev.Games.Brocoli
 
             opened = true;
             Standing.Remove(this);
-            AutoplayFeatureLog.Record(AutoplayFeatures.ChestOpened);
+
+#if UNITY_EDITOR || (DEVELOPMENT_BUILD && GAME_AUTOPLAY)
+            GameplayDiagnostics.Record("dungeon.chest-opened");
+#endif
             Opened?.Invoke();
 
             foreach (Collider chestCollider in GetComponentsInChildren<Collider>())

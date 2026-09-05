@@ -4,14 +4,8 @@ using UnityEngine;
 namespace BudgetGameDev.Games.Brocoli
 {
     /// <summary>
-    /// Authors the experience orb's glow against the display it is actually shown on, and drives
-    /// the part of the effect that belongs to one orb rather than to all of them.
-    ///
-    /// The look is split in two on purpose. Colour is the same for every orb in the dungeon, so
-    /// it lives on the shared materials and is re-solved only when the calibration changes.
-    /// Intensity follows the magnet pull, which differs per orb, so it goes through a property
-    /// block -- and only while an orb is actually being pulled, so an idle floor full of orbs
-    /// costs nothing.
+    /// Calibrates glow colors for XP and boost pickups and brightens them during magnet pull.
+    /// Each pickup kind shares its materials; only attraction intensity varies per instance.
     /// </summary>
     [DisallowMultipleComponent]
     internal sealed class XpGlowPresentation : MonoBehaviour
@@ -74,14 +68,13 @@ namespace BudgetGameDev.Games.Brocoli
 
         private void OnEnable()
         {
-            GameDisplaySettings.ValuesChanged += ApplyDisplayColors;
-            ApplyDisplayColors();
+            // A pooled pickup may have been disabled while it was still being attracted.
+            // Clear the old override immediately, even before the next animation update.
+            if (glowRenderers != null)
+                foreach (MeshRenderer renderer in glowRenderers)
+                    if (renderer != null)
+                        renderer.SetPropertyBlock(null);
             appliedIntensity = 1f;
-        }
-
-        private void OnDisable()
-        {
-            GameDisplaySettings.ValuesChanged -= ApplyDisplayColors;
         }
 
         private void LateUpdate()
@@ -115,25 +108,14 @@ namespace BudgetGameDev.Games.Brocoli
         internal static float IntensityForAttraction(float attractionBlend) =>
             1f + Mathf.Clamp01(attractionBlend) * AttractionIntensityGain;
 
-        /// <summary>
-        /// Re-solves both shells against the current display. Idempotent, and every orb calls it,
-        /// which is what keeps an orb spawned after a calibration change from being authored for
-        /// the display the game started on.
-        /// </summary>
-        internal static void ApplyDisplayColors()
+        internal static void ApplyShellColors(
+            Material material,
+            PickupVisual3D.GlowShell shell,
+            PickupVisual3D.ModelKind kind
+        )
         {
             bool hdrActive = GameDisplaySettings.HdrEnabled && GameDisplaySettings.IsHdrActive;
-            ApplyShellColors(PickupVisual3D.GlowShell.Core, hdrActive);
-            ApplyShellColors(PickupVisual3D.GlowShell.Halo, hdrActive);
-        }
-
-        private static void ApplyShellColors(PickupVisual3D.GlowShell shell, bool hdrActive)
-        {
-            Material material = PickupVisual3D.GetGlowMaterial(shell);
-            if (material == null)
-                return;
-
-            (Color core, Color rim) = ShellColors(shell, hdrActive);
+            (Color core, Color rim) = ShellColors(shell, hdrActive, kind);
             material.SetColor(CoreColorId, core);
             material.SetColor(RimColorId, rim);
             material.SetFloat(IntensityId, 1f);
@@ -148,21 +130,30 @@ namespace BudgetGameDev.Games.Brocoli
         /// </summary>
         internal static (Color core, Color rim) ShellColors(
             PickupVisual3D.GlowShell shell,
-            bool hdrActive
+            bool hdrActive,
+            PickupVisual3D.ModelKind kind = PickupVisual3D.ModelKind.Experience
         )
         {
             bool isCoreShell = shell == PickupVisual3D.GlowShell.Core;
+            Color coreHue = CoreHue;
+            Color rimHue = RimHue;
+            if (kind != PickupVisual3D.ModelKind.Experience)
+            {
+                (_, Color accent, _) = PickupVisual3D.GetPalette(kind);
+                coreHue = accent;
+                rimHue = Color.Lerp(accent, Color.white, 0.18f);
+            }
 
             if (!hdrActive)
             {
                 return (
-                    Opaque(CoreHue * (isCoreShell ? SdrCoreShellCore : SdrHaloShellCore)),
-                    Opaque(RimHue * (isCoreShell ? SdrCoreShellRim : SdrHaloShellRim))
+                    Opaque(coreHue * (isCoreShell ? SdrCoreShellCore : SdrHaloShellCore)),
+                    Opaque(rimHue * (isCoreShell ? SdrCoreShellRim : SdrHaloShellRim))
                 );
             }
 
-            Color rimPeak = GameDisplaySettings.HdrSceneColorAtPeakBrightness(RimHue);
-            Color corePeak = GameDisplaySettings.HdrSceneColorAtPeakBrightness(CoreHue);
+            Color rimPeak = GameDisplaySettings.HdrSceneColorAtPeakBrightness(rimHue);
+            Color corePeak = GameDisplaySettings.HdrSceneColorAtPeakBrightness(coreHue);
             return (
                 Opaque(corePeak * (isCoreShell ? CoreShellCoreFraction : HaloShellCoreFraction)),
                 Opaque(rimPeak * (isCoreShell ? CoreShellRimFraction : HaloShellRimFraction))

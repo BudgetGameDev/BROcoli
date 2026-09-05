@@ -19,7 +19,7 @@ namespace BudgetGameDev.Hub
         /// </summary>
         /// <remarks>
         /// Sampling the devices and deciding what the sample means are kept apart,
-        /// the way <see cref="LauncherStartup.Resolve"/> takes build membership as a
+        /// the way the scene resolver takes build membership as a
         /// parameter rather than reading it. Everything worth getting wrong -- which
         /// way the highlight moves, when a held direction repeats, whether a press
         /// starts a game -- then follows from plain values.

@@ -146,45 +146,30 @@ namespace BudgetGameDev.Games.Brocoli
                     break;
 
                 case ModelKind.Magnet:
-                    AddBox(
+                    CreatePart(
                         face,
-                        "Magnet Bridge",
-                        new Vector3(0f, -0.2f, faceDepth),
-                        new Vector3(0.5f, 0.13f, 0.085f),
-                        0f,
+                        "Magnet Horseshoe",
+                        GetMagnetMesh(),
+                        new Vector3(0f, 0f, faceDepth),
+                        Quaternion.identity,
+                        Vector3.one,
                         accentColor
-                    );
-                    AddBox(
-                        face,
-                        "Magnet Left",
-                        new Vector3(-0.19f, 0f, faceDepth),
-                        new Vector3(0.13f, 0.42f, 0.085f),
-                        0f,
-                        accentColor
-                    );
-                    AddBox(
-                        face,
-                        "Magnet Right",
-                        new Vector3(0.19f, 0f, faceDepth),
-                        new Vector3(0.13f, 0.42f, 0.085f),
-                        0f,
-                        symbolColor
                     );
                     AddBox(
                         face,
                         "Magnet Left Tip",
-                        new Vector3(-0.19f, 0.25f, faceDepth - 0.01f),
-                        new Vector3(0.15f, 0.12f, 0.095f),
+                        new Vector3(-0.18f, 0.195f, faceDepth),
+                        new Vector3(0.13f, 0.11f, 0.09f),
                         0f,
                         symbolColor
                     );
                     AddBox(
                         face,
                         "Magnet Right Tip",
-                        new Vector3(0.19f, 0.25f, faceDepth - 0.01f),
-                        new Vector3(0.15f, 0.12f, 0.095f),
+                        new Vector3(0.18f, 0.195f, faceDepth),
+                        new Vector3(0.13f, 0.11f, 0.09f),
                         0f,
-                        Color.white
+                        symbolColor
                     );
                     break;
 

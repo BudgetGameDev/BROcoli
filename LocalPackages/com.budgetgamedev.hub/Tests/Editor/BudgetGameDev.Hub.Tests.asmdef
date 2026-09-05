@@ -5,18 +5,26 @@
     "BudgetGameDev.Hub",
     "BudgetGameDev.Hub.Editor",
     "BudgetGameDev.Shared",
+    "Unity.RenderPipelines.Core.Runtime",
     "Unity.InputSystem",
     "UnityEngine.UI",
     "UnityEngine.TestRunner",
-    "UnityEditor.TestRunner"
+    "UnityEditor.TestRunner",
+    "BudgetGameDev.Shared.Editor"
   ],
-  "includePlatforms": ["Editor"],
+  "includePlatforms": [
+    "Editor"
+  ],
   "excludePlatforms": [],
   "allowUnsafeCode": false,
   "overrideReferences": true,
-  "precompiledReferences": ["nunit.framework.dll"],
+  "precompiledReferences": [
+    "nunit.framework.dll"
+  ],
   "autoReferenced": false,
-  "defineConstraints": ["UNITY_INCLUDE_TESTS"],
+  "defineConstraints": [
+    "UNITY_INCLUDE_TESTS"
+  ],
   "versionDefines": [],
   "noEngineReferences": false
 }

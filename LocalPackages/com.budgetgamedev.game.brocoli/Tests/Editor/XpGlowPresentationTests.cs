@@ -83,8 +83,8 @@ namespace BudgetGameDev.Games.Brocoli.Tests
                     + "XpEnergyGlow.shader"
             );
 
-            int passes = System.Text.RegularExpressions.Regex
-                .Matches(source, @"Name\s+""XpEnergyGlow""")
+            int passes = System
+                .Text.RegularExpressions.Regex.Matches(source, @"Name\s+""XpEnergyGlow""")
                 .Count;
             Assert.That(
                 passes,
@@ -101,12 +101,6 @@ namespace BudgetGameDev.Games.Brocoli.Tests
             );
             Assert.That(source, Does.Contain("\"RenderPipeline\" = \"UniversalPipeline\""));
             Assert.That(source, Does.Contain("\"RenderPipeline\" = \"HDRenderPipeline\""));
-            Assert.That(
-                source,
-                Does.Not.Contain("com.unity.render-pipelines.high-definition"),
-                "including High Definition's headers would fail to compile in this project, "
-                    + "which does not have that package"
-            );
         }
 
         [Test]
@@ -130,11 +124,13 @@ namespace BudgetGameDev.Games.Brocoli.Tests
             {
                 PickupVisual3D.AttachExperience(pickup);
 
-                foreach (string shellName in new[]
-                {
-                    PickupVisual3D.GlowCoreName,
-                    PickupVisual3D.GlowHaloName,
-                })
+                foreach (
+                    string shellName in new[]
+                    {
+                        PickupVisual3D.GlowCoreName,
+                        PickupVisual3D.GlowHaloName,
+                    }
+                )
                 {
                     Transform shell = FindChild(pickup.transform, shellName);
                     Mesh mesh = shell.GetComponent<MeshFilter>().sharedMesh;
@@ -221,7 +217,9 @@ namespace BudgetGameDev.Games.Brocoli.Tests
         }
 
         [Test]
-        public void UnderHdrTheShellsAreSolvedAgainstTheCalibrationRatherThanGuessed()
+        public void UnderHdrTheShellsAreSolvedAgainstTheCalibrationRatherThanGuessed(
+            [Values] PickupVisual3D.ModelKind kind
+        )
         {
             float peak = GameDisplaySettings.PeakBrightnessNits;
             try
@@ -229,13 +227,15 @@ namespace BudgetGameDev.Games.Brocoli.Tests
                 GameDisplaySettings.SetPeakBrightness(1000f);
                 (_, Color brightRim) = XpGlowPresentation.ShellColors(
                     PickupVisual3D.GlowShell.Core,
-                    true
+                    true,
+                    kind
                 );
 
                 GameDisplaySettings.SetPeakBrightness(400f);
                 (_, Color dimRim) = XpGlowPresentation.ShellColors(
                     PickupVisual3D.GlowShell.Core,
-                    true
+                    true,
+                    kind
                 );
 
                 Assert.That(
@@ -257,10 +257,7 @@ namespace BudgetGameDev.Games.Brocoli.Tests
         public void TheOrbBurnsBrighterWhileTheMagnetHasHoldOfIt()
         {
             Assert.That(XpGlowPresentation.IntensityForAttraction(0f), Is.EqualTo(1f));
-            Assert.That(
-                XpGlowPresentation.IntensityForAttraction(1f),
-                Is.GreaterThan(1.5f)
-            );
+            Assert.That(XpGlowPresentation.IntensityForAttraction(1f), Is.GreaterThan(1.5f));
             Assert.That(
                 XpGlowPresentation.IntensityForAttraction(0.5f),
                 Is.GreaterThan(XpGlowPresentation.IntensityForAttraction(0f))
@@ -273,7 +270,7 @@ namespace BudgetGameDev.Games.Brocoli.Tests
         }
 
         [Test]
-        public void ABoostPickupIsLeftAlone()
+        public void EveryBoostHasItsOwnColoredRimAndHalo([Values] PickupVisual3D.ModelKind kind)
         {
             GameObject pickup = new("Boost");
             try
@@ -285,10 +282,48 @@ namespace BudgetGameDev.Games.Brocoli.Tests
                         System.Reflection.BindingFlags.Instance
                             | System.Reflection.BindingFlags.NonPublic
                     )
-                    .Invoke(visual, new object[] { PickupVisual3D.ModelKind.Health });
+                    .Invoke(visual, new object[] { kind });
 
-                Assert.That(FindChild(pickup.transform, PickupVisual3D.GlowCoreName), Is.Null);
-                Assert.That(pickup.GetComponent<XpGlowPresentation>(), Is.Null);
+                Transform core = FindChild(pickup.transform, PickupVisual3D.GlowCoreName);
+                Transform halo = FindChild(pickup.transform, PickupVisual3D.GlowHaloName);
+                Assert.That(core, Is.Not.Null);
+                Assert.That(halo, Is.Not.Null);
+                Assert.That(pickup.GetComponent<XpGlowPresentation>(), Is.Not.Null);
+                Assert.That(pickup.GetComponentsInChildren<Light>(), Is.Empty);
+                Material material = core.GetComponent<MeshRenderer>().sharedMaterial;
+                Assert.That(
+                    material,
+                    Is.SameAs(PickupVisual3D.GetGlowMaterial(PickupVisual3D.GlowShell.Core, kind))
+                );
+                if (kind != PickupVisual3D.ModelKind.Experience)
+                {
+                    Assert.That(core.parent.name, Is.EqualTo("Token Face"));
+                    Assert.That(
+                        core.GetComponent<MeshFilter>().sharedMesh,
+                        Is.SameAs(
+                            core.parent.Find("Token Rim").GetComponent<MeshFilter>().sharedMesh
+                        )
+                    );
+                    Assert.That(
+                        material,
+                        Is.Not.SameAs(PickupVisual3D.GetGlowMaterial(PickupVisual3D.GlowShell.Core))
+                    );
+                    (_, Color accent, _) = PickupVisual3D.GetPalette(kind);
+                    (Color color, Color rim) = XpGlowPresentation.ShellColors(
+                        PickupVisual3D.GlowShell.Core,
+                        false,
+                        kind
+                    );
+                    Assert.That(
+                        color.r / color.maxColorComponent,
+                        Is.EqualTo(accent.r / accent.maxColorComponent).Within(0.001f)
+                    );
+                    Assert.That(
+                        color.g / color.maxColorComponent,
+                        Is.EqualTo(accent.g / accent.maxColorComponent).Within(0.001f)
+                    );
+                    Assert.That(rim.maxColorComponent, Is.GreaterThan(1f));
+                }
             }
             finally
             {

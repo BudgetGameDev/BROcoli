@@ -9,11 +9,13 @@ namespace BudgetGameDev.Games.Brocoli
         /// <summary>Room-local ground-plane position.</summary>
         public readonly Vector2 Local;
         public readonly float Yaw;
+        public readonly float HeightOffset;
 
-        public DungeonWallMount(Vector2 local, float yaw)
+        public DungeonWallMount(Vector2 local, float yaw, float heightOffset = 0f)
         {
             Local = local;
             Yaw = yaw;
+            HeightOffset = heightOffset;
         }
     }
 
@@ -67,14 +69,18 @@ namespace BudgetGameDev.Games.Brocoli
         )
         {
             var mounts = new List<DungeonWallMount>();
-            foreach (DungeonWallMount mount in ShapeTorchMounts(archetype))
+            var preferred = ShapeTorchMounts(archetype);
+            Shuffle(preferred, random);
+            foreach (DungeonWallMount mount in preferred)
             {
                 if (!HasShellWall(mount.Local, shellWallMask))
                     continue;
-                if (!doorways.BlocksDoorway(mount.Local, TorchDoorwayClearance))
+                if (
+                    !doorways.BlocksDoorway(mount.Local, TorchDoorwayClearance)
+                    && IsClearOfMounts(mounts, mount.Local)
+                )
                     mounts.Add(mount);
             }
-            Shuffle(mounts, random);
             if (mounts.Count >= wanted)
                 return mounts;
 

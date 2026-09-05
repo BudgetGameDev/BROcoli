@@ -156,6 +156,8 @@ namespace BudgetGameDev.Games.Brocoli.Tests
                     DungeonLayout.RoomDoorways doorways = block.Layout.Doorways(room);
                     Vector2 center = DungeonLayout.RoomCenter(room);
                     var random = new System.Random(seed);
+                    var railings = new List<DungeonRailingSegment>();
+                    DungeonRoomGeometry.AppendInteriorRailings(railings, room, archetype);
 
                     foreach (
                         DungeonWallMount mount in DungeonWallDressing.TorchMounts(
@@ -172,10 +174,63 @@ namespace BudgetGameDev.Games.Brocoli.Tests
                                 mount.Yaw,
                                 block.Walls,
                                 TorchMountDepth
-                            ),
+                            )
+                                || railings.Exists(railing =>
+                                    Mathf.Abs(
+                                        railing.DistanceTo(center + mount.Local)
+                                            - DungeonRailingSegment.SlabHalfThickness
+                                    ) < TorchMountDepth
+                                ),
                             $"seed {seed}: room {room} ({archetype}) mounts a torch at "
                                 + $"{mount.Local} with no wall behind it"
                         );
+                    }
+                }
+            }
+        }
+
+        [Test]
+        public void CurrentPlatformRoomsHaveLitMountsOnTheirBuiltInteriorMasonry()
+        {
+            foreach (int seed in new[] { 1846759163, 12345, 42, 117074, 221803 })
+            {
+                var layout = new DungeonLayout(seed);
+                foreach (Vector2Int room in SweepRooms())
+                {
+                    if (!layout.IsPlayableRoom(room))
+                        continue;
+                    var archetype = layout.Archetype(room);
+                    var walls = new List<DungeonWallPiece>();
+                    var railings = new List<DungeonRailingSegment>();
+                    DungeonRoomGeometry.AppendInteriorWalls(walls, room, archetype);
+                    DungeonRoomGeometry.AppendInteriorRailings(railings, room, archetype);
+                    // Empty cells of a merged hall have no wall to carry a fitting.
+                    if (walls.Count + railings.Count == 0)
+                        continue;
+                    var mounts = DungeonWallDressing.TorchMounts(
+                        archetype,
+                        layout.PlayableDoorways(room),
+                        4,
+                        layout.RoomRandom(room, 707),
+                        layout.ShellWallMask(room)
+                    );
+                    Assert.That(
+                        mounts.Count,
+                        Is.GreaterThan(0),
+                        $"Actual platform seed {seed}, room {room}, {archetype} has no fire."
+                    );
+                    foreach (var mount in mounts)
+                    {
+                        Assert.That(
+                            layout
+                                .PlayableDoorways(room)
+                                .BlocksDoorway(
+                                    mount.Local,
+                                    DungeonWallDressing.TorchDoorwayClearance
+                                ),
+                            Is.False
+                        );
+                        Assert.That(mount.HeightOffset, Is.InRange(-1.4f, 0.01f));
                     }
                 }
             }

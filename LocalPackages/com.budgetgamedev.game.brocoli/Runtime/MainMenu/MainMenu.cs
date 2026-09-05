@@ -116,7 +116,10 @@ namespace BudgetGameDev.Games.Brocoli
             if (!BrocoliSaveSystem.BeginContinue(slot))
                 return false;
 
-            AutoplayFeatureLog.Record(AutoplayFeatures.MainMenuContinue);
+#if UNITY_EDITOR || (DEVELOPMENT_BUILD && GAME_AUTOPLAY)
+
+            GameplayDiagnostics.Record("menu.continue");
+#endif
             ProceduralUIAudio.PlaySelect();
             loadScene();
             return true;
@@ -142,7 +145,10 @@ namespace BudgetGameDev.Games.Brocoli
                 return false;
             }
 
-            AutoplayFeatureLog.Record(AutoplayFeatures.MainMenuNewGame);
+#if UNITY_EDITOR || (DEVELOPMENT_BUILD && GAME_AUTOPLAY)
+
+            GameplayDiagnostics.Record("menu.new-game");
+#endif
             ProceduralUIAudio.PlaySelect();
             loadScene();
             return true;

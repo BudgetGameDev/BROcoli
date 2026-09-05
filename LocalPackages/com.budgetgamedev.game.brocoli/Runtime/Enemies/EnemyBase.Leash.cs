@@ -21,10 +21,12 @@ namespace BudgetGameDev.Games.Brocoli
 
         /// <summary>How near home counts as home.</summary>
         private const float LeashArrival = 2.5f;
+        internal const float DamageAggroDuration = 5f;
 
         private Vector2 leashHome;
         private bool hasLeashHome;
         private bool pursuing = true;
+        private float damageAggroUntil = float.NegativeInfinity;
 
         /// <summary>
         /// Whether this enemy is still chasing the player rather than walking back to
@@ -44,26 +46,42 @@ namespace BudgetGameDev.Games.Brocoli
             leashHome = home;
             hasLeashHome = true;
             pursuing = true;
+            damageAggroUntil = float.NegativeInfinity;
+        }
+
+        private void AggroFromDamage()
+        {
+            if (!gameObject.activeInHierarchy)
+                return;
+
+            pursuing = true;
+            damageAggroUntil = Time.time + DamageAggroDuration;
+            // Dungeon rooms disable the AI component until entered. A ranged hit must
+            // wake this enemy too; OnEnable resolves its player and spatial-hash entry.
+            enabled = true;
         }
 
         /// <summary>Where this enemy is heading: the player, or back where it started.</summary>
-        protected Vector2 ChaseTarget
+        protected Vector2 ChaseTarget => ResolveChaseTarget(Time.time);
+
+        internal Vector2 ResolveChaseTarget(float now)
         {
-            get
-            {
-                Vector2 playerGround = player != null ? player.position.ToGround() : leashHome;
-                if (!hasLeashHome)
-                    return playerGround;
+            Vector2 playerGround = player != null ? player.position.ToGround() : leashHome;
+            if (!hasLeashHome)
+                return playerGround;
 
-                Vector2 here = rb != null ? rb.GroundPosition() : transform.position.ToGround();
-                float fromHome = Vector2.Distance(here, leashHome);
-                if (pursuing)
-                    pursuing = fromHome <= LeashRadius;
-                else if (Vector2.Distance(here, playerGround) <= ReAggroRadius)
-                    pursuing = true;
+            Vector2 here = rb != null ? rb.GroundPosition() : transform.position.ToGround();
+            float fromHome = Vector2.Distance(here, leashHome);
+            // Being attacked overrides the leash briefly, and repeated hits refresh it.
+            // Keep the original home so disengaging still lets the enemy return there.
+            if (now < damageAggroUntil)
+                pursuing = true;
+            else if (pursuing)
+                pursuing = fromHome <= LeashRadius;
+            else if (Vector2.Distance(here, playerGround) <= ReAggroRadius)
+                pursuing = true;
 
-                return pursuing ? playerGround : leashHome;
-            }
+            return pursuing ? playerGround : leashHome;
         }
 
         /// <summary>Whether a returning enemy has got back to where it belongs.</summary>
@@ -79,6 +97,7 @@ namespace BudgetGameDev.Games.Brocoli
         {
             hasLeashHome = false;
             pursuing = true;
+            damageAggroUntil = float.NegativeInfinity;
         }
     }
 }

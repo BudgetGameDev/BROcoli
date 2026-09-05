@@ -16,21 +16,20 @@ unity install-modules --editor-version "$UNITY_VERSION" \
     --module windows-mono --module linux-mono --yes --accept-eula
 ```
 
-The scripts also require `git`, `ditto`, `zip`, `tar`, and `shasum`. Publishing
-requires an authenticated GitHub CLI (`gh auth login`). Close the Unity Editor
-before starting a multi-target build so one batch Editor can switch platforms
-safely.
+The scripts also require Python 3, `git`, `ditto`, `zip`, `tar`, and `shasum`. Publishing
+requires an authenticated GitHub CLI (`gh auth login`). The source Unity Editor may stay open; each release builds a separate staging
+project with a fresh Library.
 
-Windows has a PowerShell-native Windows-only builder that requires only `unity`
+Windows has a PowerShell-native Windows-only builder that requires `unity`, Python 3,
 and `git`; archive creation and SHA-256 checksums use the installed .NET runtime.
 Windows Mono player support is bundled with the Windows Editor, so install the
-matching editor, then close it before running the build:
+matching editor before running the build:
 
 ```powershell
 $UnityVersion = (Select-String ProjectSettings\ProjectVersion.txt `
     -Pattern '^m_EditorVersion: (.+)$').Matches[0].Groups[1].Value
 unity install $UnityVersion --yes --accept-eula
-.\scripts\native-builds.ps1
+.\scripts\native-builds.ps1 -Product brocoli
 ```
 
 Open the project afterwards in the automated mode expected by the repository's
@@ -39,8 +38,22 @@ live Unity tooling with `.\scripts\unity-open.ps1`.
 ## Build all native players
 
 ```bash
-./scripts/native-builds.sh
+./scripts/native-builds.sh --product brocoli
 ```
+
+Native builds default to URP on every desktop platform. To explicitly build HDRP,
+use `.\scripts\native-builds.ps1 -Product brocoli -RenderPipeline hdrp` on Windows or
+`./scripts/native-builds.sh --product brocoli --targets windows --pipeline hdrp`. Direct Unity build
+entry points accept `-renderPipeline urp|hdrp`. Windows HDR10 output works with
+either rendering pipeline.
+
+Builds include common scenes and only the selected pipeline's rendering scenes.
+Incompatible quality tiers are excluded for the build and the authored settings
+are restored afterwards. URP player compilation excludes the game's HDRP front end;
+the HDRP runtime DLLs are filtered from the player. The HDRP package remains
+installed for editing and explicit HDRP builds, so Unity can still import or compile
+its package scripts. Shader log entries with zero remaining variants do not add
+compiled HDRP shader programs to the player.
 
 Use `--development` only for local diagnostics. The build script produces and
 packages:
@@ -50,7 +63,7 @@ packages:
 - `BROcoli-linux-x86_64.tar.gz`
 - `SHA256SUMS` and `build-info.txt`
 
-Artifacts are written under `build/native/artifacts/`. The macOS build is a
+Artifacts are written under `build/native/brocoli/artifacts/`. The macOS build is a
 universal Intel/Apple-silicon app. Windows and macOS retain the native HDR
 configuration; Linux uses Vulkan with OpenGL Core as a fallback.
 
@@ -68,8 +81,55 @@ verification and publishing scripts can consume its output.
 `<UTC timestamp>-<short commit>`. Rebuilding the same commit produces a new
 id, which is what lets a rolling release name the specific build it is serving.
 
-Individual player builds are also available in Unity under
-`Tools > Build > Native`.
+## Select the binary's contents
+
+`-Product` / `--product` is required. Use `brocoli` for BROcoli alone, another
+installed game package's suffix for that game alone, or `launcher` for the
+launcher and all installed games. A single-game binary starts at its own menu
+and hides the All Games button. The old default startup-game config is removed.
+
+The portable entry point also builds WebGL:
+
+```bash
+python scripts/release-build.py --product brocoli --targets windows --pipeline hdrp
+python scripts/release-build.py --product launcher --targets windows
+python scripts/release-build.py --product brocoli --targets webgl
+python scripts/release-build.py --product brocoli --stage-only
+```
+
+Direct builds require an empty output folder (`--output <path>`). Packaging
+wrappers safely replace their generated outputs under `build/native/<product>/`.
+The generated `BuildContent.json` records the exact imported package allowlist.
+`release-audit.json` records shipped assemblies and exclusion checks; native
+players also contain `build-content.json`. Preserve these with release artifacts.
+
+Every release copies only the selected game packages and shared dependencies to
+a fresh project before Unity opens it. The launcher package is absent for a
+single game. Both autoplay packages are absent from every release, including a
+launcher release: no autoplay sources enter player compilation or linking. All
+game-owned assets must stay inside their game package so Resources follow the
+same exclusion. Tests exercise another synthetic game as well as BROcoli.
+
+A release attempted through the source project's Build Settings or a custom
+BuildPipeline caller fails with instructions to stage it. Development builds
+remain available in the source Editor. The build gate also rejects forbidden
+player assemblies, and the post-build audit examines Mono/IL2CPP metadata for
+autoplay driver types. Autoplay development players require the dedicated
+adapter build command described in the autoplay documentation.
+
+Native players apply shared performance settings before loading a scene, for both
+URP and HDRP: VSync off, no software FPS cap, one queued GPU frame, rendering every
+frame, 120 Hz physics with a four-step catch-up budget, dynamic input updates, and
+240 Hz polling for devices that Unity polls. Changing quality re-applies frame
+pacing without changing rendering quality. Existing saved Unity quality choices
+can override the build's default tier; these no longer re-enable VSync at startup.
+Web/mobile and the Editor retain their own settings.
+
+The player logs its effective settings as `[NativePerformance]`. Launch with
+`-frameTimingReport` to also report five-second frame-time samples, focus, and batch
+mode. Measure with a visible game window: an occluded or hidden window can skip GPU
+work, so its loop rate is not a gameplay FPS benchmark. A 240 Hz display does not
+guarantee 240 rendered FPS when the scene exceeds its CPU/GPU budget.
 
 ## Publish a GitHub Release
 
@@ -106,7 +166,7 @@ longer covers are dropped from the release rather than left behind stale.
 
 Published players carry the channel in their name, so a downloaded file still
 says where it came from: `BROcoli-windows-x86_64-nightly.zip`. The packaged
-artifacts under `build/native/artifacts/` keep their generic names, because the
+artifacts under `build/native/brocoli/artifacts/` keep their generic names, because the
 same build can go to another channel; the renamed copies are staged under
 `build/native/publish/` with a `SHA256SUMS` whose entries are the verified sums
 under the published names. The release is titled after its tag and its notes

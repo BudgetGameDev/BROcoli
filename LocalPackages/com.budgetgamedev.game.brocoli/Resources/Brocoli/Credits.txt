@@ -1,6 +1,6 @@
 BROCOLI
 CREDITS, DEPENDENCIES & LICENSES
-Last updated: 2026-09-01
+Last updated: 2026-09-05
 
 BROCOLI AND BUDGET GAMEDEV SOFTWARE
 
@@ -24,8 +24,8 @@ Direct runtime packages:
   Unity UI 2.0.0 (com.unity.ugui)
   TextMesh Pro (included with Unity UI 2.0.0)
 
-The game renders through Universal on the web and through High Definition on
-Windows, where the ray traced tiers live. Both pipelines ship in every build.
+The selected build profile determines the rendering pipeline. Universal is used
+on the web; native builds can select High Definition with ray traced tiers.
 
 Unity engine modules 1.0.0:
   AI (com.unity.modules.ai)
@@ -42,6 +42,8 @@ Unity engine modules 1.0.0:
   Terrain (com.unity.modules.terrain)
   UI (com.unity.modules.ui)
   UI Elements (com.unity.modules.uielements)
+  Unity Web Request (com.unity.modules.unitywebrequest)
+  Video (com.unity.modules.video)
 
 Runtime package dependencies:
   Scriptable Render Pipeline Core 17.3.0 (com.unity.render-pipelines.core)
@@ -55,6 +57,8 @@ Runtime package dependencies:
   Searcher 4.9.4 (com.unity.searcher)
 
 Project authoring, automation, and test packages (not runtime game content):
+  Budget GameDev Autoplay Core 0.1.0 (com.budgetgamedev.autoplay)
+  Budget GameDev BROcoli Autoplay 0.1.0 (com.budgetgamedev.autoplay.brocoli)
   2D Sprite 1.0.0 (com.unity.2d.sprite)
   Visual Studio Editor 2.0.26 (com.unity.ide.visualstudio), MIT License
   Unity Pipeline 0.5.0-exp.1 (com.unity.pipeline)
@@ -95,7 +99,7 @@ https://assetstore.unity.com/packages/vfx/particles/stylized-water-effect-pack-2
 
 These four packs ship shaders written for Universal only, so the game no longer
 draws through them: the water, the fire, the fog and the spray now use BROcoli's
-own dual-target Shader Graphs, which compile for both pipelines. The packs remain
+own shaders, which compile for both pipelines. The packs remain
 licensed dependencies and their textures, meshes and particle definitions are
 still used; only the shading path changed.
 

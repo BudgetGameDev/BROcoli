@@ -24,6 +24,7 @@ namespace BudgetGameDev.Games.Brocoli.Tests
 
         private readonly Dictionary<string, string> backup = new();
         private int backedUpActiveSlot;
+        private System.Action<string> previousFeatureObserver;
 
         private GameObject host;
         private AutoplaySaveJourneyDirector director;
@@ -50,6 +51,10 @@ namespace BudgetGameDev.Games.Brocoli.Tests
             PlayerPrefs.DeleteKey(BrocoliSaveSystem.ActiveSlotKey);
             SetAutoplayActive(true);
             AutoplayFeatureLog.Reset();
+            // The extracted adapter now subscribes to the game's diagnostic boundary.
+            // This fixture creates a director directly, so install the same observer here.
+            previousFeatureObserver = GameplayDiagnostics.Feature;
+            GameplayDiagnostics.Feature = AutoplayFeatureLog.Record;
         }
 
         [TearDown]
@@ -61,6 +66,7 @@ namespace BudgetGameDev.Games.Brocoli.Tests
             director = null;
 
             SetAutoplayActive(false);
+            GameplayDiagnostics.Feature = previousFeatureObserver;
             AutoplayFeatureLog.Reset();
             BrocoliSaveSystem.FinishContinue();
 

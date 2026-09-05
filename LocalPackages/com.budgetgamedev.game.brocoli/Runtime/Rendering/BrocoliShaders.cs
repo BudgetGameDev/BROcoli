@@ -31,6 +31,9 @@ namespace BudgetGameDev.Games.Brocoli.Rendering
         /// </summary>
         public const string Flame = "BROcoli/Flame";
 
+        /// <summary>Procedural torch flame, incandescent embers, and absorbing smoke.</summary>
+        public const string TorchFire = "BROcoli/Torch Fire";
+
         /// <summary>The dungeon's standing water.</summary>
         public const string WaterVolume = "BROcoli/Water Volume";
 
@@ -55,6 +58,7 @@ namespace BudgetGameDev.Games.Brocoli.Rendering
             [ParticleLit] = "Brocoli/Shaders/ParticleLit",
             [ParticleUnlit] = "Brocoli/Shaders/ParticleUnlit",
             [Flame] = "Brocoli/Shaders/Flame",
+            [TorchFire] = "Brocoli/Shaders/TorchFire",
             [WaterVolume] = "Brocoli/Shaders/WaterVolume",
             [Fog] = "Brocoli/Shaders/Fog",
             [DungeonOcclusionFade] = "Brocoli/Shaders/DungeonOcclusionFade",

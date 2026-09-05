@@ -177,6 +177,10 @@ namespace BudgetGameDev.Shared
         /// </summary>
         public static void OnFocusLost()
         {
+#if UNITY_EDITOR || (DEVELOPMENT_BUILD && GAME_AUTOPLAY)
+            if (SuppressFocusLossPause)
+                return;
+#endif
             if (_isFocusLost)
                 return; // Already paused for focus
 

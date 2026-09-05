@@ -146,7 +146,10 @@ namespace BudgetGameDev.Games.Brocoli
                 return;
 
             _isCollected = true;
-            AutoplayFeatureLog.Record(AutoplayFeatures.BoostCollected);
+
+#if UNITY_EDITOR || (DEVELOPMENT_BUILD && GAME_AUTOPLAY)
+            GameplayDiagnostics.Record("pickup.boost");
+#endif
 
             // Disable the pickup before activating its effect. Instant XP boosts
             // can open the level-up screen and pause time, so deferred destruction

@@ -15,6 +15,7 @@ CBUFFER_START(UnityPerMaterial)
     float4 _CoreColor;
     float4 _RimColor;
     float _Intensity;
+    float _AuthoringWhiteNits;
     float _FresnelPower;
     float _FresnelBias;
     float _FalloffInverted;

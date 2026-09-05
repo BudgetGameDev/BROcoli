@@ -220,6 +220,25 @@ namespace BudgetGameDev.Games.Brocoli.Tests
         }
 
         [Test]
+        public void SteepeningPreservesTheShortIgnitionPeakBetweenUniformSamples()
+        {
+            var authored = new Gradient();
+            authored.SetKeys(
+                new[] { new GradientColorKey(Color.white, 0f) },
+                new[]
+                {
+                    new GradientAlphaKey(0f, 0f),
+                    new GradientAlphaKey(1f, 0.14f),
+                    new GradientAlphaKey(0.45f, 0.55f),
+                    new GradientAlphaKey(0f, 1f),
+                }
+            );
+            Gradient steepened = HdrTorchFlamePresentation.Steepen(authored, 8f);
+            Assert.That(steepened.Evaluate(0.14f).a, Is.EqualTo(1f).Within(0.001f));
+            Assert.That(steepened.Evaluate(0.7f).a, Is.LessThan(authored.Evaluate(0.7f).a));
+        }
+
+        [Test]
         public void BoostIsMeasuredAgainstTheAuthoredMaterial()
         {
             Material authored = new(BrocoliShaders.Resolve(BrocoliShaders.Flame));

@@ -113,8 +113,14 @@ namespace BudgetGameDev.Games.Brocoli
 
             isDying = true;
             Health = 0f;
-            AutoplayFeatureLog.Record(AutoplayFeatures.EnemyKilled);
-            AutoplayFeatureLog.RecordIf(isElite, AutoplayFeatures.EliteKilled);
+
+#if UNITY_EDITOR || (DEVELOPMENT_BUILD && GAME_AUTOPLAY)
+            GameplayDiagnostics.Record("combat.enemy-killed");
+#endif
+
+#if UNITY_EDITOR || (DEVELOPMENT_BUILD && GAME_AUTOPLAY)
+            GameplayDiagnostics.RecordIf(isElite, "combat.elite-killed");
+#endif
             DiabloHud.NotifyEnemyDefeated(this);
             PrepareForIncomingKnockback();
             ClearQueuedKnockback();

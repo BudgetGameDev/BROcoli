@@ -3,7 +3,7 @@
 set -euo pipefail
 
 PROJECT_PATH="$(cd "$(dirname "$0")/.." && pwd)"
-ARTIFACTS_ROOT="$PROJECT_PATH/build/native/artifacts"
+ARTIFACTS_ROOT="$PROJECT_PATH/build/native/brocoli/artifacts"
 PUBLISH_ROOT="$PROJECT_PATH/build/native/publish"
 TAG="nightly"
 TARGETS="windows"
@@ -93,7 +93,7 @@ if ! gh auth status >/dev/null 2>&1; then
 fi
 
 if [ "$SKIP_BUILD" -eq 0 ]; then
-    BUILD_ARGUMENTS=(--targets "$TARGETS")
+    BUILD_ARGUMENTS=(--product brocoli --targets "$TARGETS")
     if [ "$DEVELOPMENT" -eq 1 ]; then
         BUILD_ARGUMENTS+=(--development)
     fi

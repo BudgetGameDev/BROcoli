@@ -238,9 +238,22 @@ namespace BudgetGameDev.Games.Brocoli
                 return source;
 
             GradientAlphaKey[] alphas = new GradientAlphaKey[Keys];
+            float peakTime = 0f;
+            foreach (GradientAlphaKey key in source.alphaKeys)
+                if (key.alpha >= peak)
+                {
+                    peakTime = key.time;
+                    break;
+                }
+            int peakIndex =
+                peakTime <= 0f ? 0
+                : peakTime >= 1f ? Keys - 1
+                : Mathf.Clamp(Mathf.RoundToInt(peakTime * (Keys - 1)), 1, Keys - 2);
             for (int index = 0; index < Keys; index++)
             {
-                float time = index / (float)(Keys - 1);
+                // Keep the exact ignition peak. A uniform resample can miss a short peak
+                // between its samples and crush the hot core under a large HDR boost.
+                float time = index == peakIndex ? peakTime : index / (float)(Keys - 1);
                 float alpha = source.Evaluate(time).a;
                 alphas[index] = new GradientAlphaKey(
                     peak * Mathf.Pow(Mathf.Clamp01(alpha / peak), exponent),

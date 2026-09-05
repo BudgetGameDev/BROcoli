@@ -135,7 +135,10 @@ namespace BudgetGameDev.Games.Brocoli
             }
 
             Write(save);
-            AutoplayFeatureLog.Record(AutoplayFeatures.SaveCheckpointed);
+
+#if UNITY_EDITOR || (DEVELOPMENT_BUILD && GAME_AUTOPLAY)
+            GameplayDiagnostics.Record("save.checkpointed");
+#endif
         }
 
         internal static bool TryLoad(int slot, out BrocoliRunSave save)
@@ -189,7 +192,10 @@ namespace BudgetGameDev.Games.Brocoli
                 return;
 
             DeleteSave(slot);
-            AutoplayFeatureLog.Record(AutoplayFeatures.SaveDropped);
+
+#if UNITY_EDITOR || (DEVELOPMENT_BUILD && GAME_AUTOPLAY)
+            GameplayDiagnostics.Record("save.dropped");
+#endif
         }
 
         internal static string Serialize(BrocoliRunSave save) => JsonUtility.ToJson(save);

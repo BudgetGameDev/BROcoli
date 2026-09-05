@@ -143,15 +143,34 @@ namespace BudgetGameDev.Games.Brocoli.Tests
             Object.DestroyImmediate(standInObject);
             yield return null;
 
+            // The XP/catalog probes can bank several level-up choices. Resolve them
+            // before testing combat: a queued choice reopens and pauses on the next frame.
+            LevelUpScreen levelUp = Object.FindAnyObjectByType<LevelUpScreen>();
+            Assert.That(levelUp, Is.Not.Null);
+            for (int choice = 0; choice < 64 && levelUp.IsShowing(); choice++)
+                levelUp.AutoSelectUpgrade(0);
+            Assert.That(levelUp.IsShowing(), Is.False, "all earned upgrade choices were resolved");
+
             Assert.That(stats.IsAlive, Is.True, "there is still a run to lose");
+            // Earlier upgrade probes exercise dodge. The death route needs a vulnerable
+            // player; otherwise a random dodge can mask the transition being verified.
+            stats.AddDodgeChance(-stats.CurrentDodgeChance);
+            Assert.That(
+                Time.timeScale,
+                Is.GreaterThan(0f),
+                "the resumed run advances damage immunity"
+            );
             bool over = false;
 
             // The damage handler holds an immunity window open after every hit, so the
             // blow is thrown until one lands -- which is what the journey does too.
-            for (int attempt = 0; attempt < 240 && !over; attempt++)
+            for (int attempt = 0; attempt < 10 && !over; attempt++)
             {
                 over = (bool)InvokeHierarchy(director, "TakeAFatalHit");
-                yield return null;
+                // Batch mode can run hundreds of frames inside the 0.3s immunity window.
+                // Wait in game time, the same clock the damage handler uses.
+                if (!over)
+                    yield return new WaitForSeconds(0.31f);
             }
 
             Assert.That(over, Is.True);

@@ -10,12 +10,14 @@ ROOT = Path(__file__).resolve().parent.parent
 BASELINE = ROOT / ".quality" / "coverage-baseline.tsv"
 PACKAGES = ROOT / "LocalPackages"
 
-# The shipping game runtime. Editor assemblies are authoring tooling and test
-# assemblies are the measuring instrument, so neither is game code to cover.
+# Runtime libraries, including the development-only autoplay harness. Moving the
+# harness out of the shipping game must not remove it from coverage measurement.
 MEASURED = {
     "BudgetGameDev.Shared": PACKAGES / "com.budgetgamedev.shared" / "Runtime",
     "BudgetGameDev.Hub": PACKAGES / "com.budgetgamedev.hub" / "Runtime",
     "BudgetGameDev.Games.Brocoli": PACKAGES / "com.budgetgamedev.game.brocoli" / "Runtime",
+    "BudgetGameDev.Autoplay": PACKAGES / "com.budgetgamedev.autoplay" / "Runtime",
+    "BudgetGameDev.Autoplay.Brocoli": PACKAGES / "com.budgetgamedev.autoplay.brocoli" / "Runtime",
 }
 
 # Coverage is only honest if nothing can opt out of it. Suppressing a line is

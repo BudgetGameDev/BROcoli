@@ -12,7 +12,7 @@
   "overrideReferences": false,
   "precompiledReferences": [],
   "autoReferenced": true,
-  "defineConstraints": ["BROCOLI_HDRP"],
+  "defineConstraints": ["BROCOLI_HDRP", "!BROCOLI_URP_PLAYER"],
   "versionDefines": [
     {
       "name": "com.unity.render-pipelines.high-definition",

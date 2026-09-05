@@ -10,7 +10,6 @@
     "url": "https://github.com/BudgetGameDev"
   },
   "dependencies": {
-    "com.budgetgamedev.hub": "0.1.0",
     "com.budgetgamedev.shared": "0.1.0",
     "com.unity.ai.navigation": "2.0.9",
     "com.unity.inputsystem": "1.18.0",
@@ -22,5 +21,9 @@
     "com.unity.modules.physics": "1.0.0",
     "com.unity.modules.ui": "1.0.0"
   },
-  "keywords": ["game", "roguelite", "dungeon"]
+  "keywords": [
+    "game",
+    "roguelite",
+    "dungeon"
+  ]
 }
