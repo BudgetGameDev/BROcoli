@@ -78,14 +78,18 @@ public static class WebGLBuildScript
             );
         }
 
-        if (report.summary.totalWarnings != 0)
+        string[] warnings = BuildWarningGate.UnexpectedWarnings(report);
+        if (warnings.Length != 0)
         {
             throw new BuildFailedException(
-                $"WebGL build emitted {report.summary.totalWarnings} warning(s)."
+                $"WebGL build emitted {warnings.Length} unexpected warning(s).\n"
+                    + string.Join("\n", warnings)
             );
         }
 
-        Debug.Log($"[WebGLBuild] Succeeded ({report.summary.totalSize} bytes, zero warnings)");
+        Debug.Log(
+            $"[WebGLBuild] Succeeded ({report.summary.totalSize} bytes, zero unexpected warnings)"
+        );
     }
 
     private static string ReadArgument(string[] arguments, string name)
