@@ -137,12 +137,23 @@ command opens this clone by default and accepts another project path as its
 only argument; it exits successfully when an automated Editor is already
 attached, and refuses to act when the project is open without `-automated`.
 
-Windows has the same pair, with the same arguments and exit codes:
+Windows has the same pair and exit codes:
 
 ```powershell
 .\scripts\install-unity-open.ps1
 unity-open
 ```
+
+On Windows, `unity-open` probes DX12 support on the default display adapter and
+adds `-force-d3d12` when available, enabling native HDR in the Editor's Game view.
+If DX12 is unavailable or the probe fails, it leaves Unity's graphics API default
+alone. All launches still include `-automated`. An already-running Editor is
+never restarted or switched automatically.
+
+Use `unity-open -GraphicsApi Direct3D11` for a DX11 launch,
+`unity-open -GraphicsApi Direct3D12` to explicitly force DX12, or
+`unity-open -GraphicsApi Default` to skip detection and use Unity's default.
+The macOS/Linux shell launcher continues to use Unity's default graphics API.
 
 Windows symlinks need Developer Mode or an elevated shell, so that installer
 writes forwarding shims rather than a link: `unity-open.cmd` for PowerShell and

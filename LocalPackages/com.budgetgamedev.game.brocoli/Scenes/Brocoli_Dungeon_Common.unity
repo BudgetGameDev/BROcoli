@@ -5606,6 +5606,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   hdrIntensityScale: 0.45
+  highDefinitionIntensityScale: 0.28
+  highDefinitionRangeScale: 0.23333333
 --- !u!114 &8100000002
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5619,6 +5621,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   hdrIntensityScale: 2.2
+  highDefinitionIntensityScale: 1
+  highDefinitionRangeScale: 1
 --- !u!114 &8100000003
 MonoBehaviour:
   m_ObjectHideFlags: 0

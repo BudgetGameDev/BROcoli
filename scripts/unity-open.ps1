@@ -1,10 +1,12 @@
 # Open this Unity project in the automated mode required by repository tooling.
-# Usage: .\scripts\unity-open.ps1 [ProjectPath]
+# Usage: .\scripts\unity-open.ps1 [ProjectPath] [-GraphicsApi Auto|Default|Direct3D11|Direct3D12]
 
 [CmdletBinding()]
 param(
     [Parameter(Position = 0)]
-    [string]$ProjectPath
+    [string]$ProjectPath,
+    [ValidateSet("Auto", "Default", "Direct3D11", "Direct3D12")]
+    [string]$GraphicsApi = "Auto"
 )
 
 $ErrorActionPreference = "Stop"
@@ -36,6 +38,8 @@ if ($editorPid) {
     exit 2
 }
 
-Write-Host "unity-open: opening $ProjectPath in automated mode"
-& unity open $ProjectPath --args "-automated"
+. (Join-Path $ScriptDirectory "unity-editor-graphics.ps1")
+$editorArguments = Get-UnityEditorArgumentString -GraphicsApi $GraphicsApi
+Write-Host "unity-open: opening $ProjectPath with $editorArguments"
+& unity open $ProjectPath --args $editorArguments
 exit $LASTEXITCODE
