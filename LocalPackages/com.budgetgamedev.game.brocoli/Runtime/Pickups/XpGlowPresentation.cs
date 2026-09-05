@@ -112,9 +112,23 @@ namespace BudgetGameDev.Games.Brocoli
             Material material,
             PickupVisual3D.GlowShell shell,
             PickupVisual3D.ModelKind kind
+        ) =>
+            ApplyShellColors(
+                material,
+                shell,
+                GameDisplaySettings.HdrEnabled && GameDisplaySettings.IsHdrActive,
+                kind
+            );
+
+        internal static void ApplyShellColors(
+            Material material,
+            PickupVisual3D.GlowShell shell,
+            bool hdrActive,
+            PickupVisual3D.ModelKind kind = PickupVisual3D.ModelKind.Experience
         )
         {
-            bool hdrActive = GameDisplaySettings.HdrEnabled && GameDisplaySettings.IsHdrActive;
+            if (material == null)
+                return;
             (Color core, Color rim) = ShellColors(shell, hdrActive, kind);
             material.SetColor(CoreColorId, core);
             material.SetColor(RimColorId, rim);

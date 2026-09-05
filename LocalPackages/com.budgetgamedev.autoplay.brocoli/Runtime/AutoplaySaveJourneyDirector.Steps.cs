@@ -13,9 +13,7 @@ namespace BudgetGameDev.Games.Brocoli
         private const float ResumeTolerance = 1f;
 
         /// <summary>
-        /// Health a resumed run may differ by. A tick of regeneration between the
-        /// restore and the check is not a lost save; coming back on full health, or on
-        /// none, is.
+        /// Allows one regeneration tick between restoring health and checking it.
         /// </summary>
         private const float HealthTolerance = 1f;
 

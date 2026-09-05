@@ -4,6 +4,8 @@ namespace BudgetGameDev.Games.Brocoli
 {
     public partial class ProceduralEnemyProjectileHitAudio
     {
+        internal static System.Action<ProceduralEnemyProjectileHitAudio> InitializeFallbackForTests;
+
         private static AudioClip GenerateStaticHitClip(EnemyHitPreset p)
         {
             int samples = Mathf.CeilToInt(p.duration * staticSampleRate);
@@ -122,11 +124,14 @@ namespace BudgetGameDev.Games.Brocoli
 
             ProceduralEnemyProjectileHitAudio hitAudio =
                 temp.AddComponent<ProceduralEnemyProjectileHitAudio>();
+            InitializeFallbackForTests?.Invoke(hitAudio);
             hitAudio.volume = vol;
             hitAudio.soundType = type;
             hitAudio.PlayHitSound();
 
-            Destroy(temp, 0.5f);
+            DestroyTemporary(temp);
         }
+
+        internal static void DestroyTemporary(GameObject temporary) => Destroy(temporary, 0.5f);
     }
 }

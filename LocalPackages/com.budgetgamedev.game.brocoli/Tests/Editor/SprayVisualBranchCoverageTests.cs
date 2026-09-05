@@ -159,6 +159,24 @@ namespace BudgetGameDev.Games.Brocoli.Tests
                     tintMaterial,
                     Color.magenta
                 );
+                Material coverageMaterial = new Material(
+                    Shader.Find("Hidden/Brocoli/CoverageProperties")
+                );
+                SprayLayerFactory.SetupBillboardRenderer(particles, texture, coverageMaterial);
+                InvokeStatic(
+                    typeof(SprayMaterialCreator),
+                    "ConfigureParticleBlending",
+                    coverageMaterial,
+                    SprayMaterialCreator.BlendMode.Alpha
+                );
+                InvokeStatic(
+                    typeof(SprayMaterialCreator),
+                    "EnableSoftParticles",
+                    coverageMaterial,
+                    0.3f
+                );
+                SprayMaterialCreator.ConfigureDropletSurface(coverageMaterial);
+                UnityEngine.Object.DestroyImmediate(coverageMaterial);
             }
             finally
             {

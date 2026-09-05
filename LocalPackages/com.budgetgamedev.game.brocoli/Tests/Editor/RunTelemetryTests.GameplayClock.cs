@@ -73,7 +73,20 @@ namespace BudgetGameDev.Games.Brocoli.Tests
             {
                 Invoke("OnGameOver");
                 Assert.That(telemetry.Progression.Deaths, Is.EqualTo(1));
-                overlay = GameOverOverlay.Show(0, 0, 0, 0);
+                // Exercise the paused restart boundary without opening the unrelated CTA
+                // manager, whose persistent GameObject is only valid in Play Mode.
+                overlay = new GameObject(
+                    "Telemetry paused game-over"
+                ).AddComponent<GameOverOverlay>();
+                typeof(GameOverOverlay)
+                    .GetField(
+                        "active",
+                        System.Reflection.BindingFlags.Static
+                            | System.Reflection.BindingFlags.NonPublic
+                    )
+                    .SetValue(null, overlay);
+                typeof(GameOverOverlay).GetProperty("IsVisible").SetValue(overlay, true);
+                Time.timeScale = 0f;
                 Assert.That(Time.timeScale, Is.Zero);
                 Invoke("Update");
                 Invoke("Update");

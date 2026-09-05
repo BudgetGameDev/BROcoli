@@ -224,13 +224,18 @@ namespace BudgetGameDev.Shared.Tests
             try
             {
                 EnhancedTouchSupport.Enable();
+                Canvas.ForceUpdateCanvases();
+                Vector2 touchPosition = RectTransformUtility.WorldToScreenPoint(
+                    null,
+                    joystick.TransformPoint(new Vector3(30f, 0f, 0f))
+                );
                 InputSystem.QueueStateEvent(
                     screen,
                     new TouchState
                     {
                         touchId = 1,
                         phase = UnityEngine.InputSystem.TouchPhase.Began,
-                        position = new Vector2(300f, 300f),
+                        position = touchPosition,
                     }
                 );
                 InputSystem.Update();
@@ -243,6 +248,7 @@ namespace BudgetGameDev.Shared.Tests
                     "[VirtualController] Touch began on joystick, finger: 0"
                 );
                 Invoke("HandleJoystickInput");
+                Assert.That(controller.JoystickInput.x, Is.GreaterThan(0.1f));
             }
             finally
             {

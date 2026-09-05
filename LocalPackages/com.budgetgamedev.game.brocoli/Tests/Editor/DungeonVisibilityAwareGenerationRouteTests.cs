@@ -106,11 +106,12 @@ namespace BudgetGameDev.Games.Brocoli.Tests
                             continue;
 
                         foundInternalEdge = true;
+                        // Shell-joining end slots may also open; the hall interior must stay clear.
                         int expected = edge.Horizontal
                             ? FullOpeningMask(direction)
                             : BetweenPostsMask(direction);
                         Assert.That(
-                            layout.PlayablePassage(room, direction).OpeningMask,
+                            layout.PlayablePassage(room, direction).OpeningMask & expected,
                             Is.EqualTo(expected),
                             $"seed {seed}: mega room {room} is bisected by a wall run"
                         );

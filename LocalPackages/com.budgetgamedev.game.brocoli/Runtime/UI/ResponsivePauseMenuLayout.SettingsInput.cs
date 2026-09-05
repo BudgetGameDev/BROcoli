@@ -26,11 +26,9 @@ namespace BudgetGameDev.Games.Brocoli
                 Vector2 axis = gamepad.dpad.ReadValue();
                 if (axis.sqrMagnitude < 0.25f)
                     axis = gamepad.leftStick.ReadValue();
-                if (axis.sqrMagnitude >= 0.25f)
-                {
-                    vertical = axis.y;
-                    horizontal = axis.x;
-                }
+                Vector2 navigation = ResolvePauseGamepadAxis(axis, vertical, horizontal);
+                vertical = navigation.y;
+                horizontal = navigation.x;
             }
             bool submit =
                 keyboard?.enterKey.wasPressedThisFrame == true
@@ -56,6 +54,12 @@ namespace BudgetGameDev.Games.Brocoli
             else
                 ProcessPauseSettingsInput(cancel, vertical, horizontal, submit, Time.unscaledTime);
         }
+
+        internal static Vector2 ResolvePauseGamepadAxis(
+            Vector2 axis,
+            float vertical,
+            float horizontal
+        ) => axis.sqrMagnitude >= 0.25f ? axis : new Vector2(horizontal, vertical);
 
         internal void ProcessPauseSettingsInput(
             bool cancel,

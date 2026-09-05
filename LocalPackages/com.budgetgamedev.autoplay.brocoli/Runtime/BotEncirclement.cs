@@ -103,9 +103,6 @@ namespace BudgetGameDev.Games.Brocoli
                 bestStart = start;
             }
 
-            if (bestStart < 0)
-                return Vector2.zero;
-
             float middle = (bestStart + (bestLength - 1) * 0.5f) % Sectors;
             float radians = (middle + 0.5f) * (360f / Sectors) * Mathf.Deg2Rad;
             return new Vector2(Mathf.Cos(radians), Mathf.Sin(radians));

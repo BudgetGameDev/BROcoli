@@ -51,9 +51,10 @@ namespace BudgetGameDev.Shared.Rendering
         /// which is the right fallback: a light of roughly the wrong brightness beats no
         /// light at all.
         /// </summary>
-        public void Apply()
+        public void Apply() => Apply(RenderPipelineFrontEnd.Lighting);
+
+        internal void Apply(ILightingFrontEnd lighting)
         {
-            ILightingFrontEnd lighting = RenderPipelineFrontEnd.Lighting;
             if (lighting == null)
                 return;
 

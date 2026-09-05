@@ -97,7 +97,10 @@ namespace BudgetGameDev.Games.Brocoli.Tests
                 Assert.That(input.ResolveWasd(true, true, false, false), Is.EqualTo(Vector2.left));
                 Assert.That(input.ResolveWasd(true, false, false, false), Is.EqualTo(Vector2.left));
                 Assert.That(input.ResolveWasd(true, true, false, false), Is.EqualTo(Vector2.left));
-                Assert.That(input.ResolveWasd(false, true, false, false), Is.EqualTo(Vector2.right));
+                Assert.That(
+                    input.ResolveWasd(false, true, false, false),
+                    Is.EqualTo(Vector2.right)
+                );
 
                 Assert.That(input.ResolveWasd(false, false, false, true), Is.EqualTo(Vector2.up));
                 Assert.That(input.ResolveWasd(false, false, true, true), Is.EqualTo(Vector2.up));

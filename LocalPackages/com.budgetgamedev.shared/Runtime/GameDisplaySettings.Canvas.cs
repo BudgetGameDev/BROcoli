@@ -138,23 +138,26 @@ namespace BudgetGameDev.Shared
             private void RestoreCanvasComposition()
             {
                 foreach (CanvasState state in hdrCanvasStates)
-                {
-                    if (state.Canvas == null)
-                        continue;
-
-                    state.Canvas.renderMode = state.RenderMode;
-                    state.Canvas.worldCamera = state.WorldCamera;
-                    state.Canvas.planeDistance = state.PlaneDistance;
-                }
+                    RestoreCanvasState(state);
                 hdrCanvasStates.Clear();
                 canvasRefreshFrames = 0;
             }
 
             private void RemoveDestroyedCanvasStates()
             {
-                for (int index = hdrCanvasStates.Count - 1; index >= 0; index--)
-                    if (hdrCanvasStates[index].Canvas == null)
-                        hdrCanvasStates.RemoveAt(index);
+                hdrCanvasStates.RemoveAll(IsDestroyedCanvasState);
+            }
+
+            private static bool IsDestroyedCanvasState(CanvasState state) => state.Canvas == null;
+
+            private static void RestoreCanvasState(CanvasState state)
+            {
+                if (state.Canvas != null)
+                {
+                    state.Canvas.renderMode = state.RenderMode;
+                    state.Canvas.worldCamera = state.WorldCamera;
+                    state.Canvas.planeDistance = state.PlaneDistance;
+                }
             }
 
             private static Camera FindOutputCamera()

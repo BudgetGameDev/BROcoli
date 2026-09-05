@@ -31,8 +31,7 @@ namespace BudgetGameDev.Games.Brocoli.Tests
             owner
                 .GetField(
                     fieldName,
-                    System.Reflection.BindingFlags.Static
-                        | System.Reflection.BindingFlags.NonPublic
+                    System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic
                 )
                 ?.SetValue(null, null);
         }

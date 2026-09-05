@@ -29,8 +29,10 @@ namespace BudgetGameDev.Shared.Rendering
     {
         private static readonly Dictionary<RenderPipelineKind, IHdrGradeFrontEnd> registeredGrades =
             new();
-        private static readonly Dictionary<RenderPipelineKind, ILightingFrontEnd> registeredLighting =
-            new();
+        private static readonly Dictionary<
+            RenderPipelineKind,
+            ILightingFrontEnd
+        > registeredLighting = new();
 
         private static IHdrGradeFrontEnd hdrGrade;
         private static RenderPipelineKind searchedFor;
@@ -149,9 +151,11 @@ namespace BudgetGameDev.Shared.Rendering
         }
 
         /// <summary>What announced itself for <paramref name="active"/>, if anything did.</summary>
-        private static T Registered<T>(Dictionary<RenderPipelineKind, T> registry, RenderPipelineKind active)
-            where T : class =>
-            registry.TryGetValue(active, out T frontEnd) ? frontEnd : null;
+        private static T Registered<T>(
+            Dictionary<RenderPipelineKind, T> registry,
+            RenderPipelineKind active
+        )
+            where T : class => registry.TryGetValue(active, out T frontEnd) ? frontEnd : null;
 
         /// <summary>
         /// The single implementation of <typeparamref name="T"/> whose pipeline is the active
@@ -170,19 +174,7 @@ namespace BudgetGameDev.Shared.Rendering
 
             foreach (Assembly assembly in AppDomain.CurrentDomain.GetAssemblies())
             {
-                Type[] types;
-                try
-                {
-                    types = assembly.GetTypes();
-                }
-                catch (ReflectionTypeLoadException loadFailure)
-                {
-                    // A pipeline package can be present but not fully loadable. Its front end
-                    // is simply not a candidate; the other pipeline's still is.
-                    types = loadFailure.Types.Where(type => type != null).ToArray();
-                }
-
-                foreach (Type type in types)
+                foreach (Type type in LoadTypes(assembly))
                 {
                     if (type.IsAbstract || type.IsInterface || !typeof(T).IsAssignableFrom(type))
                         continue;
@@ -196,6 +188,28 @@ namespace BudgetGameDev.Shared.Rendering
             }
 
             return null;
+        }
+
+        internal static Type[] LoadTypes(Assembly assembly)
+        {
+            try
+            {
+                return assembly.GetTypes();
+            }
+            catch (ReflectionTypeLoadException loadFailure)
+            {
+                // A pipeline package can be present but not fully loadable. Its front end
+                // is simply not a candidate; the other pipeline's still is.
+                return loadFailure.Types.Where(type => type != null).ToArray();
+            }
+        }
+
+        internal static void ResetRegistrationsForTests()
+        {
+            registeredGrades.Clear();
+            registeredLighting.Clear();
+            OverrideForTests((IHdrGradeFrontEnd)null);
+            OverrideForTests((ILightingFrontEnd)null);
         }
     }
 }

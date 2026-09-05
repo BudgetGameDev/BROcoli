@@ -143,6 +143,12 @@ namespace BudgetGameDev.Games.Brocoli
                 explorationDirection,
                 rejectedExits
             );
+            ApplyExplorationDirection(currentRoom, explorationDirection);
+        }
+
+        internal void ApplyExplorationDirection(Vector2Int currentRoom, int direction)
+        {
+            explorationDirection = direction;
             if (explorationDirection < 0)
             {
                 hasExplorationRoom = false;

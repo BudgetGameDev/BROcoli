@@ -29,16 +29,16 @@ other-game exclusion case.
 players were also launched with autoplay arguments to verify those arguments
 do not install an autoplayer.
 
-Verified Windows URP deliverables:
+Final merged Windows URP deliverables:
 
 | Product | Archive | Build logs | Binary audit |
 | --- | --- | --- | --- |
-| BROcoli | `build/releases/brocoli-final-physics-audited/BROcoli-windows-x86_64.zip` | Zero warnings/errors | BROcoli and shared assemblies; no Hub or autoplay |
-| Launcher | `build/releases/launcher-final-physics-audited/GameLauncher-windows-x86_64.zip` | Zero warnings/errors | Hub, BROcoli, and shared assemblies; no autoplay |
+| BROcoli | `build/releases/brocoli-merged-current-verified/BROcoli-windows-x86_64.zip` | Zero warnings/errors | BROcoli and shared assemblies; no Hub or autoplay |
+| Launcher | `build/releases/launcher-merged-current-verified/GameLauncher-windows-x86_64.zip` | Zero warnings/errors | Hub, BROcoli, and shared assemblies; no autoplay |
 
 Each archive has adjacent checksums and a source snapshot record. ZIP integrity,
-payload bytes, and the selected source packages were checked again after the
-autoplay-only reaction changes. The 51 Python script tests also pass, including
+payload bytes, and all selected package/shared/Assets bytes match the merged
+working source. These archives supersede the earlier physics/focus builds. The 51 Python script tests also pass, including
 12 release-isolation regression cases. Other target platforms were not built
 in this verification session.
 
@@ -90,8 +90,12 @@ approach the existing 3.9 m/s safety ceiling. Opening-room scaling is unchanged.
 
 Headless balance runs explicitly use `--no-capture`; their summaries say
 `captureEnabled: false`. They verify simulation and logs, not presentation.
-Hidden standalone screenshot capture was unavailable on this host; the
-separate GPU rendering fixtures provide the fire presentation evidence.
+Actual gameplay was subsequently inspected in the visible Editor. The missing
+fire came from absent mounts on the new room geometry and a disabled camera
+depth texture. Mount generation now follows the actual walls and railings,
+and the gameplay camera requests depth for soft particles. The verified
+in-game images are `build/verification/torch-fire-actual-dungeon-wide.png`
+and `build/verification/torch-fire-actual-dungeon-close.png`.
 
 Accelerated runs pause only while the dungeon explicitly reports pending
 geometry/NavMesh streaming. Readiness waits are excluded from simulated time
@@ -113,3 +117,31 @@ as diagnostic evidence rather than used as final balance measurements.
 
 These automated bands are reproducible tuning targets. They do not establish
 how difficult every human player will find the game.
+
+Further progression tuning was stopped at the user's request to finish integration
+and commit. Existing tuning and diagnostics are retained, but no final balance
+sweet spot is certified; unfinished or stalled cohorts are not counted as passes.
+
+The origin integration retains all ten incoming commits through `04f3557`,
+including source-file splits, rendering fixes, expanded test coverage, and the
+Unity test-host checks. Final merged checks already completed: Python 51/51,
+bot regressions 56/56, incoming promotion coverage 6/6, pinned C# formatting,
+Ruff, mypy, shell lint/format, PowerShell lint/format, the three WebGL JavaScript
+contracts, and the 300-line source-size gate.
+
+Final archive SHA256:
+
+- BROcoli: `a50316dd43fed084f711ec52e309dbb03f08966617023dea1a9b4caf26465716`.
+- Launcher: `ce9178d59e189b8d491c6960bcfd7a26017b1a82fa5b9166cb978850f650d5d5`.
+
+The game code/shader snapshot covers 307 files, SHA256
+`59d4772c3118be7c9fde40fb6d00f61d52db00c2ec5abde71af0841e217f7259`.
+Release metadata audits also reject the navigation-preview/readiness hooks and
+the focus-pause override, in addition to autoplay assemblies and references.
+
+The final clean merged Unity suite passed **1115/1115 tests, zero failed or
+skipped**. Its emitted XML is `build/verification/final-editmode-merged.xml`;
+the Editor log is `Logs/final-editmode-merged-editor.log`. Earlier attempts are
+preserved separately. Material render-queue and project-setting changes caused
+by verification were restored before committing; the incoming authored WebGL
+quality selection remains intact. The visible Editor is left open.

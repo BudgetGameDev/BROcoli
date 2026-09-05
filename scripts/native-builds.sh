@@ -28,7 +28,10 @@ EOF
 while [ "$#" -gt 0 ]; do
     case "$1" in
         --development) DEVELOPMENT=1 ;;
-        --product) PRODUCT="${2:?--product needs a game id or launcher}"; shift ;;
+        --product)
+            PRODUCT="${2:?--product needs a game id or launcher}"
+            shift
+            ;;
         --pipeline)
             if [ "$#" -lt 2 ]; then
                 echo "native-builds: --pipeline requires urp or hdrp" >&2

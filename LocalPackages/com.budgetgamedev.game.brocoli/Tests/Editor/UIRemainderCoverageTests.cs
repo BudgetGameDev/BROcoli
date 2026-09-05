@@ -206,6 +206,12 @@ namespace BudgetGameDev.Games.Brocoli.Tests
                 Set(first, "enemyTarget", targetEnemy);
                 Set(first, "enemyTargetLockedUntil", float.MaxValue);
                 Invoke(first, "ShowEnemy", enemy);
+                GameObject enemyPanel = new("Promotion enemy panel", typeof(RectTransform));
+                Set(first, "enemyTarget", enemy);
+                Set(first, "enemyPanel", enemyPanel.GetComponent<RectTransform>());
+                DiabloHud.NotifyEnemyUnavailable(enemy);
+                Assert.That(enemyPanel.activeSelf, Is.False);
+                UnityEngine.Object.DestroyImmediate(enemyPanel);
 
                 // This covers the no-canvas fallback, so establish that
                 // precondition explicitly: reflective probe tests earlier in the

@@ -109,17 +109,13 @@ namespace BudgetGameDev.Games.Brocoli.Tests
                                 fromRoom.OpeningMask,
                                 Is.EqualTo(FullOpeningMask(direction))
                             );
-                        else if (
-                            layout.IsClusterInternalEdge(
-                                DungeonLayout.EdgeBetween(lowerRoom, direction)
-                            )
-                        )
+                        else
+                            // The three central slots stay clear. Joining end stubs also
+                            // open, with their geometry checked by DungeonBoundaryJoinTests.
                             Assert.That(
-                                fromRoom.OpeningMask,
+                                fromRoom.OpeningMask & BetweenPostsMask(direction),
                                 Is.EqualTo(BetweenPostsMask(direction))
                             );
-                        else
-                            Assert.That(fromRoom.OpeningCount, Is.EqualTo(3));
                     }
                 }
             }

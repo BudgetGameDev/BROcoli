@@ -1,5 +1,7 @@
 using BudgetGameDev.Shared.Rendering;
 using NUnit.Framework;
+using UnityEngine;
+using UnityEngine.Rendering;
 
 namespace BudgetGameDev.Shared.Tests
 {
@@ -44,6 +46,42 @@ namespace BudgetGameDev.Shared.Tests
                 RenderPipelineProbe.Classify("UnityEngine.Rendering.SomeOtherPipelineAsset"),
                 Is.EqualTo(RenderPipelineKind.Unknown)
             );
+        }
+
+        [Test]
+        public void CurrentPipelinePropertiesAndNullAssetLookupAreSafe()
+        {
+            RenderPipelineKind current = RenderPipelineProbe.Current;
+            Assert.That(
+                RenderPipelineProbe.IsUniversal,
+                Is.EqualTo(current == RenderPipelineKind.Universal)
+            );
+            Assert.That(
+                RenderPipelineProbe.IsHighDefinition,
+                Is.EqualTo(current == RenderPipelineKind.HighDefinition)
+            );
+            Assert.That(RenderPipelineProbe.AssetTypeName(null), Is.Null);
+            Assert.That(
+                RenderPipelineProbe.AssetTypeName(GraphicsSettings.currentRenderPipeline),
+                Is.Not.Empty
+            );
+            TestPipelineAsset unknown = ScriptableObject.CreateInstance<TestPipelineAsset>();
+            try
+            {
+                Assert.That(
+                    RenderPipelineProbe.AssetTypeName(unknown),
+                    Does.Contain("TestPipelineAsset")
+                );
+            }
+            finally
+            {
+                Object.DestroyImmediate(unknown);
+            }
+        }
+
+        private sealed class TestPipelineAsset : RenderPipelineAsset
+        {
+            protected override RenderPipeline CreatePipeline() => null;
         }
     }
 }

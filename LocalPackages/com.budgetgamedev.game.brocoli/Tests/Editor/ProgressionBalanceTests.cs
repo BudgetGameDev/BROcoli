@@ -5,9 +5,7 @@ using NUnit.Framework;
 namespace BudgetGameDev.Games.Brocoli.Tests
 {
     /// <summary>
-    /// The balance verdict is the harness's statement about difficulty, and a bare
-    /// pass or fail would be useless for tuning, so what matters is that each band
-    /// it leaves is named along with the direction it left in.
+    /// Each balance finding names the band and the direction the run left it.
     /// </summary>
     public sealed class ProgressionBalanceTests
     {

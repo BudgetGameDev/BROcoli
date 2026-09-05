@@ -12,11 +12,9 @@ namespace BudgetGameDev.Shared
     /// Also auto-pauses gameplay when the game loses focus (tab switch, app background,
     /// etc). Menu scenes are left running - they have no pause menu to resume from -
     /// and so is the editor's own player, which loses focus to the editor constantly.
-    /// Works on native builds, WebGL (including iOS Safari), and all platforms.
     /// </summary>
     public static partial class ForceLandscapeAspect
     {
-        // Configuration
         private const float MIN_ASPECT_RATIO = 16f / 9f; // 1.777... - minimum width/height ratio
         private const float MAX_ASPECT_RATIO = 21f / 9f; // 2.333... - maximum (for ultra-wide)
 

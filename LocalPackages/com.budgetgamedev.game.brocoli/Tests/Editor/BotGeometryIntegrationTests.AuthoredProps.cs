@@ -61,7 +61,13 @@ namespace BudgetGameDev.Games.Brocoli.Tests
                 Is.GreaterThan(0.03f)
             );
             float initialX = player.transform.position.x;
-            for (int frame = 0; frame < 90; frame++)
+            // Stop once the blocker is escaped; continually steering north after
+            // that would patrol the solid wall and can return to the starting x.
+            for (
+                int frame = 0;
+                frame < 90 && Mathf.Abs(player.transform.position.x - initialX) <= 0.5f;
+                frame++
+            )
             {
                 Vector2 input = (Vector2)
                     typeof(BotDriver)

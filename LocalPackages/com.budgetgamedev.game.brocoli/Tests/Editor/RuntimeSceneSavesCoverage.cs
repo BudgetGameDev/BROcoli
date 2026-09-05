@@ -59,7 +59,12 @@ namespace BudgetGameDev.Games.Brocoli.Tests
             viewport.sizeDelta = new Vector2(viewport.sizeDelta.x, 100f);
             scroll.verticalNormalizedPosition = 0f;
             InvokeHierarchy(layout, "EnsureSelectedRowVisible");
+
+            content.sizeDelta = new Vector2(content.sizeDelta.x, 100f);
+            viewport.sizeDelta = new Vector2(viewport.sizeDelta.x, 100f);
+            InvokeHierarchy(layout, "EnsureSelectedRowVisible");
             SetHierarchyField(layout, "savesFocus", 9);
+            content.sizeDelta = new Vector2(content.sizeDelta.x, 1000f);
             scroll.verticalNormalizedPosition = 1f;
             InvokeHierarchy(layout, "EnsureSelectedRowVisible");
 

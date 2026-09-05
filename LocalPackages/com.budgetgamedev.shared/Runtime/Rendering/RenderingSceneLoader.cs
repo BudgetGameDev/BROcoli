@@ -34,13 +34,18 @@ namespace BudgetGameDev.Shared.Rendering
 
         private void OnDestroy()
         {
-            if (string.IsNullOrEmpty(loadedRenderingScene))
+            UnloadRenderingScene(loadedRenderingScene);
+            loadedRenderingScene = null;
+        }
+
+        internal static void UnloadRenderingScene(string loadedScene)
+        {
+            if (string.IsNullOrEmpty(loadedScene))
                 return;
 
-            Scene scene = SceneManager.GetSceneByName(loadedRenderingScene);
+            Scene scene = SceneManager.GetSceneByName(loadedScene);
             if (scene.isLoaded && SceneManager.sceneCount > 1)
                 SceneManager.UnloadSceneAsync(scene);
-            loadedRenderingScene = null;
         }
 
         /// <summary>

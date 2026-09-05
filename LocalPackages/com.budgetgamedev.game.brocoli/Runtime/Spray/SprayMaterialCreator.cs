@@ -130,17 +130,21 @@ namespace BudgetGameDev.Games.Brocoli
             Color dropletColor = new Color(1f, 1f, 1f, 0.85f);
             SetMaterialColor(_sprayDropletMaterial, dropletColor);
 
-            // Configure metallic/smoothness for reflections
-            if (_sprayDropletMaterial.HasProperty("_Metallic"))
-                _sprayDropletMaterial.SetFloat("_Metallic", 0.1f);
-            if (_sprayDropletMaterial.HasProperty("_Smoothness"))
-                _sprayDropletMaterial.SetFloat("_Smoothness", 0.95f);
-            if (_sprayDropletMaterial.HasProperty("_Glossiness"))
-                _sprayDropletMaterial.SetFloat("_Glossiness", 0.95f);
+            ConfigureDropletSurface(_sprayDropletMaterial);
 
             EnableSoftParticles(_sprayDropletMaterial, 0.3f);
 
             return _sprayDropletMaterial;
+        }
+
+        internal static void ConfigureDropletSurface(Material material)
+        {
+            if (material.HasProperty("_Metallic"))
+                material.SetFloat("_Metallic", 0.1f);
+            if (material.HasProperty("_Smoothness"))
+                material.SetFloat("_Smoothness", 0.95f);
+            if (material.HasProperty("_Glossiness"))
+                material.SetFloat("_Glossiness", 0.95f);
         }
 
         /// <summary>

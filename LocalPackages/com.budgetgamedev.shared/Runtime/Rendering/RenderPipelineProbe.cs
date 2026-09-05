@@ -41,9 +41,11 @@ namespace BudgetGameDev.Shared.Rendering
             return RenderPipelineKind.Unknown;
         }
 
-        private static string CurrentAssetTypeName()
+        private static string CurrentAssetTypeName() =>
+            AssetTypeName(GraphicsSettings.currentRenderPipeline);
+
+        internal static string AssetTypeName(RenderPipelineAsset asset)
         {
-            RenderPipelineAsset asset = GraphicsSettings.currentRenderPipeline;
             if (asset == null)
                 return null;
 
