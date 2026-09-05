@@ -138,5 +138,58 @@ namespace BudgetGameDev.Shared.Tests
 
             Assert.That(spec.UniversalIntensity(0f), Is.EqualTo(0f));
         }
+
+        [Test]
+        public void PhysicalLightCanBeConfiguredAndAppliedThroughTheFrontEnd()
+        {
+            var host = new GameObject("Physical punctual light test", typeof(Light));
+            var frontEnd = new RecordingLighting();
+            try
+            {
+                var physical = host.AddComponent<PhysicalPunctualLight>();
+                var spec = new PunctualLightSpec(45f, 3f, 10f, Color.cyan);
+                physical.Configure(spec);
+                RenderPipelineFrontEnd.OverrideForTests(frontEnd);
+
+                physical.Apply();
+
+                Assert.That(physical.Spec.TargetLuminanceNits, Is.EqualTo(45f));
+                Assert.That(physical.Spec.ReferenceDistanceMeters, Is.EqualTo(3f));
+                Assert.That(physical.Spec.RangeMeters, Is.EqualTo(10f));
+                Assert.That(physical.Spec.Color, Is.EqualTo(Color.cyan));
+                Assert.That(frontEnd.Applied, Is.True);
+            }
+            finally
+            {
+                RenderPipelineFrontEnd.OverrideForTests((ILightingFrontEnd)null);
+                Object.DestroyImmediate(host);
+            }
+        }
+
+        [Test]
+        public void PhysicalLightKeepsItsAuthoredFallbackWithoutAFrontEnd()
+        {
+            var host = new GameObject("Physical light fallback", typeof(Light));
+            try
+            {
+                host.AddComponent<PhysicalPunctualLight>().Apply(null);
+            }
+            finally
+            {
+                Object.DestroyImmediate(host);
+            }
+        }
+
+        private sealed class RecordingLighting : ILightingFrontEnd
+        {
+            public RenderPipelineKind Pipeline => RenderPipelineKind.Universal;
+            public bool Applied { get; private set; }
+
+            public void ConfigurePunctual(
+                Light light,
+                in PunctualLightSpec spec,
+                float paperWhiteNits
+            ) => Applied = true;
+        }
     }
 }

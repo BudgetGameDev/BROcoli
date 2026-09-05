@@ -127,9 +127,15 @@ namespace BudgetGameDev.Games.Brocoli
             ApplyShellColors(PickupVisual3D.GlowShell.Halo, hdrActive);
         }
 
-        private static void ApplyShellColors(PickupVisual3D.GlowShell shell, bool hdrActive)
+        private static void ApplyShellColors(PickupVisual3D.GlowShell shell, bool hdrActive) =>
+            ApplyShellColors(PickupVisual3D.GetGlowMaterial(shell), shell, hdrActive);
+
+        internal static void ApplyShellColors(
+            Material material,
+            PickupVisual3D.GlowShell shell,
+            bool hdrActive
+        )
         {
-            Material material = PickupVisual3D.GetGlowMaterial(shell);
             if (material == null)
                 return;
 

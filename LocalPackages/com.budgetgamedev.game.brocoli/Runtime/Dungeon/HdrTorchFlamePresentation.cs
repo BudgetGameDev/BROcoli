@@ -117,7 +117,13 @@ namespace BudgetGameDev.Games.Brocoli
         }
 
         private static float PeakAlpha(ParticleSystem.MinMaxGradient gradient) =>
-            gradient.mode switch
+            PeakAlpha(gradient, gradient.mode);
+
+        internal static float PeakAlpha(
+            ParticleSystem.MinMaxGradient gradient,
+            ParticleSystemGradientMode mode
+        ) =>
+            mode switch
             {
                 ParticleSystemGradientMode.Color => gradient.color.a,
                 ParticleSystemGradientMode.TwoColors => Mathf.Max(
@@ -132,6 +138,11 @@ namespace BudgetGameDev.Games.Brocoli
                 ),
                 _ => 1f,
             };
+
+        internal static bool TryReadGradientForTests(
+            ParticleSystem.MinMaxGradient source,
+            out Gradient gradient
+        ) => TryReadGradient(source, out gradient);
 
         private static float PeakAlpha(Gradient gradient)
         {

@@ -79,6 +79,10 @@ namespace BudgetGameDev.Games.Brocoli.Tests
                 "_damageHandler",
                 stats.GetComponent<PlayerDamageHandler>()
             );
+            PlayerDamageHandler damage = stats.GetComponent<PlayerDamageHandler>();
+            SetHierarchyField(damage, "_gameOver", true);
+            InvokeHierarchy(controller, "FixedUpdate");
+            SetHierarchyField(damage, "_gameOver", false);
         }
 
         private static void ExerciseShuffleWalkVisual(PlayerStats stats)

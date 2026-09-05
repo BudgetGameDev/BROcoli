@@ -161,10 +161,23 @@ namespace BudgetGameDev.Shared
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSplashScreen)]
         internal static void ConfigureNativeWindowsDisplay()
         {
-            if (!IsWindowsPlayer)
+            ConfigureNativeWindowsDisplay(
+                IsWindowsPlayer,
+                DetectNativeWindowsDisplayMode,
+                ApplyNativeWindowsDisplayMode
+            );
+        }
+
+        internal static void ConfigureNativeWindowsDisplay(
+            bool isWindowsPlayer,
+            Func<NativeDisplayMode> detectMode,
+            Action<NativeDisplayMode> applyMode
+        )
+        {
+            if (!isWindowsPlayer)
                 return;
 
-            NativeDisplayMode mode = DetectNativeWindowsDisplayMode();
+            NativeDisplayMode mode = detectMode();
             if (!mode.IsValid)
             {
                 Debug.LogWarning(
@@ -176,28 +189,41 @@ namespace BudgetGameDev.Shared
             // Unity persists the previous player's fullscreen mode and refresh rate. Override
             // those values before the first splash-screen present so upgrades from an exclusive
             // D3D12 build cannot recreate a stale swapchain and fail with DXGI_ERROR_INVALID_CALL.
+            applyMode(mode);
+            Debug.Log($"[GameDisplaySettings] Native borderless display mode: {mode}");
+        }
+
+        internal static void ApplyNativeWindowsDisplayMode(NativeDisplayMode mode) =>
             Screen.SetResolution(
                 mode.Width,
                 mode.Height,
                 FullScreenMode.FullScreenWindow,
                 mode.RefreshRate
             );
-            Debug.Log($"[GameDisplaySettings] Native borderless display mode: {mode}");
-        }
 
         internal static NativeDisplayMode DetectNativeWindowsDisplayMode()
         {
-            if (WindowsDisplayHdrState.TryQueryActiveDisplayMode(out NativeDisplayMode mode))
-                return mode;
-
+            bool queried = WindowsDisplayHdrState.TryQueryActiveDisplayMode(
+                out NativeDisplayMode mode
+            );
             Resolution current = Screen.currentResolution;
             Display display = Display.main;
             int width =
                 display != null && display.systemWidth > 0 ? display.systemWidth : current.width;
             int height =
                 display != null && display.systemHeight > 0 ? display.systemHeight : current.height;
-            return new NativeDisplayMode(width, height, current.refreshRateRatio);
+            return ResolveNativeWindowsDisplayMode(
+                queried,
+                mode,
+                new NativeDisplayMode(width, height, current.refreshRateRatio)
+            );
         }
+
+        internal static NativeDisplayMode ResolveNativeWindowsDisplayMode(
+            bool queried,
+            NativeDisplayMode queriedMode,
+            NativeDisplayMode fallback
+        ) => queried ? queriedMode : fallback;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         internal static void ResetStatics()

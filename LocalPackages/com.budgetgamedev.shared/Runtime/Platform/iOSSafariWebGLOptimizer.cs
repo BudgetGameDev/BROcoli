@@ -55,11 +55,14 @@ namespace BudgetGameDev.Shared
         /// put it back. Each is reached through a field an editor context can
         /// substitute, so the policy is checked without the project being written.
         /// </summary>
-        internal static Action<QualitySnapshot> WriteQuality = snapshot =>
-            snapshot.ApplyToProject();
+        internal static Action<QualitySnapshot> WriteQuality = ApplyQuality;
 
         /// <inheritdoc cref="WriteQuality"/>
-        internal static Func<UniversalRenderPipelineAsset> ResolveLivePipeline = () =>
+        internal static Func<UniversalRenderPipelineAsset> ResolveLivePipeline = LivePipeline;
+
+        private static void ApplyQuality(QualitySnapshot snapshot) => snapshot.ApplyToProject();
+
+        private static UniversalRenderPipelineAsset LivePipeline() =>
             GraphicsSettings.currentRenderPipeline as UniversalRenderPipelineAsset;
 
         /// <summary>
@@ -72,9 +75,8 @@ namespace BudgetGameDev.Shared
             _optimizationsApplied = false;
             KeepAcrossScenes = DontDestroyOnLoad;
             RemoveSelf = Destroy;
-            WriteQuality = snapshot => snapshot.ApplyToProject();
-            ResolveLivePipeline = () =>
-                GraphicsSettings.currentRenderPipeline as UniversalRenderPipelineAsset;
+            WriteQuality = ApplyQuality;
+            ResolveLivePipeline = LivePipeline;
         }
 
         /// <summary>

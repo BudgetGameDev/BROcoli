@@ -88,6 +88,9 @@ namespace BudgetGameDev.Shared.Tests
         [Test]
         public void TheDefaultRouteReachesForTheProjectsOwnPipeline()
         {
+            iOSSafariWebGLOptimizer.ResetStatics();
+            iOSSafariWebGLOptimizer.WriteQuality(iOSSafariWebGLOptimizer.QualitySnapshot.Current);
+            iOSSafariWebGLOptimizer.WriteQuality = snapshot => WrittenQuality = snapshot;
             Assert.That(
                 iOSSafariWebGLOptimizer.ResolveLivePipeline(),
                 Is.SameAs(GraphicsSettings.currentRenderPipeline),

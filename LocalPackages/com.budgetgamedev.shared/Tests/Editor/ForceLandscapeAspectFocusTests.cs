@@ -1,5 +1,6 @@
 using NUnit.Framework;
 using UnityEngine;
+using UnityEngine.TestTools;
 
 namespace BudgetGameDev.Shared.Tests
 {
@@ -42,6 +43,11 @@ namespace BudgetGameDev.Shared.Tests
         {
             TestPauseController pause = NewPauseMenu();
             ForceLandscapeAspect.IsEditorPlayer = () => true;
+            ForceLandscapeAspect.DEBUG_MODE = true;
+            LogAssert.Expect(
+                LogType.Log,
+                "[ForceLandscapeAspect] Focus LOST in the editor - not pausing"
+            );
 
             ForceLandscapeAspect.OnFocusLost();
 

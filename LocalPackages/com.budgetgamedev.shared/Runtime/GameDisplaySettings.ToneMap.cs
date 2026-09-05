@@ -102,14 +102,23 @@ namespace BudgetGameDev.Shared
         /// emerald picked as #43A047 reaches the panel as #259132. Returns the colour untouched
         /// while HDR output is not in effect, where the interface composites after the grade.
         /// </summary>
-        public static Color HdrUiColor(Color color)
+        public static Color HdrUiColor(Color color) =>
+            HdrUiColor(color, SupportsNativeHdr, HdrEnabled, IsHdrActive, PaperWhiteNits);
+
+        internal static Color HdrUiColor(
+            Color color,
+            bool supportsNativeHdr,
+            bool hdrOutputEnabled,
+            bool hdrOutputActive,
+            float paperWhiteNits
+        )
         {
-            if (!SupportsNativeHdr || !HdrEnabled || !IsHdrActive)
+            if (!supportsNativeHdr || !hdrOutputEnabled || !hdrOutputActive)
                 return color;
 
             Vector3 scene = AcesToneScale.SceneColorForDisplayNits(
-                new Vector3(color.r, color.g, color.b) * PaperWhiteNits,
-                PaperWhiteNits,
+                new Vector3(color.r, color.g, color.b) * paperWhiteNits,
+                paperWhiteNits,
                 HdrToneMapPreset
             );
             return UndoGrade(new Color(scene.x, scene.y, scene.z, color.a));

@@ -128,12 +128,19 @@ namespace BudgetGameDev.Games.Brocoli
             return materials;
         }
 
-        internal static Material GetGlowMaterial(GlowShell shell)
+        internal static Material GetGlowMaterial(GlowShell shell) =>
+            GetGlowMaterial(shell, Resources.Load<Shader>, Shader.Find);
+
+        internal static Material GetGlowMaterial(
+            GlowShell shell,
+            System.Func<string, Shader> loadResource,
+            System.Func<string, Shader> findShader
+        )
         {
             if (GlowMaterials.TryGetValue(shell, out Material cached) && cached != null)
                 return cached;
 
-            Shader shader = FindGlowShader(Resources.Load<Shader>, Shader.Find);
+            Shader shader = FindGlowShader(loadResource, findShader);
             if (shader == null)
                 return null;
 

@@ -122,22 +122,28 @@ namespace BudgetGameDev.Shared
             Cursor.visible = true;
         }
 
-        private void Update()
-        {
-            Mouse mouse = Mouse.current;
-            if (mouse == null)
-            {
-                // A touch device or a pad-only session. Nothing here has anything to say about
-                // the pointer, so it is left exactly as the platform set it.
-                return;
-            }
+        private void Update() => UpdatePointer(Mouse.current);
 
-            NotePointerPosition(mouse.position.ReadValue());
+        internal void UpdatePointer(Mouse mouse)
+        {
+            if (!TryReadPointerPosition(mouse, out Vector2 position))
+                return;
+
+            NotePointerPosition(position);
 
             float sinceMoved = Time.unscaledTime - lastMovementTime;
             ApplyPointerVisibility(
                 PointerRevealPolicy.ShouldShowPointer(IsHeldVisible(), sinceMoved)
             );
+        }
+
+        internal static bool TryReadPointerPosition(Mouse mouse, out Vector2 position)
+        {
+            position = Vector2.zero;
+            if (mouse == null)
+                return false;
+            position = mouse.position.ReadValue();
+            return true;
         }
 
         /// <summary>

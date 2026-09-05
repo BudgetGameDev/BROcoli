@@ -108,9 +108,11 @@ namespace BudgetGameDev.Games.Brocoli
             return slider;
         }
 
-        private void CreatePauseHdrPreviewMaterials()
+        private void CreatePauseHdrPreviewMaterials() =>
+            CreatePauseHdrPreviewMaterials(Shader.Find("UI/Default"));
+
+        internal void CreatePauseHdrPreviewMaterials(Shader shader)
         {
-            Shader shader = Shader.Find("UI/Default");
             if (shader == null)
                 return;
             Image[] images = { hdrPreviewBackground, hdrPreviewReference, hdrPreviewMark };

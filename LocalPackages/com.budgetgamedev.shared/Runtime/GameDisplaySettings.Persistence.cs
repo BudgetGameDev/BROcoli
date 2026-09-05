@@ -84,16 +84,8 @@ namespace BudgetGameDev.Shared
 
         private static bool TryUseNativeDisplayCalibration()
         {
-            if (
-                !SupportsNativeHdr
-                || (!HDROutputSettings.main.available && !HDROutputSettings.main.active)
-            )
-            {
-                return false;
-            }
-
             return TryUseNativeDisplayCalibration(
-                true,
+                SupportsNativeHdr,
                 HDROutputSettings.main.available,
                 HDROutputSettings.main.active,
                 HDROutputSettings.main.maxToneMapLuminance,

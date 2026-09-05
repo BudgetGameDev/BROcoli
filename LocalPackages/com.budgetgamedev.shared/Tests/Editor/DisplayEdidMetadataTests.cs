@@ -19,6 +19,7 @@ namespace BudgetGameDev.Shared.Tests
             Assert.That(metadata.MaximumLuminanceNits, Is.EqualTo(200f).Within(0.01f));
             Assert.That(metadata.MaximumFullFrameLuminanceNits, Is.EqualTo(100f).Within(0.01f));
             Assert.That(metadata.MinimumLuminanceNits, Is.EqualTo(2f).Within(0.01f));
+            Assert.That(metadata.Status, Does.Contain("CTA-861"));
         }
 
         [Test]
@@ -39,10 +40,70 @@ namespace BudgetGameDev.Shared.Tests
         public void InvalidEdidDoesNotProduceDisplayCapabilities()
         {
             Assert.That(
+                DisplayEdidMetadata.TryParse(null, out DisplayEdidMetadata missing),
+                Is.False
+            );
+            Assert.That(missing.Status, Does.Contain("No CTA-861"));
+            Assert.That(
                 DisplayEdidMetadata.TryParse(new byte[256], out DisplayEdidMetadata metadata),
                 Is.False
             );
             Assert.That(metadata.HasHdrStaticMetadata, Is.False);
+        }
+
+        [Test]
+        public void NonHdrAndMalformedCtaBlocksAreSkippedSafely()
+        {
+            byte[] edid = CreateEdid(maximumCode: 64, fullFrameCode: 32, minimumCode: 255);
+            edid[128] = 0x01;
+
+            Assert.That(
+                DisplayEdidMetadata.TryParse(edid, out DisplayEdidMetadata nonCta),
+                Is.False
+            );
+            Assert.That(nonCta.DisplayName, Is.EqualTo("TEST HDR"));
+
+            edid[128] = 0x02;
+            edid[130] = 6;
+            edid[132] = 0x1f;
+            Assert.That(
+                DisplayEdidMetadata.TryParse(edid, out DisplayEdidMetadata malformed),
+                Is.False
+            );
+            Assert.That(malformed.HasHdrStaticMetadata, Is.False);
+        }
+
+        [Test]
+        public void CtaParserWalksPastOtherDataBlocksAndFallsBackToManufacturerName()
+        {
+            byte[] edid = CreateEdid(maximumCode: 64, fullFrameCode: 32, minimumCode: 255);
+            for (int index = 54; index < 72; index++)
+                edid[index] = 0;
+            edid[57] = 0xfc;
+            edid[8] = 0x04;
+            edid[9] = 0x43;
+            edid[10] = 0x34;
+            edid[11] = 0x12;
+            edid[130] = 13;
+            for (int index = 138; index >= 133; index--)
+                edid[index] = edid[index - 2];
+            edid[132] = 1;
+            edid[133] = 0;
+
+            Assert.That(
+                DisplayEdidMetadata.TryParse(edid, out DisplayEdidMetadata metadata),
+                Is.True
+            );
+            Assert.That(metadata.DisplayName, Is.EqualTo("ABC-1234"));
+        }
+
+        [Test]
+        public void PlatformDetectionReportsAvailabilityWithoutThrowing()
+        {
+            DisplayEdidMetadata detected = DisplayEdidMetadata.Detect();
+            Assert.That(detected.HasHdrStaticMetadata, Is.False);
+            Assert.That(detected.Status, Is.Not.Empty);
+            Assert.That(WindowsDisplayHdrState.TryQueryActiveDisplayMode(out _), Is.False);
         }
 
         private static byte[] CreateEdid(byte maximumCode, byte fullFrameCode, byte minimumCode)

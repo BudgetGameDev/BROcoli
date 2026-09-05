@@ -91,6 +91,79 @@ namespace BudgetGameDev.Shared.Tests
         }
 
         [Test]
+        public void CalibrationNoOpsAndUnavailableDetectedProfilesAreStable()
+        {
+            GameDisplaySettings.SetCalibration(600f, 200f, 0.0005f);
+            GameDisplaySettings.SetCalibration(600f, 200f, 0.0005f);
+            Assert.That(GameDisplaySettings.ResetToDetectedHdrProfile(), Is.False);
+
+            GameDisplaySettings.BeginHdrCalibrationPreview();
+            GameDisplaySettings.BeginHdrCalibrationPreview();
+            GameDisplaySettings.EndHdrCalibrationPreview();
+            GameDisplaySettings.EndHdrCalibrationPreview();
+
+            Assert.That(
+                GameDisplaySettings.TryUseNativeDisplayCalibration(
+                    false,
+                    true,
+                    true,
+                    1000f,
+                    200f,
+                    0f
+                ),
+                Is.False
+            );
+            Assert.That(GameDisplaySettings.DetectedBlackLevelNits, Is.Zero);
+            GameDisplaySettings.Bootstrap(false, false, _ => { });
+
+            Color authored = new(0.25f, 0.5f, 0.75f, 0.8f);
+            Assert.That(
+                GameDisplaySettings.HdrUiColor(authored, true, true, true, 200f),
+                Is.Not.EqualTo(authored)
+            );
+            Assert.That(GameDisplaySettings.DetectNativeWindowsDisplayMode().IsValid, Is.True);
+
+            bool applied = false;
+            LogAssert.Expect(
+                LogType.Log,
+                "[GameDisplaySettings] Native borderless display mode: 1920x1080 @ 60/1 Hz"
+            );
+            GameDisplaySettings.ConfigureNativeWindowsDisplay(
+                true,
+                () =>
+                    new NativeDisplayMode(
+                        1920,
+                        1080,
+                        new RefreshRate { numerator = 60, denominator = 1 }
+                    ),
+                _ => applied = true
+            );
+            Assert.That(applied, Is.True);
+
+            LogAssert.Expect(
+                LogType.Warning,
+                "[GameDisplaySettings] Could not detect a valid native Windows display mode."
+            );
+            GameDisplaySettings.ConfigureNativeWindowsDisplay(
+                true,
+                () => default,
+                _ => Assert.Fail("an invalid display mode must not be applied")
+            );
+            GameDisplaySettings.ApplyNativeWindowsDisplayMode(
+                GameDisplaySettings.DetectNativeWindowsDisplayMode()
+            );
+            NativeDisplayMode queried = new(
+                3840,
+                2160,
+                new RefreshRate { numerator = 120, denominator = 1 }
+            );
+            Assert.That(
+                GameDisplaySettings.ResolveNativeWindowsDisplayMode(true, queried, default),
+                Is.EqualTo(queried)
+            );
+        }
+
+        [Test]
         public void BootstrapAndDriverLifecycleCoverDuplicateFocusPollingAndCleanup()
         {
             GameObject created = null;

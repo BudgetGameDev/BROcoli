@@ -82,6 +82,8 @@ namespace BudgetGameDev.Games.Brocoli.Tests
             Assert.That(layout.SettingsOpen, Is.True);
             Assert.That(pause.IsPaused(), Is.True);
             Assert.That(Time.timeScale, Is.Zero);
+            ExercisePauseHdrInput(layout);
+            InvokeHierarchy(pause, "Update");
             InvokeHierarchy(layout, "ShowHdrDetails");
             Assert.That(layout.HdrDetailsOpen, Is.True);
             InvokeHierarchy(layout, "OpenHdrCalibration");
@@ -129,6 +131,8 @@ namespace BudgetGameDev.Games.Brocoli.Tests
             InvokeHierarchy(coverageLayout, "LateUpdate");
             InvokeHierarchy(coverageLayout, "LateUpdate");
             pause.pauseMenuUI = panel;
+            SetHierarchyField(pause, "responsiveLayout", null);
+            InvokeHierarchy(pause, "OpenSettings");
             pause.resumeButton = null;
             pause.settingsButton = null;
             pause.mainMenuButton = null;
