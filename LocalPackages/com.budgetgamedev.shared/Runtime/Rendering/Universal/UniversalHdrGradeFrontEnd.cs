@@ -6,13 +6,9 @@ using UnityEngine.Rendering.Universal;
 namespace BudgetGameDev.Shared.Rendering.Universal
 {
     /// <summary>
-    /// Realizes the HDR grade through Universal's volume components.
-    ///
-    /// Only the tone map is overridden. In particular the scene's bloom is left alone: it is
-    /// deliberately blown out, admitting everything above 0.85 and adding it back at 135%, and
-    /// that glow around the torches is most of the dungeon's atmosphere rather than an artefact
-    /// of SDR clipping. Inheriting it makes the HDR picture the SDR one with its highlights
-    /// carried past display white instead of pinned to it.
+    /// Applies native HDR calibration or SDR highlight shaping through Universal's volumes.
+    /// HDR inherits the scene's authored bloom. SDR gives bright cores a stronger shoulder
+    /// and a tighter glow while retaining the scene's exposure, contrast and saturation.
     /// </summary>
     public sealed class UniversalHdrGradeFrontEnd : IHdrGradeFrontEnd
     {
@@ -21,6 +17,8 @@ namespace BudgetGameDev.Shared.Rendering.Universal
         private Tonemapping tonemapping;
         private ColorAdjustments colorAdjustments;
         private LiftGammaGain liftGammaGain;
+        private ShadowsMidtonesHighlights sdrHighlights;
+        private Bloom sdrBloom;
 
         public RenderPipelineKind Pipeline => RenderPipelineKind.Universal;
 
@@ -34,6 +32,8 @@ namespace BudgetGameDev.Shared.Rendering.Universal
             tonemapping = profile.Add<Tonemapping>();
             colorAdjustments = profile.Add<ColorAdjustments>();
             liftGammaGain = profile.Add<LiftGammaGain>();
+            sdrHighlights = profile.Add<ShadowsMidtonesHighlights>();
+            sdrBloom = profile.Add<Bloom>();
             volume.profile = profile;
         }
 
@@ -42,7 +42,15 @@ namespace BudgetGameDev.Shared.Rendering.Universal
             if (tonemapping == null)
                 return;
 
-            volume.enabled = request.Enabled;
+            volume.enabled = true;
+            sdrHighlights.active = !request.Enabled;
+            // Positive wheel weight adds four times w to the linear RGB gain: 1.35 here.
+            sdrHighlights.highlights.Override(new Vector4(1f, 1f, 1f, 0.0875f));
+            sdrHighlights.highlightsStart.Override(0.5f);
+            sdrHighlights.highlightsEnd.Override(1f);
+            sdrBloom.active = !request.Enabled;
+            sdrBloom.threshold.Override(1f);
+            sdrBloom.scatter.Override(0.62f);
             tonemapping.active = request.Enabled;
 
             // The scene is graded for ACES in SDR. Neutral tone mapping has no filmic curve at
@@ -103,6 +111,8 @@ namespace BudgetGameDev.Shared.Rendering.Universal
             tonemapping = null;
             colorAdjustments = null;
             liftGammaGain = null;
+            sdrHighlights = null;
+            sdrBloom = null;
         }
     }
 }

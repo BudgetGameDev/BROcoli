@@ -149,16 +149,17 @@ namespace BudgetGameDev.Shared.Tests
                 var driver = root.AddComponent<GameDisplaySettings.HdrDisplayDriver>();
                 driver.Awake();
                 Volume volume = root.GetComponent<Volume>();
+                volume.profile.TryGet(out UnityEngine.Rendering.Universal.Tonemapping tonemapping);
 
                 bool? requested = null;
                 driver.Apply(true, false, value => requested = value);
-                Assert.That(volume.enabled, Is.False);
+                Assert.That(tonemapping.active, Is.False);
                 Assert.That(requested, Is.Null);
 
                 GameDisplaySettings.systemHdrStateProvider = () => SystemHdrState.Disabled;
                 GameDisplaySettings.RefreshSystemHdrState();
                 driver.Apply(true, true, value => requested = value);
-                Assert.That(volume.enabled, Is.False);
+                Assert.That(tonemapping.active, Is.False);
                 Assert.That(requested, Is.False);
 
                 GameDisplaySettings.SetHdrEnabled(false);
@@ -166,6 +167,7 @@ namespace BudgetGameDev.Shared.Tests
                 GameDisplaySettings.RefreshSystemHdrState();
                 driver.Apply(true, true, value => requested = value);
                 Assert.That(volume.enabled, Is.True);
+                Assert.That(tonemapping.active, Is.True);
                 Assert.That(requested, Is.True);
             }
             finally

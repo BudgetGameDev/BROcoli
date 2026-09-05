@@ -13,7 +13,8 @@ namespace BudgetGameDev.Shared.Rendering.HighDefinition
     /// value and the dungeon reads at the same luminance on both front ends. What differs is
     /// what surrounds it: High Definition meters the scene itself, so the fixed exposure that
     /// keeps the nit ladder honest is set on the pipeline's own volume profile rather than
-    /// here, and bloom likewise stays with the scene.
+    /// here. HDR bloom stays with the scene; SDR uses tighter bloom and a selective highlight
+    /// boost, smaller than Universal's because its bright cores already read more strongly.
     /// </summary>
     public sealed class HighDefinitionHdrGradeFrontEnd : IHdrGradeFrontEnd
     {
@@ -31,6 +32,8 @@ namespace BudgetGameDev.Shared.Rendering.HighDefinition
         private Tonemapping tonemapping;
         private ColorAdjustments colorAdjustments;
         private LiftGammaGain liftGammaGain;
+        private ShadowsMidtonesHighlights sdrHighlights;
+        private ImpressionistBloom sdrBloom;
 
         public RenderPipelineKind Pipeline => RenderPipelineKind.HighDefinition;
 
@@ -44,6 +47,8 @@ namespace BudgetGameDev.Shared.Rendering.HighDefinition
             tonemapping = profile.Add<Tonemapping>();
             colorAdjustments = profile.Add<ColorAdjustments>();
             liftGammaGain = profile.Add<LiftGammaGain>();
+            sdrHighlights = profile.Add<ShadowsMidtonesHighlights>();
+            sdrBloom = profile.Add<ImpressionistBloom>();
             volume.profile = profile;
         }
 
@@ -52,7 +57,15 @@ namespace BudgetGameDev.Shared.Rendering.HighDefinition
             if (tonemapping == null)
                 return;
 
-            volume.enabled = request.Enabled;
+            volume.enabled = true;
+            sdrHighlights.active = !request.Enabled;
+            // Positive wheel weight adds four times w to the linear RGB gain: 1.20 here.
+            sdrHighlights.highlights.Override(new Vector4(1f, 1f, 1f, 0.05f));
+            sdrHighlights.highlightsStart.Override(0.5f);
+            sdrHighlights.highlightsEnd.Override(1f);
+            sdrBloom.active = !request.Enabled;
+            sdrBloom.threshold.Override(1f);
+            sdrBloom.scatter.Override(0.62f);
             tonemapping.active = request.Enabled;
 
             tonemapping.mode.Override(TonemappingMode.ACES);
@@ -109,6 +122,8 @@ namespace BudgetGameDev.Shared.Rendering.HighDefinition
             tonemapping = null;
             colorAdjustments = null;
             liftGammaGain = null;
+            sdrHighlights = null;
+            sdrBloom = null;
         }
     }
 }

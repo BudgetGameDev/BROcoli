@@ -25,7 +25,7 @@ namespace BudgetGameDev.Shared.Tests
                 Assert.That(volume.enabled, Is.True);
                 Assert.That(volume.profile.TryGet(out Tonemapping tonemapping), Is.True);
                 Assert.That(
-                    volume.profile.TryGet(out Bloom _),
+                    volume.profile.TryGet(out Bloom bloom) && bloom.active,
                     Is.False,
                     "HDR inherits the scene's bloom rather than overriding it"
                 );
@@ -72,7 +72,9 @@ namespace BudgetGameDev.Shared.Tests
                     "a peak the 1000 nit shoulder cannot reach moves up a preset"
                 );
                 GameDisplaySettings.SetHdrEnabled(false);
-                Assert.That(volume.enabled, Is.False);
+                Assert.That(volume.enabled, Is.True);
+                Assert.That(tonemapping.active, Is.False);
+                Assert.That(bloom.active, Is.True);
             }
             finally
             {
@@ -92,7 +94,7 @@ namespace BudgetGameDev.Shared.Tests
                 driver.Apply(false, true, _ => { });
 
                 Volume volume = root.GetComponent<Volume>();
-                Assert.That(volume.enabled, Is.False);
+                Assert.That(volume.enabled, Is.True);
                 Assert.That(volume.profile.TryGet(out ColorAdjustments colorAdjustments), Is.True);
                 Assert.That(
                     colorAdjustments.active,
