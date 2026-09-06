@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "displayName": "BROcoli Autoplay",
   "description": "Editor and explicitly enabled development player automation. Excluded from release compilation.",
-  "unity": "6000.0",
+  "unity": "6000.5",
   "dependencies": {
     "com.budgetgamedev.autoplay": "0.1.0",
     "com.budgetgamedev.game.brocoli": "0.1.0"

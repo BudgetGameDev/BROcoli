@@ -3,6 +3,7 @@
   "rootNamespace": "BudgetGameDev.Shared.Tests",
   "references": [
     "BudgetGameDev.Shared",
+    "BudgetGameDev.Shared.Rendering.Universal",
     "Unity.InputSystem",
     "Unity.RenderPipelines.Core.Runtime",
     "Unity.RenderPipelines.Universal.Runtime",

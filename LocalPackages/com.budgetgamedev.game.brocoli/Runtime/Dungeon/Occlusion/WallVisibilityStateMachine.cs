@@ -70,10 +70,10 @@ namespace BudgetGameDev.Games.Brocoli
         }
 
         private readonly Settings settings;
-        private readonly Dictionary<int, Entry> entries = new();
-        private readonly Dictionary<int, OcclusionTargetKind> selection = new();
-        private readonly List<int> loweredGroups = new();
-        private readonly List<int> expired = new();
+        private readonly Dictionary<EntityId, Entry> entries = new();
+        private readonly Dictionary<EntityId, OcclusionTargetKind> selection = new();
+        private readonly List<EntityId> loweredGroups = new();
+        private readonly List<EntityId> expired = new();
 
         public WallVisibilityStateMachine(Settings settings)
         {
@@ -81,14 +81,14 @@ namespace BudgetGameDev.Games.Brocoli
         }
 
         /// <summary>The groups currently lowered, in ascending group order.</summary>
-        public IReadOnlyList<int> LoweredGroups => loweredGroups;
+        public IReadOnlyList<EntityId> LoweredGroups => loweredGroups;
 
         public void BeginFrame()
         {
             selection.Clear();
         }
 
-        public void Select(int groupId, OcclusionTargetKind cause)
+        public void Select(EntityId groupId, OcclusionTargetKind cause)
         {
             if (
                 selection.TryGetValue(groupId, out OcclusionTargetKind existing)
@@ -101,7 +101,7 @@ namespace BudgetGameDev.Games.Brocoli
         /// <summary>Settles every tracked group against this frame's selection.</summary>
         public void EndFrame(float time)
         {
-            foreach (KeyValuePair<int, OcclusionTargetKind> selected in selection)
+            foreach (KeyValuePair<EntityId, OcclusionTargetKind> selected in selection)
             {
                 if (!entries.ContainsKey(selected.Key))
                     entries.Add(selected.Key, new Entry());
@@ -109,7 +109,7 @@ namespace BudgetGameDev.Games.Brocoli
 
             expired.Clear();
             loweredGroups.Clear();
-            foreach (KeyValuePair<int, Entry> pair in entries)
+            foreach (KeyValuePair<EntityId, Entry> pair in entries)
             {
                 Entry entry = pair.Value;
                 bool selected = selection.TryGetValue(pair.Key, out OcclusionTargetKind cause);
@@ -123,19 +123,19 @@ namespace BudgetGameDev.Games.Brocoli
                     expired.Add(pair.Key);
             }
 
-            foreach (int groupId in expired)
+            foreach (EntityId groupId in expired)
                 entries.Remove(groupId);
             loweredGroups.Sort();
         }
 
-        public WallVisibility VisibilityOf(int groupId)
+        public WallVisibility VisibilityOf(EntityId groupId)
         {
             return entries.TryGetValue(groupId, out Entry entry)
                 ? entry.Visibility
                 : WallVisibility.Full;
         }
 
-        public WallVisibilityReason ReasonFor(int groupId)
+        public WallVisibilityReason ReasonFor(EntityId groupId)
         {
             return entries.TryGetValue(groupId, out Entry entry)
                 ? entry.Reason

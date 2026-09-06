@@ -252,7 +252,7 @@ namespace BudgetGameDev.Games.Brocoli.Tests
                         new DungeonPassage(false, 0, 0)
                     );
 
-                var groups = new HashSet<int>();
+                var groups = new HashSet<EntityId>();
                 foreach (Collider collider in room.GetComponentsInChildren<Collider>())
                 {
                     if (collider.isTrigger)

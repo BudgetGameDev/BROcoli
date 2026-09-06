@@ -26,7 +26,7 @@ namespace BudgetGameDev.Games.Brocoli
 
                 if (_instance == null)
                 {
-                    _instance = FindFirstObjectByType<EnemySpatialHash>();
+                    _instance = FindAnyObjectByType<EnemySpatialHash>();
                     if (_instance == null && !_applicationIsQuitting)
                     {
                         var go = new GameObject("[EnemySpatialHash]");

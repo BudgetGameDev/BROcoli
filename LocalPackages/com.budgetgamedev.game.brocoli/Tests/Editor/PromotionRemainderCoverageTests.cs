@@ -243,7 +243,7 @@ namespace BudgetGameDev.Games.Brocoli.Tests
                 UnityEngine.TestTools.LogAssert.Expect(
                     LogType.Error,
                     new System.Text.RegularExpressions.Regex(
-                        "^Destroy may not be called from edit mode"
+                        "^EnemyProjectileHitSound: Destroy may not be called from edit mode"
                     )
                 );
                 ProceduralEnemyProjectileHitAudio.PlayHit(

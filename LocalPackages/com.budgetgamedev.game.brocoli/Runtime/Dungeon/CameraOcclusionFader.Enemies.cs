@@ -19,10 +19,7 @@ namespace BudgetGameDev.Games.Brocoli
 
             if (Time.unscaledTime >= nextEnemyTargetRefreshTime)
             {
-                enemyTargets = Object.FindObjectsByType<EnemyBase>(
-                    FindObjectsInactive.Exclude,
-                    FindObjectsSortMode.None
-                );
+                enemyTargets = Object.FindObjectsByType<EnemyBase>(FindObjectsInactive.Exclude);
                 nextEnemyTargetRefreshTime = Time.unscaledTime + EnemyTargetRefreshInterval;
             }
 

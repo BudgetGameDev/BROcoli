@@ -207,7 +207,7 @@ namespace BudgetGameDev.Games.Brocoli.Tests
                 new Rect(0.4f, 0.4f, 0.2f, 0.2f),
                 0f
             );
-            var activations = new Dictionary<int, OcclusionActivation>();
+            var activations = new Dictionary<EntityId, OcclusionActivation>();
 
             new WallOcclusionSelector().Select(camera, target, new ShortWorld(), activations);
 
@@ -231,7 +231,7 @@ namespace BudgetGameDev.Games.Brocoli.Tests
         private sealed class ShortWorld : IOcclusionCandidateSource
         {
             private static readonly OcclusionCandidate Short = new(
-                17,
+                SyntheticOcclusionId.FromIndex(17),
                 new Bounds(Vector3.zero, new Vector3(10f, 0.1f, 10f))
             );
 

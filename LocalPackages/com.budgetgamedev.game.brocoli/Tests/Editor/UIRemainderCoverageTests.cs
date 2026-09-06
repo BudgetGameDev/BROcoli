@@ -134,8 +134,7 @@ namespace BudgetGameDev.Games.Brocoli.Tests
         {
             foreach (
                 Canvas canvas in UnityEngine.Object.FindObjectsByType<Canvas>(
-                    FindObjectsInactive.Include,
-                    FindObjectsSortMode.None
+                    FindObjectsInactive.Include
                 )
             )
                 UnityEngine.Object.DestroyImmediate(canvas.gameObject);

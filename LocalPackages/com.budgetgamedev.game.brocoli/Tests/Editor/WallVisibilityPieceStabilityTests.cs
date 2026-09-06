@@ -15,9 +15,9 @@ namespace BudgetGameDev.Games.Brocoli.Tests
     /// </summary>
     public sealed class WallVisibilityPieceStabilityTests
     {
-        private const int GroupId = 1;
-        private const int FrontPieceId = 11;
-        private const int DeepPieceId = 12;
+        private static readonly EntityId GroupId = SyntheticOcclusionId.FromIndex(1);
+        private static readonly EntityId FrontPieceId = SyntheticOcclusionId.FromIndex(11);
+        private static readonly EntityId DeepPieceId = SyntheticOcclusionId.FromIndex(12);
 
         /// <summary>Between the camera and the player: always in the gap.</summary>
         private static readonly Bounds FrontWall = new(

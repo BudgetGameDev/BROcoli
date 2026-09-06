@@ -73,7 +73,7 @@ namespace BudgetGameDev.Games.Brocoli
             Resolver.Resolve(cameraModel, occluderQuery, Time.unscaledTime);
 
             MaximumDetectedCoverage = 0f;
-            foreach (KeyValuePair<int, OcclusionActivation> activation in Resolver.Activations)
+            foreach (KeyValuePair<EntityId, OcclusionActivation> activation in Resolver.Activations)
                 MaximumDetectedCoverage = Mathf.Max(
                     MaximumDetectedCoverage,
                     activation.Value.Coverage
@@ -109,7 +109,7 @@ namespace BudgetGameDev.Games.Brocoli
         /// </summary>
         private void CollectLoweredRenderers()
         {
-            foreach (int groupId in Resolver.LoweredGroups)
+            foreach (EntityId groupId in Resolver.LoweredGroups)
             {
                 DungeonOccluder occluder = DungeonOccluder.ForGroup(groupId);
                 if (occluder != null && BelongsToPlayerRoom(occluder))

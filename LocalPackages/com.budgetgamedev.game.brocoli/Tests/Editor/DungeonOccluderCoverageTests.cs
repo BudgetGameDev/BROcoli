@@ -102,14 +102,14 @@ namespace BudgetGameDev.Games.Brocoli.Tests
         {
             GameObject host = new("Coverage stale occluder");
             DungeonOccluder occluder = host.AddComponent<DungeonOccluder>();
-            int id = occluder.GroupId;
+            EntityId id = occluder.GroupId;
             Object.DestroyImmediate(host);
 
             FieldInfo registryField = typeof(DungeonOccluder).GetField(
                 "Registry",
                 BindingFlags.NonPublic | BindingFlags.Static
             );
-            var registry = (Dictionary<int, DungeonOccluder>)registryField.GetValue(null);
+            var registry = (Dictionary<EntityId, DungeonOccluder>)registryField.GetValue(null);
             registry[id] = occluder;
 
             Assert.That(DungeonOccluder.ForGroup(id), Is.Null);

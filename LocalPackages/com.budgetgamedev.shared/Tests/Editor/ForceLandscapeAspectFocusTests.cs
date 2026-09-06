@@ -277,8 +277,7 @@ namespace BudgetGameDev.Shared.Tests
         private static ForceLandscapeAspect.AspectRatioUpdater[] FindUpdaters()
         {
             return Object.FindObjectsByType<ForceLandscapeAspect.AspectRatioUpdater>(
-                FindObjectsInactive.Include,
-                FindObjectsSortMode.None
+                FindObjectsInactive.Include
             );
         }
     }

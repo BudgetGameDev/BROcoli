@@ -19,7 +19,7 @@ namespace BudgetGameDev.Games.Brocoli
     [DisallowMultipleComponent]
     public partial class DungeonOccluder : MonoBehaviour
     {
-        private static readonly Dictionary<int, DungeonOccluder> Registry = new();
+        private static readonly Dictionary<EntityId, DungeonOccluder> Registry = new();
 
         /// <summary>
         /// A renderer paired with the solid extent it is judged by. A wall mesh
@@ -34,13 +34,13 @@ namespace BudgetGameDev.Games.Brocoli
             public readonly Bounds Structure;
 
             /// <summary>The piece identity the resolver settles fades under.</summary>
-            public readonly int PieceId;
+            public readonly EntityId PieceId;
 
             public FadeCandidate(Renderer renderer, Bounds structure)
             {
                 Renderer = renderer;
                 Structure = structure;
-                PieceId = renderer.GetInstanceID();
+                PieceId = renderer.GetEntityId();
             }
         }
 
@@ -48,12 +48,12 @@ namespace BudgetGameDev.Games.Brocoli
 
         /// <summary>
         /// The visibility group this occluder is. Stable for its life and unique
-        /// across occluders, so the decision layer can reason in plain ints.
+        /// across occluders, so the decision layer can reason with typed identities.
         /// </summary>
-        public int GroupId => GetInstanceID();
+        public EntityId GroupId => GetEntityId();
 
         /// <summary>The occluder owning a group id, or null once it is gone.</summary>
-        public static DungeonOccluder ForGroup(int groupId)
+        public static DungeonOccluder ForGroup(EntityId groupId)
         {
             if (!Registry.TryGetValue(groupId, out DungeonOccluder occluder))
                 return null;

@@ -18,7 +18,7 @@ namespace BudgetGameDev.Games.Brocoli
         private readonly WallVisibilityStateMachine pieceStates;
         private readonly List<OcclusionTarget> targets = new();
         private readonly WallOcclusionSelector selector = new();
-        private readonly Dictionary<int, OcclusionActivation> activations = new();
+        private readonly Dictionary<EntityId, OcclusionActivation> activations = new();
         private OcclusionCameraModel camera;
         private Vector3 groundForward;
         private float deepestTargetDepth;
@@ -34,10 +34,10 @@ namespace BudgetGameDev.Games.Brocoli
             : this(WallVisibilityStateMachine.Settings.Default) { }
 
         /// <summary>The groups lowered after the last <see cref="Resolve"/>.</summary>
-        public IReadOnlyList<int> LoweredGroups => states.LoweredGroups;
+        public IReadOnlyList<EntityId> LoweredGroups => states.LoweredGroups;
 
         /// <summary>What the last <see cref="Resolve"/> selected, for diagnostics.</summary>
-        public IReadOnlyDictionary<int, OcclusionActivation> Activations => activations;
+        public IReadOnlyDictionary<EntityId, OcclusionActivation> Activations => activations;
 
         public IReadOnlyList<OcclusionTarget> Targets => targets;
 
@@ -77,7 +77,7 @@ namespace BudgetGameDev.Games.Brocoli
             foreach (OcclusionTarget target in targets)
                 selector.Select(model, target, source, activations);
 
-            foreach (KeyValuePair<int, OcclusionActivation> activation in activations)
+            foreach (KeyValuePair<EntityId, OcclusionActivation> activation in activations)
                 states.Select(activation.Key, activation.Value.Cause);
             states.EndFrame(time);
 
@@ -89,17 +89,17 @@ namespace BudgetGameDev.Games.Brocoli
             pieceQueryTime = time;
         }
 
-        public WallVisibility VisibilityOf(int groupId)
+        public WallVisibility VisibilityOf(EntityId groupId)
         {
             return states.VisibilityOf(groupId);
         }
 
-        public WallVisibilityReason ReasonFor(int groupId)
+        public WallVisibilityReason ReasonFor(EntityId groupId)
         {
             return states.ReasonFor(groupId);
         }
 
-        public bool IsLowered(int groupId)
+        public bool IsLowered(EntityId groupId)
         {
             return states.VisibilityOf(groupId) == WallVisibility.Lowered;
         }
@@ -121,7 +121,7 @@ namespace BudgetGameDev.Games.Brocoli
         /// same frame; only standing back up waits out the release delay, and a
         /// piece that jitters is pinned down. Ask once per piece per resolve.
         /// </summary>
-        public bool IsPieceInTheWay(int pieceId, Bounds structure)
+        public bool IsPieceInTheWay(EntityId pieceId, Bounds structure)
         {
             if (IsPieceInTheGap(structure))
             {

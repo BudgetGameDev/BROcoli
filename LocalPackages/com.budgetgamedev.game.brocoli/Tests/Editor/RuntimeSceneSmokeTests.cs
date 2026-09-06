@@ -120,7 +120,7 @@ namespace BudgetGameDev.Games.Brocoli.Tests
 
         private static void ExerciseDungeon(PlayerStats stats, List<EnemyBase> enemies)
         {
-            var torches = Object.FindObjectsByType<TorchFlicker>(FindObjectsSortMode.None);
+            var torches = Object.FindObjectsByType<TorchFlicker>();
             Assert.That(
                 Camera
                     .main.GetComponent<UnityEngine.Rendering.Universal.UniversalAdditionalCameraData>()
@@ -133,13 +133,13 @@ namespace BudgetGameDev.Games.Brocoli.Tests
             {
                 var fire = torch.GetComponent<TorchFireVfx>();
                 Assert.That(fire, Is.Not.Null, "Real prefab Awake must install the fire.");
-                int layers = 0;
+                var layers = new List<string>();
                 foreach (var particles in fire.GetComponentsInChildren<ParticleSystem>())
                 {
                     var renderer = particles.GetComponent<ParticleSystemRenderer>();
                     if (!renderer.enabled)
                         continue;
-                    layers++;
+                    layers.Add(particles.name);
                     Assert.That(
                         renderer.sharedMaterial.shader.name,
                         Is.EqualTo(Rendering.BrocoliShaders.TorchFire)
@@ -150,7 +150,20 @@ namespace BudgetGameDev.Games.Brocoli.Tests
                         "Real gameplay must start every fire layer."
                     );
                 }
-                Assert.That(layers, Is.EqualTo(4));
+                Assert.That(
+                    layers,
+                    Is.EquivalentTo(
+                        new[]
+                        {
+                            "Fire Core",
+                            "Fire Tongues",
+                            "Fire Smoke",
+                            "Fire Embers",
+                            "Fire Heat",
+                        }
+                    ),
+                    "The running torch must install every authored fire layer."
+                );
             }
             ExerciseVirtualController();
             ExerciseShuffleWalkVisual(stats);

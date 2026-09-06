@@ -13,7 +13,7 @@ namespace BudgetGameDev.Shared
             {
                 if (_instance == null)
                 {
-                    var objs = FindObjectsByType<T>(FindObjectsSortMode.None);
+                    var objs = FindObjectsByType<T>();
                     if (objs.Length > 0)
                         _instance = objs[0];
                     if (objs.Length > 1)

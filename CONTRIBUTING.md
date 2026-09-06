@@ -38,7 +38,7 @@ Install the prerequisites once:
 - `shfmt`
 - PowerShell 7 (`pwsh`)
 - Unity CLI (`unity`)
-- Unity matching `ProjectSettings/ProjectVersion.txt`
+- Unity 6.5 matching the exact editor version in `ProjectSettings/ProjectVersion.txt`
 - Chrome or Chromium
 
 On macOS, `./scripts/bootstrap-macos.sh` installs those prerequisites together

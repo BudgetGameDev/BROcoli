@@ -23,8 +23,7 @@ namespace BudgetGameDev.Games.Brocoli.Tests
         {
             foreach (
                 EventSystem existing in Object.FindObjectsByType<EventSystem>(
-                    FindObjectsInactive.Include,
-                    FindObjectsSortMode.None
+                    FindObjectsInactive.Include
                 )
             )
                 Object.DestroyImmediate(existing.gameObject);
@@ -39,8 +38,7 @@ namespace BudgetGameDev.Games.Brocoli.Tests
         {
             foreach (
                 EventSystem events in Object.FindObjectsByType<EventSystem>(
-                    FindObjectsInactive.Include,
-                    FindObjectsSortMode.None
+                    FindObjectsInactive.Include
                 )
             )
                 events.gameObject.SetActive(false);
@@ -49,8 +47,7 @@ namespace BudgetGameDev.Games.Brocoli.Tests
 
             foreach (
                 EventSystem events in Object.FindObjectsByType<EventSystem>(
-                    FindObjectsInactive.Include,
-                    FindObjectsSortMode.None
+                    FindObjectsInactive.Include
                 )
             )
                 Object.DestroyImmediate(events.gameObject);

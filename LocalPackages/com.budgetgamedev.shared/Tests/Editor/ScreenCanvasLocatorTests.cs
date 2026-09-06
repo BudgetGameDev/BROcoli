@@ -134,21 +134,13 @@ namespace BudgetGameDev.Shared.Tests
         private static List<EventSystem> EventSystems()
         {
             return new List<EventSystem>(
-                Object.FindObjectsByType<EventSystem>(
-                    FindObjectsInactive.Include,
-                    FindObjectsSortMode.None
-                )
+                Object.FindObjectsByType<EventSystem>(FindObjectsInactive.Include)
             );
         }
 
         private static void ClearScreenObjects()
         {
-            foreach (
-                Canvas canvas in Object.FindObjectsByType<Canvas>(
-                    FindObjectsInactive.Include,
-                    FindObjectsSortMode.None
-                )
-            )
+            foreach (Canvas canvas in Object.FindObjectsByType<Canvas>(FindObjectsInactive.Include))
             {
                 if (canvas != null)
                     Object.DestroyImmediate(canvas.gameObject);

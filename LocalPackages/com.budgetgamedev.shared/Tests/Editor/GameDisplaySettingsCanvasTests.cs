@@ -145,10 +145,7 @@ namespace BudgetGameDev.Shared.Tests
         [Test]
         public void OutputCameraFallsBackPastAnUnusableMainCamera()
         {
-            Camera[] existing = Object.FindObjectsByType<Camera>(
-                FindObjectsInactive.Include,
-                FindObjectsSortMode.None
-            );
+            Camera[] existing = Object.FindObjectsByType<Camera>(FindObjectsInactive.Include);
             bool[] existingEnabled = System.Array.ConvertAll(existing, camera => camera.enabled);
             foreach (Camera camera in existing)
                 camera.enabled = false;

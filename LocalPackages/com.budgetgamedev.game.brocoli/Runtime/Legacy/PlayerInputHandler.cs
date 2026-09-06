@@ -43,7 +43,7 @@ namespace BudgetGameDev.Games.Brocoli
         private void Awake()
         {
             // Cache virtual controller reference - may be null on desktop
-            _virtualController = FindFirstObjectByType<VirtualController>();
+            _virtualController = FindAnyObjectByType<VirtualController>();
         }
 
         // NOTE: Input is updated explicitly by PlayerController in FixedUpdate

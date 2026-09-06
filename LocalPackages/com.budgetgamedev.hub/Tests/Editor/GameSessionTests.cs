@@ -17,11 +17,20 @@ namespace BudgetGameDev.Hub.Tests
         private readonly HubTestGames games = new();
         private readonly List<string> loaded = new();
         private string previousLastPlayed;
+        private GameAudioSettings previousAudioSettings;
+        private string previousMixerPath;
+        private string previousMenuScene;
 
         [SetUp]
         public void RecordScenesInsteadOfLoadingThem()
         {
             previousLastPlayed = GameSession.LastPlayedId;
+            previousAudioSettings = GameAudioSettings.instance;
+            previousMixerPath = GameAudioSettings.MixerResourcePath;
+            previousMenuScene = GameAudioSettings.MenuSceneName;
+            // This fixture verifies session configuration using synthetic game definitions.
+            // An audio host left by another scene must not try to load their fake mixers.
+            GameAudioSettings.instance = null;
             PlayerPrefs.SetString(GameSession.LastPlayedKey, string.Empty);
             GameSession.ResetSessionState();
             loaded.Clear();
@@ -33,7 +42,8 @@ namespace BudgetGameDev.Hub.Tests
         {
             games.DestroyAll();
             GameSession.ResetSessionState();
-            GameAudioSettings.Configure(null, null);
+            GameAudioSettings.Configure(previousMixerPath, previousMenuScene);
+            GameAudioSettings.instance = previousAudioSettings;
             Time.timeScale = 1f;
             PlayerPrefs.SetString(GameSession.LastPlayedKey, previousLastPlayed);
         }

@@ -95,6 +95,7 @@ namespace BudgetGameDev.Games.Brocoli.Tests
             SetHierarchyField(controller, "isMobileCached", true);
             SetHierarchyField(controller, "isMobileCacheSet", true);
             InvokeHierarchy(controller, "IsMobilePlatform");
+            InvokeHierarchy(controller, "OnEnable");
             InvokeHierarchy(controller, "Update");
             InvokeHierarchy(controller, "SetupActionButton");
             InvokeHierarchy(controller, "HandleJoystickInput");

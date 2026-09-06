@@ -147,10 +147,7 @@ namespace BudgetGameDev.Games.Brocoli
 
             if (eventSystem == null)
             {
-                var allES = FindObjectsByType<EventSystem>(
-                    FindObjectsInactive.Include,
-                    FindObjectsSortMode.None
-                );
+                var allES = FindObjectsByType<EventSystem>(FindObjectsInactive.Include);
                 if (allES.Length > 0)
                 {
                     eventSystem = allES[0];

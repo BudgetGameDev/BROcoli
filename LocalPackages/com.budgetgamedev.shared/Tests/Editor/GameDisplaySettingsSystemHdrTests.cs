@@ -1,3 +1,5 @@
+using BudgetGameDev.Shared.Rendering;
+using BudgetGameDev.Shared.Rendering.Universal;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -144,6 +146,8 @@ namespace BudgetGameDev.Shared.Tests
         public void HdrGradeNeedsBothTheSwitchAndADetectedHdrDisplay()
         {
             GameObject root = new("HDR Display Driver Policy Test");
+            // These assertions target Universal volume components, independently of the Editor pipeline.
+            RenderPipelineFrontEnd.OverrideForTests(new UniversalHdrGradeFrontEnd());
             try
             {
                 var driver = root.AddComponent<GameDisplaySettings.HdrDisplayDriver>();
@@ -173,6 +177,7 @@ namespace BudgetGameDev.Shared.Tests
             finally
             {
                 Object.DestroyImmediate(root);
+                RenderPipelineFrontEnd.OverrideForTests((IHdrGradeFrontEnd)null);
             }
         }
 

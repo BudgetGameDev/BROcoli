@@ -24,7 +24,7 @@ namespace BudgetGameDev.Games.Brocoli
             bed.clip = bedClip;
             crackles = new[] { CreateSource(false), CreateSource(false) };
             // Stable local variation neither consumes gameplay randomness nor allocates on emission.
-            uint identity = unchecked((uint)GetInstanceID() * 2654435761u);
+            uint identity = unchecked((uint)GetEntityId().GetHashCode() * 2654435761u);
             phaseOffset = identity % SampleRate / (float)SampleRate * BedSeconds;
             nextVariant = (int)(identity % CrackleVariants);
         }

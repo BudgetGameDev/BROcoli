@@ -8,7 +8,7 @@ namespace BudgetGameDev.Games.Brocoli
         {
             emberParticles = particles;
             emberDungeon = GetComponentInParent<DungeonManager>();
-            combustionRandom = new System.Random(GetInstanceID());
+            combustionRandom = new System.Random(GetEntityId().GetHashCode());
             nextCrackle = RandomCombustion(0.15f, 0.8f);
             var main = particles.main;
             main.prewarm = false;

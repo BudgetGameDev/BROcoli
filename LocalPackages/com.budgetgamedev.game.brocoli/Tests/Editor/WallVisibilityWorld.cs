@@ -149,7 +149,12 @@ namespace BudgetGameDev.Games.Brocoli.Tests
             {
                 Blocker blocker = blockers[index];
                 if (WallVisibilityBounds.IntersectsRay(blocker.Bounds, ray, maximumDistance))
-                    results.Add(new OcclusionCandidate(blocker.GroupId, blocker.Bounds));
+                    results.Add(
+                        new OcclusionCandidate(
+                            SyntheticOcclusionId.FromIndex(blocker.GroupId),
+                            blocker.Bounds
+                        )
+                    );
             }
         }
 
@@ -162,7 +167,12 @@ namespace BudgetGameDev.Games.Brocoli.Tests
             foreach (Blocker crown in crowns)
             {
                 if (WallOcclusionMath.ContainsGroundPoint(crown.Bounds, targetPosition))
-                    results.Add(new OcclusionCandidate(crown.GroupId, crown.Bounds));
+                    results.Add(
+                        new OcclusionCandidate(
+                            SyntheticOcclusionId.FromIndex(crown.GroupId),
+                            crown.Bounds
+                        )
+                    );
             }
         }
 

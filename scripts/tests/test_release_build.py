@@ -22,7 +22,7 @@ class ReleaseIsolationTests(unittest.TestCase):
         (self.source / "Assets").mkdir()
         (self.source / "ProjectSettings").mkdir()
         (self.source / "ProjectSettings/ProjectVersion.txt").write_text(
-            "m_EditorVersion: 6000.3.6f1\n"
+            "m_EditorVersion: 6000.5.10f1\n"
         )
         self.packages = {
             "com.budgetgamedev.shared": [],

@@ -11,7 +11,7 @@ namespace BudgetGameDev.Shared.Editor
         static void CreateVirtualController()
         {
             // Find or create Canvas
-            Canvas canvas = Object.FindFirstObjectByType<Canvas>();
+            Canvas canvas = Object.FindAnyObjectByType<Canvas>();
             if (canvas == null)
             {
                 GameObject canvasObj = new GameObject("Canvas");

@@ -16,7 +16,7 @@ namespace BudgetGameDev.Games.Brocoli
             {
                 if (_instance == null)
                 {
-                    _instance = FindFirstObjectByType<PoolManager>();
+                    _instance = FindAnyObjectByType<PoolManager>();
                     if (_instance == null)
                     {
                         var go = new GameObject("[PoolManager]");

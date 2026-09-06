@@ -14,10 +14,10 @@ namespace BudgetGameDev.Games.Brocoli
     public readonly struct OcclusionCandidate
     {
         /// <summary>The visibility group this piece of architecture fades with.</summary>
-        public readonly int GroupId;
+        public readonly EntityId GroupId;
         public readonly Bounds Bounds;
 
-        public OcclusionCandidate(int groupId, Bounds bounds)
+        public OcclusionCandidate(EntityId groupId, Bounds bounds)
         {
             GroupId = groupId;
             Bounds = bounds;
@@ -27,11 +27,11 @@ namespace BudgetGameDev.Games.Brocoli
     /// <summary>A group the current frame wants lowered, and what asked for it.</summary>
     public readonly struct OcclusionActivation
     {
-        public readonly int GroupId;
+        public readonly EntityId GroupId;
         public readonly OcclusionTargetKind Cause;
         public readonly float Coverage;
 
-        public OcclusionActivation(int groupId, OcclusionTargetKind cause, float coverage)
+        public OcclusionActivation(EntityId groupId, OcclusionTargetKind cause, float coverage)
         {
             GroupId = groupId;
             Cause = cause;
@@ -94,8 +94,8 @@ namespace BudgetGameDev.Games.Brocoli
         public static readonly Vector2[] TargetSamples = BuildSamples();
 
         private readonly List<OcclusionCandidate> candidates = new();
-        private readonly Dictionary<int, int> blockedSamples = new();
-        private readonly HashSet<int> blockedHere = new();
+        private readonly Dictionary<EntityId, int> blockedSamples = new();
+        private readonly HashSet<EntityId> blockedHere = new();
 
         /// <summary>How many sight lines a coverage fraction is measured over.</summary>
         public static int SampleCount => SampleColumns * SampleRows;
@@ -104,7 +104,7 @@ namespace BudgetGameDev.Games.Brocoli
             in OcclusionCameraModel camera,
             in OcclusionTarget target,
             IOcclusionCandidateSource source,
-            IDictionary<int, OcclusionActivation> activations
+            IDictionary<EntityId, OcclusionActivation> activations
         )
         {
             blockedSamples.Clear();
@@ -164,7 +164,7 @@ namespace BudgetGameDev.Games.Brocoli
                 }
             }
 
-            foreach (KeyValuePair<int, int> blocked in blockedSamples)
+            foreach (KeyValuePair<EntityId, int> blocked in blockedSamples)
                 Activate(blocked.Key, target, blocked.Value / (float)SampleCount, activations);
         }
 
@@ -177,10 +177,10 @@ namespace BudgetGameDev.Games.Brocoli
             in OcclusionCameraModel camera,
             in OcclusionTarget target,
             IOcclusionCandidateSource source,
-            int groupId
+            EntityId groupId
         )
         {
-            var measured = new Dictionary<int, OcclusionActivation>();
+            var measured = new Dictionary<EntityId, OcclusionActivation>();
             Select(camera, target, source, measured);
             return measured.TryGetValue(groupId, out OcclusionActivation activation)
                 ? activation.Coverage
@@ -218,10 +218,10 @@ namespace BudgetGameDev.Games.Brocoli
         }
 
         private static void Activate(
-            int groupId,
+            EntityId groupId,
             in OcclusionTarget target,
             float coverage,
-            IDictionary<int, OcclusionActivation> activations
+            IDictionary<EntityId, OcclusionActivation> activations
         )
         {
             if (coverage < target.MinimumCoverage)

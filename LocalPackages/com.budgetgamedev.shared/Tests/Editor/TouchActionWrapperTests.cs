@@ -91,7 +91,7 @@ namespace BudgetGameDev.Shared.Tests
                 LogAssert.Expect(
                     LogType.Error,
                     new System.Text.RegularExpressions.Regex(
-                        "^Destroy may not be called from edit mode!"
+                        "^TouchAction: Destroy may not be called from edit mode!"
                     )
                 );
                 Assert.DoesNotThrow(() => wrapper.Dispose());

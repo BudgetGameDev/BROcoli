@@ -53,7 +53,7 @@ namespace BudgetGameDev.Games.Brocoli
             Bar[] allBars =
                 screenCanvas != null
                     ? screenCanvas.GetComponentsInChildren<Bar>(true)
-                    : FindObjectsByType<Bar>(FindObjectsSortMode.None);
+                    : FindObjectsByType<Bar>();
 
             foreach (var bar in allBars)
             {

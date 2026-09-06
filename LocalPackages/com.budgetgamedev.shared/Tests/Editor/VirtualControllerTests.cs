@@ -28,11 +28,7 @@ namespace BudgetGameDev.Shared.Tests
             PlayerPrefs.DeleteKey("ShowVirtualController");
             if (EnhancedTouchSupport.enabled)
                 EnhancedTouchSupport.Disable();
-            foreach (
-                EventSystem events in Object.FindObjectsByType<EventSystem>(
-                    FindObjectsSortMode.None
-                )
-            )
+            foreach (EventSystem events in Object.FindObjectsByType<EventSystem>())
                 Object.DestroyImmediate(events.gameObject);
 
             root = new GameObject("Virtual Controller");

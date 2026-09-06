@@ -15,8 +15,7 @@ namespace BudgetGameDev.Shared.Tests
         {
             foreach (
                 GameCursor cursor in Object.FindObjectsByType<GameCursor>(
-                    FindObjectsInactive.Include,
-                    FindObjectsSortMode.None
+                    FindObjectsInactive.Include
                 )
             )
                 Object.DestroyImmediate(cursor.gameObject);
@@ -34,18 +33,33 @@ namespace BudgetGameDev.Shared.Tests
         public void CursorSingletonAppliesBlankAndMissingPointerArtSafely()
         {
             GameCursor cursor = CreateCursor();
+            var texture = new Texture2D(1, 1);
+            try
+            {
+                Assert.That(GameCursor.IsPointerShown, Is.TypeOf<bool>());
+                typeof(GameCursor)
+                    .GetField("tintedPointer", BindingFlags.Static | BindingFlags.NonPublic)
+                    .SetValue(null, texture);
+                LogAssert.Expect(
+                    LogType.Error,
+                    new Regex("^Destroy may not be called from edit mode")
+                );
+                GameCursor.SetArt(default);
+                Assert.That(GameCursor.Art.IsEmpty, Is.True);
 
-            Assert.That(GameCursor.IsPointerShown, Is.TypeOf<bool>());
-            typeof(GameCursor)
-                .GetField("tintedPointer", BindingFlags.Static | BindingFlags.NonPublic)
-                .SetValue(null, new Texture2D(1, 1));
-            LogAssert.Expect(LogType.Error, new Regex("^Destroy may not be called from edit mode"));
-            GameCursor.SetArt(default);
-            Assert.That(GameCursor.Art.IsEmpty, Is.True);
-
-            LogAssert.Expect(LogType.Warning, "GameCursor: no pointer texture at Missing/Pointer");
-            GameCursor.SetArt(new GameCursor.PointerArt("Missing/Pointer", Color.green));
-            Assert.That(GameCursor.Art.PointerResource, Is.EqualTo("Missing/Pointer"));
+                LogAssert.Expect(
+                    LogType.Warning,
+                    "GameCursor: no pointer texture at Missing/Pointer"
+                );
+                GameCursor.SetArt(new GameCursor.PointerArt("Missing/Pointer", Color.green));
+                Assert.That(GameCursor.Art.PointerResource, Is.EqualTo("Missing/Pointer"));
+            }
+            finally
+            {
+                // Edit-mode Destroy logs an error and clears the static reference without
+                // releasing the texture, so the fixture retains its own cleanup reference.
+                Object.DestroyImmediate(texture);
+            }
         }
 
         [Test]
@@ -89,7 +103,10 @@ namespace BudgetGameDev.Shared.Tests
             var duplicateHost = new GameObject("Duplicate cursor");
             duplicateHost.SetActive(false);
             var duplicate = duplicateHost.AddComponent<GameCursor>();
-            LogAssert.Expect(LogType.Error, new Regex("^Destroy may not be called from edit mode"));
+            LogAssert.Expect(
+                LogType.Error,
+                new Regex("^Duplicate cursor: Destroy may not be called from edit mode")
+            );
             typeof(GameCursor).GetMethod("Awake", InstancePrivate).Invoke(duplicate, null);
             typeof(GameCursor).GetMethod("OnDestroy", InstancePrivate).Invoke(duplicate, null);
 

@@ -8,6 +8,7 @@ using UnityEditor;
 using UnityEditor.Build;
 using UnityEngine;
 using UnityEngine.Rendering;
+using UnityEngine.TestTools;
 
 namespace BudgetGameDev.Hub.Tests
 {
@@ -159,6 +160,7 @@ namespace BudgetGameDev.Hub.Tests
             var previous = BuildRenderingPolicy.PipelineOverride;
             RenderPipelineAsset defaultPipeline = GraphicsSettings.defaultRenderPipeline;
             string originalQuality = EditorJsonUtility.ToJson(QualitySettings.GetQualitySettings());
+            Application.logMessageReceived += ExpectBundledColorCheckerWarning;
             try
             {
                 BuildRenderingPolicy.PipelineOverride = pipeline;
@@ -213,14 +215,37 @@ namespace BudgetGameDev.Hub.Tests
             }
             finally
             {
-                restore.Invoke(null, null);
-                BuildRenderingPolicy.PipelineOverride = previous;
+                try
+                {
+                    restore.Invoke(null, null);
+                    BuildRenderingPolicy.PipelineOverride = previous;
+                }
+                finally
+                {
+                    Application.logMessageReceived -= ExpectBundledColorCheckerWarning;
+                }
             }
             Assert.That(GraphicsSettings.defaultRenderPipeline, Is.SameAs(defaultPipeline));
             Assert.That(
                 EditorJsonUtility.ToJson(QualitySettings.GetQualitySettings()),
                 Is.EqualTo(originalQuality)
             );
+        }
+
+        private static void ExpectBundledColorCheckerWarning(
+            string message,
+            string stackTrace,
+            LogType type
+        )
+        {
+            // Switching pipelines can revalidate HDRP's bundled diagnostic graph against URP.
+            // The callback accounts for cold and warm import caches without accepting other warnings.
+            const string warning =
+                "Shader Graph at Packages/com.unity.render-pipelines.high-definition/Runtime/Tools/"
+                + "ColorChecker/ColorCheckerShader.shadergraph has 2 warning(s), the first is: "
+                + "Validation: Exposure Node is not allowed by Universal implementation";
+            if (type == LogType.Warning && message == warning)
+                LogAssert.Expect(LogType.Warning, warning);
         }
     }
 }

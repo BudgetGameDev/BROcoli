@@ -11,7 +11,7 @@ namespace BudgetGameDev.Games.Brocoli
 
         void Awake()
         {
-            gameStates = FindFirstObjectByType<GameStates>();
+            gameStates = FindAnyObjectByType<GameStates>();
 
             // Disable raycast target - this text doesn't need to receive clicks
             // and prevents MissingReferenceException if destroyed

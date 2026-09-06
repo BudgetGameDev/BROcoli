@@ -134,7 +134,7 @@ namespace BudgetGameDev.Games.Brocoli
 
             initialized = true;
             Kind = kind;
-            animationPhase = Mathf.Abs(GetInstanceID() % 1000) * 0.013f;
+            animationPhase = Mathf.Abs(GetEntityId().GetHashCode() % 1000) * 0.013f;
             spinSpeed = kind == ModelKind.Experience ? 72f : 34f;
             rotationAxis = kind == ModelKind.Experience ? Vector3.up : Vector3.forward;
             modelBasePosition =

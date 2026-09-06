@@ -1,6 +1,6 @@
 BROCOLI
 CREDITS, DEPENDENCIES & LICENSES
-Last updated: 2026-09-05
+Last updated: 2026-09-06
 
 BROCOLI AND BUDGET GAMEDEV SOFTWARE
 
@@ -13,16 +13,16 @@ License terms: https://www.elastic.co/licensing/elastic-license
 
 UNITY ENGINE AND RUNTIME PACKAGES
 
-Built with Unity 6.3 (6000.3.6f1), subject to the Unity Software Terms:
+Built with Unity 6.5 (6000.5.10f1), subject to the Unity Software Terms:
 https://unity.com/legal/terms-of-service/software
 
 Direct runtime packages:
-  Unity AI Navigation 2.0.9 (com.unity.ai.navigation)
-  Unity Input System 1.18.0 (com.unity.inputsystem)
-  High Definition Render Pipeline 17.3.0 (com.unity.render-pipelines.high-definition)
-  Universal Render Pipeline 17.3.0 (com.unity.render-pipelines.universal)
-  Unity UI 2.0.0 (com.unity.ugui)
-  TextMesh Pro (included with Unity UI 2.0.0)
+  Unity AI Navigation 2.0.14 (com.unity.ai.navigation)
+  Unity Input System 1.20.0 (com.unity.inputsystem)
+  High Definition Render Pipeline 17.5.0 (com.unity.render-pipelines.high-definition)
+  Universal Render Pipeline 17.5.0 (com.unity.render-pipelines.universal)
+  Unity UI 2.5.0 (com.unity.ugui)
+  TextMesh Pro (included with Unity UI 2.5.0)
 
 The selected build profile determines the rendering pipeline. Universal is used
 on the web; native builds can select High Definition with ray traced tiers.
@@ -38,6 +38,7 @@ Unity engine modules 1.0.0:
   Particle System (com.unity.modules.particlesystem)
   Physics (com.unity.modules.physics)
   Physics 2D (com.unity.modules.physics2d)
+  Physics Core 2D (com.unity.modules.physicscore2d)
   Screen Capture (com.unity.modules.screencapture)
   Terrain (com.unity.modules.terrain)
   UI (com.unity.modules.ui)
@@ -46,15 +47,15 @@ Unity engine modules 1.0.0:
   Video (com.unity.modules.video)
 
 Runtime package dependencies:
-  Scriptable Render Pipeline Core 17.3.0 (com.unity.render-pipelines.core)
-  HDRP Config 17.3.0 (com.unity.render-pipelines.high-definition-config)
-  Universal RP Config 17.0.3 (com.unity.render-pipelines.universal-config)
-  Shader Graph 17.3.0 (com.unity.shadergraph)
-  Visual Effect Graph 17.3.0 (com.unity.visualeffectgraph)
-  Burst 1.8.27 (com.unity.burst)
-  Collections 2.6.2 (com.unity.collections)
-  Mathematics 1.3.3 (com.unity.mathematics)
-  Searcher 4.9.4 (com.unity.searcher)
+  Scriptable Render Pipeline Core 17.5.0 (com.unity.render-pipelines.core)
+  HDRP Config 17.5.0 (com.unity.render-pipelines.high-definition-config)
+  Universal RP Config 17.5.0 (com.unity.render-pipelines.universal-config)
+  Shader Graph 17.5.0 (com.unity.shadergraph)
+  Visual Effect Graph 17.5.0 (com.unity.visualeffectgraph)
+  Burst 1.8.30 (com.unity.burst)
+  Collections 6.5.0 (com.unity.collections)
+  Mathematics 1.4.0 (com.unity.mathematics)
+  Searcher 4.9.5 (com.unity.searcher)
 
 Project authoring, automation, and test packages (not runtime game content):
   Budget GameDev Autoplay Core 0.1.0 (com.budgetgamedev.autoplay)
@@ -62,10 +63,10 @@ Project authoring, automation, and test packages (not runtime game content):
   2D Sprite 1.0.0 (com.unity.2d.sprite)
   Visual Studio Editor 2.0.26 (com.unity.ide.visualstudio), MIT License
   Unity Pipeline 0.5.0-exp.1 (com.unity.pipeline)
-  Unity Test Framework 1.6.0 (com.unity.test-framework)
-  Performance Test Framework 3.2.0 (com.unity.test-framework.performance)
+  Unity Test Framework 1.7.0 (com.unity.test-framework)
+  Performance Test Framework 3.5.0 (com.unity.test-framework.performance)
   Code Coverage 1.3.0 (com.unity.testtools.codecoverage)
-  Custom NUnit 2.0.5 (com.unity.ext.nunit)
+  Custom NUnit 2.1.0 (com.unity.ext.nunit)
   Mono.Cecil 1.11.6 (com.unity.nuget.mono-cecil)
   Newtonsoft Json 3.2.2 (com.unity.nuget.newtonsoft-json)
   Settings Manager 2.1.1 (com.unity.settings-manager)

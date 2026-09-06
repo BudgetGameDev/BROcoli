@@ -5,7 +5,7 @@ namespace BudgetGameDev.Games.Brocoli
 {
     /// <summary>
     /// Singleton that caches frequently-accessed global references.
-    /// Eliminates expensive FindFirstObjectByType/FindGameObjectWithTag calls
+    /// Eliminates expensive FindAnyObjectByType/FindGameObjectWithTag calls
     /// that were running in every enemy's Awake/Start.
     /// </summary>
     public class GameContext : MonoBehaviour
@@ -25,7 +25,7 @@ namespace BudgetGameDev.Games.Brocoli
 
                 if (_instance == null)
                 {
-                    _instance = FindFirstObjectByType<GameContext>();
+                    _instance = FindAnyObjectByType<GameContext>();
                     if (_instance == null)
                     {
                         var go = new GameObject("[GameContext]");
@@ -141,7 +141,7 @@ namespace BudgetGameDev.Games.Brocoli
             }
 
             // Find game states
-            _gameStates = FindFirstObjectByType<GameStates>();
+            _gameStates = FindAnyObjectByType<GameStates>();
 
             _initialized = true;
 

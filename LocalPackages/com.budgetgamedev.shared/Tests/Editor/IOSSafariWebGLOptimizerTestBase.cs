@@ -36,8 +36,7 @@ namespace BudgetGameDev.Shared.Tests
         {
             foreach (
                 iOSSafariWebGLOptimizer existing in Object.FindObjectsByType<iOSSafariWebGLOptimizer>(
-                    FindObjectsInactive.Include,
-                    FindObjectsSortMode.None
+                    FindObjectsInactive.Include
                 )
             )
                 Object.DestroyImmediate(existing.gameObject);

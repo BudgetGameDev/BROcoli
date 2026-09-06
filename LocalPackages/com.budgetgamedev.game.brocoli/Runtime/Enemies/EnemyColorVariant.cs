@@ -71,7 +71,7 @@ namespace BudgetGameDev.Games.Brocoli
             if (randomizeOnEnable)
             {
                 // Use instance ID as seed for consistent randomization per object
-                int seed = (randomSeed != 0) ? randomSeed : gameObject.GetInstanceID();
+                int seed = (randomSeed != 0) ? randomSeed : gameObject.GetEntityId().GetHashCode();
                 var rng = new System.Random(seed);
                 i = rng.Next(0, variants.Length);
             }

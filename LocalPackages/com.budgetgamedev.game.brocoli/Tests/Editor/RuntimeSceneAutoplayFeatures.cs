@@ -136,8 +136,7 @@ namespace BudgetGameDev.Games.Brocoli.Tests
         {
             foreach (
                 EventSystem system in Object.FindObjectsByType<EventSystem>(
-                    FindObjectsInactive.Include,
-                    FindObjectsSortMode.None
+                    FindObjectsInactive.Include
                 )
             )
                 Object.DestroyImmediate(system.gameObject);

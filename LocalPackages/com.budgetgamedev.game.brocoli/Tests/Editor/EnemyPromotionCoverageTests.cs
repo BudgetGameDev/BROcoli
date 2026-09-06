@@ -34,7 +34,7 @@ namespace BudgetGameDev.Games.Brocoli.Tests
                 LogAssert.Expect(
                     LogType.Error,
                     new System.Text.RegularExpressions.Regex(
-                        "^Destroy may not be called from edit mode"
+                        "^Promotion spent projectile: Destroy may not be called from edit mode"
                     )
                 );
                 Invoke(projectile, "Despawn");
@@ -75,13 +75,13 @@ namespace BudgetGameDev.Games.Brocoli.Tests
                 LogAssert.Expect(
                     LogType.Error,
                     new System.Text.RegularExpressions.Regex(
-                        "^Destroy may not be called from edit mode"
+                        "^One shot audio: Destroy may not be called from edit mode"
                     )
                 );
                 LogAssert.Expect(
                     LogType.Error,
                     new System.Text.RegularExpressions.Regex(
-                        "^Destroy may not be called from edit mode"
+                        "^Promotion player hit projectile: Destroy may not be called from edit mode"
                     )
                 );
                 Invoke(projectile, "OnTriggerEnter", player.GetComponent<Collider>());
@@ -117,7 +117,7 @@ namespace BudgetGameDev.Games.Brocoli.Tests
         {
             GameObject host = new("Promotion returning " + typeof(T).Name);
             GameObject player = new("Promotion leash player");
-            host.SetActive(false);
+            host.transform.position = new Vector3(30f, 0f, 0f);
             try
             {
                 host.AddComponent<Rigidbody>();
@@ -126,10 +126,13 @@ namespace BudgetGameDev.Games.Brocoli.Tests
                 Invoke(enemy, "Awake");
                 enemy.player = player.transform;
                 enemy.SetLeashHome(Vector2.zero);
-                host.transform.position = new Vector3(30f, 0f, 0f);
-                host.GetComponent<Rigidbody>().position = host.transform.position;
                 player.transform.position = new Vector3(60f, 0f, 0f);
 
+                Assert.That(
+                    enemy.rb.GroundPosition(),
+                    Is.EqualTo(new Vector2(30f, 0f)),
+                    "The live physics body must begin outside its leash."
+                );
                 GetProperty(enemy, "ChaseTarget");
                 Assert.That(enemy.IsPursuing, Is.False);
                 Invoke(enemy, "FixedUpdate");

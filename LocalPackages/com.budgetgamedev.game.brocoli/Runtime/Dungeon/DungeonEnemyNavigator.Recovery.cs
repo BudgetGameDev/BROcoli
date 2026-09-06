@@ -23,7 +23,7 @@ namespace BudgetGameDev.Games.Brocoli
 
         private void InitializeRecovery()
         {
-            recoverySide = (GetInstanceID() & 1) == 0 ? 1 : -1;
+            recoverySide = (GetEntityId().GetHashCode() & 1) == 0 ? 1 : -1;
             ResetRecovery();
         }
 

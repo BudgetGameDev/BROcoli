@@ -20,7 +20,7 @@ namespace BudgetGameDev.Games.Brocoli
         private void Awake()
         {
             EnsureClips();
-            random = new System.Random(unchecked(GetInstanceID() * 397) ^ 61793);
+            random = new System.Random(unchecked(GetEntityId().GetHashCode() * 397) ^ 61793);
             bed = CreateSource(true);
             bed.clip = bedClip;
             details = new[] { CreateSource(false), CreateSource(false) };

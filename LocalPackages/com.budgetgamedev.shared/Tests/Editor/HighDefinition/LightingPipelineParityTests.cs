@@ -28,7 +28,7 @@ namespace BudgetGameDev.Shared.Rendering.HighDefinition.Tests
         {
             previousQualityPipeline = QualitySettings.renderPipeline;
             suspendedCameras = Object
-                .FindObjectsByType<Camera>(FindObjectsSortMode.None)
+                .FindObjectsByType<Camera>()
                 .Where(camera => camera.enabled)
                 .ToArray();
             foreach (Camera camera in suspendedCameras)

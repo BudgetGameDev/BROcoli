@@ -21,7 +21,7 @@ namespace BudgetGameDev.Games.Brocoli.Tests
         public void SuspendSceneCameras()
         {
             suspendedCameras = Object
-                .FindObjectsByType<Camera>(FindObjectsSortMode.None)
+                .FindObjectsByType<Camera>()
                 .Where(camera => camera.enabled)
                 .ToArray();
             foreach (Camera camera in suspendedCameras)

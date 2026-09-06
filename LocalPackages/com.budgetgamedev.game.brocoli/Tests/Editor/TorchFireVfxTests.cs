@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using BudgetGameDev.Games.Brocoli.Rendering;
 using NUnit.Framework;
+using UnityEditor;
 using UnityEngine;
 
 namespace BudgetGameDev.Games.Brocoli.Tests
@@ -145,6 +146,66 @@ namespace BudgetGameDev.Games.Brocoli.Tests
             {
                 Object.DestroyImmediate(root);
                 Object.DestroyImmediate(authored);
+            }
+        }
+
+        [TestCase(0f, 1f)]
+        [TestCase(90f, 0.65f)]
+        [TestCase(180f, 1f)]
+        [TestCase(270f, 0.65f)]
+        public void AuthoredTorchIgnitesAtTheTopOfItsFuel(float yaw, float scale)
+        {
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(
+                "Packages/com.budgetgamedev.game.brocoli/Prefabs/Dungeon/DungeonTorch.prefab"
+            );
+            var root = Object.Instantiate(prefab);
+            try
+            {
+                root.transform.SetPositionAndRotation(
+                    new Vector3(100f, 100f, 100f),
+                    Quaternion.Euler(0f, yaw, 0f)
+                );
+                root.transform.localScale = Vector3.one * scale;
+                var model = root.transform.Find("Model").GetComponent<MeshFilter>();
+                var collider = model.gameObject.AddComponent<MeshCollider>();
+                collider.sharedMesh = model.sharedMesh;
+                Physics.SyncTransforms();
+
+                var fire = root.GetComponent<TorchFireVfx>() ?? root.AddComponent<TorchFireVfx>();
+                fire.Initialize();
+                Vector3 origin = root.transform.Find("Fire Core").position;
+                Assert.That(
+                    collider.Raycast(new Ray(origin + Vector3.up, Vector3.down), out var hit, 2f),
+                    Is.True,
+                    "The real prefab's flame must begin over the fuel mesh."
+                );
+                Assert.That(
+                    Vector3.Dot(hit.normal, Vector3.up),
+                    Is.GreaterThan(0.8f),
+                    "Ignition belongs on top of the coals, not on their sloping front edge."
+                );
+                Assert.That(
+                    Vector3.Distance(origin, hit.point) / scale,
+                    Is.LessThan(0.12f),
+                    "The flame foot must overlap the fuel surface without floating or sinking."
+                );
+                float bowlRadius = model.sharedMesh.bounds.extents.x * model.transform.lossyScale.x;
+                foreach (string layer in new[] { "Fire Core", "Fire Tongues" })
+                {
+                    var material = root
+                        .transform.Find(layer)
+                        .GetComponent<Renderer>()
+                        .sharedMaterial;
+                    Assert.That(
+                        material.GetFloat("_FlameLeanMetres"),
+                        Is.LessThan(bowlRadius),
+                        "The flame centerline must remain inside the bowl's width."
+                    );
+                }
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
             }
         }
 

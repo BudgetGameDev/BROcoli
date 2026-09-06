@@ -56,10 +56,7 @@ namespace BudgetGameDev.Shared
                 canvasRefreshFrames--;
                 UpdateCanvasComposition(
                     true,
-                    FindObjectsByType<Canvas>(
-                        FindObjectsInactive.Include,
-                        FindObjectsSortMode.None
-                    ),
+                    FindObjectsByType<Canvas>(FindObjectsInactive.Include),
                     FindOutputCamera()
                 );
             }
@@ -79,10 +76,7 @@ namespace BudgetGameDev.Shared
                 canvasRefreshFrames = CanvasRefreshFrameCount;
                 UpdateCanvasComposition(
                     true,
-                    FindObjectsByType<Canvas>(
-                        FindObjectsInactive.Include,
-                        FindObjectsSortMode.None
-                    ),
+                    FindObjectsByType<Canvas>(FindObjectsInactive.Include),
                     FindOutputCamera()
                 );
             }

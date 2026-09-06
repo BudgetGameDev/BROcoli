@@ -25,9 +25,13 @@ namespace BudgetGameDev.Games.Brocoli
             main.startRotation = 0f;
             var forward = Vector3.ProjectOnPlane(transform.forward, Vector3.up).normalized;
             material.SetVector("_FlameForwardWS", forward);
-            material.SetFloat("_FlameLeanMetres", 0.32f * transform.lossyScale.y);
+            // Keep the ignition region over the coals; a stronger bend carries it past the rim.
+            material.SetFloat("_FlameLeanMetres", 0.1f * transform.lossyScale.y);
             material.SetFloat("_FlameHeightMetres", height * transform.lossyScale.y);
-            material.SetFloat("_FlamePhase", Mathf.Abs(GetInstanceID() % 1021) * 0.137f);
+            material.SetFloat(
+                "_FlamePhase",
+                Mathf.Abs(GetEntityId().GetHashCode() % 1021) * 0.137f
+            );
             material.SetFloat("_FlamePlaneWeight", 0.45f);
         }
 

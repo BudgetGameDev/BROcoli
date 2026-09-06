@@ -18,7 +18,7 @@ namespace BudgetGameDev.Shared.Tests
         [SetUp]
         public void CreateManager()
         {
-            foreach (Camera camera in Object.FindObjectsByType<Camera>(FindObjectsSortMode.None))
+            foreach (Camera camera in Object.FindObjectsByType<Camera>())
             {
                 if (camera.CompareTag("MainCamera"))
                     Object.DestroyImmediate(camera.gameObject);

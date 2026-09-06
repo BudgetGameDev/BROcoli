@@ -12,11 +12,7 @@ namespace BudgetGameDev.Games.Brocoli.Tests
         [TestMustExpectAllLogs(false)]
         public void SpawnDormantCoversFilteringInstantiationHydraAndEliteConfiguration()
         {
-            foreach (
-                PoolManager manager in UnityEngine.Object.FindObjectsByType<PoolManager>(
-                    FindObjectsSortMode.None
-                )
-            )
+            foreach (PoolManager manager in UnityEngine.Object.FindObjectsByType<PoolManager>())
                 UnityEngine.Object.DestroyImmediate(manager.gameObject);
             PoolManager.ResetInstance();
 

@@ -32,7 +32,8 @@ nix develop
 ```
 
 This provides FFmpeg, ImageMagick, Fontconfig, and Python with Pillow for the
-autoplay and E2E tooling. The Unity Editor remains a separate installation.
+autoplay and E2E tooling. Install Unity 6.5 separately, using the exact editor
+version pinned in [ProjectSettings/ProjectVersion.txt](ProjectSettings/ProjectVersion.txt).
 
 ## Disclaimer
 This project is built partially using generative ai, with human in the loop, software engineering best practices and reviews by professional human software engineers.

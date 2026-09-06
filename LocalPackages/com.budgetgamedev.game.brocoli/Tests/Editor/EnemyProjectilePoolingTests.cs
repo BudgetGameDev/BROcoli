@@ -20,7 +20,7 @@ namespace BudgetGameDev.Games.Brocoli.Tests
         private const int ShotsPastTheCap = 150;
 
         private readonly List<GameObject> _created = new List<GameObject>();
-        private readonly HashSet<int> _awakened = new HashSet<int>();
+        private readonly HashSet<EntityId> _awakened = new HashSet<EntityId>();
 
         [SetUp]
         public void SetUp()
@@ -144,7 +144,7 @@ namespace BudgetGameDev.Games.Brocoli.Tests
         private EnemyProjectile Fire(PoolManager pool, EnemyProjectile prefab)
         {
             EnemyProjectile live = pool.GetProjectile(prefab, Vector3.zero, Quaternion.identity);
-            if (live != null && _awakened.Add(live.GetInstanceID()))
+            if (live != null && _awakened.Add(live.GetEntityId()))
                 Invoke(live, "Awake");
             return live;
         }

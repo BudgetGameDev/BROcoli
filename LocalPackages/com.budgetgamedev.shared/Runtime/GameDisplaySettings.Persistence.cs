@@ -82,16 +82,25 @@ namespace BudgetGameDev.Shared
             ValuesChanged?.Invoke();
         }
 
-        private static bool TryUseNativeDisplayCalibration()
+        internal static bool TryUseNativeDisplayCalibration()
         {
+            if (!SupportsNativeHdr)
+                return false;
+
+            var display = HDROutputSettings.main;
+            // Unity throws when luminance metadata is read without an available HDR display.
+            // Guard here: arguments are evaluated before the calibration overload can reject them.
+            if (display == null || !display.available)
+                return false;
+
             return TryUseNativeDisplayCalibration(
-                SupportsNativeHdr,
-                HDROutputSettings.main.available,
-                HDROutputSettings.main.active,
-                HDROutputSettings.main.maxToneMapLuminance,
-                HDROutputSettings.main.paperWhiteNits,
-                HDROutputSettings.main.minToneMapLuminance,
-                HDROutputSettings.main.maxFullFrameToneMapLuminance
+                true,
+                true,
+                display.active,
+                display.maxToneMapLuminance,
+                display.paperWhiteNits,
+                display.minToneMapLuminance,
+                display.maxFullFrameToneMapLuminance
             );
         }
 

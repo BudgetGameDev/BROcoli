@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "displayName": "Budget GameDev Game Hub",
   "description": "Brand-neutral launcher shell that hosts many games in one Unity project. Games register themselves by shipping a GameDefinition asset; the hub discovers them at runtime, lists them in a scrollable picker, and hands control to the selected game's own main menu.",
-  "unity": "6000.3",
+  "unity": "6000.5",
   "license": "Elastic-2.0",
   "author": {
     "name": "Budget GameDev",
@@ -11,8 +11,8 @@
   },
   "dependencies": {
     "com.budgetgamedev.shared": "0.1.0",
-    "com.unity.inputsystem": "1.18.0",
-    "com.unity.ugui": "2.0.0",
+    "com.unity.inputsystem": "1.20.0",
+    "com.unity.ugui": "2.5.0",
     "com.unity.modules.ui": "1.0.0"
   },
   "keywords": ["launcher", "hub", "registry", "multi-game"]

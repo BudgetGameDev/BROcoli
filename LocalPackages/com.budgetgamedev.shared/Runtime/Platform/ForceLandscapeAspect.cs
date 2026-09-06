@@ -123,10 +123,7 @@ namespace BudgetGameDev.Shared
             Rect targetRect = CalculateViewportRect(screenAspect);
 
             // Find and update ALL cameras (including inactive ones that might become active)
-            Camera[] allCameras = Object.FindObjectsByType<Camera>(
-                FindObjectsInactive.Include,
-                FindObjectsSortMode.None
-            );
+            Camera[] allCameras = Object.FindObjectsByType<Camera>(FindObjectsInactive.Include);
 
             foreach (Camera cam in allCameras)
             {

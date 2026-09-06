@@ -32,7 +32,7 @@ namespace BudgetGameDev.Games.Brocoli.Tests
         /// <summary>How far in front of the player the obstacles are stood.</summary>
         private const float Standoff = 0.8f;
 
-        private const int Group = 1;
+        private static readonly EntityId Group = SyntheticOcclusionId.FromIndex(1);
 
         /// <summary>Boxes a sight line can be stopped by, and nothing else.</summary>
         private sealed class BoxWorld : IOcclusionCandidateSource

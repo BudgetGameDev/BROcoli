@@ -93,7 +93,7 @@ namespace BudgetGameDev.Shared.Tests
             iOSSafariWebGLOptimizer.WriteQuality = snapshot => WrittenQuality = snapshot;
             Assert.That(
                 iOSSafariWebGLOptimizer.ResolveLivePipeline(),
-                Is.SameAs(GraphicsSettings.currentRenderPipeline),
+                Is.SameAs(GraphicsSettings.currentRenderPipeline as UniversalRenderPipelineAsset),
                 "the route the player takes is the project's own pipeline asset"
             );
 
@@ -116,10 +116,7 @@ namespace BudgetGameDev.Shared.Tests
 
         private static iOSSafariWebGLOptimizer[] FindOptimizers()
         {
-            return Object.FindObjectsByType<iOSSafariWebGLOptimizer>(
-                FindObjectsInactive.Include,
-                FindObjectsSortMode.None
-            );
+            return Object.FindObjectsByType<iOSSafariWebGLOptimizer>(FindObjectsInactive.Include);
         }
     }
 }

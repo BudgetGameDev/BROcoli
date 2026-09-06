@@ -47,10 +47,7 @@ namespace BudgetGameDev.Shared
         {
             Canvas best = null;
             int bestScore = int.MinValue;
-            Canvas[] canvases = Object.FindObjectsByType<Canvas>(
-                FindObjectsInactive.Include,
-                FindObjectsSortMode.None
-            );
+            Canvas[] canvases = Object.FindObjectsByType<Canvas>(FindObjectsInactive.Include);
 
             foreach (Canvas canvas in canvases)
             {

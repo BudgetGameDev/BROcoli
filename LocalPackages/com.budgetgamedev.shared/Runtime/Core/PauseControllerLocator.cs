@@ -12,9 +12,6 @@ namespace BudgetGameDev.Shared
         /// freeze the very UI needed to resume.
         /// </summary>
         public static IPauseController Find() =>
-            Object
-                .FindObjectsByType<MonoBehaviour>(FindObjectsSortMode.None)
-                .OfType<IPauseController>()
-                .FirstOrDefault();
+            Object.FindObjectsByType<MonoBehaviour>().OfType<IPauseController>().FirstOrDefault();
     }
 }

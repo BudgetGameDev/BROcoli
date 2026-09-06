@@ -242,10 +242,7 @@ namespace BudgetGameDev.Shared
             if (ambienceGroup == null || sfxGroup == null)
                 return;
 
-            AudioSource[] sources = FindObjectsByType<AudioSource>(
-                FindObjectsInactive.Include,
-                FindObjectsSortMode.None
-            );
+            AudioSource[] sources = FindObjectsByType<AudioSource>(FindObjectsInactive.Include);
             foreach (AudioSource source in sources)
             {
                 if (

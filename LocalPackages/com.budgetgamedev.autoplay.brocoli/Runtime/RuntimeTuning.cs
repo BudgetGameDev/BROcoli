@@ -84,7 +84,7 @@ namespace BudgetGameDev.Games.Brocoli
                 if (_key != null)
                     return _key;
 
-                foreach (var l in FindObjectsByType<Light>(FindObjectsSortMode.None))
+                foreach (var l in FindObjectsByType<Light>())
                     if (_key == null || l.intensity > _key.intensity)
                         _key = l;
 

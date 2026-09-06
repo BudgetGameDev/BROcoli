@@ -108,6 +108,24 @@ namespace BudgetGameDev.Shared.Tests
             Assert.That(GameDisplaySettings.UsingSystemCalibrationDefaults, Is.True);
         }
 
+        [TestCase(false)]
+        [TestCase(true)]
+        public void UnavailableHdrDisplayPreservesCalibrationWithoutReadingMetadata(bool saved)
+        {
+            if (HDROutputSettings.main != null && HDROutputSettings.main.available)
+                Assert.Ignore("Requires a display without native HDR availability.");
+
+            if (saved)
+                GameDisplaySettings.SetCalibration(725f, 210f, 0.001f);
+
+            Assert.That(GameDisplaySettings.TryUseNativeDisplayCalibration(), Is.False);
+            Assert.That(GameDisplaySettings.HasDetectedHdrProfile, Is.False);
+            Assert.That(GameDisplaySettings.PeakBrightnessNits, Is.EqualTo(saved ? 725f : 600f));
+            Assert.That(GameDisplaySettings.PaperWhiteNits, Is.EqualTo(saved ? 210f : 200f));
+            Assert.That(GameDisplaySettings.BlackLevelNits, Is.EqualTo(saved ? 0.001f : 0.0005f));
+            Assert.That(PlayerPrefs.HasKey(GameDisplaySettings.PeakBrightnessKey), Is.EqualTo(saved));
+        }
+
         [Test]
         public void NativeDisplayMetadataNeverOverwritesSavedPlayerCalibration()
         {

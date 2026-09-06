@@ -229,22 +229,27 @@ namespace BudgetGameDev.Games.Brocoli.Tests
                 );
             }
 
-            foreach (KeyValuePair<int, OcclusionActivation> activation in resolver.Activations)
+            foreach (KeyValuePair<EntityId, OcclusionActivation> activation in resolver.Activations)
             {
-                frame.Coverage[activation.Key] = activation.Value.Coverage;
-                frame.Activated.Add(activation.Key);
+                frame.Coverage[SyntheticOcclusionId.ToIndex(activation.Key)] = activation
+                    .Value
+                    .Coverage;
+                frame.Activated.Add(SyntheticOcclusionId.ToIndex(activation.Key));
             }
 
-            foreach (int groupId in resolver.LoweredGroups)
+            foreach (EntityId entityId in resolver.LoweredGroups)
             {
+                int groupId = SyntheticOcclusionId.ToIndex(entityId);
                 frame.LoweredGroups.Add(groupId);
-                frame.Reasons[groupId] = resolver.ReasonFor(groupId);
+                frame.Reasons[groupId] = resolver.ReasonFor(entityId);
                 foreach (int pieceId in world.GroupOf(groupId).Pieces)
                 {
                     Bounds structure = world.PieceOf(pieceId).Structure;
                     if (resolver.IsPieceInTheGap(structure))
                         frame.GapPieces.Add(pieceId);
-                    if (resolver.IsPieceInTheWay(pieceId, structure))
+                    if (
+                        resolver.IsPieceInTheWay(SyntheticOcclusionId.FromIndex(pieceId), structure)
+                    )
                         frame.LoweredPieces.Add(pieceId);
                 }
             }
