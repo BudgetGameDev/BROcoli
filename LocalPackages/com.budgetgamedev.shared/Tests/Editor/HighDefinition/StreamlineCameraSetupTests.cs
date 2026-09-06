@@ -54,6 +54,39 @@ namespace BudgetGameDev.Shared.Tests
         }
 
         [Test]
+        public void AddingHdrpCameraDataPreservesBlackDungeonBackground()
+        {
+            var host = new GameObject("Dungeon camera");
+            try
+            {
+                var camera = host.AddComponent<Camera>();
+                camera.clearFlags = CameraClearFlags.SolidColor;
+                camera.backgroundColor = Color.black;
+                var adapter = new HighDefinitionStreamline();
+                adapter.SupportsCamera(camera);
+                var data = host.GetComponent<HDAdditionalCameraData>();
+                Assert.That(
+                    data.clearColorMode,
+                    Is.EqualTo(HDAdditionalCameraData.ClearColorMode.Color)
+                );
+                Assert.That(data.backgroundColorHDR, Is.EqualTo(Color.black));
+                Assert.That(data.clearDepth, Is.True);
+
+                data.backgroundColorHDR = Color.red;
+                adapter.SupportsCamera(camera);
+                Assert.That(
+                    data.backgroundColorHDR,
+                    Is.EqualTo(Color.red),
+                    "Existing HDRP settings belong to the camera."
+                );
+            }
+            finally
+            {
+                Object.DestroyImmediate(host);
+            }
+        }
+
+        [Test]
         public void CommonSceneCameraGetsHdrpDataBeforeFrameSettingsAreBuilt()
         {
             var host = new GameObject("Common scene camera");

@@ -189,8 +189,9 @@ namespace BudgetGameDev.Games.Brocoli
             renderer.renderMode = ParticleSystemRenderMode.Billboard;
             renderer.sortingOrder = SpraySettings.ParticleSortingOrder;
 
-            renderer.material = new Material(Shader.Find("Sprites/Default"));
-            renderer.material.color = SpraySettings.SprayColor;
+            var material = new Material(Shader.Find("Sprites/Default"));
+            material.color = SpraySettings.SprayColor;
+            renderer.sharedMaterial = material;
         }
     }
 }

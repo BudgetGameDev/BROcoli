@@ -24,7 +24,21 @@ namespace BudgetGameDev.Shared.Rendering.HighDefinition
             if (camera == null)
                 return false;
             if (!camera.TryGetComponent<HDAdditionalCameraData>(out _))
-                camera.gameObject.AddComponent<HDAdditionalCameraData>();
+            {
+                // Adding HDRP data otherwise replaces the common camera's clear
+                // settings with an outdoor sky and blue background.
+                var clearFlags = camera.clearFlags;
+                var background = camera.backgroundColor;
+                var data = camera.gameObject.AddComponent<HDAdditionalCameraData>();
+                data.backgroundColorHDR = background;
+                data.clearColorMode =
+                    clearFlags == CameraClearFlags.Skybox
+                        ? HDAdditionalCameraData.ClearColorMode.Sky
+                    : clearFlags == CameraClearFlags.SolidColor
+                        ? HDAdditionalCameraData.ClearColorMode.Color
+                    : HDAdditionalCameraData.ClearColorMode.None;
+                data.clearDepth = clearFlags != CameraClearFlags.Nothing;
+            }
             return true;
         }
 
@@ -113,8 +127,11 @@ namespace BudgetGameDev.Shared.Rendering.HighDefinition
             var current = settings.dynamicResolutionSettings;
             // ConfigureSuperResolution creates a priority list. Equal contents must not
             // make otherwise identical settings compare unequal by list identity.
-            if (current.advancedUpscalerNames != null && desired.advancedUpscalerNames != null
-                && current.advancedUpscalerNames.SequenceEqual(desired.advancedUpscalerNames))
+            if (
+                current.advancedUpscalerNames != null
+                && desired.advancedUpscalerNames != null
+                && current.advancedUpscalerNames.SequenceEqual(desired.advancedUpscalerNames)
+            )
                 desired.advancedUpscalerNames = current.advancedUpscalerNames;
             if (current.Equals(desired))
                 return false;

@@ -87,6 +87,7 @@ namespace BudgetGameDev.Games.Brocoli
 #if UNITY_EDITOR || (DEVELOPMENT_BUILD && GAME_AUTOPLAY)
             GameplayDiagnostics.Record("dungeon.chest-opened");
 #endif
+            ProceduralChestAudio.Play();
             Opened?.Invoke();
 
             foreach (Collider chestCollider in GetComponentsInChildren<Collider>())

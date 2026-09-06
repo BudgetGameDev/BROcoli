@@ -79,6 +79,8 @@ namespace BudgetGameDev.Games.Brocoli
             cam = GetComponent<Camera>();
             if (cam != null)
             {
+                cam.clearFlags = CameraClearFlags.SolidColor;
+                cam.backgroundColor = Color.black;
                 // The procedural fire softens its intersections against scene depth. URP's
                 // lowest quality asset does not request depth globally, so the gameplay camera
                 // must explicitly supply it; otherwise the flame can disappear completely.

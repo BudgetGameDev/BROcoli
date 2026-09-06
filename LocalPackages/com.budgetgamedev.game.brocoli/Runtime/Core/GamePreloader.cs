@@ -200,6 +200,7 @@ namespace BudgetGameDev.Games.Brocoli
         {
             // Pre-generate all boost pickup sounds (9 different types)
             ProceduralBoostAudio.PrewarmAll();
+            ProceduralChestAudio.GetOrCreateClip();
 
             // Pre-generate XP pickup sound
             ProceduralXPPickupAudio.PrewarmAll();

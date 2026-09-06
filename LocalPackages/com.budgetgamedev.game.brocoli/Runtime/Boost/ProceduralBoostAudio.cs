@@ -50,14 +50,17 @@ namespace BudgetGameDev.Games.Brocoli
                 sharedAudioSource = audioObj.AddComponent<AudioSource>();
                 sharedAudioSource.playOnAwake = false;
                 sharedAudioSource.spatialBlend = 0f;
+                // Reward feedback must remain audible when combat fills the voice pool.
+                sharedAudioSource.priority = 32;
 
-                sampleRate = AudioSettings.outputSampleRate;
+                sampleRate = Mathf.Max(22050, AudioSettings.outputSampleRate);
                 int maxSamples = Mathf.CeilToInt(0.8f * sampleRate);
                 audioBuffer = new float[maxSamples];
                 cachedClips = new System.Collections.Generic.Dictionary<
                     BoostSoundType,
                     AudioClip
                 >();
+                isPrewarmed = false;
             }
         }
 

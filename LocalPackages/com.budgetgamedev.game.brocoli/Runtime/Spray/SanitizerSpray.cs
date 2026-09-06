@@ -74,12 +74,19 @@ namespace BudgetGameDev.Games.Brocoli
 
         private void InitializeComponents()
         {
-            // Initialize particle controller
-            particleController = new SprayParticleController(transform);
+            // Old scene/prefab references must not opt the weapon back into the
+            // retired single-layer effect. Keep one layered controller per weapon.
+            if (particleController != null)
+                return;
             if (sprayParticles != null)
-                particleController.SetParticleSystem(sprayParticles);
-            else
-                particleController.CreateParticleSystem();
+            {
+                sprayParticles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+                var legacyRenderer = sprayParticles.GetComponent<ParticleSystemRenderer>();
+                if (legacyRenderer != null)
+                    legacyRenderer.enabled = false;
+            }
+            particleController = new SprayParticleController(transform);
+            particleController.CreateParticleSystem();
 
             // Get the created particle system reference
             sprayParticles = particleController.Particles;

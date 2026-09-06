@@ -58,12 +58,32 @@ namespace BudgetGameDev.Games.Brocoli
             if (instance != null)
                 return instance;
 
-            Canvas canvas = ScreenCanvasLocator.Find();
+            Canvas canvas = FindGameplayCanvas();
             if (canvas == null)
                 return null;
 
             DiabloHud existing = canvas.GetComponent<DiabloHud>();
             return existing != null ? existing : canvas.gameObject.AddComponent<DiabloHud>();
+        }
+
+        private static Canvas FindGameplayCanvas()
+        {
+            // Loading screens and persistent overlays can exist before gameplay
+            // awakens. Attaching to one of those leaves the scene's legacy bars
+            // untouched and prevents subsequent EnsurePresent calls from fixing them.
+            foreach (Bar bar in Object.FindObjectsByType<Bar>(FindObjectsInactive.Include))
+            {
+                if (bar.name != "ExperienceBar" || !bar.gameObject.scene.isLoaded)
+                    continue;
+                Canvas canvas = bar.GetComponentInParent<Canvas>(true)?.rootCanvas;
+                if (
+                    canvas != null
+                    && canvas.renderMode != RenderMode.WorldSpace
+                    && canvas.gameObject.activeInHierarchy
+                )
+                    return canvas;
+            }
+            return null;
         }
 
         public static void ReportEnemyHealth(EnemyBase enemy)
