@@ -1,0 +1,1 @@
+{ Ready = True, SampleRate = 48000, SamplePosition = 801280, Epoch = 1, Peak = 0.07999938, playing = True, config = UnityEngine.AudioConfiguration }

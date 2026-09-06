@@ -1,0 +1,17 @@
+{
+    "unity": "6000.5.10f1",
+    "cpu": "Apple M4",
+    "os": "Mac OS X 26.6.2",
+    "rate": 48000,
+    "buffer": 1024,
+    "managedBytes": 0,
+    "p50ms": 4.7724,
+    "p95ms": 4.9206,
+    "maxMs": 5.1855,
+    "heavyRms": 0.17091280468848686,
+    "cleanRms": 0.04176818237995135,
+    "matchedRms": 0.12,
+    "heavyPeak": 0.47683364152908327,
+    "cleanPeak": 0.15132126212120057,
+    "checksum": -10.311537742614746
+}

@@ -1,5 +1,6 @@
 ﻿<Solution>
   <Project Path="BudgetGameDev.Shared.csproj" />
+  <Project Path="BudgetGameDev.Synth.csproj" />
   <Project Path="BudgetGameDev.Games.Brocoli.csproj" />
   <Project Path="BudgetGameDev.Autoplay.Brocoli.csproj" />
   <Project Path="BudgetGameDev.Games.Brocoli.Tests.csproj" />
@@ -11,6 +12,7 @@
   <Project Path="BudgetGameDev.Games.Brocoli.Editor.csproj" />
   <Project Path="BudgetGameDev.Autoplay.Tests.csproj" />
   <Project Path="BudgetGameDev.Shared.Rendering.HighDefinition.Tests.csproj" />
+  <Project Path="BudgetGameDev.Synth.Editor.csproj" />
   <Project Path="Assembly-CSharp-Editor.csproj" />
   <Project Path="BudgetGameDev.Shared.Editor.csproj" />
   <Project Path="BudgetGameDev.Shared.Rendering.HighDefinition.csproj" />

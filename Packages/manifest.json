@@ -4,6 +4,7 @@
     "com.budgetgamedev.autoplay.brocoli": "file:../LocalPackages/com.budgetgamedev.autoplay.brocoli",
     "com.budgetgamedev.game.brocoli": "file:../LocalPackages/com.budgetgamedev.game.brocoli",
     "com.budgetgamedev.hub": "file:../LocalPackages/com.budgetgamedev.hub",
+    "com.budgetgamedev.procedural-synth": "file:../LocalPackages/com.budgetgamedev.procedural-synth",
     "com.budgetgamedev.shared": "file:../LocalPackages/com.budgetgamedev.shared",
     "com.unity.2d.sprite": "1.0.0",
     "com.unity.ide.visualstudio": "2.0.26",
@@ -27,6 +28,7 @@
     "com.budgetgamedev.game.brocoli",
     "com.budgetgamedev.hub",
     "com.budgetgamedev.shared",
-    "com.budgetgamedev.autoplay"
+    "com.budgetgamedev.autoplay",
+    "com.budgetgamedev.procedural-synth"
   ]
 }

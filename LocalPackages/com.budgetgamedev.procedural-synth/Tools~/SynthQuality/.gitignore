@@ -1,0 +1,5 @@
+bin/
+obj/
+__pycache__/
+# Preserve the hand-written standalone project despite Unity root ignores.
+!*.csproj

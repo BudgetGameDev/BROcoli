@@ -1,0 +1,1 @@
+{"name":"BudgetGameDev.Synth.Editor","references":["BudgetGameDev.Synth","Unity.Burst"],"includePlatforms":["Editor"],"allowUnsafeCode":true}

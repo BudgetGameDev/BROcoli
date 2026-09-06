@@ -1,0 +1,104 @@
+{
+  "utc": "2026-09-06T02:28:00.596149Z",
+  "framework": ".NET 10.0.11",
+  "os": "macOS 26.6.2",
+  "architecture": "Arm64",
+  "measurements": [
+    {
+      "fixture": "saw_clean",
+      "sampleRate": 48000,
+      "oversampling": 1,
+      "renderSeconds": 2,
+      "processingMilliseconds": 13.156958,
+      "allocations": 0
+    },
+    {
+      "fixture": "saw_clean",
+      "sampleRate": 48000,
+      "oversampling": 4,
+      "renderSeconds": 2,
+      "processingMilliseconds": 38.876458,
+      "allocations": 0
+    },
+    {
+      "fixture": "saw_clean",
+      "sampleRate": 96000,
+      "oversampling": 4,
+      "renderSeconds": 2,
+      "processingMilliseconds": 78.120166,
+      "allocations": 0
+    },
+    {
+      "fixture": "sine_driven",
+      "sampleRate": 48000,
+      "oversampling": 1,
+      "renderSeconds": 2,
+      "processingMilliseconds": 12.15225,
+      "allocations": 0
+    },
+    {
+      "fixture": "sine_driven",
+      "sampleRate": 48000,
+      "oversampling": 4,
+      "renderSeconds": 2,
+      "processingMilliseconds": 40.733375,
+      "allocations": 0
+    },
+    {
+      "fixture": "sine_driven",
+      "sampleRate": 96000,
+      "oversampling": 4,
+      "renderSeconds": 2,
+      "processingMilliseconds": 79.416042,
+      "allocations": 0
+    },
+    {
+      "fixture": "sine_pm",
+      "sampleRate": 48000,
+      "oversampling": 1,
+      "renderSeconds": 2,
+      "processingMilliseconds": 12.725792,
+      "allocations": 0
+    },
+    {
+      "fixture": "sine_pm",
+      "sampleRate": 48000,
+      "oversampling": 4,
+      "renderSeconds": 2,
+      "processingMilliseconds": 41.966958,
+      "allocations": 0
+    },
+    {
+      "fixture": "sine_pm",
+      "sampleRate": 96000,
+      "oversampling": 4,
+      "renderSeconds": 2,
+      "processingMilliseconds": 81.326083,
+      "allocations": 0
+    },
+    {
+      "fixture": "wavetable_pm",
+      "sampleRate": 48000,
+      "oversampling": 1,
+      "renderSeconds": 2,
+      "processingMilliseconds": 15.639125,
+      "allocations": 0
+    },
+    {
+      "fixture": "wavetable_pm",
+      "sampleRate": 48000,
+      "oversampling": 4,
+      "renderSeconds": 2,
+      "processingMilliseconds": 49.835166,
+      "allocations": 0
+    },
+    {
+      "fixture": "wavetable_pm",
+      "sampleRate": 96000,
+      "oversampling": 4,
+      "renderSeconds": 2,
+      "processingMilliseconds": 140.177209,
+      "allocations": 0
+    }
+  ]
+}

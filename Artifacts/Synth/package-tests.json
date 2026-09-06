@@ -1,0 +1,286 @@
+{
+  "status": "completed",
+  "duration": 2.6,
+  "summary": {
+    "total": 39,
+    "passed": 39,
+    "failed": 0,
+    "skipped": 0,
+    "inconclusive": 0
+  },
+  "results": [
+    {
+      "FullName": "BudgetGameDev.Synth.Tests.MonoComposerTests.CapacityOneAndLargeBatchesProduceIdenticalSortedPairedEvents",
+      "Status": "Passed",
+      "Duration": 0.0086082,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "BudgetGameDev.Synth.Tests.MonoComposerTests.DangerDensityHasHysteresisAndMovementShortensArticulation",
+      "Status": "Passed",
+      "Duration": 0.0004114,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "BudgetGameDev.Synth.Tests.MonoComposerTests.EmptyDestinationConsumesNothingAndTempoChangesAtBeat",
+      "Status": "Passed",
+      "Duration": 0.0004041,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "BudgetGameDev.Synth.Tests.MonoComposerTests.ExpressionIsSmoothedAndBounded",
+      "Status": "Passed",
+      "Duration": 0.0006163,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "BudgetGameDev.Synth.Tests.MonoComposerTests.NarrativeNeedsStableBeatsAndCommitsWithRootAndScaleAtPhrase",
+      "Status": "Passed",
+      "Duration": 0.0001475,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "BudgetGameDev.Synth.Tests.MonoComposerTests.PhraseHasAccentsRestsAndScaleBoundedNotes",
+      "Status": "Passed",
+      "Duration": 0.0009953,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "BudgetGameDev.Synth.Tests.NonlinearTests.DcBlockerRejectsConstantInputAndResetClearsHistory",
+      "Status": "Passed",
+      "Duration": 0.0020921,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "BudgetGameDev.Synth.Tests.NonlinearTests.ExtremeInputAndSampleRateCutoffJumpsRemainBounded(32000)",
+      "Status": "Passed",
+      "Duration": 0.0439631,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "BudgetGameDev.Synth.Tests.NonlinearTests.ExtremeInputAndSampleRateCutoffJumpsRemainBounded(44100)",
+      "Status": "Passed",
+      "Duration": 0.0456308,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "BudgetGameDev.Synth.Tests.NonlinearTests.ExtremeInputAndSampleRateCutoffJumpsRemainBounded(48000)",
+      "Status": "Passed",
+      "Duration": 0.0442976,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "BudgetGameDev.Synth.Tests.NonlinearTests.ExtremeInputAndSampleRateCutoffJumpsRemainBounded(96000)",
+      "Status": "Passed",
+      "Duration": 0.0429348,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "BudgetGameDev.Synth.Tests.NonlinearTests.ExtremeInputAndSampleRateCutoffJumpsRemainBounded(64000)",
+      "Status": "Passed",
+      "Duration": 0.0436953,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "BudgetGameDev.Synth.Tests.NonlinearTests.ExtremeInputAndSampleRateCutoffJumpsRemainBounded(88200)",
+      "Status": "Passed",
+      "Duration": 0.0434888,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "BudgetGameDev.Synth.Tests.NonlinearTests.ExtremeInputAndSampleRateCutoffJumpsRemainBounded(192000)",
+      "Status": "Passed",
+      "Duration": 0.0434425,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "BudgetGameDev.Synth.Tests.NonlinearTests.ExtremeInputAndSampleRateCutoffJumpsRemainBounded(384000)",
+      "Status": "Passed",
+      "Duration": 0.0432004,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "BudgetGameDev.Synth.Tests.NonlinearTests.FourPoleSmallSignalResponseFallsApproximately24DbPerOctave",
+      "Status": "Passed",
+      "Duration": 0.3400893,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "BudgetGameDev.Synth.Tests.NonlinearTests.NonfiniteControlValuesDoNotPoisonFilterState",
+      "Status": "Passed",
+      "Duration": 0.0284455,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "BudgetGameDev.Synth.Tests.SynthCoreTests.DuplicateNoteAndUnknownReleaseDoNotStick",
+      "Status": "Passed",
+      "Duration": 0.1988328,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "BudgetGameDev.Synth.Tests.SynthCoreTests.EventsApplyBeforeExactSampleAndSameTimeOrderIsStable",
+      "Status": "Passed",
+      "Duration": 0.0007766,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "BudgetGameDev.Synth.Tests.SynthCoreTests.GlideIsMonotonicAndLegatoPreservesEnvelope",
+      "Status": "Passed",
+      "Duration": 0.0232344,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "BudgetGameDev.Synth.Tests.SynthCoreTests.OverflowClearsPendingPairsAndReleasesVoice",
+      "Status": "Passed",
+      "Duration": 0.1967039,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "BudgetGameDev.Synth.Tests.SynthCoreTests.OverlapAndInactiveReleaseRespectPriority(Last,60)",
+      "Status": "Passed",
+      "Duration": 0.1970305,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "BudgetGameDev.Synth.Tests.SynthCoreTests.OverlapAndInactiveReleaseRespectPriority(Low,36)",
+      "Status": "Passed",
+      "Duration": 0.1966294,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "BudgetGameDev.Synth.Tests.SynthCoreTests.OverlapAndInactiveReleaseRespectPriority(High,60)",
+      "Status": "Passed",
+      "Duration": 0.1965533,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "BudgetGameDev.Synth.Tests.SynthCoreTests.ParameterExtremesStayFiniteAndProtected(32000)",
+      "Status": "Passed",
+      "Duration": 0.1130075,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "BudgetGameDev.Synth.Tests.SynthCoreTests.ParameterExtremesStayFiniteAndProtected(44100)",
+      "Status": "Passed",
+      "Duration": 0.1094248,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "BudgetGameDev.Synth.Tests.SynthCoreTests.ParameterExtremesStayFiniteAndProtected(48000)",
+      "Status": "Passed",
+      "Duration": 0.1111089,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "BudgetGameDev.Synth.Tests.SynthCoreTests.ParameterExtremesStayFiniteAndProtected(96000)",
+      "Status": "Passed",
+      "Duration": 0.1136542,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "BudgetGameDev.Synth.Tests.SynthCoreTests.RenderingAllocatesNoManagedBytesAfterWarmup",
+      "Status": "Passed",
+      "Duration": 0.2688732,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "BudgetGameDev.Synth.Tests.SynthCoreTests.SeedAndEventsReproduceExactlyWithinRuntime",
+      "Status": "Passed",
+      "Duration": 0.0760834,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "BudgetGameDev.Synth.Tests.SynthProfilerTests.LiveReaderSurvivesMoreFramesThanRecorderCapacity",
+      "Status": "Passed",
+      "Duration": 0.0188592,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "BudgetGameDev.Synth.Tests.WavetableTests.BrightMipContainsPartialsAndHighMipRemovesThem",
+      "Status": "Passed",
+      "Duration": 0.0013113,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "BudgetGameDev.Synth.Tests.WavetableTests.DecimatorImpulseHasDocumentedLatencyAndUnityDcGain(2,31)",
+      "Status": "Passed",
+      "Duration": 0.0003699,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "BudgetGameDev.Synth.Tests.WavetableTests.DecimatorImpulseHasDocumentedLatencyAndUnityDcGain(4,34.5d)",
+      "Status": "Passed",
+      "Duration": 0.0001209,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "BudgetGameDev.Synth.Tests.WavetableTests.FrequencyMorphAndMalformedInputSweepsRemainFiniteAndBounded",
+      "Status": "Passed",
+      "Duration": 0.0132887,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "BudgetGameDev.Synth.Tests.WavetableTests.InterpolationWrapsAtBothEnds",
+      "Status": "Passed",
+      "Duration": 0.0003557,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "BudgetGameDev.Synth.Tests.WavetableTests.InterruptedWaveformTransitionsRetainTheAudibleBlend",
+      "Status": "Passed",
+      "Duration": 0.0011066,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "BudgetGameDev.Synth.Tests.WavetableTests.MorphJoinsAndMipBoundariesAreContinuous",
+      "Status": "Passed",
+      "Duration": 0.0013134,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "BudgetGameDev.Synth.Tests.WavetableTests.WarmedTableReadsAllocateNothing",
+      "Status": "Passed",
+      "Duration": 0.0025001,
+      "Message": null,
+      "StackTrace": null
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "name": "BudgetGameDev.Synth.Tests",
+  "references": [
+    "BudgetGameDev.Synth",
+    "Unity.Mathematics",
+    "BudgetGameDev.Synth.Editor"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "optionalUnityReferences": [
+    "TestAssemblies"
+  ],
+  "allowUnsafeCode": true
+}

@@ -1,0 +1,13 @@
+{
+  "runtime": ".NET 10.0.11",
+  "os": "macOS 26.6.2",
+  "rate": 48000,
+  "frames": 1024,
+  "quality": 4,
+  "allocated": 0,
+  "p50ms": 0.4965,
+  "p95ms": 0.5449,
+  "maxMs": 0.652,
+  "matchedRms": 0.12,
+  "checksum": 107.444565
+}

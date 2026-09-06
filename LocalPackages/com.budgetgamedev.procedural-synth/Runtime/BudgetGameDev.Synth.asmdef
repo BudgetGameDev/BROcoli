@@ -1,0 +1,1 @@
+{"name":"BudgetGameDev.Synth","rootNamespace":"BudgetGameDev.Synth","references":["Unity.Burst","Unity.Mathematics","Unity.Collections"],"allowUnsafeCode":true}

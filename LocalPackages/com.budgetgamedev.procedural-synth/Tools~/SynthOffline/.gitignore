@@ -1,0 +1,4 @@
+bin/
+obj/
+# Preserve the hand-written standalone project despite Unity root ignores.
+!*.csproj

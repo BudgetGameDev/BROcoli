@@ -1,0 +1,110 @@
+[
+  {
+    "case": "saw_clean",
+    "output_rate": 48000,
+    "oversampling": 1,
+    "off_harmonic_energy_dbc": -49.853,
+    "off_harmonic_below20k_dbc": -49.853,
+    "rms": 0.066092,
+    "peak": 0.170411
+  },
+  {
+    "case": "saw_clean",
+    "output_rate": 48000,
+    "oversampling": 4,
+    "off_harmonic_energy_dbc": -66.306,
+    "off_harmonic_below20k_dbc": -66.307,
+    "rms": 0.067063,
+    "peak": 0.173612
+  },
+  {
+    "case": "saw_clean",
+    "output_rate": 96000,
+    "oversampling": 4,
+    "off_harmonic_energy_dbc": -72.187,
+    "off_harmonic_below20k_dbc": -72.188,
+    "rms": 0.067111,
+    "peak": 0.173776
+  },
+  {
+    "case": "sine_driven",
+    "output_rate": 48000,
+    "oversampling": 1,
+    "off_harmonic_energy_dbc": -37.655,
+    "off_harmonic_below20k_dbc": -41.813,
+    "rms": 0.636042,
+    "peak": 0.657786
+  },
+  {
+    "case": "sine_driven",
+    "output_rate": 48000,
+    "oversampling": 4,
+    "off_harmonic_energy_dbc": -88.241,
+    "off_harmonic_below20k_dbc": -88.342,
+    "rms": 0.635768,
+    "peak": 0.67572
+  },
+  {
+    "case": "sine_driven",
+    "output_rate": 96000,
+    "oversampling": 4,
+    "off_harmonic_energy_dbc": -83.931,
+    "off_harmonic_below20k_dbc": -84.098,
+    "rms": 0.635806,
+    "peak": 0.670085
+  },
+  {
+    "case": "sine_pm",
+    "output_rate": 48000,
+    "oversampling": 1,
+    "off_harmonic_energy_dbc": -28.778,
+    "off_harmonic_below20k_dbc": -31.766,
+    "rms": 0.609569,
+    "peak": 0.66789
+  },
+  {
+    "case": "sine_pm",
+    "output_rate": 48000,
+    "oversampling": 4,
+    "off_harmonic_energy_dbc": -83.627,
+    "off_harmonic_below20k_dbc": -83.811,
+    "rms": 0.60879,
+    "peak": 0.721503
+  },
+  {
+    "case": "sine_pm",
+    "output_rate": 96000,
+    "oversampling": 4,
+    "off_harmonic_energy_dbc": -81.718,
+    "off_harmonic_below20k_dbc": -82.018,
+    "rms": 0.609039,
+    "peak": 0.723603
+  },
+  {
+    "case": "wavetable_pm",
+    "output_rate": 48000,
+    "oversampling": 1,
+    "off_harmonic_energy_dbc": -28.807,
+    "off_harmonic_below20k_dbc": -31.758,
+    "rms": 0.627391,
+    "peak": 0.662361
+  },
+  {
+    "case": "wavetable_pm",
+    "output_rate": 48000,
+    "oversampling": 4,
+    "off_harmonic_energy_dbc": -54.108,
+    "off_harmonic_below20k_dbc": -54.253,
+    "rms": 0.634821,
+    "peak": 0.750713
+  },
+  {
+    "case": "wavetable_pm",
+    "output_rate": 96000,
+    "oversampling": 4,
+    "off_harmonic_energy_dbc": -58.315,
+    "off_harmonic_below20k_dbc": -58.608,
+    "rms": 0.635327,
+    "peak": 0.744516
+  }
+]

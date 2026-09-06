@@ -1,0 +1,25 @@
+{
+  "name": "com.budgetgamedev.procedural-synth",
+  "version": "0.1.0",
+  "displayName": "Procedural Synth",
+  "description": "Expressive modular mono synthesizer, sample-timed sequencing, and seeded adaptive composition for Unity's Scriptable Audio Pipeline.",
+  "unity": "6000.5",
+  "unityRelease": "10f1",
+  "license": "Elastic-2.0",
+  "author": { "name": "Budget GameDev" },
+  "dependencies": {
+    "com.unity.burst": "1.8.30",
+    "com.unity.collections": "6.5.0",
+    "com.unity.mathematics": "1.4.0",
+    "com.unity.modules.audio": "1.0.0",
+    "com.unity.modules.imgui": "1.0.0",
+    "com.unity.modules.jsonserialize": "1.0.0"
+  },
+  "samples": [
+    {
+      "displayName": "MonoSynth",
+      "description": "Playable mono instrument with a bass sequence, preset controls, and adaptive composition sliders. Uses a direct AudioSource output; assign an optional mixer group in the Inspector.",
+      "path": "Samples~/MonoSynth"
+    }
+  ]
+}

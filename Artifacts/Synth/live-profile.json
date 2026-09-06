@@ -1,0 +1,11 @@
+{
+    "audioMarkerValid": true,
+    "synthMarkerValid": true,
+    "synthTimingAvailable": false,
+    "updates": 600,
+    "frames": 600,
+    "synthFrames": 600,
+    "audioFrameP95ms": 3.286999,
+    "synthFrameP95ms": 0.0,
+    "configuration": "Unity Editor Play, Burst enabled, Apple M4, 48000Hz /1024 frames; marker values aggregate per video frame. Zero synth timing means unavailable, not zero processing cost. Kernel timing is recorded separately."
+}

@@ -1,0 +1,1 @@
+{ Ready = True, Peak = 0.0477486, LateEvents = 2, DroppedEvents = 0, SchedulingRecoveries = 2, SamplePosition = 1423360, preset = BudgetGameDev.Synth.SynthParameters }
