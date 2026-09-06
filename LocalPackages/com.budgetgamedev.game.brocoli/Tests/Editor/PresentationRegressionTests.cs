@@ -64,6 +64,9 @@ namespace BudgetGameDev.Games.Brocoli.Tests
             var host = new GameObject("Spray regression");
             var legacyHost = new GameObject("Authored legacy particles", typeof(ParticleSystem));
             legacyHost.transform.SetParent(host.transform);
+            var legacyChildHost = new GameObject("Legacy mist child", typeof(ParticleSystem));
+            legacyChildHost.transform.SetParent(legacyHost.transform);
+            var legacyChild = legacyChildHost.GetComponent<ParticleSystem>();
             var legacy = legacyHost.GetComponent<ParticleSystem>();
             legacy.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
             var spray = host.AddComponent<SanitizerSpray>();
@@ -77,6 +80,10 @@ namespace BudgetGameDev.Games.Brocoli.Tests
                 Assert.That(particles, Is.Not.SameAs(legacy));
                 Assert.That(particles.name, Is.EqualTo("CoreSpray"));
                 Assert.That(legacy.GetComponent<ParticleSystemRenderer>().enabled, Is.False);
+                Assert.That(legacy.emission.enabled, Is.False);
+                Assert.That(legacyChild.emission.enabled, Is.False);
+                Assert.That(legacyChild.GetComponent<ParticleSystemRenderer>().enabled, Is.False);
+                Assert.That(host.transform.Find("SprayParticlesLegacy"), Is.Null);
                 Assert.That(host.transform.Find("SprayParticleLayers/MistLayer"), Is.Not.Null);
                 initialize.Invoke(spray, null);
                 Assert.That(

@@ -81,9 +81,14 @@ namespace BudgetGameDev.Games.Brocoli
             if (sprayParticles != null)
             {
                 sprayParticles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
-                var legacyRenderer = sprayParticles.GetComponent<ParticleSystemRenderer>();
-                if (legacyRenderer != null)
-                    legacyRenderer.enabled = false;
+                foreach (var legacy in sprayParticles.GetComponentsInChildren<ParticleSystem>(true))
+                {
+                    var emission = legacy.emission;
+                    emission.enabled = false;
+                    var legacyRenderer = legacy.GetComponent<ParticleSystemRenderer>();
+                    if (legacyRenderer != null)
+                        legacyRenderer.enabled = false;
+                }
             }
             particleController = new SprayParticleController(transform);
             particleController.CreateParticleSystem();

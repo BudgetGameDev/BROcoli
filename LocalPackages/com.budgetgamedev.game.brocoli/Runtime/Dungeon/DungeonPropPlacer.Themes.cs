@@ -50,8 +50,6 @@ namespace BudgetGameDev.Games.Brocoli
                         random,
                         occupied,
                         5 + random.Next(0, 4),
-                        DungeonPropTokens.WoodSupport,
-                        DungeonPropTokens.WoodStructure,
                         DungeonPropTokens.Table
                     );
                     PlaceSmallClusters(
@@ -200,7 +198,6 @@ namespace BudgetGameDev.Games.Brocoli
                 random,
                 occupied,
                 1 + random.Next(0, 3),
-                DungeonPropTokens.WoodSupport,
                 DungeonPropTokens.Stones
             );
             if (random.NextDouble() < 0.5)

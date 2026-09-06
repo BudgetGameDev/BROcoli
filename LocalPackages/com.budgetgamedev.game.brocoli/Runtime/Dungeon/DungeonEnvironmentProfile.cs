@@ -79,12 +79,7 @@ namespace BudgetGameDev.Games.Brocoli
             DungeonPropTokens.Rocks,
             DungeonPropTokens.Stones,
         };
-        private static readonly string[] Carpentry =
-        {
-            DungeonPropTokens.WoodSupport,
-            DungeonPropTokens.WoodStructure,
-            DungeonPropTokens.Pot,
-        };
+        private static readonly string[] Pots = { DungeonPropTokens.Pot };
         private static readonly string[] StonesAndPots =
         {
             DungeonPropTokens.Stones,
@@ -99,7 +94,6 @@ namespace BudgetGameDev.Games.Brocoli
         {
             DungeonPropTokens.Pot,
             DungeonPropTokens.Barrel,
-            DungeonPropTokens.WoodSupport,
         };
         private static readonly string[] RockPathway =
         {
@@ -112,7 +106,7 @@ namespace BudgetGameDev.Games.Brocoli
             DungeonBoundaryStyle.MasonryRailing,
             System.Array.Empty<string>(),
             0,
-            Carpentry,
+            Pots,
             BarrelsAndPots,
             DungeonPathway,
             false
@@ -145,7 +139,7 @@ namespace BudgetGameDev.Games.Brocoli
             DungeonBoundaryStyle.Undressed,
             System.Array.Empty<string>(),
             0,
-            Carpentry,
+            Pots,
             BarrelsAndPots,
             DungeonPathway,
             false
@@ -155,7 +149,7 @@ namespace BudgetGameDev.Games.Brocoli
             DungeonBoundaryStyle.Undressed,
             System.Array.Empty<string>(),
             0,
-            Carpentry,
+            Pots,
             BarrelsAndPots,
             DungeonPathway,
             false
