@@ -2,6 +2,7 @@
 using System;
 using System.Linq;
 using BudgetGameDev.Hub.Editor;
+using BudgetGameDev.Shared.Rendering;
 using UnityEditor;
 using UnityEditor.Build;
 using UnityEditor.Build.Reporting;
@@ -85,7 +86,10 @@ public sealed partial class NativePlayerBuildScript
         PlayerSettings.SetUseDefaultGraphicsAPIs(BuildTarget.StandaloneWindows64, false);
         PlayerSettings.SetGraphicsAPIs(
             BuildTarget.StandaloneWindows64,
-            new[] { GraphicsDeviceType.Direct3D12, GraphicsDeviceType.Direct3D11 }
+            BuildRenderingPolicy.PipelineFor(BuildTarget.StandaloneWindows64)
+            == RenderPipelineKind.HighDefinition
+                ? new[] { GraphicsDeviceType.Direct3D12 }
+                : new[] { GraphicsDeviceType.Direct3D12, GraphicsDeviceType.Direct3D11 }
         );
     }
 

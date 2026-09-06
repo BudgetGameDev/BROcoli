@@ -1,9 +1,5 @@
 #!/usr/bin/env python3
-"""Stage and build exactly one game, or the launcher, without importing excluded code.
-
-Every invocation gets a fresh staging project. Neither the source Editor nor its
-package manifest, Library, scenes or project settings are mutated by a release.
-"""
+"""Stage one product in a fresh project without mutating its source Editor."""
 
 from __future__ import annotations
 
@@ -14,6 +10,11 @@ import shutil
 import subprocess
 import tempfile
 from pathlib import Path
+
+try:
+    from release_streamline import stage_streamline
+except ModuleNotFoundError:
+    from scripts.release_streamline import stage_streamline
 
 GAME_PREFIX = "com.budgetgamedev.game."
 AUTOPLAY_PREFIX = "com.budgetgamedev.autoplay"
@@ -118,7 +119,6 @@ def stage_project(
     parent.mkdir(parents=True, exist_ok=True)
     stage = Path(tempfile.mkdtemp(prefix=product + "-", dir=parent))
     # Assets contains shared host settings/editor tools; all game-owned content
-    # must live inside its package. Never copy caches, .env, or source secrets.
     shutil.copytree(
         source / "Assets",
         stage / "Assets",
@@ -129,11 +129,11 @@ def stage_project(
         shutil.copytree(
             local[name][0],
             stage / "LocalPackages" / name,
-            ignore=shutil.ignore_patterns("Tests", "Tests.meta", "Samples~", "Documentation~"),
+            ignore=shutil.ignore_patterns(
+                "Tests", "Tests.meta", "Samples~", "Documentation~", "artifacts"
+            ),
         )
     write_json(stage / "Packages/manifest.json", manifest)
-    # Preserve pinned registry resolutions but drop every excluded local package
-    # and test-only direct dependency. Unity resolves the remaining graph afresh.
     lock_path = source / "Packages/packages-lock.json"
     if lock_path.is_file():
         lock = read_json(lock_path)
@@ -226,6 +226,7 @@ def main() -> int:
     if "webgl" in targets and len(targets) != 1:
         parser.error("build webgl separately from native targets")
     stage = stage_project(args.source, args.product, args.development, args.stage_root)
+    stage_streamline(args.source.resolve(), stage, args.pipeline, targets)
     print(f"Isolated {args.product} project: {stage}", flush=True)
     if args.stage_only:
         return 0

@@ -1,0 +1,42 @@
+{
+  "sdkVersion": "2.12.0",
+  "archiveSha256": "f5c0a3d870707dddc3570fb4bcd3655cf48a8a68c3a9d342910cfa21b77dcf48",
+  "files": [
+    {
+      "name": "sl.interposer.dll",
+      "sha256": "2a79db6857ae8c75bbd871a9489c48bc6a39f7fcc88b9b02afd53d0376cbec66"
+    },
+    {
+      "name": "sl.common.dll",
+      "sha256": "c57930ef5a8a3fe9be85efdf71a61d8107c1148e8a6aed456464547128f7f4ae"
+    },
+    {
+      "name": "sl.dlss_g.dll",
+      "sha256": "1fec3f8fdfc59d78c4445c276c1a0fb798bf251985f348597dc2b44d0c995e52"
+    },
+    {
+      "name": "sl.reflex.dll",
+      "sha256": "7e6e4ccc4b561bd449fb0da90709d9b96b08c3f6f4697362caaa359e72a58a67"
+    },
+    {
+      "name": "sl.pcl.dll",
+      "sha256": "699ab461e64e95189a7fe6a21c79ad237cf56b60ea748cb6c840cd5431ba91d1"
+    },
+    {
+      "name": "nvngx_dlssg.dll",
+      "sha256": "135eaf0733c1e37381a8c28abcf7a862404a54132b81787c04e35d09efc5e36f"
+    },
+    {
+      "name": "nvngx_dlss.dll",
+      "sha256": "be6e434a94ca32499515eb62ca0e6c274526055d568d0426e4c652dcdfb6ee6e"
+    },
+    {
+      "name": "nvngx_dlss.license.txt",
+      "sha256": "3027f23ca5a46dd9cb8183fbd522983a86f64d7daac5982912bf9f214671f294"
+    },
+    {
+      "name": "reflex.license.txt",
+      "sha256": "ebf83c07fb3b2939908c3795d887afde3161c89a28ba391724efc784ce1bdabe"
+    }
+  ]
+}

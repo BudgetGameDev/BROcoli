@@ -87,7 +87,13 @@ namespace BudgetGameDev.Games.Brocoli
             resetSettingsButton.onClick.AddListener(ResetSettingsToDefaults);
             backSettingsButton = CreateButton("BackFromSettingsButton", settingsPanel, "BACK");
             backSettingsButton.onClick.AddListener(CloseSettings);
-            settingsActionButtons = new[] { resetSettingsButton, backSettingsButton };
+            BuildNvidiaSettingsPresentation();
+            settingsActionButtons = new[]
+            {
+                nvidiaSettingsButton,
+                resetSettingsButton,
+                backSettingsButton,
+            };
             settingsSelectables = new Selectable[]
             {
                 volumeSliders[0],
@@ -95,6 +101,7 @@ namespace BudgetGameDev.Games.Brocoli
                 volumeSliders[2],
                 hdrToggleButton,
                 hdrCalibrationButton,
+                nvidiaSettingsButton,
                 resetSettingsButton,
                 backSettingsButton,
             };
@@ -220,6 +227,7 @@ namespace BudgetGameDev.Games.Brocoli
                 HdrDetailsOpen = false;
                 hdrDetailsPanel.gameObject.SetActive(false);
             }
+            nvidiaPage?.Dismiss();
             SettingsOpen = false;
             settingsPanel.gameObject.SetActive(false);
             if (mainButtonsWereActive != null)
@@ -270,29 +278,6 @@ namespace BudgetGameDev.Games.Brocoli
         {
             GameAudioSettings.ResetToDefaults();
             GameDisplaySettings.ResetToDefault();
-        }
-
-        private void RegisterPointerSelection()
-        {
-            for (int i = 0; i < settingsSelectables.Length; i++)
-            {
-                int index = i;
-                EventTrigger trigger = settingsSelectables[i]
-                    .gameObject.AddComponent<EventTrigger>();
-                EventTrigger.Entry entry = new() { eventID = EventTriggerType.PointerEnter };
-                entry.callback.AddListener(_ => selectedSetting = index);
-                trigger.triggers.Add(entry);
-            }
-        }
-
-        private void SelectSetting(int index, bool playSound = true)
-        {
-            selectedSetting = (index + settingsSelectables.Length) % settingsSelectables.Length;
-            EventSystem.current?.SetSelectedGameObject(
-                settingsSelectables[selectedSetting].gameObject
-            );
-            if (playSound)
-                ProceduralUIAudio.PlayHover();
         }
     }
 }

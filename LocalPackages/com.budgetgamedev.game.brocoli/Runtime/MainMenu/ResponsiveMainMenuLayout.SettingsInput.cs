@@ -1,5 +1,6 @@
 using BudgetGameDev.Shared;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
@@ -33,6 +34,8 @@ namespace BudgetGameDev.Games.Brocoli
                 UpdateHdrDetailsInput();
                 return;
             }
+            if (nvidiaPage?.IsOpen == true)
+                return;
             UpdateSettingsInput();
         }
 
@@ -110,6 +113,29 @@ namespace BudgetGameDev.Games.Brocoli
                 && MenuInputGate.TryConsumeSubmit()
             )
                 button.onClick.Invoke();
+        }
+
+        private void RegisterPointerSelection()
+        {
+            for (int i = 0; i < settingsSelectables.Length; i++)
+            {
+                int index = i;
+                EventTrigger trigger = settingsSelectables[i]
+                    .gameObject.AddComponent<EventTrigger>();
+                EventTrigger.Entry entry = new() { eventID = EventTriggerType.PointerEnter };
+                entry.callback.AddListener(_ => selectedSetting = index);
+                trigger.triggers.Add(entry);
+            }
+        }
+
+        private void SelectSetting(int index, bool playSound = true)
+        {
+            selectedSetting = (index + settingsSelectables.Length) % settingsSelectables.Length;
+            EventSystem.current?.SetSelectedGameObject(
+                settingsSelectables[selectedSetting].gameObject
+            );
+            if (playSound)
+                ProceduralUIAudio.PlayHover();
         }
     }
 }

@@ -75,24 +75,20 @@ namespace BudgetGameDev.Games.Brocoli
                 y -= rowHeight + rowGap;
             }
 
-            float actionWidth = (width - gap) * 0.5f;
+            float actionWidth = (width - gap * 2) / 3;
             float actionY = bottom + buttonHeight * 0.5f;
-            SetCenteredRect(
-                resetSettingsButton.GetComponent<RectTransform>(),
-                actionWidth,
-                buttonHeight,
-                actionY
-            );
-            SetCenteredRect(
-                backSettingsButton.GetComponent<RectTransform>(),
-                actionWidth,
-                buttonHeight,
-                actionY
-            );
-            resetSettingsButton.transform.localPosition +=
-                Vector3.left * (actionWidth + gap) * 0.5f;
-            backSettingsButton.transform.localPosition +=
-                Vector3.right * (actionWidth + gap) * 0.5f;
+            for (int i = 0; i < settingsActionButtons.Length; i++)
+            {
+                var button = settingsActionButtons[i];
+                var rect = button.GetComponent<RectTransform>();
+                SetCenteredRect(rect, actionWidth, buttonHeight, actionY);
+                rect.anchoredPosition += Vector2.right * (i - 1) * (actionWidth + gap);
+                var label = button.GetComponentInChildren<TMP_Text>();
+                label.margin = new Vector4(4, 0, 4, 0);
+                label.enableAutoSizing = true;
+                label.fontSizeMin = 9;
+                label.fontSizeMax = compact ? 12 : 16;
+            }
         }
 
         private void LayoutVolumeRow(

@@ -17,6 +17,7 @@ namespace BudgetGameDev.Games.Brocoli
         {
             if (settingsPanel == null)
                 return;
+            nvidiaPage?.Layout(width, top, bottom, compact, narrow);
             LayoutGeneralSettings(width, top, bottom, compact, narrow);
             LayoutPauseHdrDetails(width, top, bottom, compact, narrow);
             LayoutPauseHdrCalibration(width, top, bottom, compact, narrow);
@@ -63,10 +64,25 @@ namespace BudgetGameDev.Games.Brocoli
                 y -= rowHeight + rowGap;
             }
 
-            float actionWidth = (width - gap) * 0.5f;
+            float actionWidth = (width - gap * 2) / 3;
             float actionY = bottom + buttonHeight * 0.5f;
-            PositionSplitButton(resetSettingsButton, actionWidth, buttonHeight, actionY, -1f, gap);
-            PositionSplitButton(backSettingsButton, actionWidth, buttonHeight, actionY, 1f, gap);
+            Button[] actions = { nvidiaSettingsButton, resetSettingsButton, backSettingsButton };
+            for (int i = 0; i < actions.Length; i++)
+            {
+                PositionSplitButton(
+                    actions[i],
+                    actionWidth,
+                    buttonHeight,
+                    actionY,
+                    (i - 1) * 2,
+                    gap
+                );
+                var label = actions[i].GetComponentInChildren<TMP_Text>();
+                label.margin = new Vector4(4, 0, 4, 0);
+                label.enableAutoSizing = true;
+                label.fontSizeMin = 9;
+                label.fontSizeMax = compact ? 12 : 16;
+            }
         }
 
         private void LayoutPauseVolumeRow(

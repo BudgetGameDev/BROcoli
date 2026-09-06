@@ -92,3 +92,9 @@ LocalPackages/*/Resources/*/Generated.meta
 
 # Python bytecode from the scripts test suite
 __pycache__/
+
+# Reproducible native Streamline build and patched HDRP package (shared setup tool).
+/Packages/com.unity.render-pipelines.high-definition/
+/Packages/com.unity.render-pipelines.high-definition.meta
+/LocalPackages/com.budgetgamedev.shared/Native~/Streamline/artifacts/
+/LocalPackages/com.budgetgamedev.shared/Runtime/Plugins/Streamline/*.dll

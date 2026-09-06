@@ -39,6 +39,7 @@ namespace BudgetGameDev.Games.Brocoli
             resetSettingsButton.onClick.AddListener(ResetSettings);
             backSettingsButton = CreateButton("BackFromPauseSettingsButton", settingsPanel, "BACK");
             backSettingsButton.onClick.AddListener(HideSettings);
+            BuildNvidiaSettingsPresentation();
             settingsSelectables = new Selectable[]
             {
                 volumeSliders[0],
@@ -46,6 +47,7 @@ namespace BudgetGameDev.Games.Brocoli
                 volumeSliders[2],
                 hdrToggleButton,
                 hdrDetailsButton,
+                nvidiaSettingsButton,
                 resetSettingsButton,
                 backSettingsButton,
             };
@@ -167,6 +169,7 @@ namespace BudgetGameDev.Games.Brocoli
 
         private void HideAllSettingsPanels()
         {
+            nvidiaPage?.Dismiss();
             if (HdrCalibrationOpen)
                 EndHdrCalibration(false);
             HdrDetailsOpen = false;

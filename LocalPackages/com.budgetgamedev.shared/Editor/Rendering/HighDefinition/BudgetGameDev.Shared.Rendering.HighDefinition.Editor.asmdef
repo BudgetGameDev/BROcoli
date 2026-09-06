@@ -1,0 +1,13 @@
+{
+  "name": "BudgetGameDev.Shared.Rendering.HighDefinition.Editor",
+  "rootNamespace": "BudgetGameDev.Shared.Rendering.HighDefinition.Editor",
+  "references": [
+    "BudgetGameDev.Shared",
+    "BudgetGameDev.Shared.Editor",
+    "BudgetGameDev.Shared.Rendering.HighDefinition",
+    "Unity.RenderPipelines.Core.Runtime",
+    "Unity.RenderPipelines.HighDefinition.Runtime"
+  ],
+  "includePlatforms": ["Editor"],
+  "autoReferenced": true
+}

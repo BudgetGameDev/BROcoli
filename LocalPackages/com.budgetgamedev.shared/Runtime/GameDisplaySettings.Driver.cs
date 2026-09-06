@@ -100,7 +100,11 @@ namespace BudgetGameDev.Shared
                 // desktop it only flattens the picture, so it needs a detected HDR display too.
                 bool enabled = HdrEnabled && displayDetected;
                 grade?.Apply(BuildGradeRequest(enabled));
-                ConfigureCanvasComposition(enabled);
+                // HDRP must keep overlay UI separate through its final HDR pass.
+                // The camera-space workaround is for URP's HDR overlay path only.
+                ConfigureCanvasComposition(
+                    enabled && grade?.Pipeline != RenderPipelineKind.HighDefinition
+                );
                 if (switchable && displayDetected)
                     requestHdrMode(HdrEnabled);
             }

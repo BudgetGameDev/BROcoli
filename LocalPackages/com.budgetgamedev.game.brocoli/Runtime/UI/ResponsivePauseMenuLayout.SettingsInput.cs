@@ -10,6 +10,8 @@ namespace BudgetGameDev.Games.Brocoli
     {
         public void HandleSettingsInput(Keyboard keyboard, Gamepad gamepad)
         {
+            if (nvidiaPage?.IsOpen == true)
+                return;
             bool cancel =
                 keyboard?.escapeKey.wasPressedThisFrame == true
                 || gamepad?.buttonEast.wasPressedThisFrame == true;

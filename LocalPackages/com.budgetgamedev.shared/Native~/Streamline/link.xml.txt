@@ -1,0 +1,8 @@
+<linker>
+  <assembly fullname="Unity.RenderPipelines.HighDefinition.Runtime">
+    <type
+      fullname="UnityEngine.Rendering.HighDefinition.SharedFrameGenerationHooks"
+      preserve="all"
+    />
+  </assembly>
+</linker>

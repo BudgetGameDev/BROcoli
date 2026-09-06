@@ -1,0 +1,19 @@
+// Installed into HDRP 17.5.0 by the shared package setup tool.
+using System;
+using UnityEngine.Scripting;
+
+namespace UnityEngine.Rendering.HighDefinition
+{
+    [Preserve]
+    public static class SharedFrameGenerationHooks
+    {
+        public const int Version = 1;
+        public static event Action<HDCamera, CommandBuffer, Material, RTHandle, Rect, bool> FinalFrame;
+
+        internal static void Capture(HDCamera camera, CommandBuffer command, Material material,
+            RTHandle ui, Rect viewport, bool finalOutput)
+        {
+            FinalFrame?.Invoke(camera, command, material, ui, viewport, finalOutput);
+        }
+    }
+}

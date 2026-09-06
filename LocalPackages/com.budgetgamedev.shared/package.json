@@ -15,6 +15,7 @@
     "com.unity.render-pipelines.universal": "17.5.0",
     "com.unity.ugui": "2.5.0",
     "com.unity.modules.audio": "1.0.0",
+    "com.unity.modules.nvidia": "1.0.0",
     "com.unity.modules.ui": "1.0.0"
   },
   "keywords": ["input", "pooling", "webgl", "pwa", "ui"]
