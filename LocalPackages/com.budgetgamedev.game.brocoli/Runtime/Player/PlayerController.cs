@@ -48,7 +48,6 @@ namespace BudgetGameDev.Games.Brocoli
         private PlayerMovement _movement;
         private PlayerCombat _combat;
         private PlayerDamageHandler _damageHandler;
-        private PlayerAudioHandler _audioHandler;
         private PlayerStats _playerStats;
 
         // Backwards compatibility: public fields that external scripts may access
@@ -75,7 +74,6 @@ namespace BudgetGameDev.Games.Brocoli
             _movement = GetComponent<PlayerMovement>();
             _combat = GetComponent<PlayerCombat>();
             _damageHandler = GetComponent<PlayerDamageHandler>();
-            _audioHandler = GetComponent<PlayerAudioHandler>();
             _playerStats = GetComponent<PlayerStats>();
             animator = GetComponent<Animator>();
             ApplyDebugTuning();
@@ -136,12 +134,6 @@ namespace BudgetGameDev.Games.Brocoli
             // Process movement with current input (knockback is handled internally)
             Vector2 input = _inputHandler?.RawInput ?? Vector2.zero;
             _movement?.ProcessMovement(input);
-
-            // Update lava ambient based on Y position
-            if (_movement != null && _audioHandler != null)
-            {
-                _audioHandler.UpdateLavaAmbient(_movement.Position.y);
-            }
         }
 
         private void OnTriggerEnter(Collider other)

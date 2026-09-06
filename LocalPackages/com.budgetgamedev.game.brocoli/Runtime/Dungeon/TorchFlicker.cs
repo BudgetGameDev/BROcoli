@@ -15,10 +15,10 @@ namespace BudgetGameDev.Games.Brocoli
         private Light torchLight;
 
         [SerializeField, Range(0f, 1f)]
-        private float flickerAmount = 0.35f;
+        private float flickerAmount = 0.14f;
 
         [SerializeField, Min(0.1f)]
-        private float flickerSpeed = 7f;
+        private float flickerSpeed = 1.15f;
 
         /// <summary>
         /// How much harder the torch lights the room under native HDR output. The scene's fill is
@@ -69,9 +69,9 @@ namespace BudgetGameDev.Games.Brocoli
             torchLight.transform.localPosition =
                 basePosition
                 + new Vector3(
-                    (Mathf.PerlinNoise(t, noiseSeed + 10f) - 0.5f) * 0.08f,
-                    (Mathf.PerlinNoise(t, noiseSeed + 20f) - 0.5f) * 0.05f,
-                    (Mathf.PerlinNoise(t, noiseSeed + 30f) - 0.5f) * 0.08f
+                    (Mathf.PerlinNoise(t, noiseSeed + 10f) - 0.5f) * 0.018f,
+                    (Mathf.PerlinNoise(t, noiseSeed + 20f) - 0.5f) * 0.012f,
+                    (Mathf.PerlinNoise(t, noiseSeed + 30f) - 0.5f) * 0.018f
                 );
         }
     }

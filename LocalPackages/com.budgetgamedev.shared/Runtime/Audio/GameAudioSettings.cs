@@ -10,7 +10,7 @@ namespace BudgetGameDev.Shared
     /// automatically routed so gameplay code does not need per-source volume logic.
     /// </summary>
     [DefaultExecutionOrder(32000)]
-    public sealed class GameAudioSettings : MonoBehaviour
+    public sealed partial class GameAudioSettings : MonoBehaviour
     {
         public const float DefaultMasterVolume = 1f;
         public const float DefaultAmbienceVolume = 0.35f;
@@ -35,6 +35,7 @@ namespace BudgetGameDev.Shared
         {
             MixerResourcePath = mixerResourcePath;
             MenuSceneName = menuSceneName;
+            instance?.BindMixer();
         }
 
         public static string MixerResourcePath { get; private set; }
@@ -117,19 +118,8 @@ namespace BudgetGameDev.Shared
 
             instance = this;
             LoadValues();
-            if (string.IsNullOrEmpty(MixerResourcePath))
-                return;
-
-            mixer = Resources.Load<AudioMixer>(MixerResourcePath);
-            if (mixer == null)
-            {
-                Debug.LogError($"[Audio Settings] Missing Resources/{MixerResourcePath}.mixer");
-                return;
-            }
-
-            ambienceGroup = FindGroup("Ambience");
-            sfxGroup = FindGroup("SFX");
-            ApplyMixerVolumes();
+            BindMixer();
+            SceneManager.sceneLoaded -= HandleSceneLoaded;
             SceneManager.sceneLoaded += HandleSceneLoaded;
         }
 

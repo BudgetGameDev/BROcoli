@@ -49,8 +49,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TorchFlicker
   torchLight: {fileID: 3090564659937762140}
-  flickerAmount: 0.35
-  flickerSpeed: 7
+  flickerAmount: 0.14
+  flickerSpeed: 1.15
   hdrIntensityScale: 1.6
 --- !u!1 &3510084619610221229
 GameObject:
@@ -79,7 +79,7 @@ Transform:
   m_GameObject: {fileID: 3510084619610221229}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 1, z: 0, w: 0}
-  m_LocalPosition: {x: 0, y: 2.3, z: 0.18}
+  m_LocalPosition: {x: 0, y: 2.05, z: 0.76}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -193,7 +193,7 @@ Transform:
   m_GameObject: {fileID: 7475088733294057544}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 1, z: 0, w: 0}
-  m_LocalPosition: {x: 0, y: 2.14, z: 0.22}
+  m_LocalPosition: {x: 0.01, y: 1.82, z: 0.53}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []

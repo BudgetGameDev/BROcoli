@@ -70,6 +70,8 @@ namespace BudgetGameDev.Games.Brocoli.Tests
             var urp =
                 camera.gameObject.AddComponent<UnityEngine.Rendering.Universal.UniversalAdditionalCameraData>();
             urp.volumeLayerMask = 1 << 31;
+            urp.requiresColorTexture = true;
+            urp.requiresDepthTexture = true;
             Type hdrpType = Type.GetType(
                 "UnityEngine.Rendering.HighDefinition.HDAdditionalCameraData, Unity.RenderPipelines.HighDefinition.Runtime"
             );
@@ -119,7 +121,7 @@ namespace BudgetGameDev.Games.Brocoli.Tests
                     .GetComponentsInChildren<ParticleSystemRenderer>()
                     .Where(renderer => renderer.enabled)
                     .ToArray();
-                Assert.That(layers.Length, Is.EqualTo(4));
+                Assert.That(layers.Length, Is.EqualTo(5));
                 foreach (var renderer in layers)
                     renderer.GetComponent<ParticleSystem>().Simulate(1.8f, false, true);
 
@@ -148,6 +150,7 @@ namespace BudgetGameDev.Games.Brocoli.Tests
                     );
                     Color[] firePixels = Read(target, pixels);
                     int warm = 0;
+                    int blue = 0;
                     int nonFinite = 0;
                     float peak = 0f;
                     foreach (var pair in firePixels.Zip(background, (a, b) => a - b))
@@ -155,6 +158,8 @@ namespace BudgetGameDev.Games.Brocoli.Tests
                         peak = Mathf.Max(peak, pair.maxColorComponent);
                         if (pair.r > 0.08f && pair.r > pair.b * 1.4f)
                             warm++;
+                        if (pair.b > 0.025f && pair.b > pair.r * 1.4f)
+                            blue++;
                         if (float.IsNaN(pair.r) || float.IsInfinity(pair.r))
                             nonFinite++;
                     }
@@ -168,6 +173,7 @@ namespace BudgetGameDev.Games.Brocoli.Tests
                         Is.GreaterThan(500),
                         pipeline + " needs a visible warm flame silhouette"
                     );
+                    Assert.That(blue, Is.GreaterThan(10), pipeline + " needs a blue ignition base");
                     Assert.That(
                         nonFinite,
                         Is.Zero,

@@ -4,7 +4,7 @@ namespace BudgetGameDev.Games.Brocoli
 {
     /// <summary>
     /// Handles all player audio: SFX and ambient sounds.
-    /// Loads legacy ambient clips, creates current procedural SFX, and owns the
+    /// Creates the dungeon soundscape and current procedural SFX, and owns the
     /// player's AudioSources.
     /// </summary>
     public class PlayerAudioHandler : MonoBehaviour
@@ -17,14 +17,6 @@ namespace BudgetGameDev.Games.Brocoli
             "Brocoli/Sprites/ggj-2023/sfx/rakar-stein-ella-vegg"; // Collision with wall/stone
         private const string GrowSoundPath = "Brocoli/Sprites/ggj-2023/sfx/trædid-veksur"; // Tree grows sound
         private const string ShrinkSoundPath = "Brocoli/Sprites/ggj-2023/sfx/ohno-trædid-minkar2"; // Tree shrinks sound
-        private const string Ambient1Path =
-            "Brocoli/Sprites/ggj-2023/sfx/umhvørvið/ambient-náttúra"; // Nature ambient
-        private const string Ambient2Path =
-            "Brocoli/Sprites/ggj-2023/sfx/umhvørvið/ambient-náttúra"; // Nature ambient
-        private const string WindAmbientPath =
-            "Brocoli/Sprites/ggj-2023/sfx/umhvørvið/vindur-langt uppi.x.metrar+"; // Wind ambient
-        private const string LavaAmbientPath =
-            "Brocoli/Sprites/ggj-2023/sfx/umhvørvið/gos-tætt-við"; // Lava/volcano ambient
 
         // Audio clips (loaded from Resources)
         private AudioClip _walkClip;
@@ -33,18 +25,11 @@ namespace BudgetGameDev.Games.Brocoli
         private AudioClip _deathClip;
         private AudioClip _growClip;
         private AudioClip _shrinkClip;
-        private AudioClip _ambient1Clip;
-        private AudioClip _ambient2Clip;
-        private AudioClip _windAmbientClip;
-        private AudioClip _lavaAmbientClip;
 
         // Audio sources (created dynamically or found on GameObject)
         private AudioSource _sfxSource;
         private AudioSource _sfxSource2;
-        private AudioSource _ambientSource1;
-        private AudioSource _ambientSource2;
-        private AudioSource _windSource;
-        private AudioSource _lavaSource;
+        private ProceduralDungeonAmbience _dungeonAmbience;
         private AudioSource _deathSource;
 
         private void Awake()
@@ -61,10 +46,6 @@ namespace BudgetGameDev.Games.Brocoli
             _deathClip = ProceduralPlayerDeathAudio.GetOrCreateClip();
             _growClip = LoadClip(GrowSoundPath);
             _shrinkClip = LoadClip(ShrinkSoundPath);
-            _ambient1Clip = LoadClip(Ambient1Path);
-            _ambient2Clip = LoadClip(Ambient2Path);
-            _windAmbientClip = LoadClip(WindAmbientPath);
-            _lavaAmbientClip = LoadClip(LavaAmbientPath);
         }
 
         private AudioClip LoadClip(string path)
@@ -93,12 +74,17 @@ namespace BudgetGameDev.Games.Brocoli
                 _sfxSource2 = GetOrAddAudioSource(1);
             }
 
-            // Create dedicated sources for ambient sounds
-            _ambientSource1 = CreateAmbientSource("AmbientSource1", _ambient1Clip, true, 0.3f);
-            _ambientSource2 = CreateAmbientSource("AmbientSource2", _ambient2Clip, true, 0.3f);
-            _windSource = CreateAmbientSource("WindSource", _windAmbientClip, true, 0.2f);
-            _lavaSource = CreateAmbientSource("LavaSource", _lavaAmbientClip, true, 0f);
+            EnsureDungeonAmbience();
             _deathSource = CreateAmbientSource("PlayerDeathSource", _deathClip, false, 1f);
+        }
+
+        internal void EnsureDungeonAmbience()
+        {
+            if (_dungeonAmbience != null)
+                return;
+            var child = new GameObject("Dungeon Ambience");
+            child.transform.SetParent(transform, false);
+            _dungeonAmbience = child.AddComponent<ProceduralDungeonAmbience>();
         }
 
         private AudioSource GetOrAddAudioSource(int index)
@@ -190,34 +176,12 @@ namespace BudgetGameDev.Games.Brocoli
         }
 
         /// <summary>
-        /// Update the lava ambient volume based on distance.
-        /// </summary>
-        /// <param name="distance">Distance from lava (higher = louder up to a point).</param>
-        public void UpdateLavaAmbient(float distance)
-        {
-            if (_lavaSource != null)
-            {
-                _lavaSource.volume = Mathf.Clamp01(Mathf.Abs(distance) / 100f);
-            }
-        }
-
-        /// <summary>
         /// Stop all ambient audio sources.
         /// </summary>
         public void StopAllAmbient()
         {
-            SetAmbientVolume(_ambientSource1, 0f);
-            SetAmbientVolume(_ambientSource2, 0f);
-            SetAmbientVolume(_windSource, 0f);
-            SetAmbientVolume(_lavaSource, 0f);
-        }
-
-        private void SetAmbientVolume(AudioSource source, float volume)
-        {
-            if (source != null)
-            {
-                source.volume = volume;
-            }
+            if (_dungeonAmbience != null)
+                _dungeonAmbience.enabled = false;
         }
 
         private void PlayOneShot(AudioSource source, AudioClip clip)
@@ -240,16 +204,18 @@ namespace BudgetGameDev.Games.Brocoli
         private void OnDestroy()
         {
             // Clean up dynamically created child GameObjects
-            if (_ambientSource1 != null)
-                Destroy(_ambientSource1.gameObject);
-            if (_ambientSource2 != null)
-                Destroy(_ambientSource2.gameObject);
-            if (_windSource != null)
-                Destroy(_windSource.gameObject);
-            if (_lavaSource != null)
-                Destroy(_lavaSource.gameObject);
+            if (_dungeonAmbience != null)
+                DestroyOwnedAudio(_dungeonAmbience.gameObject);
             if (_deathSource != null)
-                Destroy(_deathSource.gameObject);
+                DestroyOwnedAudio(_deathSource.gameObject);
+        }
+
+        private static void DestroyOwnedAudio(GameObject child)
+        {
+            if (Application.isPlaying)
+                Destroy(child);
+            else
+                DestroyImmediate(child);
         }
     }
 }

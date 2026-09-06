@@ -88,7 +88,11 @@ namespace BudgetGameDev.Games.Brocoli
                         out var urp
                     )
                 )
+                {
                     urp.requiresDepthTexture = true;
+                    // Heat shimmer refracts the opaque dungeon behind the flame.
+                    urp.requiresColorTexture = true;
+                }
             }
 
             // The scene authors the rig looking due north; the diagonal view is

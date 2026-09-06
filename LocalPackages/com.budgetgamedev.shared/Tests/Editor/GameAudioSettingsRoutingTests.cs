@@ -147,6 +147,34 @@ namespace BudgetGameDev.Shared.Tests
             Assert.That(Invoke(settings, "FindGroup", "Coverage Missing Group"), Is.Null);
         }
 
+        [Test]
+        public void SelectingGameAfterBootstrapBindsExistingHostAndRoutesSources()
+        {
+            GameAudioSettings settings = NewSettings();
+            settings.Awake();
+            AudioSource ambience = NewSource("Dungeon ambience");
+            settings.LateUpdate();
+            Assert.That(ambience.outputAudioMixerGroup, Is.Null);
+
+            GameAudioSettings.Configure(
+                "Brocoli/Audio/BrocoliAudioMixer",
+                "Brocoli_MainMenu_Common"
+            );
+            settings.LateUpdate();
+
+            Assert.That(GameAudioSettings.instance, Is.SameAs(settings));
+            Assert.That(ambience.outputAudioMixerGroup, Is.Not.Null);
+            Assert.That(ambience.outputAudioMixerGroup.name, Is.EqualTo("Ambience"));
+            var mixer = ambience.outputAudioMixerGroup.audioMixer;
+            Assert.That(
+                typeof(GameAudioSettings)
+                    .GetField("mixer", BindingFlags.Instance | BindingFlags.NonPublic)
+                    .GetValue(settings),
+                Is.SameAs(mixer),
+                "The existing settings host must own the selected bus so sliders can update it."
+            );
+        }
+
         private AudioSource NewSource(string name, string clipName = null, string parentName = null)
         {
             GameObject host = Track(new GameObject(name));

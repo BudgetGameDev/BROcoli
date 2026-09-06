@@ -29,7 +29,7 @@ other-game exclusion case.
 players were also launched with autoplay arguments to verify those arguments
 do not install an autoplayer.
 
-Final merged Windows URP deliverables:
+Merged Windows URP deliverables at `7a631f6` (before the indoor-flame refinement):
 
 | Product | Archive | Build logs | Binary audit |
 | --- | --- | --- | --- |
@@ -145,3 +145,70 @@ the Editor log is `Logs/final-editmode-merged-editor.log`. Earlier attempts are
 preserved separately. Material render-queue and project-setting changes caused
 by verification were restored before committing; the incoming authored WebGL
 quality selection remains intact. The visible Editor is left open.
+
+A subsequent indoor-flame refinement replaces the square ignition footprint
+with a rounded foot, an arched fuel pocket, a blue base, and a warm colored
+perimeter. Long-lived particles stay at the wick, sparks and smoke are sparse,
+and light motion is slower and smaller. A fifth layer refracts the opaque
+background near the lower flame; the total particle capacity is 34. The earlier
+release archives above do not include this subsequent visual refinement.
+
+The flame now uses the dedicated `Flame` wick anchor; its footprint is aligned
+with the fuel mesh and its height seats the rounded ignition zone on the fuel.
+The imported primary particle offset previously buried the blue base. Both
+authored-anchor and fallback behavior are covered by the final **17/17** torch
+checks, including actual URP/HDRP GPU flame renders. Results are recorded in
+`build/verification/torch-indoor-final-tests.json`.
+
+Actual dungeon SDR previews are `torch-fire-indoor-final-close-sdr.png` and
+`torch-indoor-final-motion.mp4` under `build/verification`. The clip preserves
+the measured 4.4175153 seconds across 40 captured frames. HDR preference and
+the temporary display-state override were restored after capture. The URP
+heat-only A/B on the same dungeon frame changed 12,220 pixels with a maximum
+scene-linear delta of 0.0625; the shader fades out at its bounds and safely
+skips refraction when the camera cannot supply background color.
+
+The next torch refinement targets the default gameplay camera. Three crossed,
+subdivided flame surfaces replace the camera-facing card so the foot stays
+inside the fuel when viewed from above. The blue footprint spans the measured
+0.52 m fuel head, then bends forward and narrows into a buoyant crown. A shared
+per-torch phase controls gentle height/width breathing; the gray fuel pocket
+billows independently, and the orange crown erodes into softer wisps. Existing
+HDR calibration, light intensity, and light range remain unchanged. The torch
+light moves from local `(0, 2.3, 0.18)` to `(0, 2.4, 0.6)`, inside the forward
+flame body, reducing the nearby wall hotspot that washed through the pocket.
+
+Embers now launch in randomized upward/outward bursts, move in world space,
+and use gravity plus static dungeon collision with damping and a small bounce.
+The total per-torch particle capacity is now 52. Compilation, C# formatting,
+and the 300-line source-size gate pass. Focused torch checks pass **17/17**,
+including URP/HDRP GPU rendering; the current report is
+`build/verification/torch-default-final-tests.json`. The earlier release
+archives do not include these later visual changes.
+
+Default-camera evidence is `build/verification/torch-default-before.png` and
+`torch-default-after.png`, with the same dungeon seed, camera position,
+26.25-degree FOV, 42-degree pitch, and 45-degree yaw. The normal-speed clip
+`torch-default-motion.mp4` preserves 7.5574448 seconds across 54 frames. The
+base boundary and contact improve, but SDR captures still compress subtle
+gray/orange detail against bright stone. Runtime mesh inspection confirms a
+0.712 m foot width and zero renderer pivot. Ember gravity/collision settings
+are tested; an actual ground-bounce trajectory was not separately measured.
+Temporary camera/player controls, HDR capture override, and dungeon seed were
+restored; pre-existing material and project-setting edits were preserved.
+
+The user's subsequent bowl-overlay sketch exposed that the earlier height
+check used the mesh's topmost apex vertices rather than its glowing bowl.
+The bowl spans approximately local y=1.8–2.0. Its flame anchor is corrected
+from `(0.01, 2.105, 0.41)` to `(0.01, 1.82, 0.53)`, placing the origin lower
+and into the mouth. Forward travel increases from 0.20 to 0.32 m, while the
+lower centerline rises slowly before turning upward. This supersedes the
+earlier visual-seating assessment; the palette and animation remain intact.
+The local light follows the lower hot body at `(0, 2.05, 0.76)` with its
+intensity and range unchanged. Compilation and the focused torch checks pass
+**17/17**, including both render pipelines, recorded in
+`build/verification/torch-bowl-final-tests.json`.
+The fresh-instance gameplay preview is `build/verification/torch-bowl-final-sdr.png`
+at the unchanged default 26.25-degree FOV. It uses a different torch/view from
+the user's cropped reference. Player/camera controls and HDR preferences were
+restored after capture; the visible Editor remains in play mode.
