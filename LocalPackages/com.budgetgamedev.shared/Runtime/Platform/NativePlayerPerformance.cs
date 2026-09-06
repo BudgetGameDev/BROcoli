@@ -9,7 +9,10 @@ namespace BudgetGameDev.Shared
     public sealed class NativePlayerPerformance : MonoBehaviour
     {
         internal const float PhysicsStep = 1f / 120f;
-        internal const float MaximumStep = 1f / 30f;
+
+        // A 33 ms limit discarded simulation time whenever HDRP rendered below
+        // 30 FPS. Allow normal slow frames to catch up, retaining a hitch limit.
+        internal const float MaximumStep = 1f / 3f;
         internal const float InputPollingRate = 240f;
         private int qualityLevel;
         private bool reportTiming;
@@ -17,6 +20,7 @@ namespace BudgetGameDev.Shared
         private int sampleFrames;
         private double longestFrame;
         private bool sampleFocused;
+        private double simulatedSeconds;
 
         internal static bool IsDesktopPlayer(RuntimePlatform platform) =>
             platform
@@ -82,10 +86,17 @@ namespace BudgetGameDev.Shared
                 qualityLevel = currentQuality;
                 ApplyFramePacing();
             }
+            if (
+                QualitySettings.vSyncCount != 0
+                || Application.targetFrameRate != -1
+                || OnDemandRendering.renderFrameInterval != 1
+            )
+                ApplyFramePacing();
 
             if (!reportTiming)
                 return;
             sampleFrames++;
+            simulatedSeconds += Time.deltaTime;
             longestFrame = Math.Max(longestFrame, Time.unscaledDeltaTime);
             sampleFocused &= Application.isFocused;
             double elapsed = Time.realtimeSinceStartupAsDouble - sampleStart;
@@ -95,7 +106,9 @@ namespace BudgetGameDev.Shared
                 $"[NativePerformance] measuredFPS={sampleFrames / elapsed:F1}, "
                     + $"meanFrameMs={elapsed * 1000d / sampleFrames:F2}, maxFrameMs={longestFrame * 1000d:F2}, "
                     + $"focused={sampleFocused}, batch={Application.isBatchMode}, "
-                    + $"quality={qualityLevel}, targetFPS={Application.targetFrameRate}, vSync={QualitySettings.vSyncCount}"
+                    + $"quality={qualityLevel}, targetFPS={Application.targetFrameRate}, vSync={QualitySettings.vSyncCount}, "
+                    + $"simulationRatio={simulatedSeconds / elapsed:F3}, maxDeltaMs={Time.maximumDeltaTime * 1000:F1}, "
+                    + $"displayHz={Screen.currentResolution.refreshRateRatio.value:F2}"
             );
             ResetSample();
         }
@@ -106,6 +119,7 @@ namespace BudgetGameDev.Shared
             sampleFrames = 0;
             longestFrame = 0d;
             sampleFocused = Application.isFocused;
+            simulatedSeconds = 0;
         }
     }
 }

@@ -23,13 +23,13 @@ class HdrpHookTests(unittest.TestCase):
             target = root / "Packages/com.unity.render-pipelines.high-definition"
             source = target / setup.HDRP_FILE
             source.parent.mkdir(parents=True)
-            original = "// reviewed fixture\n" + setup.DRAW + "\n"
-            source.write_text(original)
+            original = "// reviewed fixture with UTF-8: \u00e9\n" + setup.DRAW + "\n"
+            source.write_text(original, encoding="utf-8")
             with patch.object(setup, "HDRP_HASH", hashlib.sha256(original.encode()).hexdigest()):
                 setup.patch_hdrp(root)
-                first = source.read_text()
+                first = source.read_text(encoding="utf-8")
                 setup.patch_hdrp(root)
-            self.assertEqual(source.read_text(), first)
+            self.assertEqual(source.read_text(encoding="utf-8"), first)
             self.assertEqual(first.count(setup.HOOK), 1)
             self.assertIn(setup.HOOK + setup.DRAW, first)
             self.assertTrue((target / "Runtime/RenderPipeline/Streamline/link.xml").is_file())

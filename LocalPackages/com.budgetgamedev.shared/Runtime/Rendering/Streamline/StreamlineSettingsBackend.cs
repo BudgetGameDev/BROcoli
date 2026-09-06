@@ -4,7 +4,9 @@ using UnityEngine.Rendering;
 
 namespace BudgetGameDev.Shared.Rendering
 {
-    internal sealed class StreamlineSettingsBackend : NvidiaRendering.IBackend
+    internal sealed class StreamlineSettingsBackend
+        : NvidiaRendering.IBackend,
+            NvidiaRendering.ILogBackend
     {
         private readonly StreamlineDlssDiagnostics dlss = new StreamlineDlssDiagnostics();
         private bool HasPlayer =>
@@ -68,5 +70,8 @@ namespace BudgetGameDev.Shared.Rendering
         public void Reset() => StreamlineSettings.ResetDefaults();
 
         public void ReleaseDiagnostics() => dlss.Release();
+
+        public string ReadLogFiles() =>
+            StreamlineLogFiles.Read(StreamlineNative.GetLogDirectory(), Application.consoleLogPath);
     }
 }

@@ -11,6 +11,7 @@ from contextlib import ExitStack
 from pathlib import Path
 
 try:
+    from release_sensors import stage_sensors
     from release_streamline import stage_streamline
     from release_workspace import (
         preserve_shader_reports,
@@ -19,6 +20,7 @@ try:
         stage_inputs,
     )
 except ModuleNotFoundError:
+    from scripts.release_sensors import stage_sensors
     from scripts.release_streamline import stage_streamline
     from scripts.release_workspace import (
         preserve_shader_reports,
@@ -187,6 +189,7 @@ def main() -> int:
     parser.add_argument("--targets", default="windows", help="windows,macos,linux or webgl")
     parser.add_argument("--pipeline", choices=("urp", "hdrp"), default="urp")
     parser.add_argument("--development", action="store_true")
+    parser.add_argument("--connect-profiler", action="store_true", help="Autoconnect the development player to the Unity Profiler")
     parser.add_argument("--stage-only", action="store_true")
     parser.add_argument("--stage-root", type=Path)
     parser.add_argument("--output", type=Path)
@@ -201,6 +204,8 @@ def main() -> int:
 
 
 def build(args, contexts, parser):
+    if args.connect_profiler and not args.development:
+        parser.error("--connect-profiler requires --development")
     targets = list(dict.fromkeys(args.targets.split(",")))
     if not targets or any(
         target not in {"windows", "macos", "linux", "webgl"} for target in targets
@@ -210,6 +215,7 @@ def build(args, contexts, parser):
         parser.error("build webgl separately from native targets")
     stage = stage_project(args.source, args.product, args.development, args.stage_root)
     stage_streamline(args.source.resolve(), stage, args.pipeline, targets)
+    stage_sensors(args.source.resolve(), stage, targets)
     if args.reuse_stage:
         stage = contexts.enter_context(
             reuse_workspace(
@@ -260,6 +266,8 @@ def build(args, contexts, parser):
     ]
     if args.development:
         command.append("-development")
+    if args.connect_profiler:
+        command.append("-connectProfiler")
     environment = os.environ.copy()
     # Pass the existing licensed-asset key only through the child environment;
     # never copy .env to staging or put a secret in command arguments/logs.

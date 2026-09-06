@@ -146,6 +146,8 @@ namespace BudgetGameDev.Games.Brocoli
 
         private bool TakeDamage(float damage, Vector2 knockbackDirection, bool projectile)
         {
+            if (SystemReadinessSession.IsBenchmarkScene)
+                return false;
             if (_gameOver || damage <= 0f)
                 return false;
 

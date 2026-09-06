@@ -253,6 +253,8 @@ namespace BudgetGameDev.Games.Brocoli
 
         void Update()
         {
+            if (SystemReadinessSession.IsOpen)
+                return;
             Keyboard keyboard = Keyboard.current;
             Gamepad gamepad = Gamepad.current;
             if (isPaused && responsiveLayout != null && responsiveLayout.SettingsOpen)

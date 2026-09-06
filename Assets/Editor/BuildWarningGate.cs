@@ -36,6 +36,17 @@ public sealed class BuildWarningGate : IPostprocessBuildWithReport
         if (string.IsNullOrEmpty(content))
             return false;
 
+        // Unity revalidates this bundled HDRP diagnostic graph when switching to
+        // URP. It is not a player shader; keep the exception exact so game shader
+        // validation warnings still fail the release.
+        if (
+            content
+            == "Shader Graph at Packages/com.unity.render-pipelines.high-definition/Runtime/Tools/"
+                + "ColorChecker/ColorCheckerShader.shadergraph has 2 warning(s), the first is: "
+                + "Validation: Exposure Node is not allowed by Universal implementation"
+        )
+            return true;
+
         if (
             content.StartsWith(
                 "Duplicate assembly 'System.Runtime.CompilerServices.Unsafe.dll' with different versions detected",

@@ -118,13 +118,24 @@ namespace BudgetGameDev.Shared.Rendering
             return outputs.Length == 1 && IsEligibleCamera(outputs[0]) ? outputs[0] : null;
         }
 
+        internal static string DescribeCameras() =>
+            string.Join(
+                "\n",
+                Camera.allCameras.Select(camera =>
+                    $"Camera: {camera.name}; type: {camera.cameraType}; orthographic: {camera.orthographic}; "
+                    + $"viewport: {camera.rect}; display: {camera.targetDisplay}; target: {camera.targetTexture?.name ?? "screen"}; "
+                    + $"culling: 0x{camera.cullingMask:X}; eligible geometry: {IsEligibleCamera(camera)}"
+                )
+            );
+
         private static void BeginSimulation()
         {
             if (instance == null || RenderEvent == IntPtr.Zero)
                 return;
             FrameToken = StreamlineNative.BgdSL_BeginFrame();
             instance.simulationEnded = false;
-            ViewCamera = null;
+            // Keep the last rendered view through Update, where pipeline settings
+            // and diagnostics are sampled. BeginRendering validates the next list.
         }
 
         private void BeginRendering(ScriptableRenderContext context, List<Camera> cameras)

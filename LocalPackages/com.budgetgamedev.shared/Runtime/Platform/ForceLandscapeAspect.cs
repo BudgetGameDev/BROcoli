@@ -127,7 +127,16 @@ namespace BudgetGameDev.Shared
 
             foreach (Camera cam in allCameras)
             {
-                if (cam != null && cam.gameObject.name != "[LetterboxClearCamera]")
+                if (cam == null)
+                    continue;
+                if (cam.gameObject.name == "[LetterboxClearCamera]")
+                {
+                    // A full-screen viewport already covers the output. An extra
+                    // clear camera needlessly renders a second output view and
+                    // prevents single-view temporal upscaling/frame generation.
+                    cam.enabled = targetRect != new Rect(0, 0, 1, 1);
+                }
+                else
                 {
                     cam.rect = targetRect;
                 }

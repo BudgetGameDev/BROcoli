@@ -27,6 +27,7 @@ public sealed partial class NativePlayerBuildScript
     private static string authoredQualitySettings;
     private static BuildTarget? configuredTarget;
     private static RenderPipelineAsset configuredPipeline;
+    private static int authoredQualityLevel;
 
     /// <summary>
     /// First, ahead of every other build callback. High Definition's own
@@ -205,6 +206,7 @@ public sealed partial class NativePlayerBuildScript
         if (!defaultPipelineHeld)
         {
             authoredDefaultPipeline = GraphicsSettings.defaultRenderPipeline;
+            authoredQualityLevel = QualitySettings.GetQualityLevel();
             authoredQualitySettings = EditorJsonUtility.ToJson(
                 QualitySettings.GetQualitySettings()
             );
@@ -217,6 +219,7 @@ public sealed partial class NativePlayerBuildScript
         }
 
         ConfigureQualityLevels(target, pipeline);
+        ConfigureAlwaysIncluded(pipeline);
         SetDefaultPipeline(pipeline);
         configuredTarget = target;
         configuredPipeline = pipeline;
@@ -241,8 +244,10 @@ public sealed partial class NativePlayerBuildScript
             authoredQualitySettings,
             QualitySettings.GetQualitySettings()
         );
+        QualitySettings.SetQualityLevel(authoredQualityLevel, false);
         EditorUtility.SetDirty(QualitySettings.GetQualitySettings());
         authoredQualitySettings = null;
+        RestoreAlwaysIncluded();
         SetDefaultPipeline(authoredDefaultPipeline);
         authoredDefaultPipeline = null;
         defaultPipelineHeld = false;

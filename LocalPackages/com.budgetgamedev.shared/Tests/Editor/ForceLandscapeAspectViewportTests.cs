@@ -15,6 +15,26 @@ namespace BudgetGameDev.Shared.Tests
         private const float TwentyOneByNine = 21f / 9f;
 
         [Test]
+        public void ClearCameraOnlyRendersWhenLetterboxingIsNeeded()
+        {
+            var camera = NewObject("[LetterboxClearCamera]").AddComponent<Camera>();
+            ForceLandscapeAspect.UpdateAllCameras(2560, 1440, 10f);
+            Assert.That(
+                camera.enabled,
+                Is.False,
+                "A redundant output camera prevents Streamline's single-view path."
+            );
+            ForceLandscapeAspect.UpdateAllCameras(1600, 1200, 11f);
+            Assert.That(
+                camera.enabled,
+                Is.True,
+                "The exposed letterbox area still needs clearing."
+            );
+            ForceLandscapeAspect.UpdateAllCameras(2560, 1440, 12f);
+            Assert.That(camera.enabled, Is.False);
+        }
+
+        [Test]
         public void AScreenNarrowerThanSixteenByNineIsLetterboxed()
         {
             Rect rect = ForceLandscapeAspect.CalculateViewportRect(1f);

@@ -55,6 +55,11 @@ namespace BudgetGameDev.Games.Brocoli
         /// </summary>
         public void UpdateInput()
         {
+            if (SystemReadinessSession.IsBenchmarkScene)
+            {
+                ApplyResolvedInput(SystemReadinessSession.Movement, 0.01f);
+                return;
+            }
 #if UNITY_EDITOR || (DEVELOPMENT_BUILD && GAME_AUTOPLAY)
             Vector2? diagnosticMovement = GameplayDiagnostics.Movement?.Invoke();
             if (diagnosticMovement.HasValue)

@@ -32,6 +32,15 @@ namespace BudgetGameDev.Shared.Rendering
 
         public static IBackend Backend { get; set; }
 
+        public interface ILogBackend
+        {
+            string ReadLogFiles();
+        }
+
+        // Disk reads happen only on an explicit copy/export, never in the 4 Hz UI refresh.
+        public static string CaptureForCopy() =>
+            Capture().Report + (Backend is ILogBackend logs ? logs.ReadLogFiles() : "");
+
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void ResetBackend() => Backend = null;
 

@@ -75,7 +75,8 @@ namespace BudgetGameDev.Hub.Tests
             finally
             {
                 BuildRenderingPolicy.PipelineOverride = previous;
-                File.Delete(receipt);
+                if (File.Exists(receipt))
+                    File.Delete(receipt);
                 Directory.Delete(directory, true);
             }
         }

@@ -45,7 +45,10 @@ namespace BudgetGameDev.Shared.Tests
                 Assert.That(Application.targetFrameRate, Is.EqualTo(-1));
                 Assert.That(OnDemandRendering.renderFrameInterval, Is.EqualTo(1));
                 Assert.That(Time.fixedDeltaTime, Is.EqualTo(1f / 120f).Within(0.000001f));
-                Assert.That(Time.maximumDeltaTime, Is.EqualTo(1f / 30f).Within(0.000001f));
+                Assert.That(Time.maximumDeltaTime, Is.EqualTo(1f / 3f).Within(0.000001f));
+                // Ordinary 15/20/30 FPS rendering must not discard simulation time.
+                foreach (float frameTime in new[] { 1f / 15f, 1f / 20f, 1f / 30f })
+                    Assert.That(Mathf.Min(frameTime, Time.maximumDeltaTime), Is.EqualTo(frameTime));
                 Assert.That(
                     InputSystem.settings.updateMode,
                     Is.EqualTo(InputSettings.UpdateMode.ProcessEventsInDynamicUpdate)

@@ -138,7 +138,7 @@ namespace BudgetGameDev.Shared
                 font,
                 () =>
                 {
-                    GUIUtility.systemCopyBuffer = reportText ?? "";
+                    GUIUtility.systemCopyBuffer = NvidiaRendering.CaptureForCopy();
                     copiedUntil = Time.unscaledTime + 2;
                 }
             );

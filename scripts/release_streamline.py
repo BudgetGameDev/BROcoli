@@ -5,6 +5,14 @@ from pathlib import Path
 
 
 def stage_streamline(source: Path, stage: Path, pipeline: str, targets: list[str]) -> None:
+    # Resources are included even when their owning HDRP assembly is filtered out.
+    # Hide the shared HDRP-only resources before Unity imports a URP staging project.
+    resources = (
+        stage / "LocalPackages/com.budgetgamedev.shared/Runtime/Rendering/HighDefinition/Resources"
+    )
+    if pipeline == "urp" and resources.is_dir():
+        resources.rename(resources.with_name("Resources~"))
+        resources.with_suffix(".meta").unlink(missing_ok=True)
     if pipeline not in ("urp", "hdrp"):
         return
     settings = source / "ProjectSettings/ProjectSettings.asset"

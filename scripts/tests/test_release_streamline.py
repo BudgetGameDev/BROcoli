@@ -8,6 +8,31 @@ from scripts.release_streamline import stage_streamline
 
 
 class StreamlineStagingTests(unittest.TestCase):
+    def test_urp_excludes_hdrp_resources_before_import_but_hdrp_keeps_them(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            relative = Path(
+                "LocalPackages/com.budgetgamedev.shared/Runtime/Rendering/HighDefinition/Resources"
+            )
+            for pipeline in ("urp", "hdrp"):
+                stage = root / pipeline
+                resources = stage / relative
+                resources.mkdir(parents=True)
+                (resources / "HDRP.shader").write_text("HDRP-only shader")
+                resources.with_suffix(".meta").write_text("folder metadata")
+                shared = stage / (
+                    "LocalPackages/com.budgetgamedev.shared/Runtime/Rendering/"
+                    "Streamline/Resources/Streamline/UIAlpha.shader"
+                )
+                shared.parent.mkdir(parents=True)
+                shared.write_text("shared URP and HDRP shader")
+                stage_streamline(root, stage, pipeline, ["linux"])
+                self.assertEqual(resources.exists(), pipeline == "hdrp")
+                self.assertEqual(resources.with_suffix(".meta").exists(), pipeline == "hdrp")
+                shader = resources if pipeline == "hdrp" else resources.with_name("Resources~")
+                self.assertEqual((shader / "HDRP.shader").read_text(), "HDRP-only shader")
+                self.assertEqual(shared.read_text(), "shared URP and HDRP shader")
+
     def test_macos_with_framework_stages_engine_fixes_without_requiring_windows_dlls(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

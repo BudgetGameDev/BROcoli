@@ -1,7 +1,7 @@
 #include "Bridge.h"
-#include "sl_security.h"
+#include "Security.h"
 #include <filesystem>
-#include <shlobj.h>
+#include <fstream>
 
 namespace bgd
 {
@@ -42,23 +42,25 @@ bool LoadStreamline()
 {
     wchar_t executable[32768]{};
     if (!GetModuleFileNameW(nullptr, executable, 32768)) return false;
+    InitializeLogs(executable);
     auto directory = std::filesystem::path(executable).parent_path();
     auto library = directory / L"sl.interposer.dll";
     // Verify NVIDIA's signature before executing any code from the interposer.
     const wchar_t* libraries[] = {L"sl.interposer.dll", L"sl.common.dll", L"sl.dlss.dll", L"sl.dlss_g.dll",
         L"sl.reflex.dll", L"sl.pcl.dll", L"nvngx_dlssg.dll", L"nvngx_dlss.dll"};
     for (auto name : libraries)
-    if (!sl::security::verifyEmbeddedSignature((directory / name).c_str()))
     {
-        Log(("Missing or invalid NVIDIA signature: " + std::filesystem::path(name).string()).c_str());
-        return false;
+        std::string detail;
+        bool valid = VerifyNvidiaLibrary((directory / name).c_str(), wcsncmp(name, L"sl.", 3) == 0, detail);
+        Log((std::filesystem::path(name).string() + ": " + detail).c_str());
+        if (!valid) { ++integrationWarnings; Log("Initialization stopped: NVIDIA signature verification failed."); return false; }
     }
     api.module = LoadLibraryExW(library.c_str(), nullptr,
         LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR | LOAD_LIBRARY_SEARCH_DEFAULT_DIRS);
-    if (!api.module) return false;
+    if (!api.module) { Log(("LoadLibraryEx interposer failed: " + std::to_string(GetLastError())).c_str()); return false; }
 #define LOAD(member, name) \
     api.member = reinterpret_cast<PFun_##name*>(GetProcAddress(api.module, #name)); \
-    if (!api.member) return false
+    if (!api.member) { Log("Interposer export missing: " #name); return false; }
     LOAD(init, slInit); LOAD(shutdown, slShutdown);
     LOAD(supported, slIsFeatureSupported); LOAD(setDevice, slSetD3DDevice);
     LOAD(featureFunction, slGetFeatureFunction); LOAD(newFrame, slGetNewFrameToken);
@@ -67,16 +69,18 @@ bool LoadStreamline()
     LOAD(requirements, slGetFeatureRequirements); LOAD(evaluate, slEvaluateFeature);
 #undef LOAD
     const std::wstring path = directory.wstring();
-    std::wstring logPath;
-    PWSTR appData{};
-    if (SUCCEEDED(SHGetKnownFolderPath(FOLDERID_LocalAppData, 0, nullptr, &appData)))
+    const auto& logPath = LogDirectory();
+    std::ifstream identityFile(directory / L"streamline-project-id.txt");
+    std::string projectId;
+    std::getline(identityFile, projectId);
+    if (!projectId.empty() && projectId.back() == '\r') projectId.pop_back();
+    std::wstring wideId(projectId.begin(), projectId.end());
+    GUID parsed{};
+    if (projectId.size() != 36 || FAILED(CLSIDFromString((L"{" + wideId + L"}").c_str(), &parsed)))
     {
-        auto logs = std::filesystem::path(appData) / L"BudgetGameDev" / L"Streamline"
-            / std::filesystem::path(executable).stem();
-        CoTaskMemFree(appData);
-        std::error_code error;
-        std::filesystem::create_directories(logs, error);
-        if (!error) logPath = logs.wstring();
+        ++integrationWarnings;
+        Log("Missing or invalid streamline-project-id.txt. Rebuild the player to supply its Unity product GUID to NGX.");
+        return false;
     }
     const wchar_t* paths[] = {path.c_str()};
     const sl::Feature features[] = {sl::kFeatureDLSS, sl::kFeatureDLSS_G, sl::kFeatureReflex, sl::kFeaturePCL};
@@ -87,14 +91,18 @@ bool LoadStreamline()
     preferences.numPathsToPlugins = 1;
     preferences.engine = sl::EngineType::eUnity;
     preferences.engineVersion = "6000.5.10f1";
+    preferences.projectId = projectId.c_str();
+    Log(("NGX Unity project ID: " + projectId).c_str());
     preferences.renderAPI = sl::RenderAPI::eD3D12;
     preferences.flags = sl::PreferenceFlags::eDisableCLStateTracking
         | sl::PreferenceFlags::eUseDXGIFactoryProxy
         | sl::PreferenceFlags::eUseFrameBasedResourceTagging;
     preferences.logMessageCallback = Message;
+    preferences.logLevel = sl::LogLevel::eVerbose;
     preferences.pathToLogsAndData = logPath.empty() ? nullptr : logPath.c_str();
     if (!Check(api.init(preferences, sl::kSDKVersion))) return false;
     status.initialized = 1;
+    Log("slInit succeeded.");
     return true;
 }
 

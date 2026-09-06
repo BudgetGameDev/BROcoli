@@ -150,6 +150,11 @@ namespace BudgetGameDev.Shared.Rendering.Editor
             if (!Applies(report.summary.platform))
                 return;
             string output = Path.GetDirectoryName(report.summary.outputPath);
+            File.WriteAllText(
+                Path.Combine(output, "streamline-project-id.txt"),
+                Guid.Parse(PlayerSettings.productGUID.ToString()).ToString("D") + "\n",
+                new System.Text.UTF8Encoding(false)
+            );
             var manifest = JsonUtility.FromJson<Manifest>(
                 File.ReadAllText(Path.Combine(NativeRoot, "production.json"))
             );

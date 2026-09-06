@@ -43,7 +43,8 @@ namespace BudgetGameDev.Games.Brocoli
                 compact ? 14f : 20f,
                 compact ? 30f : 44f
             );
-            float blockHeight = rowHeight * settingsRows.Length + rowGap * 3f;
+            float blockHeight =
+                rowHeight * settingsRows.Length + rowGap * (settingsRows.Length - 1);
             float y =
                 top - Mathf.Max(0f, top - regionBottom - blockHeight) * 0.5f - rowHeight * 0.5f;
             for (int index = 0; index < settingsRows.Length; index++)
@@ -59,14 +60,16 @@ namespace BudgetGameDev.Games.Brocoli
                         narrow,
                         compact
                     );
-                else
+                else if (index == 3)
                     LayoutPauseHdrRow(width, rowHeight, labelHeight, narrow, compact);
+                else
+                    LayoutPerformanceSetting(width, rowHeight);
                 y -= rowHeight + rowGap;
             }
 
-            float actionWidth = (width - gap * 2) / 3;
+            float actionWidth = (width - gap * 3) / 4;
             float actionY = bottom + buttonHeight * 0.5f;
-            Button[] actions = { nvidiaSettingsButton, resetSettingsButton, backSettingsButton };
+            Button[] actions = { nvidiaSettingsButton, readinessButton, resetSettingsButton, backSettingsButton };
             for (int i = 0; i < actions.Length; i++)
             {
                 PositionSplitButton(
@@ -74,7 +77,7 @@ namespace BudgetGameDev.Games.Brocoli
                     actionWidth,
                     buttonHeight,
                     actionY,
-                    (i - 1) * 2,
+                    i * 2 - 3,
                     gap
                 );
                 var label = actions[i].GetComponentInChildren<TMP_Text>();

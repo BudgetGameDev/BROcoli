@@ -1,6 +1,7 @@
 using System.Runtime.InteropServices;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.EnhancedTouch;
 using UnityEngine.UI;
 using Touch = UnityEngine.InputSystem.EnhancedTouch.Touch;
@@ -78,15 +79,16 @@ namespace BudgetGameDev.Shared
                 ProcessTouch(touch.phase, touch.finger.index, touch.screenPosition);
             }
 
-            // Also handle mouse for editor testing (when not using device simulator)
-#if UNITY_EDITOR
-            if (activeTouches.Count == 0)
+            // Desktop players can explicitly enable the virtual controller too.
+#if UNITY_EDITOR || UNITY_STANDALONE
+            var mouse = Mouse.current;
+            if (activeTouches.Count == 0 && mouse != null)
             {
                 ProcessMouse(
-                    Input.GetMouseButtonDown(0),
-                    Input.GetMouseButton(0),
-                    Input.GetMouseButtonUp(0),
-                    Input.mousePosition
+                    mouse.leftButton.wasPressedThisFrame,
+                    mouse.leftButton.isPressed,
+                    mouse.leftButton.wasReleasedThisFrame,
+                    mouse.position.ReadValue()
                 );
             }
 #endif

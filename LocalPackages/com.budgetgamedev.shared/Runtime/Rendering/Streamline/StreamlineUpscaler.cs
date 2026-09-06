@@ -49,6 +49,11 @@ namespace BudgetGameDev.Shared.Rendering
 
         public override void NegotiatePreUpscaleResolution(ref Vector2Int input, Vector2Int output)
         {
+            // HDRP has already built camera/depth/lighting constants for its DRS size.
+            // Hardware may round DLSS's requested fraction (e.g. 66.7% to 70%).
+            // Keep that actual size; DLSS supports inputs within its dynamic range.
+            if (StreamlineRuntime.Pipeline?.ResolutionConfiguredBeforeUpscaler == true)
+                return;
             if (!Available || !StreamlineSettings.DlssEnabled)
                 return;
             if (
@@ -210,8 +215,22 @@ namespace BudgetGameDev.Shared.Rendering
                             0,
                             true
                         );
-                        if (!data.evaluate)
+                        NvidiaDiagnosticsExport.CaptureBuffer(
+                            cmd,
+                            input.rt,
+                            "sr-input",
+                            data.inputSize
+                        );
+                        if (!data.evaluate || NvidiaDiagnosticsExport.SpatialOnly)
+                        {
+                            NvidiaDiagnosticsExport.CaptureBuffer(
+                                cmd,
+                                output.rt,
+                                "sr-output",
+                                new Vector2Int(output.rt.width, output.rt.height)
+                            );
                             return;
+                        }
                         RTHandle depth = data.depth,
                             motion = data.motion;
                         data.packet.input = input.rt.GetNativeTexturePtr();
@@ -228,6 +247,12 @@ namespace BudgetGameDev.Shared.Rendering
                                 StreamlineNative.SuperResolutionEvent,
                                 packet
                             );
+                        NvidiaDiagnosticsExport.CaptureBuffer(
+                            cmd,
+                            output.rt,
+                            "sr-output",
+                            new Vector2Int(output.rt.width, output.rt.height)
+                        );
                     }
                 );
             }

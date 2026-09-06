@@ -9,6 +9,7 @@ namespace BudgetGameDev.Shared.Rendering.Universal
 {
     internal sealed class UniversalStreamline : IStreamlinePipeline
     {
+        public bool ResolutionConfiguredBeforeUpscaler => false;
 #if ENABLE_UPSCALER_FRAMEWORK
         private UniversalRenderPipelineAsset asset;
         private string originalUpscaler;

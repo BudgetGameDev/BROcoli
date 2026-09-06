@@ -16,13 +16,14 @@ namespace BudgetGameDev.Games.Brocoli
         private readonly Slider[] volumeSliders = new Slider[3];
         private readonly TMP_Text[] volumeValues = new TMP_Text[3];
         private readonly RectTransform[] volumeRows = new RectTransform[3];
-        private readonly RectTransform[] settingsRows = new RectTransform[4];
+        private readonly RectTransform[] settingsRows = new RectTransform[5];
         private RectTransform hdrRow;
         private Button hdrToggleButton;
         private TMP_Text hdrToggleValue;
         private Button hdrCalibrationButton;
         private TMP_Text hdrStatus;
         private Button settingsButton;
+        private Button readinessButton;
         private Button resetSettingsButton;
         private Button backSettingsButton;
         private Button launcherButton;
@@ -82,15 +83,20 @@ namespace BudgetGameDev.Games.Brocoli
             CreateVolumeRow(1, "AMBIENCE", GameAudioSettings.SetAmbienceVolume);
             CreateVolumeRow(2, "SOUND EFFECTS", GameAudioSettings.SetSfxVolume);
             CreateHdrRow();
+            BuildPerformanceSetting();
 
             resetSettingsButton = CreateButton("ResetSettingsButton", settingsPanel, "RESET");
             resetSettingsButton.onClick.AddListener(ResetSettingsToDefaults);
             backSettingsButton = CreateButton("BackFromSettingsButton", settingsPanel, "BACK");
             backSettingsButton.onClick.AddListener(CloseSettings);
             BuildNvidiaSettingsPresentation();
+            readinessButton = CreateButton("SystemReadinessButton", settingsPanel, "SYSTEM\nREADINESS");
+            readinessButton.onClick.AddListener(() => SystemReadinessSession.Open(materialFont));
+            StyleButton(readinessButton, false, materialFont);
             settingsActionButtons = new[]
             {
                 nvidiaSettingsButton,
+                readinessButton,
                 resetSettingsButton,
                 backSettingsButton,
             };
@@ -101,7 +107,9 @@ namespace BudgetGameDev.Games.Brocoli
                 volumeSliders[2],
                 hdrToggleButton,
                 hdrCalibrationButton,
+                performanceButton,
                 nvidiaSettingsButton,
+                readinessButton,
                 resetSettingsButton,
                 backSettingsButton,
             };
@@ -198,7 +206,7 @@ namespace BudgetGameDev.Games.Brocoli
             return button;
         }
 
-        private void OpenSettings()
+        internal void OpenSettings()
         {
             ProceduralUIAudio.PlaySelect();
             mainButtonsWereActive = new bool[mainButtons.Length];
@@ -258,6 +266,7 @@ namespace BudgetGameDev.Games.Brocoli
 
         private void SyncSettingsControls()
         {
+            SyncPerformanceSetting();
             SyncVolumeControls();
             SyncHdrControl();
         }
@@ -278,6 +287,7 @@ namespace BudgetGameDev.Games.Brocoli
         {
             GameAudioSettings.ResetToDefaults();
             GameDisplaySettings.ResetToDefault();
+            PerformanceOverlay.Visible = true;
         }
     }
 }

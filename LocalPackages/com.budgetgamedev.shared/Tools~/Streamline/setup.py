@@ -51,7 +51,7 @@ def patch_hdrp(project, source=None):
         if len(candidates) != 1:
             raise RuntimeError("Resolve HDRP 17.5.0 in Unity first, or pass --hdrp-source.")
         source = candidates[0]
-    text = (source / HDRP_FILE).read_text()
+    text = (source / HDRP_FILE).read_text(encoding="utf-8")
     if HOOK in text:
         text = text.replace(HOOK, "")
     text = text.replace(HOOK.replace("data.postProcessIsFinalPass", "outputsToHDRBuffer"), "")
@@ -61,9 +61,13 @@ def patch_hdrp(project, source=None):
         )
     if source != target:
         shutil.copytree(source, target)
-    (target / HDRP_FILE).write_text(text.replace(DRAW, HOOK + DRAW))
+    (target / HDRP_FILE).write_text(text.replace(DRAW, HOOK + DRAW), encoding="utf-8", newline="\n")
     helper = target / "Runtime/RenderPipeline/SharedFrameGenerationHooks.cs"
-    helper.write_text((NATIVE / "SharedFrameGenerationHooks.cs.txt").read_text())
+    helper.write_text(
+        (NATIVE / "SharedFrameGenerationHooks.cs.txt").read_text(encoding="utf-8"),
+        encoding="utf-8",
+        newline="\n",
+    )
     linker = target / "Runtime/RenderPipeline/Streamline/link.xml"
     linker.parent.mkdir(exist_ok=True)
     linker.write_text((NATIVE / "link.xml.txt").read_text())
@@ -110,7 +114,14 @@ def verify_signatures(directory, manifest):
             "$s.SignerCertificate.Subject -notmatch 'NVIDIA') { exit 1 }"
         )
         subprocess.run(
-            ["powershell", "-NoProfile", "-NonInteractive", "-Command", command], check=True
+            [
+                shutil.which("pwsh") or "powershell",
+                "-NoProfile",
+                "-NonInteractive",
+                "-Command",
+                command,
+            ],
+            check=True,
         )
 
 

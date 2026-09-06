@@ -2,15 +2,39 @@
 #include <deque>
 #include <cstring>
 #include <algorithm>
+#include <filesystem>
+#include <fstream>
+#include <shlobj.h>
 namespace bgd
 {
 Diagnostics diagnostics;
 static std::mutex logMutex;
 static std::deque<std::string> recentLogs;
+static std::wstring logDirectory;
+static std::ofstream bridgeLog;
+const std::wstring& LogDirectory() { return logDirectory; }
+void InitializeLogs(const wchar_t* executable)
+{
+    PWSTR appData{};
+    if (FAILED(SHGetKnownFolderPath(FOLDERID_LocalAppData, 0, nullptr, &appData)))
+    { Log("Cannot resolve LOCALAPPDATA for native logs."); return; }
+    auto logs = std::filesystem::path(appData) / L"BudgetGameDev" / L"Streamline"
+        / std::filesystem::path(executable).stem()
+        / (std::to_wstring(GetCurrentProcessId()) + L"-" + std::to_wstring(GetTickCount64()));
+    CoTaskMemFree(appData);
+    std::error_code error;
+    std::filesystem::create_directories(logs, error);
+    if (error) { Log(("Cannot create native log directory: " + error.message()).c_str()); return; }
+    logDirectory = logs.wstring();
+    bridgeLog.open(logs / L"bridge.log", std::ios::out | std::ios::binary);
+    Log("Native log session started (timestamps are system uptime milliseconds).");
+}
 void RecordLog(const char* message)
 {
     std::lock_guard lock(logMutex);
-    recentLogs.push_back(std::to_string(GetTickCount64()) + "ms " + std::string(message ? message : "").substr(0, 2048));
+    std::string line = std::to_string(GetTickCount64()) + "ms " + (message ? message : "");
+    if (bridgeLog.is_open()) { bridgeLog << line << '\n'; bridgeLog.flush(); }
+    recentLogs.push_back(line.substr(0, 2048));
     if (recentLogs.size() > 64) recentLogs.pop_front();
 }
 void ReadReflexReport()
@@ -44,6 +68,14 @@ void ReadReflexReport()
     diagnostics.renderLatencyUs = duration(latest->renderSubmitStartTime, latest->renderSubmitEndTime);
     diagnostics.gpuLatencyUs = duration(latest->gpuRenderStartTime, latest->gpuRenderEndTime);
 }
+}
+EXPORT uint32_t __cdecl BgdSL_GetLogDirectory(char* output, uint32_t capacity)
+{
+    if (!output || !capacity) return 0;
+    const auto& path = bgd::LogDirectory();
+    int size = WideCharToMultiByte(CP_UTF8, 0, path.c_str(), -1, output, static_cast<int>(capacity), nullptr, nullptr);
+    if (!size) output[0] = 0;
+    return size ? static_cast<uint32_t>(size - 1) : 0;
 }
 EXPORT uint32_t __cdecl BgdSL_GetDiagnostics(bgd::Diagnostics* output, uint32_t size)
 {

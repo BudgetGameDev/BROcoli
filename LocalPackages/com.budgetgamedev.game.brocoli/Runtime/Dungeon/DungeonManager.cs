@@ -114,6 +114,11 @@ namespace BudgetGameDev.Games.Brocoli
 
         internal Vector2Int ResolveInitialRoom()
         {
+            if (SystemReadinessSession.IsBenchmarkScene)
+            {
+                seed = 731927;
+                return Vector2Int.zero;
+            }
             if (BrocoliSaveSystem.TryGetPendingContinue(out BrocoliRunSave save))
             {
                 RestoreRunState(save.dungeon);

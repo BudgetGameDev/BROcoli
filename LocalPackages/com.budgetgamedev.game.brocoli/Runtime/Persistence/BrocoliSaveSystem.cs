@@ -40,12 +40,34 @@ namespace BudgetGameDev.Games.Brocoli
 
         private static BrocoliRunSave pendingContinue;
 
+        // Stays armed through scene teardown, restoration, cancellation and failures.
+        internal static bool ReadOnlyRun { get; private set; }
+
+        internal static void BeginReadOnlyRun()
+        {
+            if (ReadOnlyRun)
+                throw new InvalidOperationException("An unsaved run is already active.");
+            ReadOnlyRun = true;
+            pendingContinue = null;
+        }
+
+        internal static void RestoreReadOnlyCheckpoint(BrocoliRunSave checkpoint) =>
+            pendingContinue = checkpoint;
+
+        internal static void EndReadOnlyRun()
+        {
+            pendingContinue = null;
+            ReadOnlyRun = false;
+        }
+
         /// <summary>The slot the running game checkpoints into; -1 when none is claimed.</summary>
         internal static int ActiveSlot
         {
-            get => PlayerPrefs.GetInt(ActiveSlotKey, -1);
+            get => ReadOnlyRun ? -1 : PlayerPrefs.GetInt(ActiveSlotKey, -1);
             private set
             {
+                if (ReadOnlyRun)
+                    return;
                 PlayerPrefs.SetInt(ActiveSlotKey, value);
                 PlayerPrefs.Save();
             }
@@ -75,6 +97,8 @@ namespace BudgetGameDev.Games.Brocoli
         /// <summary>Claims a free slot for a fresh run. False when all of them are taken.</summary>
         internal static bool BeginNewGame(bool mobileControls)
         {
+            if (ReadOnlyRun)
+                return false;
             int slot = FindFreeSlot();
             if (slot < 0)
                 return false;
@@ -89,6 +113,8 @@ namespace BudgetGameDev.Games.Brocoli
         /// <summary>Arms the given slot's checkpoint for the dungeon scene to restore.</summary>
         internal static bool BeginContinue(int slot)
         {
+            if (ReadOnlyRun)
+                return false;
             if (!TryLoad(slot, out BrocoliRunSave save))
                 return false;
 
@@ -116,7 +142,7 @@ namespace BudgetGameDev.Games.Brocoli
         /// <summary>Writes the live run into its slot, stamping it as the newest.</summary>
         internal static void Save(BrocoliRunSave save)
         {
-            if (save == null)
+            if (ReadOnlyRun || save == null)
                 return;
 
             int slot = ClaimSlot();
@@ -165,6 +191,8 @@ namespace BudgetGameDev.Games.Brocoli
                     return false;
 
                 default:
+                    if (ReadOnlyRun)
+                        return false;
                     Debug.LogWarning(
                         $"[Autosave] Discarding an unreadable checkpoint in slot {slot}."
                     );
@@ -176,6 +204,8 @@ namespace BudgetGameDev.Games.Brocoli
         /// <summary>Frees a slot. The player has to do this to make room for a new run.</summary>
         internal static void DeleteSave(int slot)
         {
+            if (ReadOnlyRun)
+                return;
             if (pendingContinue != null && pendingContinue.slot == slot)
                 pendingContinue = null;
 

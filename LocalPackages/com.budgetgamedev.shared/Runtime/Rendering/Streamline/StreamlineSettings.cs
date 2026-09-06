@@ -46,7 +46,7 @@ namespace BudgetGameDev.Shared.Rendering
 
         public static ReflexMode Reflex
         {
-            get => (ReflexMode)Mathf.Clamp(PlayerPrefs.GetInt(ReflexKey, 1), 0, 2);
+            get => (ReflexMode)Mathf.Clamp(PlayerPrefs.GetInt(ReflexKey, 2), 0, 2);
             set
             {
                 PlayerPrefs.SetInt(ReflexKey, Mathf.Clamp((int)value, 0, 2));

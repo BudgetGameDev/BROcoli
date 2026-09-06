@@ -104,7 +104,7 @@ namespace BudgetGameDev.Games.Brocoli
 
         private void SaveCheckpoint()
         {
-            if (!ready || !TryCapture(out BrocoliRunSave save))
+            if (BrocoliSaveSystem.ReadOnlyRun || SystemReadinessSession.IsOpen || !ready || !TryCapture(out BrocoliRunSave save))
                 return;
 
             BrocoliSaveSystem.Save(save);

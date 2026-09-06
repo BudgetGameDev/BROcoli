@@ -52,6 +52,20 @@ void EvaluateSuperResolution(void* packet)
     UnityGraphicsD3D12RecordingState recording{};
     if (!graphics->CommandRecordingState(&recording) || !recording.commandList) return;
     ++srStatus.attempts;
+    if (srStatus.attempts == 1)
+    {
+        for (auto resource : {data->input, data->output, f.depth, f.motion})
+        {
+            auto desc = resource->GetDesc();
+            char line[192];
+            sprintf_s(line, "DLSS resource %p: %llu x %u, format=%u, flags=%u",
+                resource, desc.Width, desc.Height, desc.Format, desc.Flags);
+            Log(line);
+        }
+        char line[128];
+        sprintf_s(line, "DLSS input: preExposure=%g, HDR=%u", data->preExposure, data->hdr);
+        Log(line);
+    }
     sl::DLSSOptions options;
     options.mode = sl::DLSSMode::eMaxQuality;
     options.qualityPreset = sl::DLSSPreset::ePresetK;
@@ -114,6 +128,14 @@ EXPORT uint32_t __cdecl BgdSL_GetOptimalResolution(uint32_t width, uint32_t heig
     using namespace bgd;
     std::lock_guard lock(mutex);
     if (!srSupported || !x || !y || !width || !height) return 0;
+    // Quality and preset are fixed. Avoid querying NGX every rendered frame:
+    // its verbose callback otherwise floods the useful diagnostics with identical settings.
+    static uint32_t cachedWidth{}, cachedHeight{}, cachedX{}, cachedY{};
+    if (width == cachedWidth && height == cachedHeight)
+    {
+        *x = cachedX; *y = cachedY;
+        return 1;
+    }
     sl::DLSSOptions options;
     options.mode = sl::DLSSMode::eMaxQuality;
     options.qualityPreset = sl::DLSSPreset::ePresetK;
@@ -121,7 +143,9 @@ EXPORT uint32_t __cdecl BgdSL_GetOptimalResolution(uint32_t width, uint32_t heig
     sl::DLSSOptimalSettings optimal;
     if (!Check(api.srOptimal(options, optimal))) { srStatus.available = 0; return 0; }
     *x = optimal.optimalRenderWidth; *y = optimal.optimalRenderHeight;
-    return *x && *y && *x <= width && *y <= height ? 1 : 0;
+    if (!*x || !*y || *x > width || *y > height) return 0;
+    cachedWidth = width; cachedHeight = height; cachedX = *x; cachedY = *y;
+    return 1;
 }
 EXPORT void* __cdecl BgdSL_CopySuperResolution(const bgd::SuperResolutionData* source, uint32_t size)
 {

@@ -14,7 +14,9 @@ namespace BudgetGameDev.Hub.Editor
             if (!scriptsOnly)
             {
                 // A failed replacement build must not leave an older baseline eligible for reuse.
-                File.Delete(ReceiptPath(options));
+                string previousReceipt = ReceiptPath(options);
+                if (File.Exists(previousReceipt))
+                    File.Delete(previousReceipt);
                 return options;
             }
             string receipt = ReceiptPath(options);

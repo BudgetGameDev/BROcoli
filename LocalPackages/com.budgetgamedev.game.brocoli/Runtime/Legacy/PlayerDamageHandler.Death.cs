@@ -82,6 +82,8 @@ namespace BudgetGameDev.Games.Brocoli
             enemiesKilled = gameStates != null ? gameStates.EnemiesKilled : 0;
             timeSurvived = gameStates != null ? gameStates.gameTime : 0f;
 
+            if (BrocoliSaveSystem.ReadOnlyRun)
+                return;
             PlayerPrefs.SetInt("LastScore", score);
             PlayerPrefs.SetInt("LastRooms", rooms);
             PlayerPrefs.SetInt("LastEnemiesKilled", enemiesKilled);

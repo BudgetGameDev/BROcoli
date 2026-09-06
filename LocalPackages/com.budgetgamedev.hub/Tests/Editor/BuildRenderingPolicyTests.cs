@@ -159,6 +159,7 @@ namespace BudgetGameDev.Hub.Tests
             MethodInfo restore = builder.GetMethod("RestoreDefaultPipeline", flags);
             var previous = BuildRenderingPolicy.PipelineOverride;
             RenderPipelineAsset defaultPipeline = GraphicsSettings.defaultRenderPipeline;
+            int originalQualityLevel = QualitySettings.GetQualityLevel();
             string originalQuality = EditorJsonUtility.ToJson(QualitySettings.GetQualitySettings());
             Application.logMessageReceived += ExpectBundledColorCheckerWarning;
             try
@@ -175,11 +176,17 @@ namespace BudgetGameDev.Hub.Tests
                     GraphicsSettings.defaultRenderPipeline.GetType().Name,
                     Is.EqualTo(assetType)
                 );
+                Assert.That(
+                    GraphicsSettings.currentRenderPipeline.GetType().Name,
+                    Is.EqualTo(assetType),
+                    "The active Editor pipeline must enable the selected pipeline's shader stripper."
+                );
                 string platform = NamedBuildTarget
                     .FromBuildTargetGroup(BuildPipeline.GetBuildTargetGroup(target))
                     .TargetName;
                 int[] levels = QualitySettings.GetActiveQualityLevelsForPlatform(platform);
                 Assert.That(levels, Is.Not.Empty);
+                Assert.That(levels, Does.Contain(QualitySettings.GetQualityLevel()));
                 if (pipeline == RenderPipelineKind.HighDefinition)
                 {
                     Assert.That(levels, Is.EqualTo(Enumerable.Range(0, 10).ToArray()));
@@ -226,10 +233,41 @@ namespace BudgetGameDev.Hub.Tests
                 }
             }
             Assert.That(GraphicsSettings.defaultRenderPipeline, Is.SameAs(defaultPipeline));
+            Assert.That(QualitySettings.GetQualityLevel(), Is.EqualTo(originalQualityLevel));
             Assert.That(
                 EditorJsonUtility.ToJson(QualitySettings.GetQualitySettings()),
                 Is.EqualTo(originalQuality)
             );
+        }
+
+        [Test]
+        public void BuildWarningGateOnlyAcceptsTheExactBundledDiagnostic()
+        {
+            Type gate = AppDomain
+                .CurrentDomain.GetAssemblies()
+                .Select(assembly => assembly.GetType("BuildWarningGate"))
+                .First(type => type != null);
+            MethodInfo check = gate.GetMethod(
+                "IsKnownToolchainWarning",
+                BindingFlags.Static | BindingFlags.NonPublic
+            );
+            const string warning =
+                "Shader Graph at Packages/com.unity.render-pipelines.high-definition/Runtime/Tools/"
+                + "ColorChecker/ColorCheckerShader.shadergraph has 2 warning(s), the first is: "
+                + "Validation: Exposure Node is not allowed by Universal implementation";
+            Assert.That(check.Invoke(null, new object[] { warning }), Is.True);
+            foreach (
+                string unexpected in new[]
+                {
+                    warning.Replace(
+                        "Packages/com.unity.render-pipelines.high-definition",
+                        "Assets"
+                    ),
+                    warning.Replace("Exposure Node", "Custom Node"),
+                    "Shader 'BROcoli/Surface': All SubShaders were stripped",
+                }
+            )
+                Assert.That(check.Invoke(null, new object[] { unexpected }), Is.False);
         }
 
         private static void ExpectBundledColorCheckerWarning(

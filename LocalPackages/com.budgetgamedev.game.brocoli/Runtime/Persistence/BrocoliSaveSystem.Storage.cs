@@ -58,6 +58,8 @@ namespace BudgetGameDev.Games.Brocoli
         /// </summary>
         private static void MigrateOlderLayouts()
         {
+            if (ReadOnlyRun)
+                return;
             MigrateInterimSlotKeys();
             MigrateSingleCheckpointKey();
         }
@@ -147,12 +149,16 @@ namespace BudgetGameDev.Games.Brocoli
 
         private static void Write(BrocoliRunSave save)
         {
+            if (ReadOnlyRun)
+                return;
             PlayerPrefs.SetString(SlotKey(save.slot), Serialize(save));
             PlayerPrefs.Save();
         }
 
         private static void DeleteSlotKey(int slot)
         {
+            if (ReadOnlyRun)
+                return;
             string key = SlotKey(slot);
             if (!PlayerPrefs.HasKey(key))
                 return;
@@ -200,6 +206,8 @@ namespace BudgetGameDev.Games.Brocoli
 
         private static void SetControlPreference(bool mobileControls)
         {
+            if (ReadOnlyRun)
+                return;
             PlayerPrefs.SetInt(ControlPreferenceKey, mobileControls ? 1 : 0);
             PlayerPrefs.Save();
         }

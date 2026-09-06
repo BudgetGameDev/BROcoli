@@ -119,6 +119,15 @@ void BeforePresent(IDXGISwapChain* chain, UINT flags)
 {
     std::lock_guard lock(mutex);
     if (chain != activeSwapchain || (flags & DXGI_PRESENT_TEST)) return;
+    // Unity may query the index ahead on its render thread. Refresh the proxy's
+    // current buffer at the serialized Present boundary as well, after the last
+    // Present has completed, so DLSS-G observes an index query for every Present.
+    IDXGISwapChain3* chain3{};
+    if (SUCCEEDED(chain->QueryInterface(IID_PPV_ARGS(&chain3))))
+    {
+        chain3->GetCurrentBackBufferIndex();
+        chain3->Release();
+    }
     presentingFrame = submittedFrame;
     diagnostics.tagMask = presentingFrame ? readyFrames[presentingFrame] : 0;
     if (diagnostics.tagMask == 7) ++diagnostics.completeTags;

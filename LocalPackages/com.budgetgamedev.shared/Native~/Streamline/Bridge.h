@@ -93,6 +93,8 @@ extern std::atomic<bool> focused;
 extern std::atomic<uint32_t> integrationWarnings;
 bool Check(sl::Result result);
 void Log(const char* message);
+void InitializeLogs(const wchar_t* executable);
+const std::wstring& LogDirectory();
 bool LoadStreamline();
 bool InstallImports();
 void RestoreImports();

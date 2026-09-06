@@ -68,21 +68,23 @@ namespace BudgetGameDev.Games.Brocoli
                         compact
                     );
                 }
-                else
+                else if (i == 3)
                 {
                     LayoutHdrRow(width, rowHeight, labelHeight, narrow, compact);
                 }
+                else
+                    LayoutPerformanceSetting(width, rowHeight);
                 y -= rowHeight + rowGap;
             }
 
-            float actionWidth = (width - gap * 2) / 3;
+            float actionWidth = (width - gap * 3) / 4;
             float actionY = bottom + buttonHeight * 0.5f;
             for (int i = 0; i < settingsActionButtons.Length; i++)
             {
                 var button = settingsActionButtons[i];
                 var rect = button.GetComponent<RectTransform>();
                 SetCenteredRect(rect, actionWidth, buttonHeight, actionY);
-                rect.anchoredPosition += Vector2.right * (i - 1) * (actionWidth + gap);
+                rect.anchoredPosition += Vector2.right * (i - 1.5f) * (actionWidth + gap);
                 var label = button.GetComponentInChildren<TMP_Text>();
                 label.margin = new Vector4(4, 0, 4, 0);
                 label.enableAutoSizing = true;

@@ -40,13 +40,17 @@ public sealed partial class NativePlayerBuildScript
     )
     {
         BuildReport report;
+        bool connectProfiler = HasArgument("-connectProfiler");
+        if (connectProfiler && !development)
+            throw new BuildFailedException("Profiler autoconnect requires a development build.");
         var options = BuildRenderingPolicy.PrepareOptions(
             new BuildPlayerOptions
             {
                 scenes = scenes,
                 locationPathName = output,
                 target = target,
-                options = development ? BuildOptions.Development : BuildOptions.None,
+                options = (development ? BuildOptions.Development : BuildOptions.None)
+                    | (connectProfiler ? BuildOptions.ConnectWithProfiler : BuildOptions.None),
             }
         );
         options = NativeBuildIteration.Prepare(
@@ -180,6 +184,11 @@ public sealed partial class NativePlayerBuildScript
                 quality.intValue = compatible.Last();
         }
         serialized.ApplyModifiedPropertiesWithoutUndo();
+        // Excluding a tier from the player does not switch the Editor off it.
+        // URP's shader stripper checks GraphicsSettings.currentRenderPipeline;
+        // an active HDRP tier disables it even when the build default is URP.
+        if (!compatible.Contains(QualitySettings.GetQualityLevel()))
+            QualitySettings.SetQualityLevel(compatible.Last(), false);
         EditorUtility.SetDirty(settings);
     }
 }

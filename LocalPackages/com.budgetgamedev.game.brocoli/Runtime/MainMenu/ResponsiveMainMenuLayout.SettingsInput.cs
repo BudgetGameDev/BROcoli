@@ -10,6 +10,8 @@ namespace BudgetGameDev.Games.Brocoli
     {
         private void Update()
         {
+            if (SystemReadinessSession.IsOpen)
+                return;
             if (SavesOpen)
             {
                 UpdateSavesInput();

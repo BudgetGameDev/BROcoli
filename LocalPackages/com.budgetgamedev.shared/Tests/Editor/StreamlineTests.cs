@@ -115,7 +115,7 @@ namespace BudgetGameDev.Shared.Tests
                 Assert.That(StreamlineSettings.GeneratedFrames, Is.EqualTo(3));
                 Assert.That(
                     StreamlineSettings.EffectiveReflex,
-                    Is.EqualTo(StreamlineSettings.ReflexMode.On)
+                    Is.EqualTo(StreamlineSettings.ReflexMode.OnWithBoost)
                 );
                 StreamlineSettings.Reflex = StreamlineSettings.ReflexMode.Off;
                 Assert.That(

@@ -1,6 +1,8 @@
 #include "Bridge.h"
 #include <memory>
 #include <new>
+#include <deque>
+#include <unordered_set>
 
 namespace bgd
 {
@@ -15,6 +17,14 @@ void Marker(sl::PCLMarker marker, sl::FrameToken* frame)
 }
 bool SetFrameConstants(const FrameData& data)
 {
+    // SR and FG share one viewport and token. Their passes may disagree about
+    // history reset during a resolution transition; SL permits only one common
+    // constants packet for that frame. Use the first render submission for both.
+    static std::unordered_set<uint32_t> submitted;
+    static std::deque<uint32_t> order;
+    if (!data.token) return false;
+    uint32_t frame = static_cast<uint32_t>(*data.token);
+    if (submitted.count(frame)) return true;
     sl::Constants constants;
     constants.cameraViewToClip = data.viewToClip;
     constants.clipToCameraView = data.clipToView;
@@ -25,6 +35,7 @@ bool SetFrameConstants(const FrameData& data)
     constants.cameraRight = data.right;
     constants.cameraFwd = data.forward;
     constants.jitterOffset = data.jitter;
+    constants.cameraPinholeOffset = {0.0f, 0.0f};
     constants.mvecScale = data.motionScale;
     constants.cameraNear = data.nearPlane;
     constants.cameraFar = data.farPlane;
@@ -36,7 +47,10 @@ bool SetFrameConstants(const FrameData& data)
     constants.reset = data.reset ? sl::eTrue : sl::eFalse;
     constants.motionVectorsDilated = sl::eFalse;
     constants.motionVectorsJittered = sl::eFalse;
-    return Check(api.constants(constants, *data.token, Viewport));
+    if (!Check(api.constants(constants, *data.token, Viewport))) return false;
+    submitted.insert(frame); order.push_back(frame);
+    if (order.size() > 64) { submitted.erase(order.front()); order.pop_front(); }
+    return true;
 }
 void Capture(const FrameData& data)
 {

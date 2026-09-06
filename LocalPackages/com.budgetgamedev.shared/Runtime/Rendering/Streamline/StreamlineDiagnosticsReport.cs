@@ -61,7 +61,10 @@ namespace BudgetGameDev.Shared.Rendering
             var text = new StringBuilder();
             text.AppendLine($"LIVE DIAGNOSTICS • {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC");
             text.AppendLine(
-                "Refreshes 4 times/second. Scroll: wheel / right stick / PgUp-Dn. Copy includes all diagnostics and recent native logs."
+                $"Quality: {QualitySettings.GetQualityLevel()} ({QualitySettings.names[QualitySettings.GetQualityLevel()]})"
+            );
+            text.AppendLine(
+                "Refreshes 4 times/second. Scroll: wheel / right stick / PgUp-Dn. Copy adds actual current-session Streamline/NGX and Player log files (bounded tails; truncation is marked)."
             );
             text.AppendLine($"\n{requested.Summary}\n");
             text.AppendLine("DLSS SUPER RESOLUTION");
@@ -79,7 +82,8 @@ namespace BudgetGameDev.Shared.Rendering
                 $"Main view: {StreamlineRuntime.ViewCamera?.name ?? "none eligible"}; capture enabled: {StreamlineRuntime.CaptureEnabled}"
             );
             text.AppendLine(
-                "Only one fullscreen perspective output camera is supported. Orthographic menus can suspend FG."
+                "Only one fullscreen perspective output camera is supported. Orthographic menus can suspend FG.\n"
+                    + StreamlineRuntime.DescribeCameras()
             );
             if (native)
             {
@@ -191,9 +195,7 @@ namespace BudgetGameDev.Shared.Rendering
             text.AppendLine(
                 $"\nNATIVE LOG • last 64 messages • warnings/errors: {s.integrationWarnings}"
             );
-            text.AppendLine(
-                "Full files: %LOCALAPPDATA%\\BudgetGameDev\\Streamline\\<executable-name>"
-            );
+            text.AppendLine("Full session files: " + StreamlineNative.GetLogDirectory());
             text.AppendLine(string.IsNullOrEmpty(log) ? "No native messages recorded." : log);
             return text.ToString();
         }

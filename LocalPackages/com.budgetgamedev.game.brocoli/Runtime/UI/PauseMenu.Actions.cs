@@ -95,6 +95,8 @@ namespace BudgetGameDev.Games.Brocoli
 
         public void TogglePause()
         {
+            if (SystemReadinessSession.IsOpen)
+                return;
             if (isPaused)
                 Resume();
             else
@@ -191,7 +193,7 @@ namespace BudgetGameDev.Games.Brocoli
             Debug.Log("[PauseMenu] Game RESUMED");
         }
 
-        private void OpenSettings()
+        internal void OpenSettings()
         {
             if (responsiveLayout == null && pauseMenuUI != null)
                 responsiveLayout = pauseMenuUI.GetComponent<ResponsivePauseMenuLayout>();
