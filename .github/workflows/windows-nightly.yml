@@ -1,0 +1,122 @@
+name: Windows HDRP NVIDIA nightly
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [codex/windows-dlss-nightly]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: brocoli-windows-nightly
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: windows-2022
+    timeout-minutes: 150
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install Unity CLI
+        run: |
+          $env:UNITY_CLI_CHANNEL = 'beta'
+          irm https://public-cdn.cloud.unity3d.com/hub/prod/cli/install.ps1 | iex
+          $env:Path = [Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' + [Environment]::GetEnvironmentVariable('Path', 'User')
+          (Get-Command unity -ErrorAction Stop).Source | Split-Path | Out-File -FilePath $env:GITHUB_PATH -Append
+          unity --version
+          if ($LASTEXITCODE -ne 0) { throw 'Unity CLI installation failed' }
+      - name: Activate existing CI license
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+        run: |
+          if (-not $env:UNITY_LICENSE) { throw 'UNITY_LICENSE secret is missing' }
+          $licensePath = Join-Path $env:RUNNER_TEMP 'Unity-license.ulf'
+          try {
+            [IO.File]::WriteAllText($licensePath, $env:UNITY_LICENSE)
+            unity license activate --file $licensePath --non-interactive --no-banner *> (Join-Path $env:RUNNER_TEMP 'license-activation.log')
+            if ($LASTEXITCODE -ne 0) { throw 'The existing UNITY_LICENSE could not activate this Windows runner. A license valid for Windows CI is required.' }
+          } finally {
+            Remove-Item -LiteralPath $licensePath -Force -ErrorAction SilentlyContinue
+          }
+      - name: Install pinned Windows Editor
+        run: |
+          unity install 6000.5.10f1 --architecture x86_64 --yes --accept-eula --non-interactive --no-banner
+          if ($LASTEXITCODE -ne 0) { throw 'Unity Editor installation failed' }
+      - name: Prepare shared Streamline integration
+        run: |
+          $installed = unity editors --installed --format json | ConvertFrom-Json
+          $editor = @($installed.data | Where-Object version -eq '6000.5.10f1')[0]
+          if (-not $editor) { throw 'Pinned Unity Editor not found' }
+          $data = Join-Path $editor.location 'Editor/Data'
+          if (-not (Test-Path $data)) { $data = Join-Path $editor.location 'Data' }
+          python LocalPackages/com.budgetgamedev.shared/Tools~/Streamline/setup.py --hdrp-source "$data/Resources/PackageManager/BuiltInPackages/com.unity.render-pipelines.high-definition" --unity-plugin-api "$data/PluginAPI"
+          if ($LASTEXITCODE -ne 0) { throw 'Shared Streamline setup failed' }
+      - name: Build and audit Windows HDRP player
+        env:
+          BROCOLI_LICENSED_ASSET_KEY: ${{ secrets.BROCOLI_LICENSED_ASSET_KEY }}
+        run: |
+          if (-not $env:BROCOLI_LICENSED_ASSET_KEY) { throw 'Licensed asset key is missing' }
+          if (-not (Select-String -Path ProjectSettings/QualitySettings.asset -Pattern '^    Standalone: 9$')) { throw 'Windows nightly requires authored default quality 9' }
+          ./scripts/native-builds.ps1 -Product brocoli -RenderPipeline hdrp
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-hdrp-nightly
+          path: build/native/brocoli/artifacts/
+          if-no-files-found: error
+          retention-days: 7
+      - name: Preserve build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-hdrp-build-log
+          path: build/native/brocoli/players/unity-build.log
+          if-no-files-found: ignore
+          retention-days: 7
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
+      - name: Require the exact build revision
+        env:
+          BUILD_COMMIT: ${{ github.sha }}
+        run: test "$(git rev-parse HEAD)" = "$BUILD_COMMIT"
+      - uses: actions/download-artifact@v4
+        with:
+          name: windows-hdrp-nightly
+          path: build/native/brocoli/artifacts
+      - name: Publish verified nightly
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          scripts/dev-release.sh --skip-build --targets windows --title 'nightly — Windows HDRP NVIDIA'
+          gh release view nightly --json body --jq .body > "$RUNNER_TEMP/nightly-notes.md"
+          cat >> "$RUNNER_TEMP/nightly-notes.md" <<'NOTES'
+
+          Windows x64, DirectX 12, HDRP. Default quality: 9 (HDRP RT Ultra).
+          Shared NVIDIA defaults: DLSS Quality / Preset K, up to 4x frame generation
+          (clamped to GPU support), Streamline Reflex On. Existing saved preferences apply.
+
+          Open Settings → NVIDIA for requested settings, accepted configuration,
+          swapchain attachment, frame generation evidence, Reflex timing and native logs.
+          The HDR diagnostics page also supports SDR displays.
+
+          Experimental native integration: this CI build has not been verified on an RTX GPU.
+          Shipping the libraries and passing the build does not establish that frame generation
+          or Reflex works on a particular system; inspect the runtime diagnostics.
+          NOTES
+          gh release edit nightly --notes-file "$RUNNER_TEMP/nightly-notes.md"

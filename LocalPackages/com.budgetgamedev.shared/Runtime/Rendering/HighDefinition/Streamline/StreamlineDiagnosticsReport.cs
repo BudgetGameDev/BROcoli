@@ -200,9 +200,7 @@ namespace BudgetGameDev.Shared.Rendering.HighDefinition
             text.AppendLine(
                 $"Driver/API: {SystemInfo.graphicsDeviceVersion}; VRAM: {SystemInfo.graphicsMemorySize} MB"
             );
-            text.AppendLine(
-                $"Output: {Screen.width} x {Screen.height}; HDR active: {HDROutputSettings.main.active}; format: {(HDROutputSettings.main.available ? HDROutputSettings.main.graphicsFormat.ToString() : "SDR / unavailable")}"
-            );
+            text.AppendLine($"Output: {Screen.width} x {Screen.height}; {DisplayState()}");
             text.AppendLine(
                 $"Focus: {Application.isFocused}; F10 overlay visible: {StreamlineOptionsPanel.Visible}; time scale: {Time.timeScale}"
             );
@@ -216,6 +214,20 @@ namespace BudgetGameDev.Shared.Rendering.HighDefinition
             return text.ToString();
         }
 
+        private static string DisplayState()
+        {
+            try
+            {
+                var output = HDROutputSettings.main;
+                if (output != null && output.available)
+                    return $"HDR active: {output.active}; format: {output.graphicsFormat}";
+            }
+            catch (InvalidOperationException)
+            {
+                // A display disconnect / HDR toggle can invalidate the availability check.
+            }
+            return "HDR active: False; format: SDR / unavailable";
+        }
         internal static string FgStatus(uint flags)
         {
             if (flags == 0)
