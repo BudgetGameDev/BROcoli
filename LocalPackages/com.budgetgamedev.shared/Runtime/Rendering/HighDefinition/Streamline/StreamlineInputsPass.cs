@@ -29,7 +29,7 @@ namespace BudgetGameDev.Shared.Rendering.HighDefinition
                 return;
             var view = ctx.hdCamera.mainViewConstants;
             if (!HDROutputSettings.main.active)
-                StreamlineRuntime.CaptureSdrUi(ctx);
+                HighDefinitionStreamline.Instance?.CaptureSdrUi(ctx);
             // Unity's public Camera view matrix includes world translation, unlike
             // HDRP's camera-relative view constants. Keep consecutive frames absolute.
             var projection = view.nonJitteredProjMatrix;

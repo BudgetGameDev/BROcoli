@@ -40,20 +40,23 @@ public sealed partial class NativePlayerBuildScript
     )
     {
         BuildReport report;
+        var options = BuildRenderingPolicy.PrepareOptions(
+            new BuildPlayerOptions
+            {
+                scenes = scenes,
+                locationPathName = output,
+                target = target,
+                options = development ? BuildOptions.Development : BuildOptions.None,
+            }
+        );
+        options = NativeBuildIteration.Prepare(
+            options,
+            forceScriptsOnly || HasArgument("-scriptsOnly")
+        );
         try
         {
             ConfigureTarget(target);
-            report = BuildPipeline.BuildPlayer(
-                BuildRenderingPolicy.PrepareOptions(
-                    new BuildPlayerOptions
-                    {
-                        scenes = scenes,
-                        locationPathName = output,
-                        target = target,
-                        options = development ? BuildOptions.Development : BuildOptions.None,
-                    }
-                )
-            );
+            report = BuildPipeline.BuildPlayer(options);
         }
         finally
         {
@@ -69,6 +72,8 @@ public sealed partial class NativePlayerBuildScript
                     + $"{report.summary.totalErrors} error(s)."
             );
         }
+
+        NativeBuildIteration.RecordSuccess(options);
 
         Debug.Log(
             $"[{label} Build] Succeeded ({report.summary.totalSize} bytes, "
@@ -86,10 +91,7 @@ public sealed partial class NativePlayerBuildScript
         PlayerSettings.SetUseDefaultGraphicsAPIs(BuildTarget.StandaloneWindows64, false);
         PlayerSettings.SetGraphicsAPIs(
             BuildTarget.StandaloneWindows64,
-            BuildRenderingPolicy.PipelineFor(BuildTarget.StandaloneWindows64)
-            == RenderPipelineKind.HighDefinition
-                ? new[] { GraphicsDeviceType.Direct3D12 }
-                : new[] { GraphicsDeviceType.Direct3D12, GraphicsDeviceType.Direct3D11 }
+            new[] { GraphicsDeviceType.Direct3D12 }
         );
     }
 

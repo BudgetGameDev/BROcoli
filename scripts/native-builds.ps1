@@ -7,6 +7,7 @@ param(
     [ValidatePattern("^[a-z0-9][a-z0-9-]*$")]
     [string]$Product,
     [switch]$Development,
+    [switch]$ReuseStage,
     [ValidateSet("urp", "hdrp")]
     [string]$RenderPipeline = "urp"
 )
@@ -92,6 +93,7 @@ $releaseArguments = @(
     "--output", $PlayersRoot
 )
 if ($Development) { $releaseArguments += "--development" }
+if ($ReuseStage) { $releaseArguments += "--reuse-stage" }
 & python @releaseArguments
 if ($LASTEXITCODE -ne 0) { throw "Isolated player build failed with exit code $LASTEXITCODE" }
 

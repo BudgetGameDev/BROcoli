@@ -1,6 +1,6 @@
 using System;
 using System.Runtime.InteropServices;
-using BudgetGameDev.Shared.Rendering.HighDefinition;
+using BudgetGameDev.Shared.Rendering;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -10,16 +10,13 @@ namespace BudgetGameDev.Shared.Tests
     public sealed class StreamlineTests
     {
         [Test]
-        public void SuperResolutionUsesUnityQualityAndPresetKWithoutMutatingThePriorityList()
+        public void SuperResolutionUsesStreamlineWithoutMutatingThePriorityList()
         {
             var original = GlobalDynamicResolutionSettings.NewDefault();
             var previous = original.advancedUpscalerNames.ToArray();
             var configured = StreamlineSettings.ConfigureSuperResolution(original);
             Assert.That(configured.enabled, Is.True);
-            Assert.That(configured.DLSSUseOptimalSettings, Is.True);
-            Assert.That(configured.DLSSPerfQualitySetting, Is.EqualTo(2));
-            Assert.That(configured.DLSSRenderPresetForQuality, Is.EqualTo(4));
-            Assert.That(configured.advancedUpscalerNames[0], Is.EqualTo("DLSS"));
+            Assert.That(configured.advancedUpscalerNames[0], Is.EqualTo(StreamlineUpscaler.Name));
             Assert.That(original.advancedUpscalerNames, Is.EqualTo(previous));
             Assert.That(
                 StreamlineSettings.ConfigureSuperResolution(configured).advancedUpscalerNames,
@@ -40,6 +37,8 @@ namespace BudgetGameDev.Shared.Tests
                 Is.EqualTo(376)
             );
             Assert.That(Marshal.SizeOf<StreamlineNative.Status>(), Is.EqualTo(48));
+            Assert.That(Marshal.SizeOf<StreamlineNative.SuperResolutionData>(), Is.EqualTo(432));
+            Assert.That(Marshal.SizeOf<StreamlineNative.SuperResolutionStatus>(), Is.EqualTo(64));
         }
 
         [Test]

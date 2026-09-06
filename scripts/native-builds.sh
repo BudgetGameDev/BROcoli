@@ -5,6 +5,7 @@ set -euo pipefail
 PROJECT_PATH="$(cd "$(dirname "$0")/.." && pwd)"
 PRODUCT=""
 DEVELOPMENT=0
+REUSE_STAGE=0
 RENDER_PIPELINE="urp"
 REQUESTED_TARGETS="windows,macos,linux"
 
@@ -21,6 +22,7 @@ Options:
                       Defaults to all three.
     --pipeline <name>  Render pipeline: urp (default) or hdrp.
     --development     Produce Unity development players.
+    --reuse-stage     Reuse the isolated workspace and its Unity caches.
     -h, --help        Show this help.
 EOF
 }
@@ -28,6 +30,7 @@ EOF
 while [ "$#" -gt 0 ]; do
     case "$1" in
         --development) DEVELOPMENT=1 ;;
+        --reuse-stage) REUSE_STAGE=1 ;;
         --product)
             PRODUCT="${2:?--product needs a game id or launcher}"
             shift
@@ -163,6 +166,9 @@ RELEASE_ARGUMENTS=(
 )
 if [ "$DEVELOPMENT" -eq 1 ]; then
     RELEASE_ARGUMENTS+=(--development)
+fi
+if [ "$REUSE_STAGE" -eq 1 ]; then
+    RELEASE_ARGUMENTS+=(--reuse-stage)
 fi
 python3 "${RELEASE_ARGUMENTS[@]}"
 cp "$PLAYERS_ROOT/release-audit.json" "$ARTIFACTS_ROOT/"

@@ -11,7 +11,7 @@ std::recursive_mutex mutex;
 Status status;
 sl::FrameToken* submittedFrame{};
 std::unordered_map<sl::FrameToken*, uint32_t> readyFrames;
-bool reflexSupported{}, pclSupported{}, fgSupported{};
+bool reflexSupported{}, pclSupported{}, fgSupported{}, srSupported{};
 std::atomic<uint32_t> requestedFrames{3}, requestedReflex{1};
 std::atomic<bool> focused{true};
 std::atomic<uint32_t> integrationWarnings{};
@@ -45,7 +45,7 @@ bool LoadStreamline()
     auto directory = std::filesystem::path(executable).parent_path();
     auto library = directory / L"sl.interposer.dll";
     // Verify NVIDIA's signature before executing any code from the interposer.
-    const wchar_t* libraries[] = {L"sl.interposer.dll", L"sl.common.dll", L"sl.dlss_g.dll",
+    const wchar_t* libraries[] = {L"sl.interposer.dll", L"sl.common.dll", L"sl.dlss.dll", L"sl.dlss_g.dll",
         L"sl.reflex.dll", L"sl.pcl.dll", L"nvngx_dlssg.dll", L"nvngx_dlss.dll"};
     for (auto name : libraries)
     if (!sl::security::verifyEmbeddedSignature((directory / name).c_str()))
@@ -64,7 +64,7 @@ bool LoadStreamline()
     LOAD(featureFunction, slGetFeatureFunction); LOAD(newFrame, slGetNewFrameToken);
     LOAD(constants, slSetConstants); LOAD(tag, slSetTagForFrame);
     LOAD(nativeInterface, slGetNativeInterface);
-    LOAD(requirements, slGetFeatureRequirements);
+    LOAD(requirements, slGetFeatureRequirements); LOAD(evaluate, slEvaluateFeature);
 #undef LOAD
     const std::wstring path = directory.wstring();
     std::wstring logPath;
@@ -79,10 +79,10 @@ bool LoadStreamline()
         if (!error) logPath = logs.wstring();
     }
     const wchar_t* paths[] = {path.c_str()};
-    const sl::Feature features[] = {sl::kFeatureDLSS_G, sl::kFeatureReflex, sl::kFeaturePCL};
+    const sl::Feature features[] = {sl::kFeatureDLSS, sl::kFeatureDLSS_G, sl::kFeatureReflex, sl::kFeaturePCL};
     sl::Preferences preferences;
     preferences.featuresToLoad = features;
-    preferences.numFeaturesToLoad = 3;
+    preferences.numFeaturesToLoad = 4;
     preferences.pathsToPlugins = paths;
     preferences.numPathsToPlugins = 1;
     preferences.engine = sl::EngineType::eUnity;
@@ -114,6 +114,7 @@ void ConfigureDevice()
     sl::AdapterInfo adapter;
     adapter.deviceLUID = reinterpret_cast<uint8_t*>(&luid);
     adapter.deviceLUIDSizeInBytes = sizeof(luid);
+    ConfigureSuperResolution(adapter);
     reflexSupported = api.supported(sl::kFeatureReflex, adapter) == sl::Result::eOk;
     pclSupported = api.supported(sl::kFeaturePCL, adapter) == sl::Result::eOk;
     auto supportResult = api.supported(sl::kFeatureDLSS_G, adapter);
@@ -155,6 +156,7 @@ void ConfigureDevice()
         kUnityD3D12GraphicsQueueAccess_DontCare,
         kUnityD3D12EventConfigFlag_ModifiesCommandBuffersState, false};
     graphics->ConfigureEvent(CaptureEvent, &capture);
+    graphics->ConfigureEvent(SuperResolutionEvent, &capture);
     UnityD3D12PluginEventConfig submit{
         kUnityD3D12GraphicsQueueAccess_Allow,
         kUnityD3D12EventConfigFlag_FlushCommandBuffers, false};
@@ -178,7 +180,7 @@ static void UNITY_INTERFACE_API DeviceEvent(UnityGfxDeviceEventType event)
         RestoreImports();
         Check(api.shutdown());
         status.initialized = 0;
-        reflexSupported = pclSupported = fgSupported = false;
+        reflexSupported = pclSupported = fgSupported = srSupported = false;
     }
 }
 }

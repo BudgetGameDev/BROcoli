@@ -8,30 +8,67 @@ from scripts.release_streamline import stage_streamline
 
 
 class StreamlineStagingTests(unittest.TestCase):
-    def test_urp_and_non_windows_do_not_require_or_copy_streamline(self):
+    def test_macos_with_framework_stages_engine_fixes_without_requiring_windows_dlls(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
-            for pipeline, targets in [("urp", ["windows"]), ("hdrp", ["macos"])]:
+            settings = root / "ProjectSettings/ProjectSettings.asset"
+            settings.parent.mkdir()
+            settings.write_text("Standalone: ENABLE_UPSCALER_FRAMEWORK")
+            with self.assertRaisesRegex(ValueError, "hooks-only"):
+                stage_streamline(root, root / "stage", "urp", ["macos"])
+            hook = Path(
+                "Packages/com.unity.render-pipelines.universal/Runtime/SharedStreamlineHooks.cs"
+            )
+            (root / hook).parent.mkdir(parents=True)
+            (root / hook).write_text("framework fixes")
+            stage_streamline(root, root / "stage", "urp", ["macos"])
+            self.assertEqual((root / "stage" / hook).read_text(), "framework fixes")
+            self.assertFalse((root / "stage/LocalPackages").exists())
+
+    def test_non_windows_does_not_require_or_copy_streamline(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            for pipeline, targets in [("urp", ["macos"]), ("hdrp", ["macos"])]:
                 stage_streamline(root, root / "stage", pipeline, targets)
                 self.assertFalse((root / "stage").exists())
 
     def test_windows_hdrp_requires_both_hook_and_native_bridge(self):
+        self.check_windows_staging(
+            "hdrp",
+            "com.unity.render-pipelines.high-definition",
+            "Runtime/RenderPipeline/SharedFrameGenerationHooks.cs",
+        )
+
+    def test_windows_urp_requires_both_hook_and_native_bridge(self):
+        self.check_windows_staging(
+            "urp", "com.unity.render-pipelines.universal", "Runtime/SharedStreamlineHooks.cs"
+        )
+
+    def check_windows_staging(self, pipeline, package, hook_name):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             native = Path("LocalPackages/com.budgetgamedev.shared/Native~/Streamline")
             (root / native).mkdir(parents=True)
             with self.assertRaisesRegex(ValueError, "setup.py"):
-                stage_streamline(root, root / "stage", "hdrp", ["windows"])
-            hdrp = Path("Packages/com.unity.render-pipelines.high-definition")
-            hook = hdrp / "Runtime/RenderPipeline/SharedFrameGenerationHooks.cs"
+                stage_streamline(root, root / "stage", pipeline, ["windows"])
+            hdrp = Path("Packages") / package
+            hook = hdrp / hook_name
             (root / hook).parent.mkdir(parents=True)
             (root / hook).write_text("hook")
             with self.assertRaisesRegex(ValueError, "native build is missing"):
-                stage_streamline(root, root / "stage", "hdrp", ["windows"])
+                stage_streamline(root, root / "stage", pipeline, ["windows"])
+            if pipeline == "hdrp":
+                urp = (
+                    root
+                    / "Packages/com.unity.render-pipelines.universal"
+                    / "Runtime/SharedStreamlineHooks.cs"
+                )
+                urp.parent.mkdir(parents=True)
+                urp.write_text("URP framework fixes")
             payload = native / "artifacts/win-x64"
             (root / payload).mkdir(parents=True)
             (root / payload / "GfxPluginBudgetGameDevStreamline.dll").write_bytes(b"bridge")
-            stage_streamline(root, root / "stage", "hdrp", ["windows"])
+            stage_streamline(root, root / "stage", pipeline, ["windows"])
             self.assertEqual((root / "stage" / hook).read_text(), "hook")
             self.assertEqual(
                 (root / "stage" / payload / "GfxPluginBudgetGameDevStreamline.dll").read_bytes(),

@@ -4,7 +4,7 @@ using UnityEngine.Rendering;
 
 namespace BudgetGameDev.Shared.Rendering
 {
-    /// <summary>Pipeline-independent menu contract. HDRP supplies the native implementation.</summary>
+    /// <summary>Pipeline-independent menu contract. Streamline supplies the native implementation.</summary>
     public static class NvidiaRendering
     {
         public sealed class Snapshot
@@ -43,8 +43,8 @@ namespace BudgetGameDev.Shared.Rendering
                 Report =
                     "DLSS, FRAME GENERATION & REFLEX\n\n"
                     + "Requested defaults: DLSS Quality / Preset K; 4x Frame Generation; Reflex On.\n"
-                    + "Active configuration: unavailable. No HDRP diagnostics provider is running.\n"
-                    + "These features require the native Windows x64 DX12 HDRP player.\n\n"
+                    + "Active configuration: unavailable. No Streamline diagnostics provider is running.\n"
+                    + "These features require the native Windows x64 DX12 URP or HDRP player.\n\n"
                     + $"Platform: {Application.platform}\nUnity: {Application.unityVersion}\n"
                     + $"Graphics API: {SystemInfo.graphicsDeviceType}\nGPU: {SystemInfo.graphicsDeviceName}\n"
                     + $"Driver/API: {SystemInfo.graphicsDeviceVersion}\n"

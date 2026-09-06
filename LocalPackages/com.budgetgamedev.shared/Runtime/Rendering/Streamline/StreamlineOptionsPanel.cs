@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-namespace BudgetGameDev.Shared.Rendering.HighDefinition
+namespace BudgetGameDev.Shared.Rendering
 {
     /// <summary>Reusable native rendering controls. Hosts may also bind StreamlineSettings to their own menu.</summary>
     public sealed class StreamlineOptionsPanel : MonoBehaviour

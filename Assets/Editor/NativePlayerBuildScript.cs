@@ -25,6 +25,8 @@ public sealed partial class NativePlayerBuildScript
     private static RenderPipelineAsset authoredDefaultPipeline;
     private static bool defaultPipelineHeld;
     private static string authoredQualitySettings;
+    private static BuildTarget? configuredTarget;
+    private static RenderPipelineAsset configuredPipeline;
 
     /// <summary>
     /// First, ahead of every other build callback. High Definition's own
@@ -195,6 +197,11 @@ public sealed partial class NativePlayerBuildScript
             );
         }
 
+        // Unity calls this from the entry point, build player processor and preprocessor.
+        // Reapplying identical quality settings reimports pipeline-dependent shader graphs.
+        if (defaultPipelineHeld && configuredTarget == target && configuredPipeline == pipeline)
+            return;
+
         if (!defaultPipelineHeld)
         {
             authoredDefaultPipeline = GraphicsSettings.defaultRenderPipeline;
@@ -211,6 +218,8 @@ public sealed partial class NativePlayerBuildScript
 
         ConfigureQualityLevels(target, pipeline);
         SetDefaultPipeline(pipeline);
+        configuredTarget = target;
+        configuredPipeline = pipeline;
     }
 
     private static void RestoreWhenBuildEnds()
@@ -237,6 +246,8 @@ public sealed partial class NativePlayerBuildScript
         SetDefaultPipeline(authoredDefaultPipeline);
         authoredDefaultPipeline = null;
         defaultPipelineHeld = false;
+        configuredTarget = null;
+        configuredPipeline = null;
     }
 
     /// <summary>

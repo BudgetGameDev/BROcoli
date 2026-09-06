@@ -98,3 +98,6 @@ __pycache__/
 /Packages/com.unity.render-pipelines.high-definition.meta
 /LocalPackages/com.budgetgamedev.shared/Native~/Streamline/artifacts/
 /LocalPackages/com.budgetgamedev.shared/Runtime/Plugins/Streamline/*.dll
+
+/Packages/com.unity.render-pipelines.universal/
+/Packages/com.unity.render-pipelines.universal.meta

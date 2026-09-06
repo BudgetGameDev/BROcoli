@@ -5,9 +5,8 @@ using UnityEngine;
 using UnityEngine.LowLevel;
 using UnityEngine.PlayerLoop;
 using UnityEngine.Rendering;
-using UnityEngine.Rendering.HighDefinition;
 
-namespace BudgetGameDev.Shared.Rendering.HighDefinition
+namespace BudgetGameDev.Shared.Rendering
 {
     /// <summary>Owns one Streamline token per simulated frame in the Windows player.</summary>
     public sealed class StreamlineRuntime : MonoBehaviour
@@ -17,17 +16,24 @@ namespace BudgetGameDev.Shared.Rendering.HighDefinition
         internal static Camera ViewCamera { get; private set; }
         private static StreamlineRuntime instance;
         private bool simulationEnded;
-        private StreamlineFinalFrame finalFrame;
+        internal static IStreamlinePipeline Pipeline { get; private set; }
+        private static readonly List<IStreamlinePipeline> pipelines =
+            new List<IStreamlinePipeline>();
+
+        internal static void Register(IStreamlinePipeline pipeline)
+        {
+            pipelines.RemoveAll(item => item.GetType() == pipeline.GetType());
+            pipelines.Add(pipeline);
+        }
+
         private float nextReport;
-        private HDRenderPipelineAsset configuredPipeline;
+        internal static bool FrameGenerationSupported { get; private set; }
         internal static bool CaptureEnabled =>
-            instance?.finalFrame != null
+            FrameGenerationSupported
+            && Pipeline?.CanCapture == true
             && StreamlineSettings.GeneratedFrames > 0
             && Application.isFocused
             && !StreamlineOptionsPanel.Visible;
-
-        internal static void CaptureSdrUi(CustomPassContext context) =>
-            instance?.finalFrame?.CaptureSdrUi(context);
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         private static void Install()
@@ -35,7 +41,6 @@ namespace BudgetGameDev.Shared.Rendering.HighDefinition
             if (
                 Application.platform != RuntimePlatform.WindowsPlayer
                 || SystemInfo.graphicsDeviceType != GraphicsDeviceType.Direct3D12
-                || !(GraphicsSettings.currentRenderPipeline is HDRenderPipelineAsset)
             )
                 return;
             if (instance != null)
@@ -47,36 +52,18 @@ namespace BudgetGameDev.Shared.Rendering.HighDefinition
 
         private void Awake()
         {
-            ConfigurePipeline();
             RenderPipelineManager.beginCameraRendering += ConfigureCamera;
             if (!StreamlineNative.TryGetStatus(out var status) || status.initialized == 0)
             {
                 Debug.LogWarning(
-                    "[Streamline] Native initialization unavailable. HDRP DLSS SR remains independent."
+                    "[Streamline] Native initialization unavailable. Ordinary pipeline rendering remains active."
                 );
                 return;
             }
-            if (status.frameGenerationAvailable != 0)
-            {
-                finalFrame = new StreamlineFinalFrame();
-                if (!finalFrame.Attach())
-                {
-                    Debug.LogError(
-                        "[Streamline] Missing HDRP final-color hook. Frame generation disabled; run the shared package setup."
-                    );
-                    finalFrame.Dispose();
-                    finalFrame = null;
-                }
-            }
+            FrameGenerationSupported = status.frameGenerationAvailable != 0;
             RenderEvent = StreamlineNative.BgdSL_GetRenderEvent();
+            ConfigurePipeline();
             gameObject.AddComponent<StreamlineOptionsPanel>();
-            if (finalFrame != null)
-            {
-                var volume = gameObject.AddComponent<CustomPassVolume>();
-                volume.isGlobal = true;
-                volume.injectionPoint = CustomPassInjectionPoint.BeforePostProcess;
-                volume.customPasses.Add(new StreamlineInputsPass());
-            }
             var loop = PlayerLoop.GetCurrentPlayerLoop();
             InsertEarlyUpdate(ref loop);
             PlayerLoop.SetPlayerLoop(loop);
@@ -88,31 +75,26 @@ namespace BudgetGameDev.Shared.Rendering.HighDefinition
 
         private void ConfigurePipeline()
         {
-            if (
-                !(GraphicsSettings.currentRenderPipeline is HDRenderPipelineAsset asset)
-                || asset == configuredPipeline
-            )
-                return;
-            var settings = asset.currentPlatformRenderPipelineSettings;
-            settings.dynamicResolutionSettings = StreamlineSettings.ConfigureSuperResolution(
-                settings.dynamicResolutionSettings
+            var next = pipelines.FirstOrDefault(pipeline => pipeline.IsActive);
+            if (next != Pipeline)
+            {
+                Pipeline?.Dispose();
+                Pipeline = next;
+                Pipeline?.Attach(gameObject);
+                ApplyOptions();
+            }
+            Pipeline?.Configure(
+                ViewCamera != null && StreamlineUpscaler.Available && StreamlineSettings.DlssEnabled
             );
-            asset.currentPlatformRenderPipelineSettings = settings;
-            configuredPipeline = asset;
         }
 
-        private void ConfigureCamera(ScriptableRenderContext context, Camera camera)
-        {
-            if (!IsEligibleCamera(camera))
-                return;
-            var data = camera.GetComponent<HDAdditionalCameraData>();
-            if (data == null)
-                return;
-            camera.allowDynamicResolution = true;
-            data.allowDeepLearningSuperSampling = StreamlineSettings.DlssEnabled;
-            data.deepLearningSuperSamplingUseCustomQualitySettings = false;
-            data.deepLearningSuperSamplingUseCustomAttributes = false;
-        }
+        private void ConfigureCamera(ScriptableRenderContext context, Camera camera) =>
+            Pipeline?.ConfigureCamera(
+                camera,
+                camera == ViewCamera
+                    && StreamlineSettings.DlssEnabled
+                    && StreamlineUpscaler.Available
+            );
 
         internal static bool IsEligibleCamera(Camera camera) =>
             camera != null
@@ -153,6 +135,11 @@ namespace BudgetGameDev.Shared.Rendering.HighDefinition
             // FG supports one viewport here. Multiple output cameras would describe
             // conflicting histories for the same present, so skip FG for that frame.
             ViewCamera = SelectViewCamera(cameras);
+            if (ViewCamera != null && Pipeline?.SupportsCamera(ViewCamera) != true)
+                ViewCamera = null;
+            Pipeline?.Configure(
+                ViewCamera != null && StreamlineSettings.DlssEnabled && StreamlineUpscaler.Available
+            );
             StreamlineNative.BgdSL_EndSimulation(FrameToken);
             var cmd = CommandBufferPool.Get("Streamline render submission start");
             cmd.IssuePluginEventAndData(RenderEvent, StreamlineNative.SubmitStartEvent, FrameToken);
@@ -173,6 +160,8 @@ namespace BudgetGameDev.Shared.Rendering.HighDefinition
 
         private void Update()
         {
+            if (RenderEvent == IntPtr.Zero)
+                return;
             ConfigurePipeline();
             if (Time.unscaledTime < nextReport || RenderEvent == IntPtr.Zero)
                 return;
@@ -188,12 +177,10 @@ namespace BudgetGameDev.Shared.Rendering.HighDefinition
 
         internal void ApplyOptions()
         {
-            configuredPipeline = null;
-            ConfigurePipeline();
             if (RenderEvent == IntPtr.Zero)
                 return;
             StreamlineNative.BgdSL_Configure(
-                finalFrame != null && !StreamlineOptionsPanel.Visible
+                Pipeline?.CanCapture == true && !StreamlineOptionsPanel.Visible
                     ? (uint)StreamlineSettings.GeneratedFrames
                     : 0,
                 (uint)StreamlineSettings.EffectiveReflex,
@@ -235,7 +222,9 @@ namespace BudgetGameDev.Shared.Rendering.HighDefinition
             StreamlineSettings.Changed -= ApplyOptions;
             if (RenderEvent != IntPtr.Zero)
                 StreamlineNative.BgdSL_Configure(0, 0, 0);
-            finalFrame?.Dispose();
+            Pipeline?.Dispose();
+            Pipeline = null;
+            FrameGenerationSupported = false;
             FrameToken = RenderEvent = IntPtr.Zero;
             ViewCamera = null;
             instance = null;

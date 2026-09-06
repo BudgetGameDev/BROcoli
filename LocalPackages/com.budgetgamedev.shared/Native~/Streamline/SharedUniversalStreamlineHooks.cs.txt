@@ -1,0 +1,30 @@
+using System;
+using UnityEngine.Rendering.RenderGraphModule;
+using UnityEngine.Scripting;
+
+namespace UnityEngine.Rendering.Universal
+{
+    [Preserve]
+    public static class SharedStreamlineHooks
+    {
+        public const int Version = 1;
+        public static event Func<Camera, bool> Active;
+        public static event Action<RenderGraph, ContextContainer, Matrix4x4, Vector2> Inputs;
+        public static event Action<RenderGraph, ContextContainer, Action<TextureHandle>> FinalFrame;
+        internal static bool IsEnabled(Camera camera) => Active?.Invoke(camera) == true;
+        internal static void CaptureInputs(RenderGraph graph, ContextContainer frameData)
+        {
+            var camera = frameData.Get<UniversalCameraData>();
+            if (!IsEnabled(camera.camera)) return;
+            var projection = camera.GetProjectionMatrixNoJitter();
+            var jitter = camera.GetProjectionMatrix() * projection.inverse;
+            var size = camera.cameraTargetDescriptor;
+            Inputs?.Invoke(graph, frameData, GL.GetGPUProjectionMatrix(projection, true),
+                new Vector2(-jitter.m03 * size.width * 0.5f, -jitter.m13 * size.height * 0.5f));
+        }
+        internal static void CaptureFinal(RenderGraph graph, ContextContainer frameData, Action<TextureHandle> render)
+        {
+            if (IsEnabled(frameData.Get<UniversalCameraData>().camera)) FinalFrame?.Invoke(graph, frameData, render);
+        }
+    }
+}

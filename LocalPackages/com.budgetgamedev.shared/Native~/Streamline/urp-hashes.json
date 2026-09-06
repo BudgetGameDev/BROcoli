@@ -1,0 +1,26 @@
+{
+  "Runtime/UniversalRenderer.cs": {
+    "original": "8f550496cc62b94be3a8732c553af7ca19e2d77000e52253b153942dba417807",
+    "patched": "9c83c01c8134846c13ddc80e3ae340a12f3a29e11e9e3a50c63c990b8649d57f"
+  },
+  "Runtime/UniversalRendererRenderGraph.cs": {
+    "original": "8b2612f49ad071f4dff0d79a328ea08cd28ded1357fc8527602267df4e36c63c",
+    "patched": "e0f25d4ac5dcb2a1bc401b7e32a50cbb2d6cfcc2519d326f86cc886e8dedae35"
+  },
+  "Runtime/Passes/FinalBlitPass.cs": {
+    "original": "fe04590c08fd3c73030c0c7dde52cc926df11a6374ceb2368f320e623d5aece6",
+    "patched": "c66376a429a3fb3f951842bdfb2ac9e316ab70da772afb979d351f7c1c8f67a6"
+  },
+  "Runtime/Passes/PostProcess/FinalPostProcessPass.cs": {
+    "original": "f9b91b3a3fc74a38c6f6ad9f17a2219ac96252a013bdf6761e4e0ffcbab29030",
+    "patched": "059e2bec957d31fcea476bb344f96d76c4338876655f06470892e7287d03f507"
+  },
+  "Runtime/2D/Rendergraph/Renderer2DRendergraph.cs": {
+    "original": "c96af70f90eec63dd8c20fbca4c481e7f7f1b04fe3737fdc45b3683f5fb5f369",
+    "patched": "cfab945ac31e051757df62387f48af9af86b11fa8b801db6a400713a1ded537b"
+  },
+  "Editor/ShaderBuildPreprocessor.cs": {
+    "original": "2ea88b9b7932760fa1afbe1a70183ad9877d6b692bff218e2ba83e2d14cc7cc1",
+    "patched": "01bb435ccca4e6abd88fec32e6ca0cc64001add87bce05632ad26ba22f591ffe"
+  }
+}

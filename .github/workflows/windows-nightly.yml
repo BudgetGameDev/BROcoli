@@ -65,15 +65,24 @@ jobs:
           if (-not $editor) { throw 'Pinned Unity Editor not found' }
           $data = Join-Path $editor.location 'Editor/Data'
           if (-not (Test-Path $data)) { $data = Join-Path $editor.location 'Data' }
-          python LocalPackages/com.budgetgamedev.shared/Tools~/Streamline/setup.py --hdrp-source "$data/Resources/PackageManager/BuiltInPackages/com.unity.render-pipelines.high-definition" --unity-plugin-api "$data/PluginAPI"
+          python LocalPackages/com.budgetgamedev.shared/Tools~/Streamline/setup.py --urp-source "$data/Resources/PackageManager/BuiltInPackages/com.unity.render-pipelines.universal" --hdrp-source "$data/Resources/PackageManager/BuiltInPackages/com.unity.render-pipelines.high-definition" --unity-plugin-api "$data/PluginAPI"
           if ($LASTEXITCODE -ne 0) { throw 'Shared Streamline setup failed' }
+      - name: Restore Windows HDRP build cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            build/release-staging/incremental-*/Library
+            build/release-staging/incremental-*/.release-workspace.json
+          key: Library-Windows-HDRP-6000.5.10f1-${{ github.sha }}
+          restore-keys: |
+            Library-Windows-HDRP-6000.5.10f1-
       - name: Build and audit Windows HDRP player
         env:
           BROCOLI_LICENSED_ASSET_KEY: ${{ secrets.BROCOLI_LICENSED_ASSET_KEY }}
         run: |
           if (-not $env:BROCOLI_LICENSED_ASSET_KEY) { throw 'Licensed asset key is missing' }
           if (-not (Select-String -Path ProjectSettings/QualitySettings.asset -Pattern '^    Standalone: 9$')) { throw 'Windows nightly requires authored default quality 9' }
-          ./scripts/native-builds.ps1 -Product brocoli -RenderPipeline hdrp
+          ./scripts/native-builds.ps1 -Product brocoli -RenderPipeline hdrp -ReuseStage
       - uses: actions/upload-artifact@v4
         with:
           name: windows-hdrp-nightly
@@ -85,7 +94,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: windows-hdrp-build-log
-          path: build/native/brocoli/players/unity-build.log
+          path: |
+            build/native/brocoli/players/unity-build.log
+            build/native/brocoli/players/*shader-stripping.json
           if-no-files-found: ignore
           retention-days: 7
 

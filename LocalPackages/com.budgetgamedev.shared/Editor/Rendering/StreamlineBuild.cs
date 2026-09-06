@@ -8,9 +8,8 @@ using UnityEditor.Build;
 using UnityEditor.Build.Reporting;
 using UnityEngine;
 using UnityEngine.Rendering;
-using UnityEngine.Rendering.HighDefinition;
 
-namespace BudgetGameDev.Shared.Rendering.HighDefinition.Editor
+namespace BudgetGameDev.Shared.Rendering.Editor
 {
     public sealed class StreamlineBuild : IPreprocessBuildWithReport, IPostprocessBuildWithReport
     {
@@ -43,25 +42,43 @@ namespace BudgetGameDev.Shared.Rendering.HighDefinition.Editor
 
         private static bool Applies(BuildTarget target) =>
             target == BuildTarget.StandaloneWindows64
-            && BuildRenderingPolicy.PipelineFor(target) == RenderPipelineKind.HighDefinition;
+            && (
+                BuildRenderingPolicy.PipelineFor(target) == RenderPipelineKind.HighDefinition
+                || BuildRenderingPolicy.PipelineFor(target) == RenderPipelineKind.Universal
+            );
 
         public void OnPreprocessBuild(BuildReport report)
         {
             if (!Applies(report.summary.platform))
                 return;
-            ValidatePayload();
-            var hook = typeof(HDRenderPipeline).Assembly.GetType(
-                "UnityEngine.Rendering.HighDefinition.SharedFrameGenerationHooks"
-            );
-            if (hook?.GetField("Version")?.GetRawConstantValue() is not int version || version != 1)
+            if (
+                !PlayerSettings
+                    .GetScriptingDefineSymbols(NamedBuildTarget.Standalone)
+                    .Split(';')
+                    .Contains(StreamlineSetup.FrameworkDefine)
+            )
                 throw new BuildFailedException(
-                    "Streamline needs the shared HDRP 17.5 final-color hook. Run Tools~/Streamline/setup.py and let Unity recompile."
+                    "Enable the Streamline upscaler framework in the Editor and recompile before building Windows."
+                );
+            ValidatePayload();
+            bool hdrp =
+                BuildRenderingPolicy.PipelineFor(report.summary.platform)
+                == RenderPipelineKind.HighDefinition;
+            var type = Type.GetType(
+                hdrp
+                    ? "UnityEngine.Rendering.HighDefinition.SharedFrameGenerationHooks, Unity.RenderPipelines.HighDefinition.Runtime"
+                    : "UnityEngine.Rendering.Universal.SharedStreamlineHooks, Unity.RenderPipelines.Universal.Runtime"
+            );
+            if (type?.GetField("Version")?.GetRawConstantValue() is not int version || version != 1)
+                throw new BuildFailedException(
+                    "Run Streamline setup.py to install this pipeline's capture hooks."
                 );
             var importer = AssetImporter.GetAtPath(PluginPath) as PluginImporter;
             if (
                 importer == null
                 || !importer.GetCompatibleWithPlatform(BuildTarget.StandaloneWindows64)
                 || importer.GetCompatibleWithEditor()
+                || importer.DefineConstraints.Length != 0
                 || !importer.isPreloaded
             )
                 throw new BuildFailedException(
@@ -169,7 +186,7 @@ namespace BudgetGameDev.Shared.Rendering.HighDefinition.Editor
             plugin.SetCompatibleWithPlatform(BuildTarget.StandaloneWindows64, true);
             plugin.SetPlatformData(BuildTarget.StandaloneWindows64, "CPU", "x86_64");
             plugin.isPreloaded = true;
-            plugin.DefineConstraints = new[] { "!BROCOLI_URP_PLAYER" };
+            plugin.DefineConstraints = Array.Empty<string>();
         }
     }
 }

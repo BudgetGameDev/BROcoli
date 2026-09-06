@@ -49,7 +49,14 @@ namespace BudgetGameDev.Shared
 
                 nextStatusPoll = Time.unscaledTime + StatusPollInterval;
                 bool systemChanged = RefreshSystemHdrState();
-                if (systemChanged || !ReferenceEquals(grade, RenderPipelineFrontEnd.HdrGrade))
+                bool captureChanged =
+                    streamlineOverlaySeparated
+                    != (Rendering.StreamlineRuntime.Pipeline?.CanCapture == true);
+                if (
+                    systemChanged
+                    || captureChanged
+                    || !ReferenceEquals(grade, RenderPipelineFrontEnd.HdrGrade)
+                )
                     Apply();
                 TryUseNativeDisplayCalibration();
 
@@ -90,6 +97,8 @@ namespace BudgetGameDev.Shared
                 );
             }
 
+            private bool streamlineOverlaySeparated;
+
             internal void Apply(bool switchable, bool displayDetected, Action<bool> requestHdrMode)
             {
                 if (instance != null && instance != this)
@@ -100,10 +109,14 @@ namespace BudgetGameDev.Shared
                 // desktop it only flattens the picture, so it needs a detected HDR display too.
                 bool enabled = HdrEnabled && displayDetected;
                 grade?.Apply(BuildGradeRequest(enabled));
-                // HDRP must keep overlay UI separate through its final HDR pass.
-                // The camera-space workaround is for URP's HDR overlay path only.
+                // Streamline needs overlay UI separate from scene color in both pipelines.
+                // Keep the legacy URP workaround only without Streamline capture.
+                streamlineOverlaySeparated =
+                    Rendering.StreamlineRuntime.Pipeline?.CanCapture == true;
                 ConfigureCanvasComposition(
-                    enabled && grade?.Pipeline != RenderPipelineKind.HighDefinition
+                    enabled
+                        && grade?.Pipeline != RenderPipelineKind.HighDefinition
+                        && !streamlineOverlaySeparated
                 );
                 if (switchable && displayDetected)
                     requestHdrMode(HdrEnabled);

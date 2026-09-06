@@ -1,195 +1,141 @@
-# Windows HDRP DLSS and Streamline
+# NVIDIA Streamline for URP and HDRP
 
-This shared-package integration targets Unity **6000.5.10f1**, HDRP **17.5.0**,
-Windows x64 and DX12, including SDR and the project's HDR10 output path. Unity's NVIDIA module
-provides DLSS Super Resolution, defaulting to **Quality / preset K**. Streamline
-**2.12.0** provides DLSS Frame Generation and **sl.reflex**, with three generated
-frames requested (4× total), clamped to the device's reported maximum. Reflex
-defaults to **On**, without Boost. Unsupported devices retain ordinary rendering.
+The shared package uses **NVIDIA Streamline 2.12.0** for DLSS Super Resolution,
+DLSS Frame Generation and Reflex in **Unity 6000.5.10f1 / URP and HDRP 17.5.0**.
+The native backend targets **Windows x64 / Direct3D 12**. macOS, Linux, WebGL,
+unsupported adapters and unavailable native features retain ordinary rendering.
+Unity's separate NVIDIA module is no longer a package dependency.
 
-**Status:** the bridge can be cross-compiled, its production payload can be checked,
-and its managed code can be tested on macOS. These checks do not validate Unity's
-DXGI interposition, image quality, actual generated frames, or Reflex timing.
-Windows RTX acceptance below is required before treating this as production-ready.
-The full player must be built with the Windows Editor: the macOS Editor cannot
-compile HDRP's DXC/STP and ray-tracing shaders for DirectX. The attempted macOS
-cross-build passed managed compilation but failed at that shader compilation step.
+Defaults remain **DLSS Quality / preset K**, up to **three generated frames**
+(4x total, clamped to hardware support), and **Reflex On** without Boost.
+Existing `Rendering.Streamline.*` preferences survive the migration. Shared APIs
+now live in `BudgetGameDev.Shared.Rendering`; only pipeline capture adapters live
+in `.Universal` and `.HighDefinition`.
 
-## Prepare
+**Validation boundary:** native cross-compilation and player script compilation
+are useful integration checks, but do not establish GPU execution or image quality.
+Windows RTX acceptance below is required before calling either pipeline production-ready.
 
-Resolve the project's packages in Unity once. Install CMake and Visual Studio's
-x64 C++ tools on Windows, then run from the project root:
+## Prepare and build
+
+Resolve the project's packages once, then run from the project root:
 
 ```powershell
 python LocalPackages/com.budgetgamedev.shared/Tools~/Streamline/setup.py `
   --unity-plugin-api "C:\Program Files\Unity\Hub\Editor\6000.5.10f1\Editor\Data\PluginAPI"
 ```
 
-On macOS, the same script accepts the Editor's
-`Unity.app/Contents/Resources/PluginAPI` directory and cross-compiles with
-`mingw-w64`. `--sdk PATH` uses an already-extracted NVIDIA SDK. The script checks
-the pinned production hashes even with this option. On Windows it additionally
-checks NVIDIA Authenticode signatures. Refresh Unity after setup.
+The default prepares **both** pipelines. `--pipeline urp` supports a URP-only host;
+HDRP builds of this shared package also need the URP framework fixes, so use the
+default `both`. `--hdrp-source PATH` and `--urp-source PATH` accept resolved 17.5.0
+sources, including the Editor's built-in packages. `--hooks-only` skips the native
+build. The legacy `--hdrp-only` switch only installs the HDRP final-color hook.
 
-Setup builds `Native~/Streamline/artifacts/win-x64`, stages the graphics plugin in
-`Runtime/Plugins/Streamline`, and creates an ignored, embedded HDRP package from the
-resolved 17.5.0 source. The installer checks the unmodified final-pass source hash
-before inserting the small callback in `HDRenderPipeline.PostProcess.cs`; it
-refuses unknown versions or local edits. `--hdrp-only` prepares just that hook.
-The patch and native artifacts are reproducible build inputs, not committed SDKs.
-The patch also installs its linker rules inside the embedded HDRP package, so
-projects without that optional hook do not acquire unresolved linker references.
-The committed plugin metadata limits loading to Windows x64 and preloads it.
+On macOS, pass the Editor's `Unity.app/Contents/Resources/PluginAPI` directory and
+install `mingw-w64` for the Windows cross-compile. `--sdk PATH` uses an extracted
+SDK; setup still verifies the production payload hashes. Windows additionally
+verifies NVIDIA Authenticode signatures.
 
-Use **Tools > Build > Native > Windows HDRP HDR10 Player**, or the existing native
-release command with `--pipeline hdrp`. Release staging carries the patched HDRP
-and production payload into the isolated project. Build callbacks reject missing
-hooks, incorrect importer settings, non-x64 DLLs, and payloads that differ from
-the pinned production release. Libraries and licenses are copied beside the EXE.
-The Windows HDRP build uses DX12 exclusively; the URP build keeps its API policy.
+Setup creates ignored embedded render pipeline packages and stages the bridge in
+`Runtime/Plugins/Streamline`. The engine edits are hash-pinned and repeatable;
+unknown source changes are rejected. URP's patch also fixes two obsolete API
+references exposed by Unity's optional upscaler framework. Refresh/resolve packages
+in Unity after setup. Do not edit the generated packages as the source of a fix.
 
-Press **F10** for the reusable rendering settings panel. Hosts can instead bind
-their own UI to `StreamlineSettings`. Disabling Reflex also disables FG in this
-panel; a programmatic FG request forces effective Reflex On. FG pauses while the
-IMGUI panel is open because that UI is composed outside HDRP's tagged UI buffer.
+Unity's optional `ENABLE_UPSCALER_FRAMEWORK` define changes serialized pipeline
+fields, so **Editor and player must both compile with it**. Once hooks are imported,
+shared Editor setup enables it for Standalone. Do not enable it only through
+`BuildPlayerOptions.extraScriptingDefines`. Run setup (or `--hooks-only` for a
+non-Windows development machine) before opening a fresh checkout with the define
+enabled. macOS/Linux release staging carries the URP framework fixes when this
+define is configured; their runtime still uses ordinary rendering. WebGL uses its
+own build-target defines and does not require the framework.
 
-## Settings menu and live diagnostics
+The shared build callbacks cover **URP and HDRP**, validate capture hooks, native
+import/preload settings, x64 PE files and pinned production payloads, and copy DLLs
+and licenses beside the EXE. Both Windows pipelines use DX12. Release isolation
+carries the selected pipeline hooks and native payload; HDRP staging also carries
+the URP framework fixes needed by the shared package's URP dependency.
 
-Open **Settings > NVIDIA** from either the main menu or pause menu. Both use the
-shared `NvidiaSettingsPage`; game code only links the page into its navigation.
-Other hosts can create the same page and use the pipeline-independent
-`NvidiaRendering.IBackend` contract without referencing HDRP assemblies.
+## Runtime integration
 
-The controls toggle DLSS Quality/K, cycle supported FG multipliers, and select
-Reflex Off/On/On+Boost. Selecting Reflex Off also disables FG. **Defaults** restores
-Quality/K, a 4x request, and Reflex On. **Copy Debug** copies the entire report,
-including text outside the visible scroll area. Scroll with the mouse wheel,
-touch, right stick, or Page Up/Down; Escape/B returns to Settings.
+- **One shared SR backend:** `StreamlineUpscaler` implements Unity's `AbstractUpscaler`
+  for both pipelines. It negotiates the Quality render resolution with
+  `slDLSSGetOptimalSettings`, provides temporal jitter, normalized motion vectors,
+  depth, camera constants and pre-exposed color, and dispatches `slEvaluateFeature`
+  on Unity's recording command list. The native backend selects Streamline's
+  `ePresetK` enum, not Unity's differently numbered preset enum.
+- **Failure behavior:** output has a spatial fallback before native evaluation.
+  Unsupported or failed native SR selects ordinary pipeline rendering. Unity's
+  built-in DLSS names are excluded from the shared configuration.
+- **Pipeline capture:** HDRP retains its pre-postprocess CustomPass and final-color
+  hook. URP requests resolved depth/object motion independently of SR and uses
+  version-pinned hooks before postprocessing and in both final compositor paths.
+  The final compositor is replayed with UI compositing disabled into a separate
+  full-resolution target. HDR uses the existing overlay texture; SDR renders the
+  UI renderer list separately, including stencil masks, to obtain UI alpha.
+- **UI:** overlay canvases stay separate when Streamline capture is installed,
+  including URP's HDR path. Camera-space/world-space UI remains scene content.
+  The F10 IMGUI panel suspends FG because it is outside the tagged overlay.
+- **Tokens and lifetime:** one simulation token flows through Reflex, SR, capture,
+  submission and real Present. Volatile RenderGraph resources are tagged
+  `eOnlyValidNow`; native packets retain their COM resources until consumed.
+  The bridge requests D3D12 read/UAV states through Unity's v8 plugin API.
+- **Presentation and Reflex:** the existing early graphics-plugin preload,
+  signature-checked interposer, UnityPlayer import adapter, proxy-swapchain hooks,
+  PCL markers and low-latency sleep are shared by both pipelines. FG requires
+  depth/motion/constants, HUD-less color and UI alpha for the same token. Resize,
+  focus loss, missing inputs and unsupported configurations suspend FG.
 
-The page refreshes at 4 Hz using unscaled time, including while paused. Unlike the
-F10 IMGUI window, this ordinary overlay canvas does not itself suspend capture.
-An orthographic menu camera can still make FG ineligible.
+The integration supports one fullscreen perspective Game camera on the primary
+display. Camera stacks, multiple output cameras, orthographic cameras, render
+textures, XR and split-screen are excluded. RenderGraph and URP's UniversalRenderer
+are required; the 2D renderer is not an FG adapter. SR resets history after camera
+changes/cuts, output resize, pipeline transitions and interrupted execution.
 
-The report separates requested preferences, accepted native options, and observed
-runtime evidence:
+## Settings and diagnostics
 
-- **DLSS:** HDRP asset configuration and NVIDIA module/NGX versions, feature
-  validity, execution dimensions, initialized quality and preset. Feature validity
-  is not a GPU completion measurement; NVIDIA App overrides are not exposed.
-- **FG:** actual proxy attachment, support/requirements results, decoded status
-  errors, per-frame input mask, dimensions, token IDs, successful real Presents,
-  and `numFramesActuallyPresented` from the existing present-thread state query.
-  Extra-present evidence expires after 1.5 seconds. An enabled option alone never
-  produces an observed-working label. SDK counts do not prove monitor scan-out.
-- **Reflex:** accepted mode, sleep and marker results/counters, PCL window binding,
-  driver report frame IDs, report age, and PC/simulation/submission/GPU latency.
-  PC latency is simulation start to GPU render end, not click-to-photon latency.
-- **Debug:** platform, adapter, API/driver, HDR format, focus, load/ABI failures,
-  sticky native errors and the latest 64 native/Streamline messages. Full log files
-  remain in the path shown in the report.
+**Settings > NVIDIA** uses the pipeline-independent `NvidiaRendering.IBackend`.
+The shared F10 panel is also available. Reflex Off disables FG in the UI; a
+programmatic FG request forces effective Reflex On. Defaults and saved preference
+keys are unchanged.
 
-Native telemetry is cached under the bridge lock; opening the page does not add
-DLSS-G state reads that would consume/reset its presented-frame counters. Rebuild
-the shared native bridge when updating to this diagnostics interface.
+SR telemetry reports adapter support, accepted options, evaluation results,
+input/output dimensions and successful dispatch counts. Only recent successful
+native dispatches produce an observed label; this is not GPU completion or an
+image-quality measurement. FG still requires recent real-Present and extra-Present
+evidence. Reflex reports accepted mode, sleep/marker results and driver latency
+reports. NVIDIA App overrides and monitor scan-out are not measured.
 
-## Actual integration points
-
-1. **Early DXGI/D3D12:** `GfxPluginBudgetGameDevStreamline` uses Unity's documented
-   graphics-plugin preload convention. `UnityPluginLoad` validates NVIDIA DLL
-   signatures, calls `slInit`, and redirects UnityPlayer's own graphics imports
-   and dynamically resolved DXGI/D3D12 entry points to `sl.interposer`.
-   This is a native Unity-version-specific adapter, not a C# initialization call.
-   It does not modify system DLLs or other processes. Unity's resulting device,
-   queue, command-list, and swapchain interfaces must be Streamline proxies;
-   actual interception still requires validation against the Windows player.
-2. **Actual Present:** submission-thread plugin events obtain Unity's swapchain
-   through `IUnityGraphicsD3D12v8`. `slGetNativeInterface` must return a different
-   underlying interface before FG can run. Native callbacks wrap that proxy's
-   `Present`, `Present1`, fullscreen, and resize calls. Streamline's proxy handles
-   `GetBuffer`, backbuffer indexing and the actual FG presentation. FG is turned
-   off before resize/fullscreen transitions, on occlusion, or without current inputs.
-3. **HDRP inputs:** `StreamlineInputsPass` captures the actual pre-postprocess
-   depth and motion textures, non-jittered camera matrices, negative HDRP jitter,
-   normalized current-to-previous motion scale, and the rendering extent. The
-   final-pass hook repeats HDRP's actual final shader with transparent overlay UI
-   to capture a full-resolution HUD-less image in the output format and encoding.
-   A separate R8 texture contains the real HDRP overlay alpha. For SDR, the overlay
-   renderer list is drawn to a separate color/depth target before alpha extraction;
-   HUD-less SDR color uses the final shader and an sRGB render target. HDRP overlay canvases
-   stay separate; the existing camera-space HDR UI workaround is restricted to URP.
-   Screen-space overlay UI is separated; world-space UI and after-post scene
-   geometry remain part of the scene image.
-4. **Lifetime/state:** render events request D3D12 resource states using Unity's
-   v8 API. The source textures are tagged `eOnlyValidNow` because HDRP can alias or
-   reuse them before Present; Streamline records copies and owns their lifetime.
-   Depth/motion/constants, HUD-less color and UI alpha tags must all arrive for the same token.
-5. **Reflex:** a PlayerLoop callback obtains one token and sleeps before EarlyUpdate
-   input processing. The same token flows through SimulationStart/End, submission
-   events, tagging, and the actual PresentStart/End callbacks. Markers use
-   `slPCLSetMarker`, the current Streamline Reflex/PCL API. PCL latency-ping and
-   mouse-flash messages are handled on the real player window. Sleep and markers
-   continue when low-latency mode is Off, as required by NVIDIA.
-
-The implementation currently enables FG for **one fullscreen perspective camera
-on display 0**. Orthographic menus, render textures, XR,
-multiple output cameras, and intermediate final passes do not provide a complete tagged frame,
-so FG stays off for them. DLSS SR and Reflex are independent of the final-color
-hook. Capture is skipped when FG is disabled or unsupported. No fabricated empty
-HUD mask is used for SDR or HDR.
+Full logs remain under
+`%LOCALAPPDATA%\BudgetGameDev\Streamline\<executable-name>`.
 
 ## Windows RTX acceptance
 
-Use Windows 10 2004+ or Windows 11, a supported current NVIDIA driver, and
-Hardware-accelerated GPU Scheduling enabled (restart after changing it).
-These are evaluated through `slIsFeatureSupported` for Unity's actual adapter;
-the bridge also calls `slGetFeatureRequirements` and requires DX12 support.
-It does not infer support merely from GPU-name text or an RTX product number.
+For **both URP and HDRP**, test an actual Windows player on compatible hardware:
 
-1. Verify `Player.log` reports `proxy=1`, `reflex=1`, successful feature/requirements
-   results and `status=0`. On a supported MFG GPU, the default should report
-   `generated=3`; on a 2×-only GPU it should report `generated=1`. These are accepted
-   options, not an FPS measurement. Check the actual generated/presented frames
-   separately with FrameView and NVIDIA's tools.
-2. Inspect Streamline logs under
-   `%LOCALAPPDATA%\BudgetGameDev\Streamline\<executable-name>`. Resolve integration
-   warnings, including frame-index mismatches. Initialization failures are also
-   sent to OutputDebugString. A DLL existing on disk is not attachment evidence.
-3. Run NVIDIA's Reflex Test Utility with FG On/Off and Reflex Off/On/On+Boost.
-   Confirm nonzero PC latency, ping/flash operation, continuously updated markers,
-   and matching rendered/presented frame indices. Verify low-latency sleep remains
-   active when Reflex is Off. Observe GPU-presented FPS rather than Unity's
-   simulation FPS counter when checking MFG.
-4. Inspect tagged depth, motion, HUD-less color and UI alpha using a development
-   validation package and NVIDIA's DLSS-G visualization tests. Check camera cuts,
-   animated transparency, HUD edges, exposure changes, dithering, native-resolution
-   UI, HDR luminance and encoding. Development binaries must never replace the
-   pinned production payload in a release build.
-5. Test resize, minimize/restore, Alt-Tab, HDR output changes, quality changes,
-   scene transitions and shutdown, plus unsupported adapters/drivers/HAGS-off.
-   Check for device loss, deadlocks, lingering interpolation, and VRAM growth.
-6. Test real 2× and MFG-capable devices and compare baseline GPU/CPU frametimes.
-   Capturing the final color and requesting native texture pointers has a cost
-   that needs measurement on Windows hardware.
+1. Confirm the shared bridge ABI, SR support, successful SR dispatches and the
+   actual proxy swapchain attachment. A DLL on disk or an enabled setting is not
+   execution evidence.
+2. Compare SR off/on at Quality/K and inspect depth/motion tags, camera cuts,
+   animated geometry, fine detail, transparency, exposure and resize transitions.
+   Verify native-resolution UI in SDR and HDR and check for double gamma encoding.
+3. Test FG independently with SR on/off and with Reflex Off/On/On+Boost. Use the
+   NVIDIA Reflex Test Utility, verify continuously updated frame IDs and measure
+   GPU-presented FPS rather than Unity simulation FPS. Exercise 2x and MFG devices.
+4. Test minimize/restore, focus, HDR changes, quality and scene changes, unsupported
+   adapters/drivers, HAGS off, and shutdown. Check device loss and VRAM growth.
+5. Measure the cost of final-compositor replay, UI capture, fallback blits and native
+   texture pointer access. Production builds must retain the pinned production DLLs.
 
-## Validation performed
-
-- Windows x64 native bridge cross-compiled against Streamline 2.12.0 and Unity's v8 headers.
-- All 31 Windows player script assemblies compiled in an isolated Windows-targeted Editor run.
-- Six Streamline Editor tests, 38 existing display-settings tests, and 16 Python
-  release/setup tests passed. Live Editor compilation had no first-party warnings.
-- Five diagnostics regression tests and two shared-page tests passed. Main-menu
-  and pause-menu rendering, compact layout, paused refresh, scrolling, and a
-  single Escape returning only to Settings were checked in the live Editor.
-- Production SHA-256/x64 checks and Unity plugin import/preload validation passed.
-- Full player build failed on macOS at Unity's DXC/STP and ray-tracing shader
-  compilation; no successful Windows GPU execution is claimed.
-- The repository-wide source-size check still fails on two unchanged files:
-  `VoiceWavetable.cs` (1984 lines) and `GameDisplaySettingsTests.cs` (309 lines).
+The macOS Editor cannot complete the project's Windows HDRP shader build because
+its DXC/STP/ray-tracing shader toolchain is unavailable. Use the Windows Editor
+for full player and RTX acceptance.
 
 ## References
 
-- [NVIDIA DLSS-G integration guide](https://github.com/NVIDIA-RTX/Streamline/blob/v2.12.0/docs/ProgrammingGuideDLSS_G.md)
-- [NVIDIA Streamline Reflex guide](https://github.com/NVIDIA-RTX/Streamline/blob/v2.12.0/docs/ProgrammingGuideReflex.md)
+- [Streamline DLSS Super Resolution guide](https://github.com/NVIDIA-RTX/Streamline/blob/v2.12.0/docs/ProgrammingGuideDLSS.md)
+- [Streamline DLSS-G guide](https://github.com/NVIDIA-RTX/Streamline/blob/v2.12.0/docs/ProgrammingGuideDLSS_G.md)
+- [Streamline Reflex guide](https://github.com/NVIDIA-RTX/Streamline/blob/v2.12.0/docs/ProgrammingGuideReflex.md)
 - [Streamline device and DXGI integration](https://github.com/NVIDIA-RTX/Streamline/blob/v2.12.0/docs/ProgrammingGuide.md)
 - [Unity graphics-plugin preloading](https://docs.unity3d.com/6000.5/Documentation/Manual/low-level-native-plugin-rendering-extensions.html)
-- [HDRP DLSS documentation](https://github.com/Unity-Technologies/Graphics/blob/master/Packages/com.unity.render-pipelines.high-definition/Documentation~/deep-learning-super-sampling-in-hdrp.md)

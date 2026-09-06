@@ -2,9 +2,8 @@ using System;
 using System.Text;
 using UnityEngine;
 using UnityEngine.Rendering;
-using UnityEngine.Rendering.HighDefinition;
 
-namespace BudgetGameDev.Shared.Rendering.HighDefinition
+namespace BudgetGameDev.Shared.Rendering
 {
     internal static class StreamlineDiagnosticsReport
     {
@@ -29,7 +28,7 @@ namespace BudgetGameDev.Shared.Rendering.HighDefinition
             if (s.generatedFrames == 0)
                 return "FRAME GENERATION OFF / SUSPENDED";
             if (d.tagMask != 7)
-                return "INCOMPLETE HDRP INPUTS";
+                return "INCOMPLETE PIPELINE INPUTS";
             return Fresh(d.snapshotTick, d.generatedTick)
                 ? "EXTRA PRESENTS OBSERVED BY STREAMLINE"
                 : "FG CONFIGURED; EXTRA PRESENTS NOT OBSERVED";
@@ -69,24 +68,9 @@ namespace BudgetGameDev.Shared.Rendering.HighDefinition
             text.AppendLine(
                 $"Requested: {(requested.DlssRequested ? "On • Quality • Preset K" : "Off")}"
             );
-            if (GraphicsSettings.currentRenderPipeline is HDRenderPipelineAsset asset)
-            {
-                var settings = asset
-                    .currentPlatformRenderPipelineSettings
-                    .dynamicResolutionSettings;
-                text.AppendLine(
-                    $"HDRP asset: {asset.name}; dynamic resolution: {settings.enabled} / {settings.dynResType}"
-                );
-                text.AppendLine(
-                    $"Configured quality enum: {settings.DLSSPerfQualitySetting} (Quality = 2); preset: {settings.DLSSRenderPresetForQuality} (K = 4)"
-                );
-                text.AppendLine(
-                    $"Optimal scaling: {settings.DLSSUseOptimalSettings}; injection: {settings.DLSSInjectionPoint}"
-                );
-                text.AppendLine(
-                    $"Upscaler priority: {string.Join(", ", settings.advancedUpscalerNames)}"
-                );
-            }
+            text.AppendLine(
+                $"Pipeline: {GraphicsSettings.currentRenderPipeline?.name ?? "none"}; backend: NVIDIA Streamline"
+            );
             text.AppendLine(sr);
             text.AppendLine(
                 $"\nFRAME GENERATION\nRequested: {Multiplier((uint)requested.GeneratedFrames)}"
@@ -228,6 +212,7 @@ namespace BudgetGameDev.Shared.Rendering.HighDefinition
             }
             return "HDR active: False; format: SDR / unavailable";
         }
+
         internal static string FgStatus(uint flags)
         {
             if (flags == 0)

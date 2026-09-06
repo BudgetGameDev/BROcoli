@@ -1,5 +1,5 @@
 using System.Runtime.InteropServices;
-using BudgetGameDev.Shared.Rendering.HighDefinition;
+using BudgetGameDev.Shared.Rendering;
 using NUnit.Framework;
 
 namespace BudgetGameDev.Shared.Tests
@@ -77,7 +77,7 @@ namespace BudgetGameDev.Shared.Tests
             data.tagMask = 3;
             Assert.That(
                 StreamlineDiagnosticsReport.FrameGenerationState(status, data),
-                Is.EqualTo("INCOMPLETE HDRP INPUTS")
+                Is.EqualTo("INCOMPLETE PIPELINE INPUTS")
             );
             status.frameGenerationStatus = 2;
             Assert.That(
@@ -92,7 +92,7 @@ namespace BudgetGameDev.Shared.Tests
             var backend = new StreamlineSettingsBackend();
             var state = backend.Capture();
             Assert.That(state.CanSetFrames, Is.False);
-            Assert.That(state.Report, Does.Contain("Windows player only"));
+            Assert.That(state.Report, Does.Contain("SR execution NOT OBSERVED"));
             Assert.That(state.Report, Does.Contain("No accepted configuration"));
         }
 

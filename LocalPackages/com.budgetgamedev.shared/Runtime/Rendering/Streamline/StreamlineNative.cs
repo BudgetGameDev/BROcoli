@@ -2,7 +2,7 @@ using System;
 using System.Runtime.InteropServices;
 using UnityEngine;
 
-namespace BudgetGameDev.Shared.Rendering.HighDefinition
+namespace BudgetGameDev.Shared.Rendering
 {
     internal static partial class StreamlineNative
     {
@@ -97,8 +97,8 @@ namespace BudgetGameDev.Shared.Rendering.HighDefinition
             try
             {
                 bool valid =
-                    BgdSL_GetStatus(out status, (uint)Marshal.SizeOf<Status>()) == 1
-                    && status.abi == 1
+                    BgdSL_GetStatus(out status, (uint)Marshal.SizeOf<Status>()) == 2
+                    && status.abi == 2
                     && BgdSL_FrameDataSize() == Marshal.SizeOf<FrameData>();
                 UnavailableReason = valid
                     ? ""

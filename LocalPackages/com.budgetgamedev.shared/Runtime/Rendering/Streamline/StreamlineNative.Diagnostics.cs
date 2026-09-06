@@ -2,7 +2,7 @@ using System;
 using System.Runtime.InteropServices;
 using System.Text;
 
-namespace BudgetGameDev.Shared.Rendering.HighDefinition
+namespace BudgetGameDev.Shared.Rendering
 {
     internal static partial class StreamlineNative
     {

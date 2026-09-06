@@ -6,9 +6,15 @@ import json
 import os
 import shutil
 import subprocess
+
+# Import also works when setup.py is loaded by release/setup tests.
+import sys
 import urllib.request
 import zipfile
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from urp_hooks import patch_urp
 
 PACKAGE = Path(__file__).resolve().parents[2]
 NATIVE = PACKAGE / "Native~" / "Streamline"
@@ -114,10 +120,16 @@ def main():
     parser.add_argument("--unity-plugin-api", type=Path)
     parser.add_argument("--sdk", type=Path)
     parser.add_argument("--hdrp-source", type=Path)
+    parser.add_argument("--urp-source", type=Path)
+    parser.add_argument("--pipeline", choices=["urp", "hdrp", "both"], default="both")
+    parser.add_argument("--hooks-only", action="store_true")
     parser.add_argument("--hdrp-only", action="store_true")
     args = parser.parse_args()
-    patch_hdrp(args.project.resolve(), args.hdrp_source)
-    if args.hdrp_only:
+    if args.pipeline in ("hdrp", "both") or args.hdrp_only:
+        patch_hdrp(args.project.resolve(), args.hdrp_source)
+    if args.pipeline in ("urp", "both") and not args.hdrp_only:
+        patch_urp(args.project.resolve(), args.urp_source)
+    if args.hdrp_only or args.hooks_only:
         return
     if args.unity_plugin_api is None:
         raise RuntimeError(

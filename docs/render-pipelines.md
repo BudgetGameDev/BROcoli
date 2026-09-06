@@ -274,3 +274,8 @@ the project did not change it: `m_CustomRenderPipeline` in the graphics settings
 points at `3dRenderer`, and High Definition merely registered its global settings
 alongside Universal's. Anything that would make the web build pay for the Windows one is
 a bug.
+
+## HDRP shader build cost
+
+See [HDRP build iteration](hdrp-build-iteration.md) for the unused feature passes
+disabled across the HDRP tiers, per-shader stripping reports, and incremental builds.

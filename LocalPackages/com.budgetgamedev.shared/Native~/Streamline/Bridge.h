@@ -12,6 +12,7 @@
 #include "IUnityGraphicsD3D12.h"
 #include "sl.h"
 #include "sl_dlss_g.h"
+#include "sl_dlss.h"
 #include "sl_reflex.h"
 #include "Diagnostics.h"
 
@@ -19,10 +20,11 @@
 
 namespace bgd
 {
-constexpr uint32_t AbiVersion = 1;
+constexpr uint32_t AbiVersion = 2;
 constexpr int CaptureEvent = 0x425200;
 constexpr int SubmitStartEvent = CaptureEvent + 1;
 constexpr int SubmitEndEvent = CaptureEvent + 2;
+constexpr int SuperResolutionEvent = CaptureEvent + 3;
 inline const sl::ViewportHandle Viewport{0};
 
 // Sequential, 8-byte packed C ABI. Unity matrices are column-major; their memory
@@ -64,6 +66,9 @@ struct Api
     PFun_slSetTagForFrame* tag{};
     PFun_slGetNativeInterface* nativeInterface{};
     PFun_slGetFeatureRequirements* requirements{};
+    PFun_slEvaluateFeature* evaluate{};
+    PFun_slDLSSSetOptions* srOptions{};
+    PFun_slDLSSGetOptimalSettings* srOptimal{};
     PFun_slReflexSleep* sleep{};
     PFun_slReflexSetOptions* reflexOptions{};
     PFun_slReflexGetState* reflexState{};
@@ -79,7 +84,10 @@ extern std::recursive_mutex mutex;
 extern Status status;
 extern sl::FrameToken* submittedFrame;
 extern std::unordered_map<sl::FrameToken*, uint32_t> readyFrames;
-extern bool reflexSupported, pclSupported, fgSupported;
+extern bool reflexSupported, pclSupported, fgSupported, srSupported;
+bool SetFrameConstants(const FrameData& data);
+void EvaluateSuperResolution(void* packet);
+void ConfigureSuperResolution(const sl::AdapterInfo& adapter);
 extern std::atomic<uint32_t> requestedFrames, requestedReflex;
 extern std::atomic<bool> focused;
 extern std::atomic<uint32_t> integrationWarnings;

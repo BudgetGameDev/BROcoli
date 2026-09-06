@@ -1,9 +1,8 @@
 using System;
 using UnityEngine;
 using UnityEngine.Rendering;
-using UnityEngine.Rendering.HighDefinition;
 
-namespace BudgetGameDev.Shared.Rendering.HighDefinition
+namespace BudgetGameDev.Shared.Rendering
 {
     internal sealed class StreamlineSettingsBackend : NvidiaRendering.IBackend
     {
@@ -11,7 +10,7 @@ namespace BudgetGameDev.Shared.Rendering.HighDefinition
         private bool HasPlayer =>
             Application.platform == RuntimePlatform.WindowsPlayer
             && SystemInfo.graphicsDeviceType == GraphicsDeviceType.Direct3D12
-            && GraphicsSettings.currentRenderPipeline is HDRenderPipelineAsset;
+            && (RenderPipelineProbe.IsHighDefinition || RenderPipelineProbe.IsUniversal);
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterAssembliesLoaded)]
         private static void Register() => NvidiaRendering.Backend = new StreamlineSettingsBackend();
@@ -32,11 +31,14 @@ namespace BudgetGameDev.Shared.Rendering.HighDefinition
             string sr = dlss.Read(out bool srSupported);
             snapshot.CanSetDlss = HasPlayer && srSupported;
             snapshot.CanSetFrames =
-                HasPlayer && status.frameGenerationAvailable != 0 && status.swapchainHooked != 0;
+                HasPlayer
+                && StreamlineRuntime.Pipeline?.CanCapture == true
+                && status.frameGenerationAvailable != 0
+                && status.swapchainHooked != 0;
             snapshot.CanSetReflex = HasPlayer && status.reflexAvailable != 0;
             snapshot.MaximumGeneratedFrames = (int)status.maxGeneratedFrames;
             snapshot.Summary =
-                !HasPlayer ? "WINDOWS DX12 HDRP PLAYER REQUIRED"
+                !HasPlayer ? "WINDOWS DX12 URP OR HDRP PLAYER REQUIRED"
                 : !native ? "NATIVE BRIDGE UNAVAILABLE"
                 : !telemetry ? "DIAGNOSTIC EXPORTS UNAVAILABLE"
                 : StreamlineDiagnosticsReport.FrameGenerationState(status, diagnostics);

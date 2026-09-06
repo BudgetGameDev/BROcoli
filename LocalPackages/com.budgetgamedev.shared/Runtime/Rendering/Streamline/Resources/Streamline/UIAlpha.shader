@@ -2,7 +2,6 @@ Shader "Hidden/BudgetGameDev/StreamlineUIAlpha"
 {
     SubShader
     {
-        Tags { "RenderPipeline" = "HDRenderPipeline" }
         Pass
         {
             ZWrite Off ZTest Always Cull Off Blend Off

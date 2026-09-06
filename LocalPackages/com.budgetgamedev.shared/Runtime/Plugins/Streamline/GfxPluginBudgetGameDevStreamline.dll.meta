@@ -5,8 +5,7 @@ PluginImporter:
   serializedVersion: 3
   iconMap: {}
   executionOrder: {}
-  defineConstraints:
-  - '!BROCOLI_URP_PLAYER'
+  defineConstraints: []
   isPreloaded: 1
   isOverridable: 1
   isExplicitlyReferenced: 0

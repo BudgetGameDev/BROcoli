@@ -13,6 +13,31 @@ void Marker(sl::PCLMarker marker, sl::FrameToken* frame)
         if (Check(result)) ++diagnostics.markers;
     }
 }
+bool SetFrameConstants(const FrameData& data)
+{
+    sl::Constants constants;
+    constants.cameraViewToClip = data.viewToClip;
+    constants.clipToCameraView = data.clipToView;
+    constants.clipToPrevClip = data.clipToPrevious;
+    constants.prevClipToClip = data.previousToClip;
+    constants.cameraPos = data.position;
+    constants.cameraUp = data.up;
+    constants.cameraRight = data.right;
+    constants.cameraFwd = data.forward;
+    constants.jitterOffset = data.jitter;
+    constants.mvecScale = data.motionScale;
+    constants.cameraNear = data.nearPlane;
+    constants.cameraFar = data.farPlane;
+    constants.cameraFOV = data.fieldOfView;
+    constants.cameraAspectRatio = data.aspect;
+    constants.depthInverted = data.invertedDepth ? sl::eTrue : sl::eFalse;
+    constants.cameraMotionIncluded = sl::eTrue;
+    constants.motionVectors3D = sl::eFalse;
+    constants.reset = data.reset ? sl::eTrue : sl::eFalse;
+    constants.motionVectorsDilated = sl::eFalse;
+    constants.motionVectorsJittered = sl::eFalse;
+    return Check(api.constants(constants, *data.token, Viewport));
+}
 void Capture(const FrameData& data)
 {
     std::lock_guard lock(mutex);
@@ -46,28 +71,7 @@ void Capture(const FrameData& data)
     }
     if (!data.depth || !data.motion) return;
     diagnostics.renderWidth = data.width; diagnostics.renderHeight = data.height;
-    sl::Constants constants;
-    constants.cameraViewToClip = data.viewToClip;
-    constants.clipToCameraView = data.clipToView;
-    constants.clipToPrevClip = data.clipToPrevious;
-    constants.prevClipToClip = data.previousToClip;
-    constants.cameraPos = data.position;
-    constants.cameraUp = data.up;
-    constants.cameraRight = data.right;
-    constants.cameraFwd = data.forward;
-    constants.jitterOffset = data.jitter;
-    constants.mvecScale = data.motionScale;
-    constants.cameraNear = data.nearPlane;
-    constants.cameraFar = data.farPlane;
-    constants.cameraFOV = data.fieldOfView;
-    constants.cameraAspectRatio = data.aspect;
-    constants.depthInverted = data.invertedDepth ? sl::eTrue : sl::eFalse;
-    constants.cameraMotionIncluded = sl::eTrue;
-    constants.motionVectors3D = sl::eFalse;
-    constants.reset = data.reset ? sl::eTrue : sl::eFalse;
-    constants.motionVectorsDilated = sl::eFalse;
-    constants.motionVectorsJittered = sl::eFalse;
-    if (!Check(api.constants(constants, *data.token, Viewport))) return;
+    if (!SetFrameConstants(data)) return;
     graphics->RequestResourceState(data.depth, readState);
     graphics->RequestResourceState(data.motion, readState);
     sl::Resource depth{sl::ResourceType::eTex2d, data.depth, readState};
@@ -84,6 +88,7 @@ void Capture(const FrameData& data)
 }
 static void UNITY_INTERFACE_API RenderEvent(int event, void* pointer)
 {
+    if (event == SuperResolutionEvent) { EvaluateSuperResolution(pointer); return; }
     if (event == CaptureEvent)
     {
         std::unique_ptr<FrameData> data(static_cast<FrameData*>(pointer));
@@ -129,7 +134,7 @@ EXPORT void* __cdecl BgdSL_BeginFrame()
     sl::FrameToken* frame{};
     {
         std::lock_guard lock(mutex);
-        if (!status.initialized || (!reflexSupported && !pclSupported)) return nullptr;
+        if (!status.initialized || (!reflexSupported && !pclSupported && !srSupported)) return nullptr;
         if (!Check(api.newFrame(frame, nullptr))) return nullptr;
         readyFrames[frame] = 0;
         diagnostics.simulationId = static_cast<uint32_t>(*frame);

@@ -18,7 +18,9 @@ unity install-modules --editor-version "$UNITY_VERSION" \
 
 The scripts also require Python 3, `git`, `ditto`, `zip`, `tar`, and `shasum`. Publishing
 requires an authenticated GitHub CLI (`gh auth login`). The source Unity Editor may stay open; each release builds a separate staging
-project with a fresh Library.
+project with a fresh Library by default. Use `--reuse-stage` (PowerShell: `-ReuseStage`)
+to retain an isolated workspace and its caches. See [HDRP build iteration](hdrp-build-iteration.md)
+for shader stripping, scripts-only iteration and cached release builds.
 
 Windows has a PowerShell-native Windows-only builder that requires `unity`, Python 3,
 and `git`; archive creation and SHA-256 checksums use the installed .NET runtime.

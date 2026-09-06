@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
 
-namespace BudgetGameDev.Shared.Rendering.HighDefinition
+namespace BudgetGameDev.Shared.Rendering
 {
-    /// <summary>Shared Windows HDRP defaults and persistent user preferences.</summary>
+    /// <summary>Shared Windows defaults and persistent user preferences.</summary>
     public static class StreamlineSettings
     {
         public enum ReflexMode
@@ -76,16 +76,13 @@ namespace BudgetGameDev.Shared.Rendering.HighDefinition
             settings.minPercentage = 50;
             settings.maxPercentage = 100;
             settings.forceResolution = false;
-            // Unity's NVIDIA module uses its own enum values (Preset_K = 4),
-            // distinct from Streamline's enums. NVIDIA enum declarations are absent
-            // from Unity's non-Windows player reference assemblies.
-            settings.DLSSPerfQualitySetting = 2; // UnityEngine.NVIDIA.DLSSQuality.MaximumQuality
-            settings.DLSSRenderPresetForQuality = 4; // UnityEngine.NVIDIA.DLSSPreset.Preset_K
-            settings.DLSSUseOptimalSettings = true;
-            settings.DLSSInjectionPoint = DynamicResolutionHandler.UpsamplerScheduleType.BeforePost;
             var priority = new List<string>(settings.advancedUpscalerNames ?? new List<string>());
-            priority.RemoveAll(name => name == "DLSS");
-            priority.Insert(0, "DLSS");
+            priority.RemoveAll(name =>
+                name == "DLSS"
+                || name == "Deep Learning Super Sampling 4"
+                || name == StreamlineUpscaler.Name
+            );
+            priority.Insert(0, StreamlineUpscaler.Name);
             settings.advancedUpscalerNames = priority;
             return settings;
         }

@@ -6,15 +6,26 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import shutil
 import subprocess
-import tempfile
+from contextlib import ExitStack
 from pathlib import Path
 
 try:
     from release_streamline import stage_streamline
+    from release_workspace import (
+        preserve_shader_reports,
+        reset_shader_reports,
+        reuse_workspace,
+        stage_inputs,
+    )
 except ModuleNotFoundError:
     from scripts.release_streamline import stage_streamline
+    from scripts.release_workspace import (
+        preserve_shader_reports,
+        reset_shader_reports,
+        reuse_workspace,
+        stage_inputs,
+    )
 
 GAME_PREFIX = "com.budgetgamedev.game."
 AUTOPLAY_PREFIX = "com.budgetgamedev.autoplay"
@@ -113,45 +124,7 @@ def create_plan(source: Path, product: str, development: bool = False) -> tuple[
 def stage_project(
     source: Path, product: str, development: bool = False, stage_root: Path | None = None
 ) -> Path:
-    source = source.resolve()
-    plan, manifest, local = create_plan(source, product, development)
-    parent = (stage_root or source / "build/release-staging").resolve()
-    parent.mkdir(parents=True, exist_ok=True)
-    stage = Path(tempfile.mkdtemp(prefix=product + "-", dir=parent))
-    # Assets contains shared host settings/editor tools; all game-owned content
-    shutil.copytree(
-        source / "Assets",
-        stage / "Assets",
-        ignore=shutil.ignore_patterns("LauncherConfig.txt", "LauncherConfig.txt.meta"),
-    )
-    shutil.copytree(source / "ProjectSettings", stage / "ProjectSettings")
-    for name in plan["localPackages"]:
-        shutil.copytree(
-            local[name][0],
-            stage / "LocalPackages" / name,
-            ignore=shutil.ignore_patterns(
-                "Tests", "Tests.meta", "Samples~", "Documentation~", "artifacts"
-            ),
-        )
-    write_json(stage / "Packages/manifest.json", manifest)
-    lock_path = source / "Packages/packages-lock.json"
-    if lock_path.is_file():
-        lock = read_json(lock_path)
-        lock["dependencies"] = {
-            name: value
-            for name, value in lock.get("dependencies", {}).items()
-            if (name not in local or name in plan["localPackages"])
-            and name
-            not in {
-                "com.unity.pipeline",
-                "com.unity.test-framework",
-                "com.unity.testtools.codecoverage",
-                "com.unity.ide.visualstudio",
-            }
-        }
-        write_json(stage / "Packages/packages-lock.json", lock)
-    write_json(stage / "BuildContent.json", plan)
-    return stage
+    return stage_inputs(source, product, create_plan(source, product, development), stage_root)
 
 
 def audit_player(stage: Path, output: Path) -> dict:
@@ -217,7 +190,17 @@ def main() -> int:
     parser.add_argument("--stage-only", action="store_true")
     parser.add_argument("--stage-root", type=Path)
     parser.add_argument("--output", type=Path)
+    parser.add_argument(
+        "--reuse-stage",
+        action="store_true",
+        help="Reuse an isolated workspace and its Unity caches",
+    )
     args = parser.parse_args()
+    with ExitStack() as contexts:
+        return build(args, contexts, parser)
+
+
+def build(args, contexts, parser):
     targets = list(dict.fromkeys(args.targets.split(",")))
     if not targets or any(
         target not in {"windows", "macos", "linux", "webgl"} for target in targets
@@ -227,6 +210,12 @@ def main() -> int:
         parser.error("build webgl separately from native targets")
     stage = stage_project(args.source, args.product, args.development, args.stage_root)
     stage_streamline(args.source.resolve(), stage, args.pipeline, targets)
+    if args.reuse_stage:
+        stage = contexts.enter_context(
+            reuse_workspace(
+                stage, args.source, args.product, args.pipeline, targets, args.development
+            )
+        )
     print(f"Isolated {args.product} project: {stage}", flush=True)
     if args.stage_only:
         return 0
@@ -281,7 +270,11 @@ def main() -> int:
             key, separator, value = line.strip().partition("=")
             if separator and key.strip() == environment_variable:
                 environment[environment_variable] = value.strip().strip("\"'")
-    subprocess.run(command, check=True, env=environment)
+    reset_shader_reports(stage)
+    try:
+        subprocess.run(command, check=True, env=environment)
+    finally:
+        preserve_shader_reports(stage, output)
     expected = {
         "windows": f"windows/{read_json(stage / 'BuildContent.json')['productName']}.exe",
         "macos": f"macos/{read_json(stage / 'BuildContent.json')['productName']}.app",

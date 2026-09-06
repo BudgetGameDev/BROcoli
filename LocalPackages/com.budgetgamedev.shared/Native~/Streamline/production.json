@@ -11,6 +11,10 @@
       "sha256": "c57930ef5a8a3fe9be85efdf71a61d8107c1148e8a6aed456464547128f7f4ae"
     },
     {
+      "name": "sl.dlss.dll",
+      "sha256": "a997022d2b93601e0eefc3ddb3067c36df386dd3163ae71e11095191fb14f8e4"
+    },
+    {
       "name": "sl.dlss_g.dll",
       "sha256": "1fec3f8fdfc59d78c4445c276c1a0fb798bf251985f348597dc2b44d0c995e52"
     },
