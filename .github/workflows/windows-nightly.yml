@@ -40,8 +40,17 @@ jobs:
           $licensePath = Join-Path $env:RUNNER_TEMP 'Unity-license.ulf'
           try {
             [IO.File]::WriteAllText($licensePath, $env:UNITY_LICENSE)
-            unity license activate --file $licensePath --non-interactive --no-banner *> (Join-Path $env:RUNNER_TEMP 'license-activation.log')
-            if ($LASTEXITCODE -ne 0) { throw 'The existing UNITY_LICENSE could not activate this Windows runner. A license valid for Windows CI is required.' }
+            $response = unity license activate --file $licensePath --non-interactive --no-banner --format json
+            if ($LASTEXITCODE -ne 0) {
+              $failure = ($response | ConvertFrom-Json).errors
+              foreach ($item in $failure) {
+                # Emit structured errors only; never the license file or license records.
+                $message = [string]$item.message
+                $message = $message -replace '[^\s]+@[^\s]+', '[email]' -replace '[A-Za-z0-9+/=_-]{24,}', '[redacted]'
+                Write-Host "$($item.code): $message"
+              }
+              throw 'The existing UNITY_LICENSE could not activate this Windows runner.'
+            }
           } finally {
             Remove-Item -LiteralPath $licensePath -Force -ErrorAction SilentlyContinue
           }
