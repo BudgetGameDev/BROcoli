@@ -1,0 +1,92 @@
+name: GameCI
+
+on:
+  push:
+    branches: [ "main", "release" ]
+  pull_request:
+    branches: [ "main", "release" ]
+
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  buildWebGL:
+    name: Build for WebGL
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      
+      - name: Restore Library cache
+        uses: actions/cache@v4
+        with:
+          path: Library
+          key: Library-build-WebGL
+          restore-keys: |
+            Library-build-
+            Library-
+
+      - name: Build Unity
+        uses: game-ci/unity-builder@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          targetPlatform: WebGL
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-WebGL
+          path: build/WebGL
+
+  deployPages:
+    needs: buildWebGL
+    name: Deploy to Github Pages
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-WebGL
+          path: build
+
+      - name: Generate version.json
+        run: |
+          BUILD_ID="build-$(date +%s)-$(echo $GITHUB_SHA | cut -c1-7)"
+          BUILD_TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          BUILD_NUMBER=$GITHUB_RUN_NUMBER
+          COMMIT_SHA=$GITHUB_SHA
+          COMMIT_MSG=$(git log -1 --pretty=%B | head -n 1)
+          
+          cat > build/WebGL/version.json << EOF
+          {
+            "buildId": "$BUILD_ID",
+            "buildTimestamp": "$BUILD_TIMESTAMP",
+            "buildNumber": $BUILD_NUMBER,
+            "commitSha": "$COMMIT_SHA",
+            "description": "$COMMIT_MSG"
+          }
+          EOF
+          
+          echo "Generated version.json:"
+          cat build/WebGL/version.json
+
+      - name: Deploy
+        # uses: JamesIves/github-pages-deploy-action@v4.4.1
+        uses: JamesIves/github-pages-deploy-action@4.1.4
+        with:
+          branch: gh-pages
+          folder: build/WebGL
+          # main branch deploys to /main subpath, release branch deploys to root
+          target-folder: ${{ github.ref_name == 'main' && 'main' || '' }}
+          clean-exclude: |
+            main/**

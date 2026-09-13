@@ -1,0 +1,11 @@
+{
+    "files.exclude": {
+    },
+    "files.associations": {
+        "*.asset": "yaml",
+        "*.meta": "yaml",
+        "*.prefab": "yaml",
+        "*.unity": "yaml",
+    },
+    "dotnet.defaultSolution": "unity-2.slnx"
+}
